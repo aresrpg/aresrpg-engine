@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc -p src/lib/config/tsconfig.json",
     "clean": "shx rm -rf dist test/**/*.js*",
+    "lint": "eslint src/lib -c src/lib/config/.eslintrc.json --ext .ts --fix",
     "test:http-server": "http-server ./test -p 8086 -c-1",
     "test:build": "webpack --config src/test/config/webpack.config.js"
   },
@@ -14,6 +15,9 @@
   },
   "devDependencies": {
     "@types/three": "^0.161.2",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "eslint": "^8.57.0",
     "http-server": "^14.1.1",
     "shx": "^0.3.4",
     "simplex-noise": "^4.0.1",
