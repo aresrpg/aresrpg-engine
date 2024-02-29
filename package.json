@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "main": "dist/index.js",
   "scripts": {
+    "publish": "npm run build && npm run lint",
     "build": "tsc -p src/lib/config/tsconfig.json",
     "clean": "shx rm -rf dist test/**/*.js*",
     "lint": "eslint src/lib -c src/lib/config/.eslintrc.json --ext .ts --fix",
