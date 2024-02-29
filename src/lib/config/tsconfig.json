@@ -1,7 +1,7 @@
 {
     "files": [
-        "../lib/index.ts"
-      ],
+        "../index.ts"
+	],
 	"compilerOptions": {
 		/* Type Checking */
 		"allowUnreachableCode": false,
@@ -35,7 +35,7 @@
 		/* Emit */
 		"declaration": true,
         "declarationMap": false,
-		"outDir": "../../dist",
+		"outDir": "../../../dist",
 		"sourceMap": false,
 
 		/* JavaScript Support */

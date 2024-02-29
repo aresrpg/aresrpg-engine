@@ -4,13 +4,22 @@
   "version": "0.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc -p src/config/tsconfig.json"
+    "build": "tsc -p src/lib/config/tsconfig.json",
+    "clean": "shx rm -rf dist test/**/*.js*",
+    "test:http-server": "http-server ./test -p 8086 -c-1",
+    "test:build": "webpack --config src/test/config/webpack.config.js"
   },
   "dependencies": {
     "three": "^0.162.0"
   },
   "devDependencies": {
     "@types/three": "^0.161.2",
-    "typescript": "^5.3.3"
+    "http-server": "^14.1.1",
+    "shx": "^0.3.4",
+    "simplex-noise": "^4.0.1",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.3.3",
+    "webpack": "^5.90.3",
+    "webpack-cli": "^5.1.4"
   }
 }
