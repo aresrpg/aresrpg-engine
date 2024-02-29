@@ -25,15 +25,6 @@ const voxelMap = new VoxelMap(256, 256, 16);
 const terrain = new AresRpgEngine.Terrain(voxelMap);
 scene.add(terrain.container);
 
-const boundingBox = new THREE.Mesh(
-    new THREE.BoxGeometry(voxelMap.size.x, voxelMap.size.y, voxelMap.size.z),
-    new THREE.MeshBasicMaterial({
-        color: "#FFFFFF",
-        wireframe: true,
-    }));
-boundingBox.position.set(voxelMap.size.x / 2, voxelMap.size.y / 2, voxelMap.size.z / 2);
-scene.add(boundingBox);
-
 scene.add(new THREE.AxesHelper(500));
 
 camera.position.set(-50, 100, -50);
