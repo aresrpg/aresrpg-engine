@@ -7,7 +7,7 @@ type PatchMesh = {
 };
 
 class Patch {
-    public readonly container = new THREE.Object3D();
+    public readonly container: THREE.Object3D;
 
     public readonly parameters = {
         voxels: {
