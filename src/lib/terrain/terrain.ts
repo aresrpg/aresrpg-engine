@@ -4,7 +4,13 @@ import { EDisplayMode, Patch } from "./patch/patch";
 import { PatchFactoryBase } from "./patch/patch-factory/patch-factory-base";
 import { PatchFactorySplit } from "./patch/patch-factory/split/patch-factory-split";
 
+/**
+ * Class that takes an IVoxelMap and makes a renderable three.js object of it.
+ */
 class Terrain {
+    /**
+     * The three.js object containing the renderable map.
+     */
     public readonly container: THREE.Object3D;
 
     public readonly parameters = {
@@ -34,6 +40,10 @@ class Terrain {
 
     private readonly patches: Record<string, Patch | null> = {};
 
+    /**
+     * 
+     * @param map The map that will be rendered.
+     */
     public constructor(map: IVoxelMap) {
         this.map = map;
         this.patchFactory = new PatchFactorySplit(map);
@@ -44,6 +54,9 @@ class Terrain {
         this.container = new THREE.Group();
     }
 
+    /**
+     * Makes the whole make visible.
+     */
     public showEntireMap(): void {
         const patchStart = new THREE.Vector3();
         for (patchStart.x = 0; patchStart.x < this.map.size.x; patchStart.x += this.patchSize.x) {
@@ -58,6 +71,11 @@ class Terrain {
         }
     }
 
+    /**
+     * Only makes visible the portion of the map that is around a given position.
+     * @param position The position around which the map will be made visible.
+     * @param radius The visibility radius, in voxels.
+     */
     public showMapAroundPosition(position: THREE.Vector3, radius: number): void {
         const voxelFrom = new THREE.Vector3().copy(position).subScalar(radius);
         const voxelTo = new THREE.Vector3().copy(position).addScalar(radius);
@@ -84,6 +102,7 @@ class Terrain {
         }
     }
 
+    /** Call this method before rendering. */
     public updateUniforms(): void {
         for (const patch of Object.values(this.patches)) {
             if (patch) {
@@ -105,6 +124,10 @@ class Terrain {
         }
     }
 
+    /**
+     * Deletes all the geometry data stored on the GPU.
+     * It will be recomputed if needed again.
+     */
     public clear(): void {
         for (const [patchId, patch] of Object.entries(this.patches)) {
             patch?.dispose();
@@ -113,6 +136,9 @@ class Terrain {
         }
     }
 
+    /**
+     * Frees the GPU-related resources allocated by this instance. Call this method whenever this instance is no longer used in your app.
+     */
     public dispose(): void {
         this.clear();
         this.patchFactory.dispose();
