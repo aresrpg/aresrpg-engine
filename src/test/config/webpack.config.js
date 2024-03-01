@@ -17,7 +17,10 @@ function makeExport(sourceFilepath /* string */, outFolder /* string */, mode /*
         },
         target: ["web", "es5"],
         resolve: {
-            extensions: [".ts"]
+            extensions: [".ts"],
+            alias: {
+                three: path.resolve('./node_modules/three')
+            },
         },
         module: {
             rules: [
