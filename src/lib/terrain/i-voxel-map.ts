@@ -43,7 +43,7 @@ interface IVoxelMap {
      * @returns an array of all the possible voxel materials contained in the map.
      * Each material is then identified by its index in the array.
      */
-    getAllVoxelMaterials(): IVoxelMaterial[];
+    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
 
     /**
      * @param from Start of the subsection

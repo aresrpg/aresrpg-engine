@@ -25,6 +25,8 @@ type StoredVoxel = {
 
 class VoxelMap implements AresRpgEngine.IVoxelMap {
     public readonly size: THREE.Vector3;
+    public readonly voxelMaterialsList = Object.values(voxelMaterials);
+
     private readonly voxels: ReadonlyArray<StoredVoxel>;
 
     public constructor(width: number, height: number, altitude: number) {
@@ -60,10 +62,6 @@ class VoxelMap implements AresRpgEngine.IVoxelMap {
         this.voxels = voxels;
 
         console.log(`Generated map of size ${this.size.x}x${this.size.y}x${this.size.z} (${this.voxels.length.toLocaleString()} voxels)`);
-    }
-
-    getAllVoxelMaterials(): AresRpgEngine.IVoxelMaterial[] {
-        return Object.values(voxelMaterials);
     }
 
     public getMaxVoxelsCount(from: THREE.Vector3, to: THREE.Vector3): number {

@@ -44,7 +44,7 @@ abstract class PatchFactoryBase {
     protected constructor(map: IVoxelMap, voxelTypeEncoder: PackedUintFragment) {
         this.map = map;
 
-        this.texture = PatchFactoryBase.buildMaterialsTexture(map.getAllVoxelMaterials(), voxelTypeEncoder);
+        this.texture = PatchFactoryBase.buildMaterialsTexture(map.voxelMaterialsList, voxelTypeEncoder);
         this.noiseTexture = PatchFactoryBase.buildNoiseTexture(this.noiseResolution, this.noiseTypes);
 
         this.uniformsTemplate = {
