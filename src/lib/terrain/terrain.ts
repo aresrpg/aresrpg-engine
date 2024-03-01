@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { IVoxelMap } from "./i-voxel-map";
-import { PatchFactoryBase } from "./patch/factory/factory-base";
-import { PatchFactorySplit } from "./patch/factory/split/factory";
 import { EDisplayMode, Patch } from "./patch/patch";
+import { PatchFactoryBase } from "./patch/patch-factory/patch-factory-base";
+import { PatchFactorySplit } from "./patch/patch-factory/split/patch-factory-split";
 
 class Terrain {
     public readonly container: THREE.Object3D;
@@ -140,5 +140,5 @@ class Terrain {
     }
 }
 
-export { type IVoxelMap, Terrain };
+export { Terrain, type IVoxelMap };
 

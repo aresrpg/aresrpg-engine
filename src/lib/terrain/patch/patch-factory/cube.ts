@@ -143,5 +143,5 @@ const faces: Record<FaceType, Face> = {
 };
 const facesById = Object.values(faces).sort((face1: Face, face2: Face) => face1.id - face2.id);
 
-export { faceIndices, faces, facesById, type FaceVertex, type FaceType };
+export { faceIndices, faces, facesById, type FaceType, type FaceVertex };
 

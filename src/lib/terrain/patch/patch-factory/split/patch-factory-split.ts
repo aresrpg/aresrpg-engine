@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { IVoxelMap } from "../../../i-voxel-map";
 import { EDisplayMode, PatchMaterial } from "../../material";
 import * as Cube from "../cube";
-import { GeometryAndMaterial, PatchFactoryBase, VertexData } from "../factory-base";
+import { GeometryAndMaterial, PatchFactoryBase, VertexData } from "../patch-factory-base";
 import { VertexDataEncoder } from "./vertex-data-encoder";
 
 class PatchFactorySplit extends PatchFactoryBase {
