@@ -74,7 +74,7 @@ class PatchFactorySplit extends PatchFactoryBase {
 
             vAo = float(${PatchFactorySplit.vertexDataEncoder.ao.glslDecode(PatchFactorySplit.dataAttributeName)}) / ${PatchFactorySplit.vertexDataEncoder.ao.maxValue.toFixed(1)};
 
-            vMaterial = int(${PatchFactorySplit.vertexDataEncoder.voxelType.glslDecode(PatchFactorySplit.dataAttributeName)});
+            vMaterial = int(${PatchFactorySplit.vertexDataEncoder.voxelMaterialId.glslDecode(PatchFactorySplit.dataAttributeName)});
             vNoise = int(worldVoxelPosition.x + worldVoxelPosition.y * 3u + worldVoxelPosition.z * 2u) % ${this.noiseTypes};
         }`,
             fragmentShader: `precision mediump float;
@@ -162,7 +162,7 @@ class PatchFactorySplit extends PatchFactoryBase {
     }
 
     public constructor(map: IVoxelMap) {
-        super(map, PatchFactorySplit.vertexDataEncoder.voxelType);
+        super(map, PatchFactorySplit.vertexDataEncoder.voxelMaterialId);
     }
 
     protected disposeInternal(): void {
@@ -203,7 +203,7 @@ class PatchFactorySplit extends PatchFactoryBase {
             faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
                 faceVerticesData[faceVertexIndex] = PatchFactorySplit.vertexDataEncoder.encode(
                     faceData.voxelLocalPosition.x, faceData.voxelLocalPosition.y, faceData.voxelLocalPosition.z,
-                    faceData.voxelType,
+                    faceData.voxelMaterialId,
                     faceVertexData.ao,
                     [faceVertexData.roundnessX, faceVertexData.roundnessY],
                 );

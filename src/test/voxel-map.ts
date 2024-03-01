@@ -90,7 +90,7 @@ class VoxelMap implements AresRpgEngine.IVoxelMap {
                     if (from.y <= position.y && position.y < to.y) {
                         yield {
                             position,
-                            typeId: voxel.type
+                            materialId: voxel.type
                         };
                     }
                 }

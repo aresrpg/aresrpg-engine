@@ -13,7 +13,7 @@ type GeometryAndMaterial = {
 type FaceData = {
     readonly voxelWorldPosition: THREE.Vector3;
     readonly voxelLocalPosition: THREE.Vector3;
-    readonly voxelType: number;
+    readonly voxelMaterialId: number;
     readonly faceType: Cube.FaceType;
     readonly faceId: number;
     readonly verticesData: [VertexData, VertexData, VertexData, VertexData];
@@ -112,7 +112,7 @@ abstract class PatchFactoryBase {
                 yield {
                     voxelWorldPosition,
                     voxelLocalPosition,
-                    voxelType: voxel.typeId,
+                    voxelMaterialId: voxel.materialId,
                     faceType: face.type,
                     faceId: face.id,
                     verticesData: face.vertices.map((faceVertex: Cube.FaceVertex): VertexData => {

@@ -22,7 +22,7 @@ interface IVoxelMaterial {
  */
 interface IVoxel {
     readonly position: Uint3;
-    readonly typeId: number;
+    readonly materialId: number;
 }
 
 /**
