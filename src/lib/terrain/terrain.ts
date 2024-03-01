@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from "../three-usage";
 import { IVoxelMap } from "./i-voxel-map";
 import { EDisplayMode, Patch } from "./patch/patch";
 import { PatchFactoryBase } from "./patch/patch-factory/patch-factory-base";

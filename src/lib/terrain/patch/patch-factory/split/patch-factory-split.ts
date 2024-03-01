@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from "../../../../three-usage";
 import { IVoxelMap } from "../../../i-voxel-map";
 import { EDisplayMode, PatchMaterial } from "../../material";
 import * as Cube from "../cube";

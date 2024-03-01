@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from "../../three-usage";
 import { EDisplayMode, PatchMaterial } from "./material";
 
 type PatchMesh = {

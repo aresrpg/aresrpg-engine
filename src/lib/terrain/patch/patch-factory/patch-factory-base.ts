@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from "../../../three-usage";
 import type { IVoxelMap, IVoxelMaterial } from "../../i-voxel-map";
 import type { PatchMaterial, PatchMaterialUniforms } from "../material";
 import { Patch } from "../patch";
