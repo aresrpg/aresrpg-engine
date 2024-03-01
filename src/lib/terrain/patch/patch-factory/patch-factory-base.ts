@@ -145,7 +145,7 @@ abstract class PatchFactoryBase {
 
     protected abstract disposeInternal(): void;
 
-    private static buildMaterialsTexture(voxelMaterials: IVoxelMaterial[], voxelTypeEncoder: PackedUintFragment): THREE.Texture {
+    private static buildMaterialsTexture(voxelMaterials: ReadonlyArray<IVoxelMaterial>, voxelTypeEncoder: PackedUintFragment): THREE.Texture {
         const voxelTypesCount = voxelMaterials.length;
         const maxVoxelTypesSupported = voxelTypeEncoder.maxValue + 1;
         if (voxelTypesCount > maxVoxelTypesSupported) {
