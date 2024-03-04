@@ -1,5 +1,5 @@
 {
-  "name": "aresrpg-engine",
+  "name": "@aresrpg/aresrpg-engine",
   "version": "0.1.4",
   "main": "dist/index.js",
   "files": [
