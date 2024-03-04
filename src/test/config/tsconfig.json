@@ -1,9 +1,7 @@
 {
-    "extends": "../../lib/config/tsconfig.json",
-    "files": [
-        "../main.ts"
-    ],
-    "compilerOptions": {
-        "declaration": false,
-    }
+  "extends": "../../../tsconfig.json",
+  "files": ["../main.ts"],
+  "compilerOptions": {
+    "declaration": false
+  }
 }

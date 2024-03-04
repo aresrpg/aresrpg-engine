@@ -7,9 +7,10 @@
   ],
   "scripts": {
     "publish": "npm run build && npm run lint",
-    "build": "tsc -p src/lib/config/tsconfig.json",
+    "build": "tsc -p tsconfig.json",
     "clean": "shx rm -rf dist test/**/*.js*",
-    "lint": "eslint src/lib -c src/lib/config/.eslintrc.json --ext .ts --fix",
+    "lint": "eslint . --ext .ts && prettier . --check",
+    "format": "prettier . --write && eslint . --fix --ext .ts",
     "test:http-server": "http-server ./test -p 8086 -c-1",
     "test:build": "webpack --config src/test/config/webpack.config.js"
   },
@@ -24,12 +25,32 @@
     "@typescript-eslint/eslint-plugin": "^7.1.0",
     "@typescript-eslint/parser": "^7.1.0",
     "eslint": "^8.57.0",
+    "eslint-config-prettier": "9.1.0",
+    "eslint-config-standard": "17.1.0",
+    "eslint-plugin-import": "2.29.1",
     "http-server": "^14.1.1",
     "shx": "^0.3.4",
     "simplex-noise": "^4.0.1",
     "ts-loader": "^9.5.1",
     "typescript": "^5.3.3",
+    "husky": "^4.3.8",
+    "lint-staged": "13.2.3",
+    "prettier": "3.1.1",
     "webpack": "^5.90.3",
     "webpack-cli": "^5.1.4"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.js": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.json": "prettier --write",
+    "*.md": "prettier --write",
+    "*.yml": "prettier --write"
   }
 }
