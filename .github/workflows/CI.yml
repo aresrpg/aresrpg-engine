@@ -2,10 +2,23 @@ name: CI
 
 on:
   push:
+    branches:
+      - master
     tags:
       - v*
+  pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 21
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
   publish-npm:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
@@ -14,6 +27,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 21
+          cache: 'npm'
           registry-url: https://registry.npmjs.org/
       - run: npm ci
       - run: npm run lint

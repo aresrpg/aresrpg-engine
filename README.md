@@ -14,5 +14,3 @@
 ![](https://i.imgur.com/ozCF28L.png)
 
 TODO: documentation
-
-
