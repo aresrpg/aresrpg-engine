@@ -1,6 +1,5 @@
 {
   "name": "aresrpg-engine",
-  "private": true,
   "version": "0.1.3",
   "main": "dist/index.js",
   "files": [
