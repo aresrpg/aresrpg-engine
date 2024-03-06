@@ -136,7 +136,7 @@ class VoxelMap implements AresRpgEngine.IVoxelMap {
     }
   }
 
-  public voxelExists(x: number, y: number, z: number): boolean {
+  private voxelExists(x: number, y: number, z: number): boolean {
     const voxel = this.getVoxel(x, z)
     return voxel?.y === y
   }

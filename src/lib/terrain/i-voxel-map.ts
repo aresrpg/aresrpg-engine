@@ -88,11 +88,6 @@ interface IVoxelMap {
    * @param to End of the subsection (exclusive)
    */
   iterateOnVoxels(from: Uint3, to: Uint3): Generator<IVoxel>
-
-  /**
-   * @returns whether or not a voxel exists at these coordinates.
-   */
-  voxelExists(x: number, y: number, z: number): boolean
 }
 
 export type { IVoxel, IVoxelMap, IVoxelMaterial };
