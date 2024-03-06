@@ -134,13 +134,7 @@ abstract class PatchFactoryBase {
       )
 
       for (const face of Object.values(Cube.faces)) {
-        if (
-          this.map.voxelExists(
-            voxelWorldPosition.x + face.normal.x,
-            voxelWorldPosition.y + face.normal.y,
-            voxelWorldPosition.z + face.normal.z,
-          )
-        ) {
+        if (voxel.neighbours[face.facingNeighbour]) {
           // this face will be hidden -> skip it
           continue
         }
@@ -155,12 +149,7 @@ abstract class PatchFactoryBase {
             (faceVertex: Cube.FaceVertex): VertexData => {
               let ao = 0
               const [a, b, c] = faceVertex.shadowingNeighbourVoxels.map(
-                neighbourVoxel =>
-                  this.map.voxelExists(
-                    voxelWorldPosition.x + neighbourVoxel.x,
-                    voxelWorldPosition.y + neighbourVoxel.y,
-                    voxelWorldPosition.z + neighbourVoxel.z,
-                  ),
+                neighbourVoxel => voxel.neighbours[neighbourVoxel]
               ) as [boolean, boolean, boolean]
               if (a && b) {
                 ao = 3
@@ -172,18 +161,10 @@ abstract class PatchFactoryBase {
               let roundnessY = true
               if (faceVertex.edgeNeighbourVoxels) {
                 for (const neighbourVoxel of faceVertex.edgeNeighbourVoxels.x) {
-                  roundnessX &&= !this.map.voxelExists(
-                    voxelWorldPosition.x + neighbourVoxel.x,
-                    voxelWorldPosition.y + neighbourVoxel.y,
-                    voxelWorldPosition.z + neighbourVoxel.z,
-                  )
+                  roundnessX &&= !voxel.neighbours[neighbourVoxel];
                 }
                 for (const neighbourVoxel of faceVertex.edgeNeighbourVoxels.y) {
-                  roundnessY &&= !this.map.voxelExists(
-                    voxelWorldPosition.x + neighbourVoxel.x,
-                    voxelWorldPosition.y + neighbourVoxel.y,
-                    voxelWorldPosition.z + neighbourVoxel.z,
-                  )
+                  roundnessY &&= !voxel.neighbours[neighbourVoxel];
                 }
               }
               return {

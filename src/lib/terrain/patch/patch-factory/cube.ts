@@ -1,4 +1,5 @@
 import * as THREE from '../../../three-usage'
+import { ENeighbour } from '../../i-voxel-map'
 
 const vertices = {
   ppp: new THREE.Vector3(1, 1, 1),
@@ -12,14 +13,10 @@ const vertices = {
 }
 type FaceVertex = {
   readonly vertex: THREE.Vector3
-  readonly shadowingNeighbourVoxels: [
-    THREE.Vector3,
-    THREE.Vector3,
-    THREE.Vector3,
-  ]
+  readonly shadowingNeighbourVoxels: [ENeighbour, ENeighbour, ENeighbour]
   readonly edgeNeighbourVoxels: {
-    readonly x: [THREE.Vector3, THREE.Vector3]
-    readonly y: [THREE.Vector3, THREE.Vector3]
+    readonly x: [ENeighbour, ENeighbour]
+    readonly y: [ENeighbour, ENeighbour]
   }
 }
 
@@ -41,6 +38,7 @@ type Face = {
   readonly normal: THREE.Vector3
   readonly uvUp: THREE.Vector3
   readonly uvRight: THREE.Vector3
+  readonly facingNeighbour: ENeighbour;
 }
 
 const faceIndices: [number, number, number, number, number, number] = [
@@ -62,6 +60,24 @@ function buildFace(
   const uvLeft = uvRight.clone().multiplyScalar(-1)
   const uvDown = uvUp.clone().multiplyScalar(-1)
 
+  const getValueCode = (value: number): string => {
+    if (value === -1) {
+      return "M";
+    } else if (value === 1) {
+      return "P";
+    }
+    return "0";
+  };
+
+  const getNeighbourCode = (vec3: THREE.Vector3): ENeighbour => {
+    const key = `x${getValueCode(vec3.x)}y${getValueCode(vec3.y)}z${getValueCode(vec3.z)}`;
+    const result = ENeighbour[key as any];
+    if (typeof result === "undefined"){
+      throw new Error("Should not happen");
+    }
+    return result as unknown as ENeighbour;
+  };
+
   return {
     id: iF++,
     type,
@@ -69,55 +85,56 @@ function buildFace(
       {
         vertex: v00,
         shadowingNeighbourVoxels: [
-          new THREE.Vector3().subVectors(normal, uvRight),
-          new THREE.Vector3().subVectors(normal, uvUp),
-          new THREE.Vector3().subVectors(normal, uvRight).sub(uvUp),
+          getNeighbourCode(new THREE.Vector3().subVectors(normal, uvRight)),
+          getNeighbourCode(new THREE.Vector3().subVectors(normal, uvUp)),
+          getNeighbourCode(new THREE.Vector3().subVectors(normal, uvRight).sub(uvUp)),
         ],
         edgeNeighbourVoxels: {
-          x: [uvLeft, new THREE.Vector3().addVectors(uvLeft, normal)],
-          y: [uvDown, new THREE.Vector3().addVectors(uvDown, normal)],
+          x: [getNeighbourCode(uvLeft), getNeighbourCode(new THREE.Vector3().addVectors(uvLeft, normal))],
+          y: [getNeighbourCode(uvDown), getNeighbourCode(new THREE.Vector3().addVectors(uvDown, normal))],
         },
       },
       {
         vertex: v01,
         shadowingNeighbourVoxels: [
-          new THREE.Vector3().subVectors(normal, uvRight),
-          new THREE.Vector3().addVectors(normal, uvUp),
-          new THREE.Vector3().subVectors(normal, uvRight).add(uvUp),
+          getNeighbourCode(new THREE.Vector3().subVectors(normal, uvRight)),
+          getNeighbourCode(new THREE.Vector3().addVectors(normal, uvUp)),
+          getNeighbourCode(new THREE.Vector3().subVectors(normal, uvRight).add(uvUp)),
         ],
         edgeNeighbourVoxels: {
-          x: [uvLeft, new THREE.Vector3().addVectors(uvLeft, normal)],
-          y: [uvUp, new THREE.Vector3().addVectors(uvUp, normal)],
+          x: [getNeighbourCode(uvLeft), getNeighbourCode(new THREE.Vector3().addVectors(uvLeft, normal))],
+          y: [getNeighbourCode(uvUp),   getNeighbourCode(new THREE.Vector3().addVectors(uvUp, normal))],
         },
       },
       {
         vertex: v10,
         shadowingNeighbourVoxels: [
-          new THREE.Vector3().addVectors(normal, uvRight),
-          new THREE.Vector3().subVectors(normal, uvUp),
-          new THREE.Vector3().addVectors(normal, uvRight).sub(uvUp),
+          getNeighbourCode(new THREE.Vector3().addVectors(normal, uvRight)),
+          getNeighbourCode(new THREE.Vector3().subVectors(normal, uvUp)),
+          getNeighbourCode(new THREE.Vector3().addVectors(normal, uvRight).sub(uvUp)),
         ],
         edgeNeighbourVoxels: {
-          x: [uvRight, new THREE.Vector3().addVectors(uvRight, normal)],
-          y: [uvDown, new THREE.Vector3().addVectors(uvDown, normal)],
+          x: [getNeighbourCode(uvRight), getNeighbourCode(new THREE.Vector3().addVectors(uvRight, normal))],
+          y: [getNeighbourCode(uvDown),  getNeighbourCode(new THREE.Vector3().addVectors(uvDown, normal))],
         },
       },
       {
         vertex: v11,
         shadowingNeighbourVoxels: [
-          new THREE.Vector3().addVectors(normal, uvRight),
-          new THREE.Vector3().addVectors(normal, uvUp),
-          new THREE.Vector3().addVectors(normal, uvRight).add(uvUp),
+          getNeighbourCode(new THREE.Vector3().addVectors(normal, uvRight)),
+          getNeighbourCode(new THREE.Vector3().addVectors(normal, uvUp)),
+          getNeighbourCode(new THREE.Vector3().addVectors(normal, uvRight).add(uvUp)),
         ],
         edgeNeighbourVoxels: {
-          x: [uvRight, new THREE.Vector3().addVectors(uvRight, normal)],
-          y: [uvUp, new THREE.Vector3().addVectors(uvUp, normal)],
+          x: [getNeighbourCode(uvRight), getNeighbourCode(new THREE.Vector3().addVectors(uvRight, normal))],
+          y: [getNeighbourCode(uvUp),    getNeighbourCode(new THREE.Vector3().addVectors(uvUp, normal))],
         },
       },
     ],
     normal,
     uvUp,
     uvRight,
+    facingNeighbour: getNeighbourCode(normal),
   }
 }
 
