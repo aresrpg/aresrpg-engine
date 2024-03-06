@@ -28,9 +28,4 @@ type PatchMaterial = THREE.Material & {
   readonly uniforms: PatchMaterialUniforms;
 };
 
-export {
-  EDisplayMode,
-  EMaterial,
-  type PatchMaterial,
-  type PatchMaterialUniforms,
-};
+export { EDisplayMode, EMaterial, type PatchMaterial, type PatchMaterialUniforms };

@@ -33,10 +33,7 @@ class PackedUintFactory {
       glslDecode: (varname: string) => {
         return `((${varname} >> ${shift}u) & ${maxValue}u)`;
       },
-      glslDecodeWithShift: (
-        varname: string,
-        additionalShiftAsString: string,
-      ) => {
+      glslDecodeWithShift: (varname: string, additionalShiftAsString: string) => {
         return `((${varname} >> (${shift}u + ${additionalShiftAsString})) & ${maxValue}u)`;
       },
     };
@@ -52,9 +49,7 @@ class PackedUintFactory {
         return i;
       }
     }
-    throw new Error(
-      `${this.totalAllowedBits} bits is not enough to store ${nbValues} values`,
-    );
+    throw new Error(`${this.totalAllowedBits} bits is not enough to store ${nbValues} values`);
   }
 }
 

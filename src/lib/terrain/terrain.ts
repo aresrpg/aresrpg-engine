@@ -50,9 +50,7 @@ class Terrain {
     this.patchFactory = new PatchFactorySplit(map);
 
     this.patchSize = this.patchFactory.maxPatchSize.clone();
-    console.log(
-      `Using max patch size ${this.patchSize.x}x${this.patchSize.y}x${this.patchSize.z}.`,
-    );
+    console.log(`Using max patch size ${this.patchSize.x}x${this.patchSize.y}x${this.patchSize.z}.`);
 
     this.container = new THREE.Group();
   }
@@ -62,21 +60,9 @@ class Terrain {
    */
   public showEntireMap(): void {
     const patchStart = new THREE.Vector3();
-    for (
-      patchStart.x = 0;
-      patchStart.x < this.map.size.x;
-      patchStart.x += this.patchSize.x
-    ) {
-      for (
-        patchStart.y = 0;
-        patchStart.y < this.map.size.y;
-        patchStart.y += this.patchSize.y
-      ) {
-        for (
-          patchStart.z = 0;
-          patchStart.z < this.map.size.z;
-          patchStart.z += this.patchSize.z
-        ) {
+    for (patchStart.x = 0; patchStart.x < this.map.size.x; patchStart.x += this.patchSize.x) {
+      for (patchStart.y = 0; patchStart.y < this.map.size.y; patchStart.y += this.patchSize.y) {
+        for (patchStart.z = 0; patchStart.z < this.map.size.z; patchStart.z += this.patchSize.z) {
           const patch = this.getPatch(patchStart);
           if (patch) {
             patch.container.visible = true;
@@ -107,10 +93,7 @@ class Terrain {
     for (patchId.x = patchIdFrom.x; patchId.x < patchIdTo.x; patchId.x++) {
       for (patchId.y = patchIdFrom.y; patchId.y < patchIdTo.y; patchId.y++) {
         for (patchId.z = patchIdFrom.z; patchId.z < patchIdTo.z; patchId.z++) {
-          const patchStart = new THREE.Vector3().multiplyVectors(
-            patchId,
-            this.patchSize,
-          );
+          const patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
           const patch = this.getPatch(patchStart);
           if (patch) {
             patch.container.visible = true;
@@ -124,20 +107,15 @@ class Terrain {
   public updateUniforms(): void {
     for (const patch of Object.values(this.patches)) {
       if (patch) {
-        patch.parameters.voxels.displayMode =
-          this.parameters.voxels.displayMode;
-        patch.parameters.voxels.noiseStrength =
-          this.parameters.voxels.noiseStrength;
+        patch.parameters.voxels.displayMode = this.parameters.voxels.displayMode;
+        patch.parameters.voxels.noiseStrength = this.parameters.voxels.noiseStrength;
 
         patch.parameters.lighting.ambient = this.parameters.lighting.ambient;
         patch.parameters.lighting.diffuse = this.parameters.lighting.diffuse;
 
-        patch.parameters.smoothEdges.enabled =
-          this.parameters.smoothEdges.enabled;
-        patch.parameters.smoothEdges.radius =
-          this.parameters.smoothEdges.radius;
-        patch.parameters.smoothEdges.quality =
-          this.parameters.smoothEdges.quality;
+        patch.parameters.smoothEdges.enabled = this.parameters.smoothEdges.enabled;
+        patch.parameters.smoothEdges.radius = this.parameters.smoothEdges.radius;
+        patch.parameters.smoothEdges.quality = this.parameters.smoothEdges.quality;
 
         patch.parameters.ao.enabled = this.parameters.ao.enabled;
         patch.parameters.ao.strength = this.parameters.ao.strength;
@@ -172,10 +150,7 @@ class Terrain {
 
     let patch = this.patches[patchId];
     if (typeof patch === 'undefined') {
-      const patchEnd = new THREE.Vector3().addVectors(
-        patchStart,
-        this.patchSize,
-      );
+      const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
 
       patch = this.patchFactory.buildPatch(patchStart, patchEnd);
       if (patch) {
@@ -188,9 +163,7 @@ class Terrain {
   }
 
   private computePatchId(patchStart: THREE.Vector3): string {
-    return `${patchStart.x / this.patchSize.x}_${
-      patchStart.y / this.patchSize.y
-    }_${patchStart.z / this.patchSize.z}`;
+    return `${patchStart.x / this.patchSize.x}_${patchStart.y / this.patchSize.y}_${patchStart.z / this.patchSize.z}`;
   }
 }
 

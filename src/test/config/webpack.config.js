@@ -2,12 +2,7 @@ const path = require('path');
 
 const PROJECT_DIR = path.resolve(__dirname, '..', '..', '..');
 
-function makeExport(
-  sourceFilepath /* string */,
-  outFolder /* string */,
-  mode /* string */,
-  library /* optional string */,
-) /* void */ {
+function makeExport(sourceFilepath /* string */, outFolder /* string */, mode /* string */, library /* optional string */) /* void */ {
   let name = library ? library.toLowerCase() : '[name]';
   const filename = `${name}${mode === 'production' ? '.min' : ''}.js`;
 
@@ -40,13 +35,7 @@ function makeExport(
                 compilerOptions: {
                   rootDir: path.join(PROJECT_DIR, 'src'),
                 },
-                configFile: path.join(
-                  PROJECT_DIR,
-                  'src',
-                  'test',
-                  'config',
-                  'tsconfig.json',
-                ),
+                configFile: path.join(PROJECT_DIR, 'src', 'test', 'config', 'tsconfig.json'),
               },
             },
           ],
@@ -59,6 +48,4 @@ function makeExport(
 const srcDir = path.join(PROJECT_DIR, 'src', 'test');
 const targetDir = path.join(PROJECT_DIR, 'test', 'script');
 
-module.exports = [
-  makeExport(path.join(srcDir, 'main.ts'), targetDir, 'development'),
-];
+module.exports = [makeExport(path.join(srcDir, 'main.ts'), targetDir, 'development')];
