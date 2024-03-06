@@ -12,7 +12,7 @@
     "lint": "eslint . --ext .ts && prettier . --check",
     "format": "prettier . --write && eslint . --fix --ext .ts",
     "test:http-server": "http-server ./test -p 8086 -c-1",
-    "test:build": "webpack --config src/test/config/webpack.config.js",
+    "test:build": "webpack --config src/test/config/webpack.config.js --watch",
     "postversion": "git push --follow-tags"
   },
   "publishConfig": {
