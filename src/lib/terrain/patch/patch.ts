@@ -38,11 +38,7 @@ class Patch {
     readonly patchMeshes: ReadonlyArray<PatchMesh>;
   } | null = null;
 
-  public constructor(
-    patchStart: THREE.Vector3,
-    patchSize: THREE.Vector3,
-    patchMeshes: PatchMesh[],
-  ) {
+  public constructor(patchStart: THREE.Vector3, patchSize: THREE.Vector3, patchMeshes: PatchMesh[]) {
     this.patchStart = patchStart;
     this.patchSize = patchSize;
     this.gpuResources = { patchMeshes };
@@ -56,22 +52,14 @@ class Patch {
   public updateUniforms(): void {
     if (this.gpuResources) {
       for (const patchMesh of this.gpuResources.patchMeshes) {
-        patchMesh.material.uniforms.uAoStrength.value =
-          +this.parameters.ao.enabled * this.parameters.ao.strength;
+        patchMesh.material.uniforms.uAoStrength.value = +this.parameters.ao.enabled * this.parameters.ao.strength;
         patchMesh.material.uniforms.uAoSpread.value = this.parameters.ao.spread;
-        patchMesh.material.uniforms.uSmoothEdgeRadius.value =
-          +this.parameters.smoothEdges.enabled *
-          this.parameters.smoothEdges.radius;
-        patchMesh.material.uniforms.uSmoothEdgeMethod.value =
-          this.parameters.smoothEdges.quality;
-        patchMesh.material.uniforms.uDisplayMode.value =
-          this.parameters.voxels.displayMode;
-        patchMesh.material.uniforms.uAmbient.value =
-          this.parameters.lighting.ambient;
-        patchMesh.material.uniforms.uDiffuse.value =
-          this.parameters.lighting.diffuse;
-        patchMesh.material.uniforms.uNoiseStrength.value =
-          this.parameters.voxels.noiseStrength;
+        patchMesh.material.uniforms.uSmoothEdgeRadius.value = +this.parameters.smoothEdges.enabled * this.parameters.smoothEdges.radius;
+        patchMesh.material.uniforms.uSmoothEdgeMethod.value = this.parameters.smoothEdges.quality;
+        patchMesh.material.uniforms.uDisplayMode.value = this.parameters.voxels.displayMode;
+        patchMesh.material.uniforms.uAmbient.value = this.parameters.lighting.ambient;
+        patchMesh.material.uniforms.uDiffuse.value = this.parameters.lighting.diffuse;
+        patchMesh.material.uniforms.uNoiseStrength.value = this.parameters.voxels.noiseStrength;
       }
     }
   }

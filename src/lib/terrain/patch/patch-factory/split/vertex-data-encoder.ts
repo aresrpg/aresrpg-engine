@@ -7,18 +7,9 @@ class VertexDataEncoder {
   public readonly voxelZ = this.packedUintFactory.encodePart(128);
   public readonly ao = this.packedUintFactory.encodePart(4);
   public readonly edgeRoundness = this.packedUintFactory.encodePart(4);
-  public readonly voxelMaterialId = this.packedUintFactory.encodePart(
-    1 << (32 - this.packedUintFactory.getNextAvailableBit()),
-  );
+  public readonly voxelMaterialId = this.packedUintFactory.encodePart(1 << (32 - this.packedUintFactory.getNextAvailableBit()));
 
-  public encode(
-    posX: number,
-    posY: number,
-    posZ: number,
-    voxelMaterialId: number,
-    ao: number,
-    edgeRoundness: [boolean, boolean],
-  ): number {
+  public encode(posX: number, posY: number, posZ: number, voxelMaterialId: number, ao: number, edgeRoundness: [boolean, boolean]): number {
     return (
       this.voxelX.encode(posX) +
       this.voxelY.encode(posY) +

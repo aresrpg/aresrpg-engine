@@ -12,11 +12,7 @@ const vertices = {
 };
 type FaceVertex = {
   readonly vertex: THREE.Vector3;
-  readonly shadowingNeighbourVoxels: [
-    THREE.Vector3,
-    THREE.Vector3,
-    THREE.Vector3,
-  ];
+  readonly shadowingNeighbourVoxels: [THREE.Vector3, THREE.Vector3, THREE.Vector3];
   readonly edgeNeighbourVoxels: {
     readonly x: [THREE.Vector3, THREE.Vector3];
     readonly y: [THREE.Vector3, THREE.Vector3];
@@ -43,19 +39,11 @@ type Face = {
   readonly uvRight: THREE.Vector3;
 };
 
-const faceIndices: [number, number, number, number, number, number] = [
-  0, 2, 1, 1, 2, 3,
-];
+const faceIndices: [number, number, number, number, number, number] = [0, 2, 1, 1, 2, 3];
 
 let iF = 0;
 
-function buildFace(
-  type: FaceType,
-  v00: THREE.Vector3,
-  v01: THREE.Vector3,
-  v10: THREE.Vector3,
-  v11: THREE.Vector3,
-): Face {
+function buildFace(type: FaceType, v00: THREE.Vector3, v01: THREE.Vector3, v10: THREE.Vector3, v11: THREE.Vector3): Face {
   const normal = normals[type];
   const uvUp = new THREE.Vector3().subVectors(v01, v00);
   const uvRight = new THREE.Vector3().subVectors(v10, v00);
@@ -123,44 +111,12 @@ function buildFace(
 
 const faces: Record<FaceType, Face> = {
   up: buildFace('up', vertices.mpp, vertices.mpm, vertices.ppp, vertices.ppm),
-  down: buildFace(
-    'down',
-    vertices.mmm,
-    vertices.mmp,
-    vertices.pmm,
-    vertices.pmp,
-  ),
-  left: buildFace(
-    'left',
-    vertices.mmm,
-    vertices.mpm,
-    vertices.mmp,
-    vertices.mpp,
-  ),
-  right: buildFace(
-    'right',
-    vertices.pmp,
-    vertices.ppp,
-    vertices.pmm,
-    vertices.ppm,
-  ),
-  front: buildFace(
-    'front',
-    vertices.mmp,
-    vertices.mpp,
-    vertices.pmp,
-    vertices.ppp,
-  ),
-  back: buildFace(
-    'back',
-    vertices.pmm,
-    vertices.ppm,
-    vertices.mmm,
-    vertices.mpm,
-  ),
+  down: buildFace('down', vertices.mmm, vertices.mmp, vertices.pmm, vertices.pmp),
+  left: buildFace('left', vertices.mmm, vertices.mpm, vertices.mmp, vertices.mpp),
+  right: buildFace('right', vertices.pmp, vertices.ppp, vertices.pmm, vertices.ppm),
+  front: buildFace('front', vertices.mmp, vertices.mpp, vertices.pmp, vertices.ppp),
+  back: buildFace('back', vertices.pmm, vertices.ppm, vertices.mmm, vertices.mpm),
 };
-const facesById = Object.values(faces).sort(
-  (face1: Face, face2: Face) => face1.id - face2.id,
-);
+const facesById = Object.values(faces).sort((face1: Face, face2: Face) => face1.id - face2.id);
 
 export { faceIndices, faces, facesById, type FaceType, type FaceVertex };

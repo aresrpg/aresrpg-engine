@@ -45,14 +45,8 @@ abstract class PatchFactoryBase {
   protected constructor(map: IVoxelMap, voxelTypeEncoder: PackedUintFragment) {
     this.map = map;
 
-    this.texture = PatchFactoryBase.buildMaterialsTexture(
-      map.voxelMaterialsList,
-      voxelTypeEncoder,
-    );
-    this.noiseTexture = PatchFactoryBase.buildNoiseTexture(
-      this.noiseResolution,
-      this.noiseTypes,
-    );
+    this.texture = PatchFactoryBase.buildMaterialsTexture(map.voxelMaterialsList, voxelTypeEncoder);
+    this.noiseTexture = PatchFactoryBase.buildNoiseTexture(this.noiseResolution, this.noiseTypes);
 
     this.uniformsTemplate = {
       uDisplayMode: { value: 0 },
@@ -69,19 +63,12 @@ abstract class PatchFactoryBase {
     this.uniformsTemplate.uTexture.value = this.texture;
   }
 
-  public buildPatch(
-    patchStart: THREE.Vector3,
-    patchEnd: THREE.Vector3,
-  ): Patch | null {
+  public buildPatch(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Patch | null {
     const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
-    if (
-      patchSize.x > this.maxPatchSize.x ||
-      patchSize.y > this.maxPatchSize.y ||
-      patchSize.z > this.maxPatchSize.z
-    ) {
-      throw new Error(
-        `Patch is too big ${patchSize.x}x${patchSize.y}x${patchSize.z} (max is ${this.maxPatchSize.x}x${this.maxPatchSize.y}x${this.maxPatchSize.z})`,
-      );
+    if (patchSize.x > this.maxPatchSize.x || patchSize.y > this.maxPatchSize.y || patchSize.z > this.maxPatchSize.z) {
+      const patchSizeAsString = `${patchSize.x}x${patchSize.y}x${patchSize.z}`;
+      const maxPatchSizeAsString = `${this.maxPatchSize.x}x${this.maxPatchSize.y}x${this.maxPatchSize.z}`;
+      throw new Error(`Patch is too big ${patchSizeAsString} (max is ${maxPatchSizeAsString})`);
     }
 
     const patchData = this.computePatchData(patchStart, patchEnd);
@@ -118,20 +105,10 @@ abstract class PatchFactoryBase {
     this.noiseTexture.dispose();
   }
 
-  protected *iterateOnVisibleFaces(
-    patchStart: THREE.Vector3,
-    patchEnd: THREE.Vector3,
-  ): Generator<FaceData> {
+  protected *iterateOnVisibleFaces(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Generator<FaceData> {
     for (const voxel of this.map.iterateOnVoxels(patchStart, patchEnd)) {
-      const voxelWorldPosition = new THREE.Vector3(
-        voxel.position.x,
-        voxel.position.y,
-        voxel.position.z,
-      );
-      const voxelLocalPosition = new THREE.Vector3().subVectors(
-        voxelWorldPosition,
-        patchStart,
-      );
+      const voxelWorldPosition = new THREE.Vector3(voxel.position.x, voxel.position.y, voxel.position.z);
+      const voxelLocalPosition = new THREE.Vector3().subVectors(voxelWorldPosition, patchStart);
 
       for (const face of Object.values(Cube.faces)) {
         if (
@@ -151,71 +128,60 @@ abstract class PatchFactoryBase {
           voxelMaterialId: voxel.materialId,
           faceType: face.type,
           faceId: face.id,
-          verticesData: face.vertices.map(
-            (faceVertex: Cube.FaceVertex): VertexData => {
-              let ao = 0;
-              const [a, b, c] = faceVertex.shadowingNeighbourVoxels.map(
-                neighbourVoxel =>
-                  this.map.voxelExists(
-                    voxelWorldPosition.x + neighbourVoxel.x,
-                    voxelWorldPosition.y + neighbourVoxel.y,
-                    voxelWorldPosition.z + neighbourVoxel.z,
-                  ),
-              ) as [boolean, boolean, boolean];
-              if (a && b) {
-                ao = 3;
-              } else {
-                ao = +a + +b + +c;
-              }
+          verticesData: face.vertices.map((faceVertex: Cube.FaceVertex): VertexData => {
+            let ao = 0;
+            const [a, b, c] = faceVertex.shadowingNeighbourVoxels.map(neighbourVoxel =>
+              this.map.voxelExists(
+                voxelWorldPosition.x + neighbourVoxel.x,
+                voxelWorldPosition.y + neighbourVoxel.y,
+                voxelWorldPosition.z + neighbourVoxel.z,
+              ),
+            ) as [boolean, boolean, boolean];
+            if (a && b) {
+              ao = 3;
+            } else {
+              ao = +a + +b + +c;
+            }
 
-              let roundnessX = true;
-              let roundnessY = true;
-              if (faceVertex.edgeNeighbourVoxels) {
-                for (const neighbourVoxel of faceVertex.edgeNeighbourVoxels.x) {
-                  roundnessX &&= !this.map.voxelExists(
-                    voxelWorldPosition.x + neighbourVoxel.x,
-                    voxelWorldPosition.y + neighbourVoxel.y,
-                    voxelWorldPosition.z + neighbourVoxel.z,
-                  );
-                }
-                for (const neighbourVoxel of faceVertex.edgeNeighbourVoxels.y) {
-                  roundnessY &&= !this.map.voxelExists(
-                    voxelWorldPosition.x + neighbourVoxel.x,
-                    voxelWorldPosition.y + neighbourVoxel.y,
-                    voxelWorldPosition.z + neighbourVoxel.z,
-                  );
-                }
+            let roundnessX = true;
+            let roundnessY = true;
+            if (faceVertex.edgeNeighbourVoxels) {
+              for (const neighbourVoxel of faceVertex.edgeNeighbourVoxels.x) {
+                roundnessX &&= !this.map.voxelExists(
+                  voxelWorldPosition.x + neighbourVoxel.x,
+                  voxelWorldPosition.y + neighbourVoxel.y,
+                  voxelWorldPosition.z + neighbourVoxel.z,
+                );
               }
-              return {
-                localPosition: faceVertex.vertex,
-                ao,
-                roundnessX,
-                roundnessY,
-              };
-            },
-          ) as [VertexData, VertexData, VertexData, VertexData],
+              for (const neighbourVoxel of faceVertex.edgeNeighbourVoxels.y) {
+                roundnessY &&= !this.map.voxelExists(
+                  voxelWorldPosition.x + neighbourVoxel.x,
+                  voxelWorldPosition.y + neighbourVoxel.y,
+                  voxelWorldPosition.z + neighbourVoxel.z,
+                );
+              }
+            }
+            return {
+              localPosition: faceVertex.vertex,
+              ao,
+              roundnessX,
+              roundnessY,
+            };
+          }) as [VertexData, VertexData, VertexData, VertexData],
         };
       }
     }
   }
 
-  protected abstract computePatchData(
-    patchStart: THREE.Vector3,
-    patchEnd: THREE.Vector3,
-  ): GeometryAndMaterial[];
+  protected abstract computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): GeometryAndMaterial[];
 
   protected abstract disposeInternal(): void;
 
-  private static buildMaterialsTexture(
-    voxelMaterials: ReadonlyArray<IVoxelMaterial>,
-    voxelTypeEncoder: PackedUintFragment,
-  ): THREE.Texture {
+  private static buildMaterialsTexture(voxelMaterials: ReadonlyArray<IVoxelMaterial>, voxelTypeEncoder: PackedUintFragment): THREE.Texture {
     const voxelTypesCount = voxelMaterials.length;
     const maxVoxelTypesSupported = voxelTypeEncoder.maxValue + 1;
     if (voxelTypesCount > maxVoxelTypesSupported) {
-      throw new Error(
-        `A map cannot have more than ${maxVoxelTypesSupported} voxel types (received ${voxelTypesCount}).`,
-      );
+      throw new Error(`A map cannot have more than ${maxVoxelTypesSupported} voxel types (received ${voxelTypesCount}).`);
     }
 
     const textureWidth = voxelTypesCount;
@@ -228,19 +194,12 @@ abstract class PatchFactoryBase {
       textureData[4 * materialId + 2] = 255 * material.color.b;
       textureData[4 * materialId + 3] = 255;
     });
-    const texture = new THREE.DataTexture(
-      textureData,
-      textureWidth,
-      textureHeight,
-    );
+    const texture = new THREE.DataTexture(textureData, textureWidth, textureHeight);
     texture.needsUpdate = true;
     return texture;
   }
 
-  private static buildNoiseTexture(
-    resolution: number,
-    typesCount: number,
-  ): THREE.Texture {
+  private static buildNoiseTexture(resolution: number, typesCount: number): THREE.Texture {
     const textureWidth = resolution * typesCount;
     const textureHeight = resolution;
     const textureData = new Uint8Array(4 * textureWidth * textureHeight);
@@ -248,11 +207,7 @@ abstract class PatchFactoryBase {
     for (let i = 0; i < textureData.length; i++) {
       textureData[i] = 256 * Math.random();
     }
-    const texture = new THREE.DataTexture(
-      textureData,
-      textureWidth,
-      textureHeight,
-    );
+    const texture = new THREE.DataTexture(textureData, textureWidth, textureHeight);
     texture.needsUpdate = true;
     return texture;
   }

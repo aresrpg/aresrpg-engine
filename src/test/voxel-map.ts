@@ -62,11 +62,7 @@ class VoxelMap implements AresRpgEngine.IVoxelMap {
     }
     this.voxels = voxels;
 
-    console.log(
-      `Generated map of size ${this.size.x}x${this.size.y}x${
-        this.size.z
-      } (${this.voxels.length.toLocaleString()} voxels)`,
-    );
+    console.log(`Generated map of size ${this.size.x}x${this.size.y}x${this.size.z} (${this.voxels.length.toLocaleString()} voxels)`);
   }
 
   public getMaxVoxelsCount(from: THREE.Vector3, to: THREE.Vector3): number {
@@ -79,10 +75,7 @@ class VoxelMap implements AresRpgEngine.IVoxelMap {
     return (toX - fromX) * (toZ - fromZ);
   }
 
-  public *iterateOnVoxels(
-    from: THREE.Vector3,
-    to: THREE.Vector3,
-  ): Generator<AresRpgEngine.IVoxel> {
+  public *iterateOnVoxels(from: THREE.Vector3, to: THREE.Vector3): Generator<AresRpgEngine.IVoxel> {
     if (to.x < from.x || to.y < from.y || to.z < from.z) {
       throw new Error();
     }
