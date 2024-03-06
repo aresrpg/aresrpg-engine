@@ -17,12 +17,42 @@ interface IVoxelMaterial {
   readonly color: Color
 }
 
+enum ENeighbour {
+  xMyMzM = 0,  // whether or not there is a neighbour voxel at coords { X - 1, Y - 1, Z - 1 }
+  xMyMz0 = 1,  // whether or not there is a neighbour voxel at coords { X - 1, Y - 1, Z     }
+  xMyMzP = 2,  // whether or not there is a neighbour voxel at coords { X - 1, Y - 1, Z + 1 }
+  xMy0zM = 3,  // whether or not there is a neighbour voxel at coords { X - 1, Y    , Z - 1 }
+  xMy0z0 = 4,  // whether or not there is a neighbour voxel at coords { X - 1, Y    , Z     }
+  xMy0zP = 5,  // whether or not there is a neighbour voxel at coords { X - 1, Y    , Z + 1 }
+  xMyPzM = 6,  // whether or not there is a neighbour voxel at coords { X - 1, Y + 1, Z - 1 }
+  xMyPz0 = 7,  // whether or not there is a neighbour voxel at coords { X - 1, Y + 1, Z     }
+  xMyPzP = 8,  // whether or not there is a neighbour voxel at coords { X - 1, Y + 1, Z + 1 }
+  x0yMzM = 9,  // whether or not there is a neighbour voxel at coords { X    , Y - 1, Z - 1 }
+  x0yMz0 = 10, // whether or not there is a neighbour voxel at coords { X    , Y - 1, Z     }
+  x0yMzP = 11, // whether or not there is a neighbour voxel at coords { X    , Y - 1, Z + 1 }
+  x0y0zM = 12, // whether or not there is a neighbour voxel at coords { X    , Y    , Z - 1 }
+  x0y0zP = 13, // whether or not there is a neighbour voxel at coords { X    , Y    , Z + 1 }
+  x0yPzM = 14, // whether or not there is a neighbour voxel at coords { X    , Y + 1, Z - 1 }
+  x0yPz0 = 15, // whether or not there is a neighbour voxel at coords { X    , Y + 1, Z     }
+  x0yPzP = 16, // whether or not there is a neighbour voxel at coords { X    , Y + 1, Z + 1 }
+  xPyMzM = 17, // whether or not there is a neighbour voxel at coords { X + 1, Y - 1, Z - 1 }
+  xPyMz0 = 18, // whether or not there is a neighbour voxel at coords { X + 1, Y - 1, Z     }
+  xPyMzP = 19, // whether or not there is a neighbour voxel at coords { X + 1, Y - 1, Z + 1 }
+  xPy0zM = 20, // whether or not there is a neighbour voxel at coords { X + 1, Y    , Z - 1 }
+  xPy0z0 = 21, // whether or not there is a neighbour voxel at coords { X + 1, Y    , Z     }
+  xPy0zP = 22, // whether or not there is a neighbour voxel at coords { X + 1, Y    , Z + 1 }
+  xPyPzM = 23, // whether or not there is a neighbour voxel at coords { X + 1, Y + 1, Z - 1 }
+  xPyPz0 = 24, // whether or not there is a neighbour voxel at coords { X + 1, Y + 1, Z     }
+  xPyPzP = 25, // whether or not there is a neighbour voxel at coords { X + 1, Y + 1, Z + 1 }
+}
+
 /**
  * A representation of a voxel.
  */
 interface IVoxel {
   readonly position: Uint3
   readonly materialId: number
+  readonly neighbours: Record<ENeighbour, boolean>;
 }
 
 /**
@@ -65,4 +95,5 @@ interface IVoxelMap {
   voxelExists(x: number, y: number, z: number): boolean
 }
 
-export type { IVoxel, IVoxelMap, IVoxelMaterial }
+export type { IVoxel, IVoxelMap, IVoxelMaterial };
+export { ENeighbour };

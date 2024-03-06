@@ -94,9 +94,41 @@ class VoxelMap implements AresRpgEngine.IVoxelMap {
         if (voxel) {
           position.y = voxel.y
           if (from.y <= position.y && position.y < to.y) {
+            const neighbours: Record<AresRpgEngine.ENeighbour, boolean> = [
+              this.voxelExists(position.x - 1, position.y - 1, position.z - 1),
+              this.voxelExists(position.x - 1, position.y - 1, position.z + 0),
+              this.voxelExists(position.x - 1, position.y - 1, position.z + 1),
+              this.voxelExists(position.x - 1, position.y + 0, position.z - 1),
+              this.voxelExists(position.x - 1, position.y + 0, position.z + 0),
+              this.voxelExists(position.x - 1, position.y + 0, position.z + 1),
+              this.voxelExists(position.x - 1, position.y + 1, position.z - 1),
+              this.voxelExists(position.x - 1, position.y + 1, position.z + 0),
+              this.voxelExists(position.x - 1, position.y + 1, position.z + 1),
+              
+              this.voxelExists(position.x + 0, position.y - 1, position.z - 1),
+              this.voxelExists(position.x + 0, position.y - 1, position.z + 0),
+              this.voxelExists(position.x + 0, position.y - 1, position.z + 1),
+              this.voxelExists(position.x + 0, position.y + 0, position.z - 1),
+              this.voxelExists(position.x + 0, position.y + 0, position.z + 1),
+              this.voxelExists(position.x + 0, position.y + 1, position.z - 1),
+              this.voxelExists(position.x + 0, position.y + 1, position.z + 0),
+              this.voxelExists(position.x + 0, position.y + 1, position.z + 1),
+
+              this.voxelExists(position.x + 1, position.y - 1, position.z - 1),
+              this.voxelExists(position.x + 1, position.y - 1, position.z + 0),
+              this.voxelExists(position.x + 1, position.y - 1, position.z + 1),
+              this.voxelExists(position.x + 1, position.y + 0, position.z - 1),
+              this.voxelExists(position.x + 1, position.y + 0, position.z + 0),
+              this.voxelExists(position.x + 1, position.y + 0, position.z + 1),
+              this.voxelExists(position.x + 1, position.y + 1, position.z - 1),
+              this.voxelExists(position.x + 1, position.y + 1, position.z + 0),
+              this.voxelExists(position.x + 1, position.y + 1, position.z + 1),
+            ];
+
             yield {
               position,
               materialId: voxel.type,
+              neighbours,
             }
           }
         }
