@@ -12,4 +12,4 @@ export {
   type Material,
   Uint32BufferAttribute,
   Vector3,
-} from 'three'
+} from 'three';

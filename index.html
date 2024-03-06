@@ -8,10 +8,10 @@
   <body>
     <canvas id="webgpu-canvas" width="800" height="600"></canvas>
     <script type="module">
-      import { create_renderer } from './src/create_renderer.js'
+      import { create_renderer } from './src/create_renderer.js';
 
-      const canvas = document.getElementById('webgpu-canvas')
-      const renderer = create_renderer(canvas)
+      const canvas = document.getElementById('webgpu-canvas');
+      const renderer = create_renderer(canvas);
 
       // Define vertex positions for a square
       const vertices = new Float32Array([
@@ -23,10 +23,10 @@
         -0.5, // bottom right
         0.5,
         0.5, // top right
-      ])
+      ]);
 
       // Define indices for the square using TRIANGLE_STRIP
-      const indices = new Uint16Array([0, 1, 2, 0, 2, 3])
+      const indices = new Uint16Array([0, 1, 2, 0, 2, 3]);
     </script>
   </body>
 </html>

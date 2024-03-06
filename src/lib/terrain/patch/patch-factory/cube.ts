@@ -1,4 +1,4 @@
-import * as THREE from '../../../three-usage'
+import * as THREE from '../../../three-usage';
 
 const vertices = {
   ppp: new THREE.Vector3(1, 1, 1),
@@ -9,21 +9,21 @@ const vertices = {
   mpm: new THREE.Vector3(0, 1, 0),
   pmm: new THREE.Vector3(1, 0, 0),
   mmm: new THREE.Vector3(0, 0, 0),
-}
+};
 type FaceVertex = {
-  readonly vertex: THREE.Vector3
+  readonly vertex: THREE.Vector3;
   readonly shadowingNeighbourVoxels: [
     THREE.Vector3,
     THREE.Vector3,
     THREE.Vector3,
-  ]
+  ];
   readonly edgeNeighbourVoxels: {
-    readonly x: [THREE.Vector3, THREE.Vector3]
-    readonly y: [THREE.Vector3, THREE.Vector3]
-  }
-}
+    readonly x: [THREE.Vector3, THREE.Vector3];
+    readonly y: [THREE.Vector3, THREE.Vector3];
+  };
+};
 
-type FaceType = 'up' | 'down' | 'left' | 'right' | 'front' | 'back'
+type FaceType = 'up' | 'down' | 'left' | 'right' | 'front' | 'back';
 
 const normals: Record<FaceType, THREE.Vector3> = {
   up: new THREE.Vector3(0, +1, 0),
@@ -32,22 +32,22 @@ const normals: Record<FaceType, THREE.Vector3> = {
   right: new THREE.Vector3(+1, 0, 0),
   front: new THREE.Vector3(0, 0, +1),
   back: new THREE.Vector3(0, 0, -1),
-}
+};
 
 type Face = {
-  readonly id: number
-  readonly type: FaceType
-  readonly vertices: [FaceVertex, FaceVertex, FaceVertex, FaceVertex]
-  readonly normal: THREE.Vector3
-  readonly uvUp: THREE.Vector3
-  readonly uvRight: THREE.Vector3
-}
+  readonly id: number;
+  readonly type: FaceType;
+  readonly vertices: [FaceVertex, FaceVertex, FaceVertex, FaceVertex];
+  readonly normal: THREE.Vector3;
+  readonly uvUp: THREE.Vector3;
+  readonly uvRight: THREE.Vector3;
+};
 
 const faceIndices: [number, number, number, number, number, number] = [
   0, 2, 1, 1, 2, 3,
-]
+];
 
-let iF = 0
+let iF = 0;
 
 function buildFace(
   type: FaceType,
@@ -56,11 +56,11 @@ function buildFace(
   v10: THREE.Vector3,
   v11: THREE.Vector3,
 ): Face {
-  const normal = normals[type]
-  const uvUp = new THREE.Vector3().subVectors(v01, v00)
-  const uvRight = new THREE.Vector3().subVectors(v10, v00)
-  const uvLeft = uvRight.clone().multiplyScalar(-1)
-  const uvDown = uvUp.clone().multiplyScalar(-1)
+  const normal = normals[type];
+  const uvUp = new THREE.Vector3().subVectors(v01, v00);
+  const uvRight = new THREE.Vector3().subVectors(v10, v00);
+  const uvLeft = uvRight.clone().multiplyScalar(-1);
+  const uvDown = uvUp.clone().multiplyScalar(-1);
 
   return {
     id: iF++,
@@ -118,7 +118,7 @@ function buildFace(
     normal,
     uvUp,
     uvRight,
-  }
+  };
 }
 
 const faces: Record<FaceType, Face> = {
@@ -158,9 +158,9 @@ const faces: Record<FaceType, Face> = {
     vertices.mmm,
     vertices.mpm,
   ),
-}
+};
 const facesById = Object.values(faces).sort(
   (face1: Face, face2: Face) => face1.id - face2.id,
-)
+);
 
-export { faceIndices, faces, facesById, type FaceType, type FaceVertex }
+export { faceIndices, faces, facesById, type FaceType, type FaceVertex };
