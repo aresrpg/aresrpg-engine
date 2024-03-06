@@ -14,7 +14,7 @@ class PatchFactorySplit extends PatchFactoryBase {
   public readonly maxPatchSize = new THREE.Vector3(
     PatchFactorySplit.vertexDataEncoder.voxelX.maxValue + 1,
     PatchFactorySplit.vertexDataEncoder.voxelY.maxValue + 1,
-    PatchFactorySplit.vertexDataEncoder.voxelZ.maxValue + 1,
+    PatchFactorySplit.vertexDataEncoder.voxelZ.maxValue + 1
   );
 
   private readonly materialsTemplates: Record<Cube.FaceType, PatchMaterial> = {
@@ -76,7 +76,7 @@ class PatchFactorySplit extends PatchFactoryBase {
             vEdgeRoundness = edgeRoundness[edgeRoundnessId];
 
             vAo = float(${PatchFactorySplit.vertexDataEncoder.ao.glslDecode(
-              PatchFactorySplit.dataAttributeName,
+              PatchFactorySplit.dataAttributeName
             )}) / ${PatchFactorySplit.vertexDataEncoder.ao.maxValue.toFixed(1)};
 
             vMaterial = int(${PatchFactorySplit.vertexDataEncoder.voxelMaterialId.glslDecode(PatchFactorySplit.dataAttributeName)});
@@ -105,7 +105,7 @@ class PatchFactorySplit extends PatchFactoryBase {
 
         vec3 computeModelNormal() {
             const vec3 worldFaceNormal = vec3(${Cube.faces[faceType].normal.x.toFixed(1)}, ${Cube.faces[faceType].normal.y.toFixed(
-              1,
+              1
             )}, ${Cube.faces[faceType].normal.z.toFixed(1)});
             if (uSmoothEdgeRadius <= 0.0) {
                 return worldFaceNormal;
@@ -133,7 +133,7 @@ class PatchFactorySplit extends PatchFactoryBase {
               faceType
             ].uvUp.z.toFixed(1)});
             const vec3 uvRight = vec3(${Cube.faces[faceType].uvRight.x.toFixed(1)}, ${Cube.faces[faceType].uvRight.y.toFixed(
-              1,
+              1
             )}, ${Cube.faces[faceType].uvRight.z.toFixed(1)});
             return localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * worldFaceNormal;
         }
@@ -218,7 +218,7 @@ class PatchFactorySplit extends PatchFactoryBase {
           faceData.voxelLocalPosition.z,
           faceData.voxelMaterialId,
           faceVertexData.ao,
-          [faceVertexData.roundnessX, faceVertexData.roundnessY],
+          [faceVertexData.roundnessX, faceVertexData.roundnessY]
         );
       });
 

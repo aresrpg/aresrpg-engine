@@ -95,7 +95,7 @@ abstract class PatchFactoryBase {
         mesh.translateY(patchStart.y);
         mesh.translateZ(patchStart.z);
         return { mesh, material };
-      }),
+      })
     );
   }
 
@@ -115,7 +115,7 @@ abstract class PatchFactoryBase {
           this.map.voxelExists(
             voxelWorldPosition.x + face.normal.x,
             voxelWorldPosition.y + face.normal.y,
-            voxelWorldPosition.z + face.normal.z,
+            voxelWorldPosition.z + face.normal.z
           )
         ) {
           // this face will be hidden -> skip it
@@ -134,8 +134,8 @@ abstract class PatchFactoryBase {
               this.map.voxelExists(
                 voxelWorldPosition.x + neighbourVoxel.x,
                 voxelWorldPosition.y + neighbourVoxel.y,
-                voxelWorldPosition.z + neighbourVoxel.z,
-              ),
+                voxelWorldPosition.z + neighbourVoxel.z
+              )
             ) as [boolean, boolean, boolean];
             if (a && b) {
               ao = 3;
@@ -150,14 +150,14 @@ abstract class PatchFactoryBase {
                 roundnessX &&= !this.map.voxelExists(
                   voxelWorldPosition.x + neighbourVoxel.x,
                   voxelWorldPosition.y + neighbourVoxel.y,
-                  voxelWorldPosition.z + neighbourVoxel.z,
+                  voxelWorldPosition.z + neighbourVoxel.z
                 );
               }
               for (const neighbourVoxel of faceVertex.edgeNeighbourVoxels.y) {
                 roundnessY &&= !this.map.voxelExists(
                   voxelWorldPosition.x + neighbourVoxel.x,
                   voxelWorldPosition.y + neighbourVoxel.y,
-                  voxelWorldPosition.z + neighbourVoxel.z,
+                  voxelWorldPosition.z + neighbourVoxel.z
                 );
               }
             }
