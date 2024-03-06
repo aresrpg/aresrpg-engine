@@ -1,25 +1,25 @@
-import * as THREE from '../../../../three-usage'
-import { IVoxelMap } from '../../../i-voxel-map'
-import { EDisplayMode, PatchMaterial } from '../../material'
-import * as Cube from '../cube'
+import * as THREE from '../../../../three-usage';
+import { IVoxelMap } from '../../../i-voxel-map';
+import { EDisplayMode, PatchMaterial } from '../../material';
+import * as Cube from '../cube';
 import {
   GeometryAndMaterial,
   PatchFactoryBase,
   VertexData,
-} from '../patch-factory-base'
+} from '../patch-factory-base';
 
-import { VertexDataEncoder } from './vertex-data-encoder'
+import { VertexDataEncoder } from './vertex-data-encoder';
 
 class PatchFactorySplit extends PatchFactoryBase {
-  private static readonly dataAttributeName = 'aData'
+  private static readonly dataAttributeName = 'aData';
 
-  private static readonly vertexDataEncoder = new VertexDataEncoder()
+  private static readonly vertexDataEncoder = new VertexDataEncoder();
 
   public readonly maxPatchSize = new THREE.Vector3(
     PatchFactorySplit.vertexDataEncoder.voxelX.maxValue + 1,
     PatchFactorySplit.vertexDataEncoder.voxelY.maxValue + 1,
     PatchFactorySplit.vertexDataEncoder.voxelZ.maxValue + 1,
-  )
+  );
 
   private readonly materialsTemplates: Record<Cube.FaceType, PatchMaterial> = {
     up: this.buildPatchMaterial('up'),
@@ -28,7 +28,7 @@ class PatchFactorySplit extends PatchFactoryBase {
     right: this.buildPatchMaterial('right'),
     front: this.buildPatchMaterial('front'),
     back: this.buildPatchMaterial('back'),
-  }
+  };
 
   private buildPatchMaterial(faceType: Cube.FaceType): PatchMaterial {
     return new THREE.ShaderMaterial({
@@ -200,16 +200,16 @@ class PatchFactorySplit extends PatchFactoryBase {
             fragColor = vec4(color, 1);
         }
         `,
-    }) as unknown as PatchMaterial
+    }) as unknown as PatchMaterial;
   }
 
   public constructor(map: IVoxelMap) {
-    super(map, PatchFactorySplit.vertexDataEncoder.voxelMaterialId)
+    super(map, PatchFactorySplit.vertexDataEncoder.voxelMaterialId);
   }
 
   protected disposeInternal(): void {
     for (const material of Object.values(this.materialsTemplates)) {
-      material.dispose()
+      material.dispose();
     }
   }
 
@@ -217,13 +217,16 @@ class PatchFactorySplit extends PatchFactoryBase {
     patchStart: THREE.Vector3,
     patchEnd: THREE.Vector3,
   ): GeometryAndMaterial[] {
-    const voxelsCountPerPatch = this.map.getMaxVoxelsCount(patchStart, patchEnd)
+    const voxelsCountPerPatch = this.map.getMaxVoxelsCount(
+      patchStart,
+      patchEnd,
+    );
     if (voxelsCountPerPatch <= 0) {
-      return []
+      return [];
     }
 
-    const verticesPerFace = 6
-    const uint32PerVertex = 1
+    const verticesPerFace = 6;
+    const uint32PerVertex = 1;
 
     const verticesData: Record<Cube.FaceType, Uint32Array> = {
       up: new Uint32Array(
@@ -244,7 +247,7 @@ class PatchFactorySplit extends PatchFactoryBase {
       back: new Uint32Array(
         voxelsCountPerPatch * verticesPerFace * uint32PerVertex,
       ),
-    }
+    };
 
     const iVertice: Record<Cube.FaceType, number> = {
       up: 0,
@@ -253,9 +256,9 @@ class PatchFactorySplit extends PatchFactoryBase {
       right: 0,
       front: 0,
       back: 0,
-    }
+    };
 
-    const faceVerticesData = new Uint32Array(4 * uint32PerVertex)
+    const faceVerticesData = new Uint32Array(4 * uint32PerVertex);
     for (const faceData of this.iterateOnVisibleFaces(patchStart, patchEnd)) {
       faceData.verticesData.forEach(
         (faceVertexData: VertexData, faceVertexIndex: number) => {
@@ -267,13 +270,13 @@ class PatchFactorySplit extends PatchFactoryBase {
               faceData.voxelMaterialId,
               faceVertexData.ao,
               [faceVertexData.roundnessX, faceVertexData.roundnessY],
-            )
+            );
         },
-      )
+      );
 
       for (const index of Cube.faceIndices) {
         verticesData[faceData.faceType][iVertice[faceData.faceType]++] =
-          faceVerticesData[index]!
+          faceVerticesData[index]!;
       }
     }
 
@@ -302,32 +305,32 @@ class PatchFactorySplit extends PatchFactoryBase {
         geometry: new THREE.BufferGeometry(),
         material: this.materialsTemplates.back,
       },
-    }
+    };
 
     for (const [faceType, geometryAndMaterial] of Object.entries(
       geometriesAndMaterials,
     ) as [Cube.FaceType, GeometryAndMaterial][]) {
-      const faceTypeVerticesData = verticesData[faceType]
-      const faceTypeIVertice = iVertice[faceType]
+      const faceTypeVerticesData = verticesData[faceType];
+      const faceTypeIVertice = iVertice[faceType];
       const faceTypeVerticesDataBuffer = new THREE.Uint32BufferAttribute(
         faceTypeVerticesData.subarray(0, faceTypeIVertice),
         1,
         false,
-      )
+      );
       faceTypeVerticesDataBuffer.onUpload(() => {
-        ;(faceTypeVerticesDataBuffer.array as THREE.TypedArray | null) = null
-      })
+        (faceTypeVerticesDataBuffer.array as THREE.TypedArray | null) = null;
+      });
 
-      const { geometry } = geometryAndMaterial
+      const { geometry } = geometryAndMaterial;
       geometry.setAttribute(
         PatchFactorySplit.dataAttributeName,
         faceTypeVerticesDataBuffer,
-      )
-      geometry.setDrawRange(0, faceTypeIVertice)
+      );
+      geometry.setDrawRange(0, faceTypeIVertice);
     }
 
-    return Object.values(geometriesAndMaterials)
+    return Object.values(geometriesAndMaterials);
   }
 }
 
-export { PatchFactorySplit, type PatchMaterial }
+export { PatchFactorySplit, type PatchMaterial };

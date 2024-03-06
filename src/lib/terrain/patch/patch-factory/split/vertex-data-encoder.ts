@@ -1,15 +1,15 @@
-import { PackedUintFactory } from '../uint-packing'
+import { PackedUintFactory } from '../uint-packing';
 
 class VertexDataEncoder {
-  private readonly packedUintFactory = new PackedUintFactory(32)
-  public readonly voxelX = this.packedUintFactory.encodePart(128)
-  public readonly voxelY = this.packedUintFactory.encodePart(64)
-  public readonly voxelZ = this.packedUintFactory.encodePart(128)
-  public readonly ao = this.packedUintFactory.encodePart(4)
-  public readonly edgeRoundness = this.packedUintFactory.encodePart(4)
+  private readonly packedUintFactory = new PackedUintFactory(32);
+  public readonly voxelX = this.packedUintFactory.encodePart(128);
+  public readonly voxelY = this.packedUintFactory.encodePart(64);
+  public readonly voxelZ = this.packedUintFactory.encodePart(128);
+  public readonly ao = this.packedUintFactory.encodePart(4);
+  public readonly edgeRoundness = this.packedUintFactory.encodePart(4);
   public readonly voxelMaterialId = this.packedUintFactory.encodePart(
     1 << (32 - this.packedUintFactory.getNextAvailableBit()),
-  )
+  );
 
   public encode(
     posX: number,
@@ -26,8 +26,8 @@ class VertexDataEncoder {
       this.voxelMaterialId.encode(voxelMaterialId) +
       this.ao.encode(ao) +
       this.edgeRoundness.encode(+edgeRoundness[0] + (+edgeRoundness[1] << 1))
-    )
+    );
   }
 }
 
-export { VertexDataEncoder }
+export { VertexDataEncoder };

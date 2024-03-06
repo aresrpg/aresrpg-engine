@@ -1,1 +1,1 @@
-export * as AresRpgEngine from './exports'
+export * as AresRpgEngine from './exports';

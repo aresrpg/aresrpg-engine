@@ -1,6 +1,6 @@
-const path = require('path')
+const path = require('path');
 
-const PROJECT_DIR = path.resolve(__dirname, '..', '..', '..')
+const PROJECT_DIR = path.resolve(__dirname, '..', '..', '..');
 
 function makeExport(
   sourceFilepath /* string */,
@@ -8,8 +8,8 @@ function makeExport(
   mode /* string */,
   library /* optional string */,
 ) /* void */ {
-  let name = library ? library.toLowerCase() : '[name]'
-  const filename = `${name}${mode === 'production' ? '.min' : ''}.js`
+  let name = library ? library.toLowerCase() : '[name]';
+  const filename = `${name}${mode === 'production' ? '.min' : ''}.js`;
 
   return {
     devtool: 'source-map',
@@ -53,12 +53,12 @@ function makeExport(
         },
       ],
     },
-  }
+  };
 }
 
-const srcDir = path.join(PROJECT_DIR, 'src', 'test')
-const targetDir = path.join(PROJECT_DIR, 'test', 'script')
+const srcDir = path.join(PROJECT_DIR, 'src', 'test');
+const targetDir = path.join(PROJECT_DIR, 'test', 'script');
 
 module.exports = [
   makeExport(path.join(srcDir, 'main.ts'), targetDir, 'development'),
-]
+];
