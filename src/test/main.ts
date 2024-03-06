@@ -37,6 +37,6 @@ function render(): void {
   cameraControl.update();
   terrain.updateUniforms();
   renderer.render(scene, camera);
-  requestAnimationFrame(render);
+  window.requestAnimationFrame(render);
 }
-requestAnimationFrame(render);
+window.requestAnimationFrame(render);
