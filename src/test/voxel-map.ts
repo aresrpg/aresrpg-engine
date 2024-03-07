@@ -2,6 +2,9 @@ import { createNoise2D } from 'simplex-noise'
 import * as THREE from 'three'
 
 import { AresRpgEngine } from '../lib/index'
+import { VoxelGrid } from './storage/grid/voxel-grid'
+import { IVoxelStorage } from './storage/i-voxel-storage'
+import { VoxelOctree } from './storage/octree/voxel-octree'
 
 enum EVoxelType {
   ROCK,
@@ -29,9 +32,12 @@ class VoxelMap implements AresRpgEngine.IVoxelMap {
   public readonly voxelMaterialsList = Object.values(voxelMaterials)
 
   private readonly voxels: ReadonlyArray<StoredVoxel>
+  private readonly storage: IVoxelStorage;
 
   public constructor(width: number, height: number, altitude: number) {
     this.size = new THREE.Vector3(width, altitude, height)
+    this.storage = new VoxelGrid();
+    // this.storage = VoxelOctree.create(Math.max(width, altitude, height));
 
     const noise2D = createNoise2D()
 
@@ -58,13 +64,16 @@ class VoxelMap implements AresRpgEngine.IVoxelMap {
           y: iY,
           type,
         }
+
+        // for (let y = 0; y <= iY; y++) {
+          this.storage.setVoxelMaterial(new THREE.Vector3(iX, iY, iZ), type);
+        // }
       }
     }
     this.voxels = voxels
 
     console.log(
-      `Generated map of size ${this.size.x}x${this.size.y}x${
-        this.size.z
+      `Generated map of size ${this.size.x}x${this.size.y}x${this.size.z
       } (${this.voxels.length.toLocaleString()} voxels)`,
     )
   }
@@ -87,66 +96,50 @@ class VoxelMap implements AresRpgEngine.IVoxelMap {
       throw new Error()
     }
 
-    const position = new THREE.Vector3()
-    for (position.x = from.x; position.x < to.x; position.x++) {
-      for (position.z = from.z; position.z < to.z; position.z++) {
-        const voxel = this.getVoxel(position.x, position.z)
-        if (voxel) {
-          position.y = voxel.y
-          if (from.y <= position.y && position.y < to.y) {
-            const neighbours: Record<AresRpgEngine.ENeighbour, boolean> = [
-              this.voxelExists(position.x - 1, position.y - 1, position.z - 1),
-              this.voxelExists(position.x - 1, position.y - 1, position.z + 0),
-              this.voxelExists(position.x - 1, position.y - 1, position.z + 1),
-              this.voxelExists(position.x - 1, position.y + 0, position.z - 1),
-              this.voxelExists(position.x - 1, position.y + 0, position.z + 0),
-              this.voxelExists(position.x - 1, position.y + 0, position.z + 1),
-              this.voxelExists(position.x - 1, position.y + 1, position.z - 1),
-              this.voxelExists(position.x - 1, position.y + 1, position.z + 0),
-              this.voxelExists(position.x - 1, position.y + 1, position.z + 1),
-              
-              this.voxelExists(position.x + 0, position.y - 1, position.z - 1),
-              this.voxelExists(position.x + 0, position.y - 1, position.z + 0),
-              this.voxelExists(position.x + 0, position.y - 1, position.z + 1),
-              this.voxelExists(position.x + 0, position.y + 0, position.z - 1),
-              this.voxelExists(position.x + 0, position.y + 0, position.z + 1),
-              this.voxelExists(position.x + 0, position.y + 1, position.z - 1),
-              this.voxelExists(position.x + 0, position.y + 1, position.z + 0),
-              this.voxelExists(position.x + 0, position.y + 1, position.z + 1),
+    for (const voxel of this.storage.iterateOnVoxels(from, to)) {
+      const neighbours: Record<AresRpgEngine.ENeighbour, boolean> = [
+        this.voxelExists(voxel.position.x - 1, voxel.position.y - 1, voxel.position.z - 1),
+        this.voxelExists(voxel.position.x - 1, voxel.position.y - 1, voxel.position.z + 0),
+        this.voxelExists(voxel.position.x - 1, voxel.position.y - 1, voxel.position.z + 1),
+        this.voxelExists(voxel.position.x - 1, voxel.position.y + 0, voxel.position.z - 1),
+        this.voxelExists(voxel.position.x - 1, voxel.position.y + 0, voxel.position.z + 0),
+        this.voxelExists(voxel.position.x - 1, voxel.position.y + 0, voxel.position.z + 1),
+        this.voxelExists(voxel.position.x - 1, voxel.position.y + 1, voxel.position.z - 1),
+        this.voxelExists(voxel.position.x - 1, voxel.position.y + 1, voxel.position.z + 0),
+        this.voxelExists(voxel.position.x - 1, voxel.position.y + 1, voxel.position.z + 1),
 
-              this.voxelExists(position.x + 1, position.y - 1, position.z - 1),
-              this.voxelExists(position.x + 1, position.y - 1, position.z + 0),
-              this.voxelExists(position.x + 1, position.y - 1, position.z + 1),
-              this.voxelExists(position.x + 1, position.y + 0, position.z - 1),
-              this.voxelExists(position.x + 1, position.y + 0, position.z + 0),
-              this.voxelExists(position.x + 1, position.y + 0, position.z + 1),
-              this.voxelExists(position.x + 1, position.y + 1, position.z - 1),
-              this.voxelExists(position.x + 1, position.y + 1, position.z + 0),
-              this.voxelExists(position.x + 1, position.y + 1, position.z + 1),
-            ];
+        this.voxelExists(voxel.position.x + 0, voxel.position.y - 1, voxel.position.z - 1),
+        this.voxelExists(voxel.position.x + 0, voxel.position.y - 1, voxel.position.z + 0),
+        this.voxelExists(voxel.position.x + 0, voxel.position.y - 1, voxel.position.z + 1),
+        this.voxelExists(voxel.position.x + 0, voxel.position.y + 0, voxel.position.z - 1),
+        this.voxelExists(voxel.position.x + 0, voxel.position.y + 0, voxel.position.z + 1),
+        this.voxelExists(voxel.position.x + 0, voxel.position.y + 1, voxel.position.z - 1),
+        this.voxelExists(voxel.position.x + 0, voxel.position.y + 1, voxel.position.z + 0),
+        this.voxelExists(voxel.position.x + 0, voxel.position.y + 1, voxel.position.z + 1),
 
-            yield {
-              position,
-              materialId: voxel.type,
-              neighbours,
-            }
-          }
-        }
+        this.voxelExists(voxel.position.x + 1, voxel.position.y - 1, voxel.position.z - 1),
+        this.voxelExists(voxel.position.x + 1, voxel.position.y - 1, voxel.position.z + 0),
+        this.voxelExists(voxel.position.x + 1, voxel.position.y - 1, voxel.position.z + 1),
+        this.voxelExists(voxel.position.x + 1, voxel.position.y + 0, voxel.position.z - 1),
+        this.voxelExists(voxel.position.x + 1, voxel.position.y + 0, voxel.position.z + 0),
+        this.voxelExists(voxel.position.x + 1, voxel.position.y + 0, voxel.position.z + 1),
+        this.voxelExists(voxel.position.x + 1, voxel.position.y + 1, voxel.position.z - 1),
+        this.voxelExists(voxel.position.x + 1, voxel.position.y + 1, voxel.position.z + 0),
+        this.voxelExists(voxel.position.x + 1, voxel.position.y + 1, voxel.position.z + 1),
+      ];
+
+      yield {
+        position: voxel.position,
+        materialId: voxel.materialId,
+        neighbours,
       }
     }
   }
 
-  private voxelExists(x: number, y: number, z: number): boolean {
-    const voxel = this.getVoxel(x, z)
-    return voxel?.y === y
-  }
-
-  private getVoxel(x: number, z: number): StoredVoxel | null {
-    if (x >= 0 && x < this.size.x && z >= 0 && z < this.size.z) {
-      const index = this.buildId(x, z)
-      return this.voxels[index] || null
-    }
-    return null
+  public voxelExists(x: number, y: number, z: number): boolean {
+    return this.storage.doesVoxelExist(new THREE.Vector3(x, y, z));
+    // const voxel = this.getVoxel(x, z)
+    // return voxel?.y === y
   }
 
   private buildId(x: number, z: number): number {
@@ -155,3 +148,4 @@ class VoxelMap implements AresRpgEngine.IVoxelMap {
 }
 
 export { VoxelMap }
+

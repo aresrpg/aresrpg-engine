@@ -27,7 +27,7 @@ udpateRendererSize()
 
 const scene = new THREE.Scene()
 
-const voxelMap = new VoxelMap(256, 256, 16)
+const voxelMap = new VoxelMap(128, 128, 128)
 const terrain = new AresRpgEngine.Terrain(voxelMap)
 scene.add(terrain.container)
 
