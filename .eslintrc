@@ -15,7 +15,7 @@
     "prefer-rest-params": "error",
     "prefer-spread": "error",
     "prefer-object-spread": "error",
-    "prefer-destructuring": "error",
+    "prefer-destructuring": "off",
     "prefer-numeric-literals": "error",
     "import/order": ["error", { "newlines-between": "always" }],
     "no-throw-literal": "error",
