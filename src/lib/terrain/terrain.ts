@@ -2,8 +2,12 @@ import * as THREE from '../three-usage';
 
 import { IVoxelMap } from './i-voxel-map';
 import { EDisplayMode, Patch } from './patch/patch';
-import { PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
+import { EPatchComputingMode, PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
 import { PatchFactorySplit } from './patch/patch-factory/split/patch-factory-split';
+
+type TerrainOptions = {
+    computingMode?: EPatchComputingMode,
+};
 
 /**
  * Class that takes an IVoxelMap and makes a renderable three.js object of it.
@@ -45,9 +49,16 @@ class Terrain {
      *
      * @param map The map that will be rendered.
      */
-    public constructor(map: IVoxelMap) {
+    public constructor(map: IVoxelMap, options?: TerrainOptions) {
         this.map = map;
-        this.patchFactory = new PatchFactorySplit(map);
+
+        let computingMode = EPatchComputingMode.CPU_CACHED;
+        if (options) {
+            if (typeof options.computingMode !== "undefined") {
+                computingMode = options.computingMode;
+            }
+        }
+        this.patchFactory = new PatchFactorySplit(map, computingMode);
 
         this.patchSize = this.patchFactory.maxPatchSize.clone();
         console.log(`Using max patch size ${this.patchSize.x}x${this.patchSize.y}x${this.patchSize.z}.`);
@@ -167,4 +178,5 @@ class Terrain {
     }
 }
 
-export { Terrain, type IVoxelMap };
+export { EPatchComputingMode, Terrain, type IVoxelMap };
+

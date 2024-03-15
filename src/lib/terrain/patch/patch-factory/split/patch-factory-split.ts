@@ -2,7 +2,7 @@ import * as THREE from '../../../../three-usage';
 import { IVoxelMap } from '../../../i-voxel-map';
 import { EDisplayMode, PatchMaterial } from '../../material';
 import * as Cube from '../cube';
-import { GeometryAndMaterial, PatchFactoryBase, VertexData } from '../patch-factory-base';
+import { EPatchComputingMode, GeometryAndMaterial, PatchFactoryBase, VertexData } from '../patch-factory-base';
 
 import { VertexDataEncoder } from './vertex-data-encoder';
 
@@ -172,8 +172,8 @@ class PatchFactorySplit extends PatchFactoryBase {
         }) as unknown as PatchMaterial;
     }
 
-    public constructor(map: IVoxelMap) {
-        super(map, PatchFactorySplit.vertexDataEncoder.voxelMaterialId);
+    public constructor(map: IVoxelMap, computingMode: EPatchComputingMode) {
+        super(map, PatchFactorySplit.vertexDataEncoder.voxelMaterialId, computingMode);
     }
 
     protected disposeInternal(): void {

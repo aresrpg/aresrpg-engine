@@ -42,7 +42,7 @@ abstract class PatchFactoryBase {
 
     public abstract readonly maxPatchSize: THREE.Vector3;
 
-    private readonly computingMode: EPatchComputingMode = EPatchComputingMode.CPU_CACHED;
+    private readonly computingMode: EPatchComputingMode;
 
     protected readonly map: IVoxelMap;
 
@@ -54,8 +54,9 @@ abstract class PatchFactoryBase {
 
     protected readonly uniformsTemplate: PatchMaterialUniforms;
 
-    protected constructor(map: IVoxelMap, voxelTypeEncoder: PackedUintFragment) {
+    protected constructor(map: IVoxelMap, voxelTypeEncoder: PackedUintFragment, computingMode: EPatchComputingMode) {
         this.map = map;
+        this.computingMode = computingMode;
 
         this.texture = PatchFactoryBase.buildMaterialsTexture(map.voxelMaterialsList, voxelTypeEncoder);
         this.noiseTexture = PatchFactoryBase.buildNoiseTexture(this.noiseResolution, this.noiseTypes);
@@ -348,4 +349,5 @@ abstract class PatchFactoryBase {
     }
 }
 
-export { PatchFactoryBase, type GeometryAndMaterial, type VertexData };
+export { EPatchComputingMode, PatchFactoryBase, type GeometryAndMaterial, type VertexData };
+
