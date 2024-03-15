@@ -1,7 +1,7 @@
 import { createNoise2D } from 'simplex-noise';
 import * as THREE from 'three';
 
-import { AresRpgEngine } from '../lib/index';
+import type { IVoxel, IVoxelMap, IVoxelMaterial } from '../lib/index';
 
 enum EVoxelType {
     ROCK,
@@ -11,7 +11,7 @@ enum EVoxelType {
     SAND,
 }
 
-const voxelMaterials: Record<EVoxelType, AresRpgEngine.IVoxelMaterial> = [
+const voxelMaterials: Record<EVoxelType, IVoxelMaterial> = [
     { color: new THREE.Color('#ABABAB') },
     { color: new THREE.Color('#00B920') },
     { color: new THREE.Color('#E5E5E5') },
@@ -24,7 +24,7 @@ type StoredVoxel = {
     readonly type: EVoxelType;
 };
 
-class VoxelMap implements AresRpgEngine.IVoxelMap {
+class VoxelMap implements IVoxelMap {
     public readonly size: THREE.Vector3;
     public readonly voxelMaterialsList = Object.values(voxelMaterials);
 
@@ -75,7 +75,7 @@ class VoxelMap implements AresRpgEngine.IVoxelMap {
         return (toX - fromX) * (toZ - fromZ);
     }
 
-    public *iterateOnVoxels(from: THREE.Vector3, to: THREE.Vector3): Generator<AresRpgEngine.IVoxel> {
+    public *iterateOnVoxels(from: THREE.Vector3, to: THREE.Vector3): Generator<IVoxel> {
         if (to.x < from.x || to.y < from.y || to.z < from.z) {
             throw new Error();
         }

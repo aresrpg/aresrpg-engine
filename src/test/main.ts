@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-import { AresRpgEngine } from '../lib/index';
+import { Terrain } from '../lib/index';
 
 import { VoxelMap } from './voxel-map';
 
@@ -23,7 +23,7 @@ udpateRendererSize();
 const scene = new THREE.Scene();
 
 const voxelMap = new VoxelMap(256, 256, 16);
-const terrain = new AresRpgEngine.Terrain(voxelMap);
+const terrain = new Terrain(voxelMap);
 scene.add(terrain.container);
 
 scene.add(new THREE.AxesHelper(500));
