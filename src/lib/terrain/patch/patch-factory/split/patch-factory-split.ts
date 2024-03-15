@@ -188,25 +188,27 @@ class PatchFactorySplit extends PatchFactoryBase {
             return [];
         }
 
+        type BufferData = {
+            readonly buffer: Uint32Array;
+            verticesCount: number;
+        };
+        
         const verticesPerFace = 6;
         const uint32PerVertex = 1;
-
-        const verticesData: Record<Cube.FaceType, Uint32Array> = {
-            up: new Uint32Array(voxelsCountPerPatch * verticesPerFace * uint32PerVertex),
-            down: new Uint32Array(voxelsCountPerPatch * verticesPerFace * uint32PerVertex),
-            left: new Uint32Array(voxelsCountPerPatch * verticesPerFace * uint32PerVertex),
-            right: new Uint32Array(voxelsCountPerPatch * verticesPerFace * uint32PerVertex),
-            front: new Uint32Array(voxelsCountPerPatch * verticesPerFace * uint32PerVertex),
-            back: new Uint32Array(voxelsCountPerPatch * verticesPerFace * uint32PerVertex),
+        const bufferLength = voxelsCountPerPatch * verticesPerFace * uint32PerVertex;
+        const buildFaceBufferData = () => {
+            return {
+                buffer: new Uint32Array(bufferLength),
+                verticesCount: 0,
+            }
         };
-
-        const iVertice: Record<Cube.FaceType, number> = {
-            up: 0,
-            down: 0,
-            left: 0,
-            right: 0,
-            front: 0,
-            back: 0,
+        const facesBufferData: Record<Cube.FaceType, BufferData> = {
+            up: buildFaceBufferData(),
+            down: buildFaceBufferData(),
+            left: buildFaceBufferData(),
+            right: buildFaceBufferData(),
+            front: buildFaceBufferData(),
+            back: buildFaceBufferData(),
         };
 
         const faceVerticesData = new Uint32Array(4 * uint32PerVertex);
@@ -222,24 +224,21 @@ class PatchFactorySplit extends PatchFactoryBase {
                 );
             });
 
+            const faceBufferData = facesBufferData[faceData.faceType];
             for (const index of Cube.faceIndices) {
-                verticesData[faceData.faceType][iVertice[faceData.faceType]++] = faceVerticesData[index]!;
+                faceBufferData.buffer[faceBufferData.verticesCount++] = faceVerticesData[index]!;
             }
         }
 
-        const truncateFaceBufferData = (faceType: Cube.FaceType) => {
-            const rawBuffer = verticesData[faceType];
-            const verticesCount = iVertice[faceType];
-            return rawBuffer.subarray(0, verticesCount);
-        };
+        const truncateFaceBufferData = (bufferData: BufferData) => bufferData.buffer.subarray(0, bufferData.verticesCount);
 
         const buffers: Record<Cube.FaceType, Uint32Array> = {
-            up: truncateFaceBufferData("up"),
-            down: truncateFaceBufferData("down"),
-            left: truncateFaceBufferData("left"),
-            right: truncateFaceBufferData("right"),
-            front: truncateFaceBufferData("front"),
-            back: truncateFaceBufferData("back"),
+            up: truncateFaceBufferData(facesBufferData.up),
+            down: truncateFaceBufferData(facesBufferData.down),
+            left: truncateFaceBufferData(facesBufferData.left),
+            right: truncateFaceBufferData(facesBufferData.right),
+            front: truncateFaceBufferData(facesBufferData.front),
+            back: truncateFaceBufferData(facesBufferData.back),
         };
 
         return this.assembleGeometryAndMaterials(buffers);
@@ -274,3 +273,4 @@ class PatchFactorySplit extends PatchFactoryBase {
 }
 
 export { PatchFactorySplit, type PatchMaterial };
+
