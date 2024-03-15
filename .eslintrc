@@ -19,6 +19,7 @@
     "prefer-numeric-literals": "error",
     "import/order": ["error", { "newlines-between": "always" }],
     "no-throw-literal": "error",
+    "no-undef": "off",
     "no-unused-vars": "off",
     "@typescript-eslint/no-unused-vars": ["error"]
   }
