@@ -26,10 +26,23 @@ type FaceData = {
     readonly verticesData: [VertexData, VertexData, VertexData, VertexData];
 };
 
+type LocalMapCache = {
+    readonly data: Uint16Array;
+    readonly size: THREE.Vector3;
+    neighbourExists(voxelIndex: number, neighbourRelativePosition: THREE.Vector3): boolean;
+};
+
+enum EPatchComputingMode {
+    CPU_SIMPLE,
+    CPU_CACHED,
+};
+
 abstract class PatchFactoryBase {
     public static readonly maxSmoothEdgeRadius = 0.3;
 
     public abstract readonly maxPatchSize: THREE.Vector3;
+
+    private readonly computingMode: EPatchComputingMode = EPatchComputingMode.CPU_CACHED;
 
     protected readonly map: IVoxelMap;
 
@@ -105,6 +118,22 @@ abstract class PatchFactoryBase {
     }
 
     protected *iterateOnVisibleFaces(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Generator<FaceData> {
+        if (this.computingMode === EPatchComputingMode.CPU_SIMPLE) {
+            for (const a of this.iterateOnVisibleFacesSimple(patchStart, patchEnd)) {
+                yield a;
+            }
+        } else if (this.computingMode === EPatchComputingMode.CPU_CACHED) {
+            const localMapCache = this.buildLocalMapCache(patchStart, patchEnd);
+            for (const a of this.iterateOnVisibleFacesWithCache(localMapCache)) {
+                yield a;
+            }
+        } else {
+            throw new Error(`Unsupported patch computing mode ${this.computingMode}`);
+        }
+
+    }
+
+    private *iterateOnVisibleFacesSimple(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Generator<FaceData> {
         for (const voxel of this.map.iterateOnVoxels(patchStart, patchEnd)) {
             const voxelWorldPosition = voxel.position;
             const voxelLocalPosition = new THREE.Vector3().subVectors(voxelWorldPosition, patchStart);
@@ -171,9 +200,114 @@ abstract class PatchFactoryBase {
         }
     }
 
+    private *iterateOnVisibleFacesWithCache(localMapCache: LocalMapCache): Generator<FaceData> {
+        let cacheIndex = 0;
+        const localPosition = new THREE.Vector3();
+        for (localPosition.z = 0; localPosition.z < localMapCache.size.z; localPosition.z++) {
+            for (localPosition.y = 0; localPosition.y < localMapCache.size.y; localPosition.y++) {
+                for (localPosition.x = 0; localPosition.x < localMapCache.size.x; localPosition.x++) {
+                    const cacheData = localMapCache.data[cacheIndex];
+                    if (typeof cacheData === "undefined") {
+                        throw new Error();
+                    }
+
+                    if (cacheData > 0) { // if there is a voxel there
+                        if (localPosition.x > 0 && localPosition.y > 0 && localPosition.z > 0 &&
+                            localPosition.x < localMapCache.size.x - 1 && localPosition.y < localMapCache.size.y - 1 && localPosition.z < localMapCache.size.z - 1) {
+                            const voxelLocalPosition = localPosition.clone().subScalar(1);
+                            const voxelMaterialId = cacheData - 1;
+
+                            for (const face of Object.values(Cube.faces)) {
+                                if (localMapCache.neighbourExists(cacheIndex, face.normal)) {
+                                    // this face will be hidden -> skip it
+                                    continue;
+                                }
+
+                                yield {
+                                    voxelLocalPosition,
+                                    voxelMaterialId,
+                                    faceType: face.type,
+                                    faceId: face.id,
+                                    verticesData: face.vertices.map((faceVertex: Cube.FaceVertex): VertexData => {
+                                        let ao = 0;
+                                        const [a, b, c] = faceVertex.shadowingNeighbourVoxels.map(neighbourVoxel => localMapCache.neighbourExists(cacheIndex, neighbourVoxel)
+                                        ) as [boolean, boolean, boolean];
+                                        if (a && b) {
+                                            ao = 3;
+                                        } else {
+                                            ao = +a + +b + +c;
+                                        }
+
+                                        let roundnessX = true;
+                                        let roundnessY = true;
+                                        for (const neighbourVoxel of faceVertex.edgeNeighbourVoxels.x) {
+                                            roundnessX &&= !localMapCache.neighbourExists(cacheIndex, neighbourVoxel);
+                                        }
+                                        for (const neighbourVoxel of faceVertex.edgeNeighbourVoxels.y) {
+                                            roundnessY &&= !localMapCache.neighbourExists(cacheIndex, neighbourVoxel);
+                                        }
+
+                                        return {
+                                            localPosition: faceVertex.vertex,
+                                            ao,
+                                            roundnessX,
+                                            roundnessY,
+                                        };
+                                    }) as [VertexData, VertexData, VertexData, VertexData],
+                                };
+                            }
+                        }
+                    }
+                    cacheIndex++;
+                }
+            }
+        }
+    }
+
     protected abstract computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): GeometryAndMaterial[];
 
     protected abstract disposeInternal(): void;
+
+    protected buildLocalMapCache(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): LocalMapCache {
+        const cacheStart = patchStart.clone().subScalar(1);
+        const cacheEnd = patchEnd.clone().addScalar(1);
+        const cacheSize = new THREE.Vector3().subVectors(cacheEnd, cacheStart);
+        const cache = new Uint16Array(cacheSize.x * cacheSize.y * cacheSize.z);
+
+        const indexFactor = { x: 1, y: cacheSize.x, z: cacheSize.x * cacheSize.y };
+
+        const buildIndexUnsafe = (position: THREE.Vector3) => {
+            return position.x * indexFactor.x + position.y * indexFactor.y + position.z * indexFactor.z;
+        };
+        const buildIndex = (position: THREE.Vector3) => {
+            if (position.x < 0 || position.y < 0 || position.z < 0) {
+                throw new Error();
+            }
+            return buildIndexUnsafe(position);
+        };
+
+        const neighbourExists = (index: number, neighbour: THREE.Vector3) => {
+            const deltaIndex = buildIndexUnsafe(neighbour);
+            const neighbourIndex = index + deltaIndex;
+            const neighbourData = cache[neighbourIndex];
+            if (typeof neighbourData === "undefined") {
+                throw new Error();
+            }
+            return neighbourData !== 0;
+        }
+
+        for (const voxel of this.map.iterateOnVoxels(cacheStart, cacheEnd)) {
+            const localPosition = new THREE.Vector3().subVectors(voxel.position, cacheStart);
+            const cacheIndex = buildIndex(localPosition);
+            cache[cacheIndex] = 1 + voxel.materialId;
+        }
+
+        return {
+            data: cache,
+            size: cacheSize,
+            neighbourExists,
+        };
+    }
 
     private static buildMaterialsTexture(
         voxelMaterials: ReadonlyArray<IVoxelMaterial>,
