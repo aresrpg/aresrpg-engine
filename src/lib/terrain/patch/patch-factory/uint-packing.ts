@@ -2,7 +2,6 @@ type PackedUintFragment = {
     readonly maxValue: number;
     encode(value: number): number;
     glslDecode(varname: string): string;
-    glslDecodeWithShift(varname: string, shiftAsString: string): string;
 };
 
 class PackedUintFactory {
@@ -32,9 +31,6 @@ class PackedUintFactory {
             },
             glslDecode: (varname: string) => {
                 return `((${varname} >> ${shift}u) & ${maxValue}u)`;
-            },
-            glslDecodeWithShift: (varname: string, additionalShiftAsString: string) => {
-                return `((${varname} >> (${shift}u + ${additionalShiftAsString})) & ${maxValue}u)`;
             },
         };
     }
