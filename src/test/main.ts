@@ -11,11 +11,11 @@ renderer.setClearColor(0x880000);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const udpateRendererSize = () => {
-  const width = window.innerWidth;
-  const height = window.innerHeight;
-  renderer.setSize(width, height);
-  camera.aspect = width / height;
-  camera.updateProjectionMatrix();
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    renderer.setSize(width, height);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
 };
 window.addEventListener('resize', udpateRendererSize);
 udpateRendererSize();
@@ -34,9 +34,9 @@ cameraControl.target.set(voxelMap.size.x / 2, 0, voxelMap.size.z / 2);
 
 terrain.showEntireMap();
 function render(): void {
-  cameraControl.update();
-  terrain.updateUniforms();
-  renderer.render(scene, camera);
-  window.requestAnimationFrame(render);
+    cameraControl.update();
+    terrain.updateUniforms();
+    renderer.render(scene, camera);
+    window.requestAnimationFrame(render);
 }
 window.requestAnimationFrame(render);
