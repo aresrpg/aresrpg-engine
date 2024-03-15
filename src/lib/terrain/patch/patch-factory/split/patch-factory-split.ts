@@ -234,59 +234,42 @@ class PatchFactorySplit extends PatchFactoryBase {
         };
 
         const buffers: Record<Cube.FaceType, Uint32Array> = {
-          up: truncateFaceBufferData("up"),
-          down: truncateFaceBufferData("down"),
-          left: truncateFaceBufferData("left"),
-          right: truncateFaceBufferData("right"),
-          front: truncateFaceBufferData("front"),
-          back: truncateFaceBufferData("back"),
+            up: truncateFaceBufferData("up"),
+            down: truncateFaceBufferData("down"),
+            left: truncateFaceBufferData("left"),
+            right: truncateFaceBufferData("right"),
+            front: truncateFaceBufferData("front"),
+            back: truncateFaceBufferData("back"),
         };
 
         return this.assembleGeometryAndMaterials(buffers);
     }
 
     private assembleGeometryAndMaterials(buffers: Record<Cube.FaceType, Uint32Array>): GeometryAndMaterial[] {
-        const geometriesAndMaterials: Record<Cube.FaceType, GeometryAndMaterial> = {
-            up: {
-                geometry: new THREE.BufferGeometry(),
-                material: this.materialsTemplates.up,
-            },
-            down: {
-                geometry: new THREE.BufferGeometry(),
-                material: this.materialsTemplates.down,
-            },
-            left: {
-                geometry: new THREE.BufferGeometry(),
-                material: this.materialsTemplates.left,
-            },
-            right: {
-                geometry: new THREE.BufferGeometry(),
-                material: this.materialsTemplates.right,
-            },
-            front: {
-                geometry: new THREE.BufferGeometry(),
-                material: this.materialsTemplates.front,
-            },
-            back: {
-                geometry: new THREE.BufferGeometry(),
-                material: this.materialsTemplates.back,
-            },
-        };
+        return [
+            this.assembleGeometryAndMaterial("up", buffers),
+            this.assembleGeometryAndMaterial("down", buffers),
+            this.assembleGeometryAndMaterial("left", buffers),
+            this.assembleGeometryAndMaterial("right", buffers),
+            this.assembleGeometryAndMaterial("front", buffers),
+            this.assembleGeometryAndMaterial("back", buffers),
+        ];
+    }
 
-        for (const [faceType, geometryAndMaterial] of Object.entries(geometriesAndMaterials) as [Cube.FaceType, GeometryAndMaterial][]) {
-            const buffer = buffers[faceType];
-            const verticesCount = buffer.length;
-            const faceTypeVerticesDataBuffer = new THREE.Uint32BufferAttribute(buffer, 1, false);
-            faceTypeVerticesDataBuffer.onUpload(() => {
-                (faceTypeVerticesDataBuffer.array as THREE.TypedArray | null) = null;
-            });
+    private assembleGeometryAndMaterial(faceType: Cube.FaceType, buffers: Record<Cube.FaceType, Uint32Array>): GeometryAndMaterial {
+        const material = this.materialsTemplates[faceType];
 
-            const { geometry } = geometryAndMaterial;
-            geometry.setAttribute(PatchFactorySplit.dataAttributeName, faceTypeVerticesDataBuffer);
-            geometry.setDrawRange(0, verticesCount);
-        }
+        const geometry = new THREE.BufferGeometry();
+        const buffer = buffers[faceType];
+        const verticesCount = buffer.length;
+        const faceTypeVerticesDataBuffer = new THREE.Uint32BufferAttribute(buffer, 1, false);
+        faceTypeVerticesDataBuffer.onUpload(() => {
+            (faceTypeVerticesDataBuffer.array as THREE.TypedArray | null) = null;
+        });
+        geometry.setAttribute(PatchFactorySplit.dataAttributeName, faceTypeVerticesDataBuffer);
+        geometry.setDrawRange(0, verticesCount);
 
-        return Object.values(geometriesAndMaterials);
+        return { material, geometry };
     }
 }
 
