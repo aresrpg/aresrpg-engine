@@ -19,7 +19,6 @@ type VertexData = {
 };
 
 type FaceData = {
-    readonly voxelWorldPosition: THREE.Vector3;
     readonly voxelLocalPosition: THREE.Vector3;
     readonly voxelMaterialId: number;
     readonly faceType: Cube.FaceType;
@@ -107,7 +106,7 @@ abstract class PatchFactoryBase {
 
     protected *iterateOnVisibleFaces(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Generator<FaceData> {
         for (const voxel of this.map.iterateOnVoxels(patchStart, patchEnd)) {
-            const voxelWorldPosition = new THREE.Vector3(voxel.position.x, voxel.position.y, voxel.position.z);
+            const voxelWorldPosition = voxel.position;
             const voxelLocalPosition = new THREE.Vector3().subVectors(voxelWorldPosition, patchStart);
 
             for (const face of Object.values(Cube.faces)) {
@@ -123,7 +122,6 @@ abstract class PatchFactoryBase {
                 }
 
                 yield {
-                    voxelWorldPosition,
                     voxelLocalPosition,
                     voxelMaterialId: voxel.materialId,
                     faceType: face.type,
