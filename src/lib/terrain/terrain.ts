@@ -71,16 +71,20 @@ class Terrain {
      * Makes the whole make visible.
      */
     public async showEntireMap(): Promise<void> {
+        const promises: Promise<void>[] = [];
+
         const patchStart = new THREE.Vector3();
         for (patchStart.x = 0; patchStart.x < this.map.size.x; patchStart.x += this.patchSize.x) {
             for (patchStart.y = 0; patchStart.y < this.map.size.y; patchStart.y += this.patchSize.y) {
                 for (patchStart.z = 0; patchStart.z < this.map.size.z; patchStart.z += this.patchSize.z) {
                     const patch = this.getPatch(patchStart);
                     patch.visible = true;
-                    await patch.ready();
+                    promises.push(patch.ready());
                 }
             }
         }
+
+        await Promise.all(promises);
     }
 
     /**
@@ -98,6 +102,7 @@ class Terrain {
             patch.visible = false;
         }
 
+        const promises: Promise<void>[] = [];
         const patchId = new THREE.Vector3();
         for (patchId.x = patchIdFrom.x; patchId.x < patchIdTo.x; patchId.x++) {
             for (patchId.y = patchIdFrom.y; patchId.y < patchIdTo.y; patchId.y++) {
@@ -105,10 +110,12 @@ class Terrain {
                     const patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
                     const patch = this.getPatch(patchStart);
                     patch.visible = true;
-                    await patch.ready();
+                    promises.push(patch.ready());
                 }
             }
         }
+
+        await Promise.all(promises);
     }
 
     /** Call this method before rendering. */

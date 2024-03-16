@@ -1,3 +1,4 @@
+import { PromiseThrottler } from '../../../../helpers/promise-throttler';
 import * as THREE from '../../../../three-usage';
 import { IVoxelMap } from '../../../i-voxel-map';
 import { EDisplayMode, PatchMaterial } from '../../material';
@@ -26,6 +27,9 @@ class PatchFactorySplit extends PatchFactoryBase {
         front: this.buildPatchMaterial('front'),
         back: this.buildPatchMaterial('back'),
     };
+
+
+    private readonly gpuSequentialLimiter = new PromiseThrottler(1);
 
     private buildPatchMaterial(faceType: Cube.FaceType): PatchMaterial {
         return new THREE.ShaderMaterial({
@@ -258,21 +262,22 @@ class PatchFactorySplit extends PatchFactoryBase {
     }
 
     protected async computePatchDataOnGpu(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
-          const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
-          const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
-          if (voxelsCountPerPatch <= 0) {
-            return [];
-          }
-      
-           const localMapCache = this.buildLocalMapCache(patchStart, patchEnd);
-      
-          const patchComputerGpu = await this.patchComputerGpuPromise;
-          if (!patchComputerGpu) {
-            throw new Error("Could not get WebGPU patch computer");
-          }
-          const buffers = await patchComputerGpu.computeBuffers(localMapCache);
-      
-          return this.assembleGeometryAndMaterials(buffers);
+        return this.gpuSequentialLimiter.run(async () => {
+            const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
+            const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
+            if (voxelsCountPerPatch <= 0) {
+                return [];
+            }
+
+            const localMapCache = this.buildLocalMapCache(patchStart, patchEnd);
+
+            const patchComputerGpu = await this.patchComputerGpuPromise;
+            if (!patchComputerGpu) {
+                throw new Error("Could not get WebGPU patch computer");
+            }
+            const buffers = await patchComputerGpu.computeBuffers(localMapCache);
+            return this.assembleGeometryAndMaterials(buffers);
+        });
     }
 
     private assembleGeometryAndMaterials(buffers: Record<Cube.FaceType, Uint32Array>): GeometryAndMaterial[] {
