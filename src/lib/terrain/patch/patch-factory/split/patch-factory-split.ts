@@ -281,7 +281,7 @@ class PatchFactorySplit extends PatchFactoryBase {
     }
 
     private assembleGeometryAndMaterials(buffers: Record<Cube.FaceType, Uint32Array>): GeometryAndMaterial[] {
-        return [
+        const processedBuffers = [
             this.assembleGeometryAndMaterial("up", buffers),
             this.assembleGeometryAndMaterial("down", buffers),
             this.assembleGeometryAndMaterial("left", buffers),
@@ -289,14 +289,25 @@ class PatchFactorySplit extends PatchFactoryBase {
             this.assembleGeometryAndMaterial("front", buffers),
             this.assembleGeometryAndMaterial("back", buffers),
         ];
+
+        const result: GeometryAndMaterial[] = [];
+        for (const processedBuffer of processedBuffers) {
+            if (processedBuffer) {
+                result.push(processedBuffer);
+            }
+        }
+        return result;
     }
 
-    private assembleGeometryAndMaterial(faceType: Cube.FaceType, buffers: Record<Cube.FaceType, Uint32Array>): GeometryAndMaterial {
-        const material = this.materialsTemplates[faceType];
-
-        const geometry = new THREE.BufferGeometry();
+    private assembleGeometryAndMaterial(faceType: Cube.FaceType, buffers: Record<Cube.FaceType, Uint32Array>): GeometryAndMaterial | null {
         const buffer = buffers[faceType];
         const verticesCount = buffer.length;
+        if (verticesCount === 0) {
+            return null;
+        }
+
+        const material = this.materialsTemplates[faceType];
+        const geometry = new THREE.BufferGeometry();
         const faceTypeVerticesDataBuffer = new THREE.Uint32BufferAttribute(buffer, 1, false);
         faceTypeVerticesDataBuffer.onUpload(() => {
             (faceTypeVerticesDataBuffer.array as THREE.TypedArray | null) = null;
