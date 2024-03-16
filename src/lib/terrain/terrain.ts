@@ -52,7 +52,7 @@ class Terrain {
     public constructor(map: IVoxelMap, options?: TerrainOptions) {
         this.map = map;
 
-        let computingMode = EPatchComputingMode.CPU_CACHED;
+        let computingMode = EPatchComputingMode.GPU_SEQUENTIAL;
         if (options) {
             if (typeof options.computingMode !== "undefined") {
                 computingMode = options.computingMode;
@@ -69,12 +69,12 @@ class Terrain {
     /**
      * Makes the whole make visible.
      */
-    public showEntireMap(): void {
+    public async showEntireMap(): Promise<void> {
         const patchStart = new THREE.Vector3();
         for (patchStart.x = 0; patchStart.x < this.map.size.x; patchStart.x += this.patchSize.x) {
             for (patchStart.y = 0; patchStart.y < this.map.size.y; patchStart.y += this.patchSize.y) {
                 for (patchStart.z = 0; patchStart.z < this.map.size.z; patchStart.z += this.patchSize.z) {
-                    const patch = this.getPatch(patchStart);
+                    const patch = await this.getPatch(patchStart);
                     if (patch) {
                         patch.container.visible = true;
                     }
@@ -88,7 +88,7 @@ class Terrain {
      * @param position The position around which the map will be made visible.
      * @param radius The visibility radius, in voxels.
      */
-    public showMapAroundPosition(position: THREE.Vector3, radius: number): void {
+    public async showMapAroundPosition(position: THREE.Vector3, radius: number): Promise<void> {
         const voxelFrom = new THREE.Vector3().copy(position).subScalar(radius);
         const voxelTo = new THREE.Vector3().copy(position).addScalar(radius);
         const patchIdFrom = voxelFrom.divide(this.patchSize).floor();
@@ -105,7 +105,7 @@ class Terrain {
             for (patchId.y = patchIdFrom.y; patchId.y < patchIdTo.y; patchId.y++) {
                 for (patchId.z = patchIdFrom.z; patchId.z < patchIdTo.z; patchId.z++) {
                     const patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
-                    const patch = this.getPatch(patchStart);
+                    const patch = await this.getPatch(patchStart);
                     if (patch) {
                         patch.container.visible = true;
                     }
@@ -156,14 +156,14 @@ class Terrain {
         this.patchFactory.dispose();
     }
 
-    private getPatch(patchStart: THREE.Vector3): Patch | null {
+    private async getPatch(patchStart: THREE.Vector3): Promise<Patch | null> {
         const patchId = this.computePatchId(patchStart);
 
         let patch = this.patches[patchId];
         if (typeof patch === 'undefined') {
             const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
 
-            patch = this.patchFactory.buildPatch(patchStart, patchEnd);
+            patch = await this.patchFactory.buildPatch(patchStart, patchEnd);
             if (patch) {
                 patch.container.visible = false;
                 this.container.add(patch.container);
@@ -179,4 +179,3 @@ class Terrain {
 }
 
 export { EPatchComputingMode, Terrain, type IVoxelMap };
-

@@ -1,6 +1,7 @@
 type PackedUintFragment = {
     readonly maxValue: number;
     encode(value: number): number;
+    wgslEncode(varname: string): string;
     glslDecode(varname: string): string;
 };
 
@@ -28,6 +29,9 @@ class PackedUintFactory {
                     throw new Error('Out of range');
                 }
                 return value << shift;
+            },
+            wgslEncode: (varname: string) => {
+                return `(${varname} << ${shift}u)`;
             },
             glslDecode: (varname: string) => {
                 return `((${varname} >> ${shift}u) & ${maxValue}u)`;
