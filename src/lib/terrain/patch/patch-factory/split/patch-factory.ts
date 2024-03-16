@@ -8,15 +8,15 @@ import { EPatchComputingMode, GeometryAndMaterial, PatchFactoryBase, VertexData 
 import { PatchComputerGpu } from "./patch-computer-gpu";
 import { VertexDataEncoder } from './vertex-data-encoder';
 
-class PatchFactorySplit extends PatchFactoryBase {
+class PatchFactory extends PatchFactoryBase {
     private static readonly dataAttributeName = 'aData';
 
     private static readonly vertexDataEncoder = new VertexDataEncoder();
 
     public readonly maxPatchSize = new THREE.Vector3(
-        PatchFactorySplit.vertexDataEncoder.voxelX.maxValue + 1,
-        PatchFactorySplit.vertexDataEncoder.voxelY.maxValue + 1,
-        PatchFactorySplit.vertexDataEncoder.voxelZ.maxValue + 1
+        PatchFactory.vertexDataEncoder.voxelX.maxValue + 1,
+        PatchFactory.vertexDataEncoder.voxelY.maxValue + 1,
+        PatchFactory.vertexDataEncoder.voxelZ.maxValue + 1
     );
 
     private readonly materialsTemplates: Record<Cube.FaceType, PatchMaterial> = {
@@ -36,7 +36,7 @@ class PatchFactorySplit extends PatchFactoryBase {
             glslVersion: '300 es',
             uniforms: this.uniformsTemplate,
             vertexShader: `
-        in uint ${PatchFactorySplit.dataAttributeName};
+        in uint ${PatchFactory.dataAttributeName};
 
         out vec2 vUv;
         out vec2 vEdgeRoundness;
@@ -49,9 +49,9 @@ class PatchFactorySplit extends PatchFactoryBase {
             uint vertexId = vertexIds[gl_VertexID % 6];
 
             uvec3 worldVoxelPosition = uvec3(
-                ${PatchFactorySplit.vertexDataEncoder.voxelX.glslDecode(PatchFactorySplit.dataAttributeName)},
-                ${PatchFactorySplit.vertexDataEncoder.voxelY.glslDecode(PatchFactorySplit.dataAttributeName)},
-                ${PatchFactorySplit.vertexDataEncoder.voxelZ.glslDecode(PatchFactorySplit.dataAttributeName)}
+                ${PatchFactory.vertexDataEncoder.voxelX.glslDecode(PatchFactory.dataAttributeName)},
+                ${PatchFactory.vertexDataEncoder.voxelY.glslDecode(PatchFactory.dataAttributeName)},
+                ${PatchFactory.vertexDataEncoder.voxelZ.glslDecode(PatchFactory.dataAttributeName)}
             );
 
             const uvec3 localVertexPositions[] = uvec3[](
@@ -77,14 +77,14 @@ class PatchFactorySplit extends PatchFactoryBase {
                 vec2(0,1),
                 vec2(1,1)
             );
-            uint edgeRoundnessId = ${PatchFactorySplit.vertexDataEncoder.edgeRoundness.glslDecode(PatchFactorySplit.dataAttributeName)};
+            uint edgeRoundnessId = ${PatchFactory.vertexDataEncoder.edgeRoundness.glslDecode(PatchFactory.dataAttributeName)};
             vEdgeRoundness = edgeRoundness[edgeRoundnessId];
 
-            vAo = float(${PatchFactorySplit.vertexDataEncoder.ao.glslDecode(
-                PatchFactorySplit.dataAttributeName
-            )}) / ${PatchFactorySplit.vertexDataEncoder.ao.maxValue.toFixed(1)};
+            vAo = float(${PatchFactory.vertexDataEncoder.ao.glslDecode(
+                PatchFactory.dataAttributeName
+            )}) / ${PatchFactory.vertexDataEncoder.ao.maxValue.toFixed(1)};
 
-            vMaterial = int(${PatchFactorySplit.vertexDataEncoder.voxelMaterialId.glslDecode(PatchFactorySplit.dataAttributeName)});
+            vMaterial = int(${PatchFactory.vertexDataEncoder.voxelMaterialId.glslDecode(PatchFactory.dataAttributeName)});
             vNoise = int(worldVoxelPosition.x + worldVoxelPosition.y * 3u + worldVoxelPosition.z * 2u) % ${this.noiseTypes};
         }`,
             fragmentShader: `precision mediump float;
@@ -180,11 +180,11 @@ class PatchFactorySplit extends PatchFactoryBase {
     private readonly patchComputerGpuPromise: Promise<PatchComputerGpu> | null = null;
 
     public constructor(map: IVoxelMap, computingMode: EPatchComputingMode) {
-        super(map, PatchFactorySplit.vertexDataEncoder.voxelMaterialId, computingMode);
+        super(map, PatchFactory.vertexDataEncoder.voxelMaterialId, computingMode);
 
         if (computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
             const localCacheSize = this.maxPatchSize.clone().addScalar(2);
-            this.patchComputerGpuPromise = PatchComputerGpu.create(localCacheSize, PatchFactorySplit.vertexDataEncoder);
+            this.patchComputerGpuPromise = PatchComputerGpu.create(localCacheSize, PatchFactory.vertexDataEncoder);
         }
     }
 
@@ -231,7 +231,7 @@ class PatchFactorySplit extends PatchFactoryBase {
         const faceVerticesData = new Uint32Array(4 * uint32PerVertex);
         for (const faceData of this.iterateOnVisibleFaces(patchStart, patchEnd)) {
             faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
-                faceVerticesData[faceVertexIndex] = PatchFactorySplit.vertexDataEncoder.encode(
+                faceVerticesData[faceVertexIndex] = PatchFactory.vertexDataEncoder.encode(
                     faceData.voxelLocalPosition.x,
                     faceData.voxelLocalPosition.y,
                     faceData.voxelLocalPosition.z,
@@ -312,12 +312,12 @@ class PatchFactorySplit extends PatchFactoryBase {
         faceTypeVerticesDataBuffer.onUpload(() => {
             (faceTypeVerticesDataBuffer.array as THREE.TypedArray | null) = null;
         });
-        geometry.setAttribute(PatchFactorySplit.dataAttributeName, faceTypeVerticesDataBuffer);
+        geometry.setAttribute(PatchFactory.dataAttributeName, faceTypeVerticesDataBuffer);
         geometry.setDrawRange(0, verticesCount);
 
         return { material, geometry };
     }
 }
 
-export { PatchFactorySplit, type PatchMaterial };
+export { PatchFactory, type PatchMaterial };
 

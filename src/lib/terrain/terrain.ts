@@ -4,7 +4,7 @@ import { AsyncPatch } from "./async-patch";
 import { IVoxelMap } from './i-voxel-map';
 import { EDisplayMode } from './patch/patch';
 import { EPatchComputingMode, PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
-import { PatchFactorySplit } from './patch/patch-factory/split/patch-factory-split';
+import { PatchFactory } from './patch/patch-factory/split/patch-factory';
 
 type TerrainOptions = {
     computingMode?: EPatchComputingMode,
@@ -59,7 +59,7 @@ class Terrain {
                 computingMode = options.computingMode;
             }
         }
-        this.patchFactory = new PatchFactorySplit(map, computingMode);
+        this.patchFactory = new PatchFactory(map, computingMode);
 
         this.patchSize = this.patchFactory.maxPatchSize.clone();
         console.log(`Using max patch size ${this.patchSize.x}x${this.patchSize.y}x${this.patchSize.z}.`);
