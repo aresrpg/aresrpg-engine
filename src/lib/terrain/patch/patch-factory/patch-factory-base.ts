@@ -358,5 +358,5 @@ abstract class PatchFactoryBase {
     }
 }
 
-export { EPatchComputingMode, PatchFactoryBase, type GeometryAndMaterial, type VertexData };
+export { EPatchComputingMode, PatchFactoryBase, type GeometryAndMaterial, type LocalMapCache, type VertexData };
 
