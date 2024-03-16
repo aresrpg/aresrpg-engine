@@ -1,7 +1,8 @@
 import * as THREE from '../three-usage';
 
+import { AsyncPatch } from "./async-patch";
 import { IVoxelMap } from './i-voxel-map';
-import { EDisplayMode, Patch } from './patch/patch';
+import { EDisplayMode } from './patch/patch';
 import { EPatchComputingMode, PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
 import { PatchFactorySplit } from './patch/patch-factory/split/patch-factory-split';
 
@@ -43,7 +44,7 @@ class Terrain {
     private readonly patchFactory: PatchFactoryBase;
     private readonly patchSize: THREE.Vector3;
 
-    private readonly patches: Record<string, Patch | null> = {};
+    private patches: Record<string, AsyncPatch> = {};
 
     /**
      *
@@ -74,10 +75,9 @@ class Terrain {
         for (patchStart.x = 0; patchStart.x < this.map.size.x; patchStart.x += this.patchSize.x) {
             for (patchStart.y = 0; patchStart.y < this.map.size.y; patchStart.y += this.patchSize.y) {
                 for (patchStart.z = 0; patchStart.z < this.map.size.z; patchStart.z += this.patchSize.z) {
-                    const patch = await this.getPatch(patchStart);
-                    if (patch) {
-                        patch.container.visible = true;
-                    }
+                    const patch = this.getPatch(patchStart);
+                    patch.visible = true;
+                    await patch.ready();
                 }
             }
         }
@@ -95,9 +95,7 @@ class Terrain {
         const patchIdTo = voxelTo.divide(this.patchSize).ceil();
 
         for (const patch of Object.values(this.patches)) {
-            if (patch) {
-                patch.container.visible = false;
-            }
+            patch.visible = false;
         }
 
         const patchId = new THREE.Vector3();
@@ -105,10 +103,9 @@ class Terrain {
             for (patchId.y = patchIdFrom.y; patchId.y < patchIdTo.y; patchId.y++) {
                 for (patchId.z = patchIdFrom.z; patchId.z < patchIdTo.z; patchId.z++) {
                     const patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
-                    const patch = await this.getPatch(patchStart);
-                    if (patch) {
-                        patch.container.visible = true;
-                    }
+                    const patch = this.getPatch(patchStart);
+                    patch.visible = true;
+                    await patch.ready();
                 }
             }
         }
@@ -116,7 +113,8 @@ class Terrain {
 
     /** Call this method before rendering. */
     public updateUniforms(): void {
-        for (const patch of Object.values(this.patches)) {
+        for (const asyncPatch of Object.values(this.patches)) {
+            const patch = asyncPatch.patch;
             if (patch) {
                 patch.parameters.voxels.displayMode = this.parameters.voxels.displayMode;
                 patch.parameters.voxels.noiseStrength = this.parameters.voxels.noiseStrength;
@@ -141,11 +139,11 @@ class Terrain {
      * It will be recomputed if needed again.
      */
     public clear(): void {
-        for (const [patchId, patch] of Object.entries(this.patches)) {
-            patch?.dispose();
-            this.container.clear();
-            delete this.patches[patchId];
+        for (const patch of Object.values(this.patches)) {
+            patch.dispose();
         }
+        this.container.clear();
+        this.patches = {};
     }
 
     /**
@@ -156,18 +154,16 @@ class Terrain {
         this.patchFactory.dispose();
     }
 
-    private async getPatch(patchStart: THREE.Vector3): Promise<Patch | null> {
+    private getPatch(patchStart: THREE.Vector3): AsyncPatch {
         const patchId = this.computePatchId(patchStart);
 
         let patch = this.patches[patchId];
         if (typeof patch === 'undefined') {
             const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
 
-            patch = await this.patchFactory.buildPatch(patchStart, patchEnd);
-            if (patch) {
-                patch.container.visible = false;
-                this.container.add(patch.container);
-            }
+            const promise = this.patchFactory.buildPatch(patchStart, patchEnd);
+            patch = new AsyncPatch(this.container, promise);
+
             this.patches[patchId] = patch;
         }
         return patch;
@@ -179,3 +175,4 @@ class Terrain {
 }
 
 export { EPatchComputingMode, Terrain, type IVoxelMap };
+
