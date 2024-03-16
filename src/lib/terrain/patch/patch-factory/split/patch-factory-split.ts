@@ -4,6 +4,7 @@ import { EDisplayMode, PatchMaterial } from '../../material';
 import * as Cube from '../cube';
 import { EPatchComputingMode, GeometryAndMaterial, PatchFactoryBase, VertexData } from '../patch-factory-base';
 
+import { PatchComputerGpu } from "./patch-computer-gpu";
 import { VertexDataEncoder } from './vertex-data-encoder';
 
 class PatchFactorySplit extends PatchFactoryBase {
@@ -172,13 +173,25 @@ class PatchFactorySplit extends PatchFactoryBase {
         }) as unknown as PatchMaterial;
     }
 
+    private readonly patchComputerGpuPromise: Promise<PatchComputerGpu> | null = null;
+
     public constructor(map: IVoxelMap, computingMode: EPatchComputingMode) {
         super(map, PatchFactorySplit.vertexDataEncoder.voxelMaterialId, computingMode);
+
+        if (computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
+            const localCacheSize = this.maxPatchSize.clone().addScalar(2);
+            this.patchComputerGpuPromise = PatchComputerGpu.create(localCacheSize, PatchFactorySplit.vertexDataEncoder);
+        }
     }
 
-    protected disposeInternal(): void {
+    protected async disposeInternal(): Promise<void> {
         for (const material of Object.values(this.materialsTemplates)) {
             material.dispose();
+        }
+
+        if (this.patchComputerGpuPromise) {
+            const computer = await this.patchComputerGpuPromise;
+            computer.dispose();
         }
     }
 
@@ -242,6 +255,24 @@ class PatchFactorySplit extends PatchFactoryBase {
         };
 
         return this.assembleGeometryAndMaterials(buffers);
+    }
+
+    protected async computePatchDataOnGpu(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
+          const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
+          const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
+          if (voxelsCountPerPatch <= 0) {
+            return [];
+          }
+      
+           const localMapCache = this.buildLocalMapCache(patchStart, patchEnd);
+      
+          const patchComputerGpu = await this.patchComputerGpuPromise;
+          if (!patchComputerGpu) {
+            throw new Error("Could not get WebGPU patch computer");
+          }
+          const buffers = await patchComputerGpu.computeBuffers(localMapCache);
+      
+          return this.assembleGeometryAndMaterials(buffers);
     }
 
     private assembleGeometryAndMaterials(buffers: Record<Cube.FaceType, Uint32Array>): GeometryAndMaterial[] {

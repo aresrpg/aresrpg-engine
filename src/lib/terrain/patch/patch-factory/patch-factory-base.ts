@@ -35,6 +35,7 @@ type LocalMapCache = {
 enum EPatchComputingMode {
     CPU_SIMPLE,
     CPU_CACHED,
+    GPU_SEQUENTIAL,
 };
 
 abstract class PatchFactoryBase {
@@ -76,7 +77,7 @@ abstract class PatchFactoryBase {
         this.uniformsTemplate.uTexture.value = this.texture;
     }
 
-    public buildPatch(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Patch | null {
+    public async buildPatch(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<Patch | null> {
         const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
         if (patchSize.x > this.maxPatchSize.x || patchSize.y > this.maxPatchSize.y || patchSize.z > this.maxPatchSize.z) {
             const patchSizeAsString = `${patchSize.x}x${patchSize.y}x${patchSize.z}`;
@@ -84,8 +85,15 @@ abstract class PatchFactoryBase {
             throw new Error(`Patch is too big ${patchSizeAsString} (max is ${maxPatchSizeAsString})`);
         }
 
-        const patchData = this.computePatchData(patchStart, patchEnd);
-        if (patchData.length === 0) {
+        let geometryAndMaterialsList: GeometryAndMaterial[];
+        if (this.computingMode === EPatchComputingMode.CPU_SIMPLE || this.computingMode === EPatchComputingMode.CPU_CACHED) {
+            geometryAndMaterialsList = this.computePatchData(patchStart, patchEnd);
+        } else if (this.computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
+            geometryAndMaterialsList = await this.computePatchDataOnGpu(patchStart, patchEnd);
+        } else {
+            throw new Error(`Unsupported computing mode ${this.computingMode}`);
+        }
+        if (geometryAndMaterialsList.length === 0) {
             return null;
         }
 
@@ -96,7 +104,7 @@ abstract class PatchFactoryBase {
         return new Patch(
             patchStart,
             patchSize,
-            patchData.map(geometryAndMaterial => {
+            geometryAndMaterialsList.map(geometryAndMaterial => {
                 const { geometry } = geometryAndMaterial;
                 geometry.boundingBox = boundingBox.clone();
                 geometry.boundingSphere = boundingSphere.clone();
@@ -266,6 +274,7 @@ abstract class PatchFactoryBase {
     }
 
     protected abstract computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): GeometryAndMaterial[];
+    protected abstract computePatchDataOnGpu(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]>;
 
     protected abstract disposeInternal(): void;
 
