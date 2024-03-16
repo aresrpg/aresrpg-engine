@@ -78,6 +78,9 @@ abstract class PatchFactoryBase {
     }
 
     public async buildPatch(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<Patch | null> {
+        patchStart = patchStart.clone();
+        patchEnd = patchEnd.clone();
+
         const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
         if (patchSize.x > this.maxPatchSize.x || patchSize.y > this.maxPatchSize.y || patchSize.z > this.maxPatchSize.z) {
             const patchSizeAsString = `${patchSize.x}x${patchSize.y}x${patchSize.z}`;
