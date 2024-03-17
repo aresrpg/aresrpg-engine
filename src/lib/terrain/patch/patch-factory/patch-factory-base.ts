@@ -36,7 +36,7 @@ enum EPatchComputingMode {
     CPU_SIMPLE,
     CPU_CACHED,
     GPU_SEQUENTIAL,
-};
+}
 
 abstract class PatchFactoryBase {
     public static readonly maxSmoothEdgeRadius = 0.3;
@@ -88,14 +88,7 @@ abstract class PatchFactoryBase {
             throw new Error(`Patch is too big ${patchSizeAsString} (max is ${maxPatchSizeAsString})`);
         }
 
-        let geometryAndMaterialsList: GeometryAndMaterial[];
-        if (this.computingMode === EPatchComputingMode.CPU_SIMPLE || this.computingMode === EPatchComputingMode.CPU_CACHED) {
-            geometryAndMaterialsList = this.computePatchData(patchStart, patchEnd);
-        } else if (this.computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
-            geometryAndMaterialsList = await this.computePatchDataOnGpu(patchStart, patchEnd);
-        } else {
-            throw new Error(`Unsupported computing mode ${this.computingMode}`);
-        }
+        const geometryAndMaterialsList = await this.computePatchData(patchStart, patchEnd);
         if (geometryAndMaterialsList.length === 0) {
             return null;
         }
@@ -142,7 +135,6 @@ abstract class PatchFactoryBase {
         } else {
             throw new Error(`Unsupported patch computing mode ${this.computingMode}`);
         }
-
     }
 
     private *iterateOnVisibleFacesSimple(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Generator<FaceData> {
@@ -219,13 +211,20 @@ abstract class PatchFactoryBase {
             for (localPosition.y = 0; localPosition.y < localMapCache.size.y; localPosition.y++) {
                 for (localPosition.x = 0; localPosition.x < localMapCache.size.x; localPosition.x++) {
                     const cacheData = localMapCache.data[cacheIndex];
-                    if (typeof cacheData === "undefined") {
+                    if (typeof cacheData === 'undefined') {
                         throw new Error();
                     }
 
-                    if (cacheData > 0) { // if there is a voxel there
-                        if (localPosition.x > 0 && localPosition.y > 0 && localPosition.z > 0 &&
-                            localPosition.x < localMapCache.size.x - 1 && localPosition.y < localMapCache.size.y - 1 && localPosition.z < localMapCache.size.z - 1) {
+                    if (cacheData > 0) {
+                        // if there is a voxel there
+                        if (
+                            localPosition.x > 0 &&
+                            localPosition.y > 0 &&
+                            localPosition.z > 0 &&
+                            localPosition.x < localMapCache.size.x - 1 &&
+                            localPosition.y < localMapCache.size.y - 1 &&
+                            localPosition.z < localMapCache.size.z - 1
+                        ) {
                             const voxelLocalPosition = localPosition.clone().subScalar(1);
                             const voxelMaterialId = cacheData - 1;
 
@@ -242,7 +241,8 @@ abstract class PatchFactoryBase {
                                     faceId: face.id,
                                     verticesData: face.vertices.map((faceVertex: Cube.FaceVertex): VertexData => {
                                         let ao = 0;
-                                        const [a, b, c] = faceVertex.shadowingNeighbourVoxels.map(neighbourVoxel => localMapCache.neighbourExists(cacheIndex, neighbourVoxel)
+                                        const [a, b, c] = faceVertex.shadowingNeighbourVoxels.map(neighbourVoxel =>
+                                            localMapCache.neighbourExists(cacheIndex, neighbourVoxel)
                                         ) as [boolean, boolean, boolean];
                                         if (a && b) {
                                             ao = 3;
@@ -276,8 +276,7 @@ abstract class PatchFactoryBase {
         }
     }
 
-    protected abstract computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): GeometryAndMaterial[];
-    protected abstract computePatchDataOnGpu(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]>;
+    protected abstract computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]>;
 
     protected abstract disposeInternal(): void;
 
@@ -303,11 +302,11 @@ abstract class PatchFactoryBase {
             const deltaIndex = buildIndexUnsafe(neighbour);
             const neighbourIndex = index + deltaIndex;
             const neighbourData = cache[neighbourIndex];
-            if (typeof neighbourData === "undefined") {
+            if (typeof neighbourData === 'undefined') {
                 throw new Error();
             }
             return neighbourData !== 0;
-        }
+        };
 
         for (const voxel of this.map.iterateOnVoxels(cacheStart, cacheEnd)) {
             const localPosition = new THREE.Vector3().subVectors(voxel.position, cacheStart);
@@ -362,4 +361,3 @@ abstract class PatchFactoryBase {
 }
 
 export { EPatchComputingMode, PatchFactoryBase, type GeometryAndMaterial, type LocalMapCache, type VertexData };
-

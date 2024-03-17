@@ -1,17 +1,15 @@
-import { PromiseThrottler } from '../../../../helpers/promise-throttler';
 import * as THREE from '../../../../three-usage';
 import { IVoxelMap } from '../../../i-voxel-map';
 import { EDisplayMode, PatchMaterial } from '../../material';
 import * as Cube from '../cube';
-import { EPatchComputingMode, GeometryAndMaterial, PatchFactoryBase, VertexData } from '../patch-factory-base';
+import { EPatchComputingMode, GeometryAndMaterial, PatchFactoryBase } from '../patch-factory-base';
 
-import { PatchComputerGpu } from "./patch-computer-gpu";
 import { VertexDataEncoder } from './vertex-data-encoder';
 
-class PatchFactory extends PatchFactoryBase {
+abstract class PatchFactory extends PatchFactoryBase {
     private static readonly dataAttributeName = 'aData';
 
-    private static readonly vertexDataEncoder = new VertexDataEncoder();
+    protected static readonly vertexDataEncoder = new VertexDataEncoder();
 
     public readonly maxPatchSize = new THREE.Vector3(
         PatchFactory.vertexDataEncoder.voxelX.maxValue + 1,
@@ -27,9 +25,6 @@ class PatchFactory extends PatchFactoryBase {
         front: this.buildPatchMaterial('front'),
         back: this.buildPatchMaterial('back'),
     };
-
-
-    private readonly gpuSequentialLimiter = new PromiseThrottler(1);
 
     private buildPatchMaterial(faceType: Cube.FaceType): PatchMaterial {
         return new THREE.ShaderMaterial({
@@ -177,117 +172,24 @@ class PatchFactory extends PatchFactoryBase {
         }) as unknown as PatchMaterial;
     }
 
-    private readonly patchComputerGpuPromise: Promise<PatchComputerGpu> | null = null;
-
-    public constructor(map: IVoxelMap, computingMode: EPatchComputingMode) {
+    protected constructor(map: IVoxelMap, computingMode: EPatchComputingMode) {
         super(map, PatchFactory.vertexDataEncoder.voxelMaterialId, computingMode);
-
-        if (computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
-            const localCacheSize = this.maxPatchSize.clone().addScalar(2);
-            this.patchComputerGpuPromise = PatchComputerGpu.create(localCacheSize, PatchFactory.vertexDataEncoder);
-        }
     }
 
     protected async disposeInternal(): Promise<void> {
         for (const material of Object.values(this.materialsTemplates)) {
             material.dispose();
         }
-
-        if (this.patchComputerGpuPromise) {
-            const computer = await this.patchComputerGpuPromise;
-            computer.dispose();
-        }
     }
 
-    protected computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): GeometryAndMaterial[] {
-        const voxelsCountPerPatch = this.map.getMaxVoxelsCount(patchStart, patchEnd);
-        if (voxelsCountPerPatch <= 0) {
-            return [];
-        }
-
-        type BufferData = {
-            readonly buffer: Uint32Array;
-            verticesCount: number;
-        };
-        
-        const verticesPerFace = 6;
-        const uint32PerVertex = 1;
-        const bufferLength = voxelsCountPerPatch * verticesPerFace * uint32PerVertex;
-        const buildFaceBufferData = () => {
-            return {
-                buffer: new Uint32Array(bufferLength),
-                verticesCount: 0,
-            }
-        };
-        const facesBufferData: Record<Cube.FaceType, BufferData> = {
-            up: buildFaceBufferData(),
-            down: buildFaceBufferData(),
-            left: buildFaceBufferData(),
-            right: buildFaceBufferData(),
-            front: buildFaceBufferData(),
-            back: buildFaceBufferData(),
-        };
-
-        const faceVerticesData = new Uint32Array(4 * uint32PerVertex);
-        for (const faceData of this.iterateOnVisibleFaces(patchStart, patchEnd)) {
-            faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
-                faceVerticesData[faceVertexIndex] = PatchFactory.vertexDataEncoder.encode(
-                    faceData.voxelLocalPosition.x,
-                    faceData.voxelLocalPosition.y,
-                    faceData.voxelLocalPosition.z,
-                    faceData.voxelMaterialId,
-                    faceVertexData.ao,
-                    [faceVertexData.roundnessX, faceVertexData.roundnessY]
-                );
-            });
-
-            const faceBufferData = facesBufferData[faceData.faceType];
-            for (const index of Cube.faceIndices) {
-                faceBufferData.buffer[faceBufferData.verticesCount++] = faceVerticesData[index]!;
-            }
-        }
-
-        const truncateFaceBufferData = (bufferData: BufferData) => bufferData.buffer.subarray(0, bufferData.verticesCount);
-
-        const buffers: Record<Cube.FaceType, Uint32Array> = {
-            up: truncateFaceBufferData(facesBufferData.up),
-            down: truncateFaceBufferData(facesBufferData.down),
-            left: truncateFaceBufferData(facesBufferData.left),
-            right: truncateFaceBufferData(facesBufferData.right),
-            front: truncateFaceBufferData(facesBufferData.front),
-            back: truncateFaceBufferData(facesBufferData.back),
-        };
-
-        return this.assembleGeometryAndMaterials(buffers);
-    }
-
-    protected async computePatchDataOnGpu(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
-        return this.gpuSequentialLimiter.run(async () => {
-            const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
-            const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
-            if (voxelsCountPerPatch <= 0) {
-                return [];
-            }
-
-            const localMapCache = this.buildLocalMapCache(patchStart, patchEnd);
-
-            const patchComputerGpu = await this.patchComputerGpuPromise;
-            if (!patchComputerGpu) {
-                throw new Error("Could not get WebGPU patch computer");
-            }
-            const buffers = await patchComputerGpu.computeBuffers(localMapCache);
-            return this.assembleGeometryAndMaterials(buffers);
-        });
-    }
-
-    private assembleGeometryAndMaterials(buffers: Record<Cube.FaceType, Uint32Array>): GeometryAndMaterial[] {
+    protected assembleGeometryAndMaterials(buffers: Record<Cube.FaceType, Uint32Array>): GeometryAndMaterial[] {
         const processedBuffers = [
-            this.assembleGeometryAndMaterial("up", buffers),
-            this.assembleGeometryAndMaterial("down", buffers),
-            this.assembleGeometryAndMaterial("left", buffers),
-            this.assembleGeometryAndMaterial("right", buffers),
-            this.assembleGeometryAndMaterial("front", buffers),
-            this.assembleGeometryAndMaterial("back", buffers),
+            this.assembleGeometryAndMaterial('up', buffers),
+            this.assembleGeometryAndMaterial('down', buffers),
+            this.assembleGeometryAndMaterial('left', buffers),
+            this.assembleGeometryAndMaterial('right', buffers),
+            this.assembleGeometryAndMaterial('front', buffers),
+            this.assembleGeometryAndMaterial('back', buffers),
         ];
 
         const result: GeometryAndMaterial[] = [];
@@ -320,4 +222,3 @@ class PatchFactory extends PatchFactoryBase {
 }
 
 export { PatchFactory, type PatchMaterial };
-
