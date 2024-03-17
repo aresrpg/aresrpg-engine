@@ -5,7 +5,7 @@ import { PatchFactory } from '../patch-factory';
 import { PatchComputerGpu } from './patch-computer-gpu';
 
 abstract class PatchFactoryGpu extends PatchFactory {
-    protected readonly patchComputerGpuPromise: Promise<PatchComputerGpu> | null = null;
+    private readonly patchComputerGpuPromise: Promise<PatchComputerGpu> | null = null;
 
     protected constructor(map: IVoxelMap, computingMode: EPatchComputingMode) {
         if (computingMode !== EPatchComputingMode.GPU_SEQUENTIAL) {
@@ -23,6 +23,14 @@ abstract class PatchFactoryGpu extends PatchFactory {
         if (computer) {
             computer.dispose();
         }
+    }
+
+    protected async getPatchComputerGpu(): Promise<PatchComputerGpu> {
+        const patchComputerGpu = await this.patchComputerGpuPromise;
+        if (!patchComputerGpu) {
+            throw new Error('Could not get WebGPU patch computer');
+        }
+        return patchComputerGpu;
     }
 }
 
