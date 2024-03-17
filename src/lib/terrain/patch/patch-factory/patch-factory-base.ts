@@ -36,6 +36,7 @@ enum EPatchComputingMode {
     CPU_SIMPLE,
     CPU_CACHED,
     GPU_SEQUENTIAL,
+    GPU_OPTIMIZED,
 }
 
 abstract class PatchFactoryBase {
