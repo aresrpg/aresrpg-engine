@@ -1,13 +1,14 @@
 import * as THREE from '../three-usage';
 
-import { AsyncPatch } from "./async-patch";
+import { AsyncPatch } from './async-patch';
 import { IVoxelMap } from './i-voxel-map';
 import { EDisplayMode } from './patch/patch';
 import { EPatchComputingMode, PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
-import { PatchFactory } from './patch/patch-factory/split/patch-factory';
+import { PatchFactoryCpu } from './patch/patch-factory/split/cpu/patch-factory-cpu';
+import { PatchFactoryGpuSequential } from './patch/patch-factory/split/gpu/patch-factory-gpu-sequential';
 
 type TerrainOptions = {
-    computingMode?: EPatchComputingMode,
+    computingMode?: EPatchComputingMode;
 };
 
 /**
@@ -55,11 +56,18 @@ class Terrain {
 
         let computingMode = EPatchComputingMode.GPU_SEQUENTIAL;
         if (options) {
-            if (typeof options.computingMode !== "undefined") {
+            if (typeof options.computingMode !== 'undefined') {
                 computingMode = options.computingMode;
             }
         }
-        this.patchFactory = new PatchFactory(map, computingMode);
+
+        if (computingMode === EPatchComputingMode.CPU_SIMPLE || computingMode === EPatchComputingMode.CPU_CACHED) {
+            this.patchFactory = new PatchFactoryCpu(map, computingMode);
+        } else if (computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
+            this.patchFactory = new PatchFactoryGpuSequential(map);
+        } else {
+            throw new Error(`Unsupported computing mode "${computingMode}".`);
+        }
 
         this.patchSize = this.patchFactory.maxPatchSize.clone();
         console.log(`Using max patch size ${this.patchSize.x}x${this.patchSize.y}x${this.patchSize.z}.`);
@@ -182,4 +190,3 @@ class Terrain {
 }
 
 export { EPatchComputingMode, Terrain, type IVoxelMap };
-

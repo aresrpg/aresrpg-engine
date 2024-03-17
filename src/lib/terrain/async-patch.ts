@@ -1,27 +1,29 @@
-import { Patch } from "./patch/patch";
+import { Patch } from './patch/patch';
 
 class AsyncPatch {
-    private data: {
-        readonly state: "pending",
-        readonly promise: Promise<Patch | null>;
-        visible: boolean;
-        deleted: boolean;
-    } | {
-        readonly state: "ready",
-        readonly patch: Patch | null;
-        deleted: boolean;
-    };
+    private data:
+        | {
+              readonly state: 'pending';
+              readonly promise: Promise<Patch | null>;
+              visible: boolean;
+              deleted: boolean;
+          }
+        | {
+              readonly state: 'ready';
+              readonly patch: Patch | null;
+              deleted: boolean;
+          };
 
     public constructor(container: THREE.Object3D, promise: Promise<Patch | null>) {
         this.data = {
-            state: "pending",
+            state: 'pending',
             promise,
             visible: false,
             deleted: false,
         };
 
         promise.then((patch: Patch | null) => {
-            if (this.data.state !== "pending") {
+            if (this.data.state !== 'pending') {
                 throw new Error();
             }
 
@@ -31,7 +33,7 @@ class AsyncPatch {
             }
 
             this.data = {
-                state: "ready",
+                state: 'ready',
                 patch,
                 deleted: this.data.deleted,
             };
@@ -39,7 +41,7 @@ class AsyncPatch {
     }
 
     public get visible(): boolean {
-        if (this.data.state === "pending") {
+        if (this.data.state === 'pending') {
             return this.data.visible;
         } else if (this.data.patch) {
             return this.data.patch.container.visible;
@@ -48,7 +50,7 @@ class AsyncPatch {
     }
 
     public set visible(value: boolean) {
-        if (this.data.state === "pending") {
+        if (this.data.state === 'pending') {
             this.data.visible = value;
         } else if (this.data.patch) {
             this.data.patch.container.visible = value;
@@ -56,7 +58,7 @@ class AsyncPatch {
     }
 
     public get patch(): Patch | null {
-        if (this.data.state === "ready") {
+        if (this.data.state === 'ready') {
             return this.data.patch;
         }
         return null;
@@ -70,13 +72,10 @@ class AsyncPatch {
     }
 
     public async ready(): Promise<void> {
-        if (this.data.state === "pending") {
+        if (this.data.state === 'pending') {
             await this.data.promise;
         }
     }
 }
 
-export {
-    AsyncPatch
-};
-
+export { AsyncPatch };

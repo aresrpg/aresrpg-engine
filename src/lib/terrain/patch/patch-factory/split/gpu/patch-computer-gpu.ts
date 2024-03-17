@@ -2,11 +2,10 @@
 
 import * as THREE from 'three';
 
-import { getGpuDevice } from '../../../../helpers/webgpu/webgpu-device';
-import * as Cube from '../cube';
-import { type LocalMapCache } from '../patch-factory-base';
-
-import { VertexDataEncoder } from './vertex-data-encoder';
+import { getGpuDevice } from '../../../../../helpers/webgpu/webgpu-device';
+import * as Cube from '../../cube';
+import { type LocalMapCache } from '../../patch-factory-base';
+import { VertexDataEncoder } from '../vertex-data-encoder';
 
 type FaceBuffer = {
     readonly storageBuffer: GPUBuffer;

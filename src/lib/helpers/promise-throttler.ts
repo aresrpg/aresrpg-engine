@@ -52,13 +52,10 @@ class PromiseThrottler {
 
         if (resolve) {
             promise.then(resolve);
-    }
+        }
 
         return promise;
     }
 }
 
-export {
-    PromiseThrottler
-};
-
+export { PromiseThrottler };
