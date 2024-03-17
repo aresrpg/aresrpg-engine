@@ -5,6 +5,7 @@ import { IVoxelMap } from './i-voxel-map';
 import { EDisplayMode } from './patch/patch';
 import { EPatchComputingMode, PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
 import { PatchFactoryCpu } from './patch/patch-factory/split/cpu/patch-factory-cpu';
+import { PatchFactoryGpuOptimized } from "./patch/patch-factory/split/gpu/patch-factory-gpu-optimized";
 import { PatchFactoryGpuSequential } from './patch/patch-factory/split/gpu/patch-factory-gpu-sequential';
 
 type TerrainOptions = {
@@ -54,7 +55,7 @@ class Terrain {
     public constructor(map: IVoxelMap, options?: TerrainOptions) {
         this.map = map;
 
-        let computingMode = EPatchComputingMode.GPU_SEQUENTIAL;
+        let computingMode = EPatchComputingMode.GPU_OPTIMIZED;
         if (options) {
             if (typeof options.computingMode !== 'undefined') {
                 computingMode = options.computingMode;
@@ -65,6 +66,8 @@ class Terrain {
             this.patchFactory = new PatchFactoryCpu(map, computingMode);
         } else if (computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
             this.patchFactory = new PatchFactoryGpuSequential(map);
+        } else if (computingMode === EPatchComputingMode.GPU_OPTIMIZED) {
+            this.patchFactory = new PatchFactoryGpuOptimized(map);
         } else {
             throw new Error(`Unsupported computing mode "${computingMode}".`);
         }

@@ -8,7 +8,7 @@ abstract class PatchFactoryGpu extends PatchFactory {
     private readonly patchComputerGpuPromise: Promise<PatchComputerGpu> | null = null;
 
     protected constructor(map: IVoxelMap, computingMode: EPatchComputingMode) {
-        if (computingMode !== EPatchComputingMode.GPU_SEQUENTIAL) {
+        if (computingMode !== EPatchComputingMode.GPU_SEQUENTIAL && computingMode !== EPatchComputingMode.GPU_OPTIMIZED) {
             throw new Error(`Unsupported computing mode "${computingMode}".`);
         }
         super(map, computingMode);
