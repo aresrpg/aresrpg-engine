@@ -5,7 +5,7 @@ import { IVoxelMap } from './i-voxel-map';
 import { EDisplayMode } from './patch/patch';
 import { EPatchComputingMode, PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
 import { PatchFactoryCpu } from './patch/patch-factory/split/cpu/patch-factory-cpu';
-import { PatchFactoryGpuOptimized } from "./patch/patch-factory/split/gpu/patch-factory-gpu-optimized";
+import { PatchFactoryGpuOptimized } from './patch/patch-factory/split/gpu/patch-factory-gpu-optimized';
 import { PatchFactoryGpuSequential } from './patch/patch-factory/split/gpu/patch-factory-gpu-sequential';
 
 type TerrainOptions = {

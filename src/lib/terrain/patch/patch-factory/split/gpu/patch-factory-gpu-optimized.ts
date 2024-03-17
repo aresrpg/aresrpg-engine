@@ -7,7 +7,7 @@ import { PatchFactoryGpu } from './patch-factory-gpu';
 type PatchGenerationState = {
     cpuFinished?: Promise<unknown>;
     gpuFinished?: Promise<unknown>;
-}
+};
 
 class PatchFactoryGpuOptimized extends PatchFactoryGpu {
     private nextPatchGenerationId = 0;
@@ -23,7 +23,7 @@ class PatchFactoryGpuOptimized extends PatchFactoryGpu {
         if (voxelsCountPerPatch <= 0) {
             return [];
         }
-        
+
         const patchGenerationId = this.nextPatchGenerationId++;
         // console.log(`Asking for patch ${patchGenerationId}`);
         this.patchGenerationPromises[patchGenerationId] = {};
@@ -60,7 +60,7 @@ class PatchFactoryGpuOptimized extends PatchFactoryGpu {
         // console.log(`CPU ${patchGenerationId} start`);
         const localMapCache = this.buildLocalMapCache(patchStart, patchEnd);
         // console.log(`CPU ${patchGenerationId} end`);
-        
+
         const gpuStartPrerequisites = new Promise<void>(resolve => {
             if (patchGenerationId === 0) {
                 resolve();
