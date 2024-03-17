@@ -1,20 +1,15 @@
 import { PromiseThrottler } from '../../../../../helpers/promise-throttler';
 import { type IVoxelMap } from '../../../../i-voxel-map';
 import { EPatchComputingMode, type GeometryAndMaterial } from '../../patch-factory-base';
-import { PatchFactory } from '../patch-factory';
 import * as THREE from '../../../../../three-usage';
 
-import { PatchComputerGpu } from './patch-computer-gpu';
+import { PatchFactoryGpu } from './patch-factory-gpu';
 
-class PatchFactoryGpuSequential extends PatchFactory {
-    private readonly patchComputerGpuPromise: Promise<PatchComputerGpu> | null = null;
-
+class PatchFactoryGpuSequential extends PatchFactoryGpu {
     private readonly gpuSequentialLimiter = new PromiseThrottler(1);
 
     public constructor(map: IVoxelMap) {
         super(map, EPatchComputingMode.GPU_SEQUENTIAL);
-        const localCacheSize = this.maxPatchSize.clone().addScalar(2);
-        this.patchComputerGpuPromise = PatchComputerGpu.create(localCacheSize, PatchFactory.vertexDataEncoder);
     }
 
     protected async computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
@@ -34,15 +29,6 @@ class PatchFactoryGpuSequential extends PatchFactory {
             const buffers = await patchComputerGpu.computeBuffers(localMapCache);
             return this.assembleGeometryAndMaterials(buffers);
         });
-    }
-
-    protected override async disposeInternal(): Promise<void> {
-        await super.disposeInternal();
-
-        const computer = await this.patchComputerGpuPromise;
-        if (computer) {
-            computer.dispose();
-        }
     }
 }
 
