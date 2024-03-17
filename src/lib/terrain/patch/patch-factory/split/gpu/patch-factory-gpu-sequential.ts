@@ -12,7 +12,7 @@ class PatchFactoryGpuSequential extends PatchFactoryGpu {
         super(map, EPatchComputingMode.GPU_SEQUENTIAL);
     }
 
-    protected async computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
+    protected computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
         return this.gpuSequentialLimiter.run(async () => {
             const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
             const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
@@ -22,10 +22,7 @@ class PatchFactoryGpuSequential extends PatchFactoryGpu {
 
             const localMapCache = this.buildLocalMapCache(patchStart, patchEnd);
 
-            const patchComputerGpu = await this.patchComputerGpuPromise;
-            if (!patchComputerGpu) {
-                throw new Error('Could not get WebGPU patch computer');
-            }
+            const patchComputerGpu = await this.getPatchComputerGpu();
             const buffers = await patchComputerGpu.computeBuffers(localMapCache);
             return this.assembleGeometryAndMaterials(buffers);
         });
