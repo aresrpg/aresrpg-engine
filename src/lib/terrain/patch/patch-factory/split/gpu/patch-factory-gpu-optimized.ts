@@ -1,95 +1,83 @@
-import { type IVoxelMap } from '../../../../i-voxel-map';
-import { EPatchComputingMode, type GeometryAndMaterial } from '../../patch-factory-base';
 import * as THREE from '../../../../../three-usage';
+import { type IVoxelMap } from '../../../../i-voxel-map';
+import { EPatchComputingMode, type GeometryAndMaterial, type LocalMapCache } from '../../patch-factory-base';
 
 import { PatchFactoryGpu } from './patch-factory-gpu';
 
-type PatchGenerationState = {
-    cpuFinished?: Promise<unknown>;
-    gpuFinished?: Promise<unknown>;
+type PatchGenerationJob = {
+    readonly patchId: number;
+    cpuTask: () => LocalMapCache;
+    cpuTaskOutput?: LocalMapCache;
+    gpuTaskPromise?: Promise<void>;
+    readonly resolve: (value: GeometryAndMaterial[] | PromiseLike<GeometryAndMaterial[]>) => void;
 };
 
 class PatchFactoryGpuOptimized extends PatchFactoryGpu {
-    private nextPatchGenerationId = 0;
-    private readonly patchGenerationPromises: Record<number, PatchGenerationState> = {};
+    private nextPatchId = 0;
+
+    private readonly pendingJobs: PatchGenerationJob[] = [];
 
     public constructor(map: IVoxelMap) {
         super(map, EPatchComputingMode.GPU_OPTIMIZED);
     }
 
-    protected async computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
+    protected computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
         const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
         const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
         if (voxelsCountPerPatch <= 0) {
-            return [];
+            return Promise.resolve([]);
         }
 
-        const patchGenerationId = this.nextPatchGenerationId++;
-        // console.log(`Asking for patch ${patchGenerationId}`);
-        this.patchGenerationPromises[patchGenerationId] = {};
-        const patchPromises = this.patchGenerationPromises[patchGenerationId]!;
+        return new Promise<GeometryAndMaterial[]>(resolve => {
+            const patchId = this.nextPatchId++;
+            // console.log(`Asking for patch ${patchId}`);
 
-        const cpuStartPrerequisites = new Promise<void>(resolve => {
-            if (patchGenerationId === 0) {
-                resolve();
-            } else if (patchGenerationId === 1) {
-                const attemptToResolve = () => {
-                    const previousPatchPromises = this.patchGenerationPromises[patchGenerationId - 1];
-                    if (previousPatchPromises?.cpuFinished) {
-                        previousPatchPromises.cpuFinished.then(() => resolve());
-                    } else {
-                        setTimeout(attemptToResolve, 1); // retry later
-                    }
-                };
-                attemptToResolve();
-            } else {
-                const attemptToResolve = () => {
-                    const previousPatchPromises = this.patchGenerationPromises[patchGenerationId - 1];
-                    const previousPreviousPatchPromises = this.patchGenerationPromises[patchGenerationId - 2];
-                    if (previousPatchPromises?.cpuFinished && previousPreviousPatchPromises?.gpuFinished) {
-                        Promise.all([previousPatchPromises.cpuFinished, previousPreviousPatchPromises.gpuFinished]).then(() => resolve());
-                    } else {
-                        setTimeout(attemptToResolve, 1); // retry later
-                    }
-                };
-                attemptToResolve();
-            }
+            this.pendingJobs.push({
+                patchId,
+                cpuTask: () => {
+                    // console.log(`CPU ${patchId} start`);
+                    const result = this.buildLocalMapCache(patchStart, patchEnd);
+                    // console.log(`CPU ${patchId} end`);
+                    return result;
+                },
+                resolve,
+            });
+
+            this.runNextTask();
         });
-        await cpuStartPrerequisites;
+    }
 
-        // console.log(`CPU ${patchGenerationId} start`);
-        const localMapCache = this.buildLocalMapCache(patchStart, patchEnd);
-        // console.log(`CPU ${patchGenerationId} end`);
+    private runNextTask(): void {
+        const currentJob = this.pendingJobs[0];
 
-        const gpuStartPrerequisites = new Promise<void>(resolve => {
-            if (patchGenerationId === 0) {
-                resolve();
-            } else {
-                const attemptToResolve = () => {
-                    const previousPatchPromises = this.patchGenerationPromises[patchGenerationId - 1];
-                    if (previousPatchPromises?.gpuFinished) {
-                        previousPatchPromises.gpuFinished.then(() => resolve());
-                    } else {
-                        setTimeout(attemptToResolve, 0); // retry later
-                    }
-                };
-                attemptToResolve();
+        if (currentJob) {
+            if (!currentJob.cpuTaskOutput) {
+                currentJob.cpuTaskOutput = currentJob.cpuTask();
             }
-        });
-        await gpuStartPrerequisites;
 
-        const patchComputerGpu = await this.getPatchComputerGpu();
-        const computeBuffersPromise = patchComputerGpu.computeBuffers(localMapCache);
-        if (!patchComputerGpu) {
-            throw new Error('Could not get WebGPU patch computer');
+            if (!currentJob.gpuTaskPromise) {
+                const localMapCache = currentJob.cpuTaskOutput;
+
+                currentJob.gpuTaskPromise = (async () => {
+                    // console.log(`GPU ${currentJob.patchId} start`);
+                    const patchComputerGpu = await this.getPatchComputerGpu();
+                    const gpuTaskOutput = await patchComputerGpu.computeBuffers(localMapCache);
+                    // console.log(`GPU ${currentJob.patchId} end`);
+
+                    const result = this.assembleGeometryAndMaterials(gpuTaskOutput);
+                    currentJob.resolve(result);
+                    this.pendingJobs.shift();
+                    this.runNextTask();
+                })();
+            }
+
+            const nextJob = this.pendingJobs[1];
+            if (nextJob) {
+                if (!nextJob.cpuTaskOutput) {
+                    nextJob.cpuTaskOutput = nextJob.cpuTask();
+                }
+            }
         }
-        patchPromises.cpuFinished = Promise.resolve();
-        patchPromises.gpuFinished = computeBuffersPromise;
-        // console.log(`GPU ${patchGenerationId} start`);
-        const buffers = await computeBuffersPromise;
-        // console.log(`GPU ${patchGenerationId} end`);
-
-        return this.assembleGeometryAndMaterials(buffers);
     }
 }
 
