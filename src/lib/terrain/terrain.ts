@@ -114,15 +114,20 @@ class Terrain {
             patch.visible = false;
         }
 
+        const visibilitySphere = new THREE.Sphere(position, radius);
         const promises: Promise<void>[] = [];
         const patchId = new THREE.Vector3();
         for (patchId.x = patchIdFrom.x; patchId.x < patchIdTo.x; patchId.x++) {
             for (patchId.y = patchIdFrom.y; patchId.y < patchIdTo.y; patchId.y++) {
                 for (patchId.z = patchIdFrom.z; patchId.z < patchIdTo.z; patchId.z++) {
                     const patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
-                    const patch = this.getPatch(patchStart);
-                    patch.visible = true;
-                    promises.push(patch.ready());
+
+                    const boundingBox = new THREE.Box3(patchStart, patchStart.clone().add(this.patchSize));
+                    if (visibilitySphere.intersectsBox(boundingBox)) {
+                        const patch = this.getPatch(patchStart);
+                        patch.visible = true;
+                        promises.push(patch.ready());
+                    }
                 }
             }
         }
