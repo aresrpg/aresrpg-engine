@@ -1,42 +1,53 @@
-enum EVerbosity {
+enum ELogLevel {
     WARN = 0,
     INFO,
     DEBUG,
     DIAGNOSTIC,
 }
 
+type LevelStyle = {
+    readonly method: 'error' | 'warn' | 'log' | 'debug';
+    readonly colors: {
+        readonly header: string;
+        readonly message: string;
+    };
+};
+
 class Logger {
-    private static readonly prefix = 'aresrpg-engine: ';
-    public verbosity = EVerbosity.INFO;
+    // eslint-disable-next-line no-useless-constructor
+    public constructor(
+        private readonly prefix: string,
+        private readonly logStyle: Record<ELogLevel, LevelStyle>
+    ) { }
 
-    public warn(message: string): void {
-        if (this.verbosity >= EVerbosity.WARN) {
-            console.warn(Logger.prefix + message);
-        }
-    }
+    public verbosity = ELogLevel.INFO;
 
-    public info(message: string): void {
-        if (this.verbosity >= EVerbosity.INFO) {
-            console.info(Logger.prefix + message);
-        }
-    }
+    public readonly warn = this.log.bind(this, ELogLevel.WARN);
+    public readonly info = this.log.bind(this, ELogLevel.INFO);
+    public readonly debug = this.log.bind(this, ELogLevel.DEBUG);
+    public readonly diagnostic = this.log.bind(this, ELogLevel.DIAGNOSTIC);
 
-    public debug(message: string): void {
-        if (this.verbosity >= EVerbosity.DEBUG) {
-            console.debug(Logger.prefix + message);
-        }
-    }
+    private log(level: ELogLevel, message: string): void {
+        if (this.verbosity >= level) {
+            const logStyle = this.logStyle[level];
 
-    public diagnostic(message: string): void {
-        if (this.verbosity >= EVerbosity.DIAGNOSTIC) {
-            console.debug(Logger.prefix + message);
+            console[logStyle.method](
+                `%c${this.prefix}%c ${message}`,
+                `background: ${logStyle.colors.header}; color: white; padding: 2px 4px; border-radius: 2px`,
+                `font-weight: 800; color: ${logStyle.colors.message}`
+            );
         }
     }
 }
 
-const logger = new Logger();
-function setVerbosity(verbosity: EVerbosity): void {
+const logger = new Logger('aresrpg-engine', [
+    { method: 'warn', colors: { header: '#7B9E7B', message: '#FF6A00' } },
+    { method: 'log', colors: { header: '#7B9E7B', message: '#0094FF' } },
+    { method: 'debug', colors: { header: '#7B9E7B', message: '#808080' } },
+    { method: 'debug', colors: { header: '#7B9E7B', message: '#A56148' } },
+]);
+function setVerbosity(verbosity: ELogLevel): void {
     logger.verbosity = verbosity;
 }
 
-export { EVerbosity, logger, setVerbosity };
+export { ELogLevel, logger, setVerbosity };
