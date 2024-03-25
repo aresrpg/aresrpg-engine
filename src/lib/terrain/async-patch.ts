@@ -6,21 +6,28 @@ class AsyncPatch {
               readonly state: 'pending';
               readonly promise: Promise<Patch | null>;
               visible: boolean;
-              deleted: boolean;
+              disposed: boolean;
           }
         | {
               readonly state: 'ready';
               readonly patch: Patch | null;
-              deleted: boolean;
+              disposed: boolean;
           };
 
-    public constructor(container: THREE.Object3D, promise: Promise<Patch | null>) {
+    public readonly id: string;
+    public readonly boundingBox: THREE.Box3;
+    private invisibilityTimestamp = performance.now();
+
+    public constructor(container: THREE.Object3D, promise: Promise<Patch | null>, id: string, boundingBox: THREE.Box3) {
         this.data = {
             state: 'pending',
             promise,
             visible: false,
-            deleted: false,
+            disposed: false,
         };
+
+        this.id = id;
+        this.boundingBox = boundingBox;
 
         promise.then((patch: Patch | null) => {
             if (this.data.state !== 'pending') {
@@ -35,8 +42,12 @@ class AsyncPatch {
             this.data = {
                 state: 'ready',
                 patch,
-                deleted: this.data.deleted,
+                disposed: this.data.disposed,
             };
+            if (this.data.disposed) {
+                // disposal has been asked before the computation ended
+                this.patch?.dispose();
+            }
         });
     }
 
@@ -50,6 +61,14 @@ class AsyncPatch {
     }
 
     public set visible(value: boolean) {
+        if (this.visible === value) {
+            return; // nothing to do
+        }
+
+        if (!value) {
+            this.invisibilityTimestamp = performance.now();
+        }
+
         if (this.data.state === 'pending') {
             this.data.visible = value;
         } else if (this.data.patch) {
@@ -64,9 +83,13 @@ class AsyncPatch {
         return null;
     }
 
+    public get invisibleSince(): number {
+        return this.invisibilityTimestamp;
+    }
+
     public async dispose(): Promise<void> {
-        if (!this.data.deleted) {
-            this.data.deleted = true;
+        if (!this.data.disposed) {
+            this.data.disposed = true;
             this.patch?.dispose();
         }
     }
