@@ -1,12 +1,16 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 import { EVerbosity, Terrain, setVerbosity } from '../lib/index';
 
 import { VoxelMap } from './voxel-map';
 
 setVerbosity(EVerbosity.DIAGNOSTIC);
+
+const stats = new Stats();
+document.body.appendChild(stats.dom);
 
 const renderer = new THREE.WebGLRenderer();
 document.body.appendChild(renderer.domElement);
@@ -60,6 +64,8 @@ setInterval(() => {
 
 // terrain.showEntireMap();
 function render(): void {
+    stats.update();
+
     cameraControl.update();
     terrain.updateUniforms();
     renderer.render(scene, camera);
