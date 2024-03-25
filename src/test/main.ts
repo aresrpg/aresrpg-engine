@@ -39,7 +39,7 @@ camera.position.set(-50, 100, -50);
 const cameraControl = new OrbitControls(camera, renderer.domElement);
 cameraControl.target.set(voxelMap.size.x / 2, 0, voxelMap.size.z / 2);
 
-const playerViewRadius = 32;
+const playerViewRadius = 40;
 const playerContainer = new THREE.Group();
 playerContainer.position.x = voxelMap.size.x / 2;
 playerContainer.position.y = voxelMap.size.y + 1;
