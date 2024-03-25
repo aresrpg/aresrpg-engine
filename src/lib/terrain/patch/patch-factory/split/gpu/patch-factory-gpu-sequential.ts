@@ -21,6 +21,9 @@ class PatchFactoryGpuSequential extends PatchFactoryGpu {
             }
 
             const localMapCache = this.buildLocalMapCache(patchStart, patchEnd);
+            if (localMapCache.isEmpty) {
+                return [];
+            }
 
             const patchComputerGpu = await this.getPatchComputerGpu();
             const buffers = await patchComputerGpu.computeBuffers(localMapCache);

@@ -29,6 +29,7 @@ type FaceData = {
 type LocalMapCache = {
     readonly data: Uint16Array;
     readonly size: THREE.Vector3;
+    readonly isEmpty: boolean;
     neighbourExists(voxelIndex: number, neighbourRelativePosition: THREE.Vector3): boolean;
 };
 
@@ -206,6 +207,10 @@ abstract class PatchFactoryBase {
     }
 
     private *iterateOnVisibleFacesWithCache(localMapCache: LocalMapCache): Generator<FaceData> {
+        if (localMapCache.isEmpty) {
+            return;
+        }
+
         let cacheIndex = 0;
         const localPosition = new THREE.Vector3();
         for (localPosition.z = 0; localPosition.z < localMapCache.size.z; localPosition.z++) {
@@ -309,15 +314,18 @@ abstract class PatchFactoryBase {
             return neighbourData !== 0;
         };
 
+        let isEmpty = true;
         for (const voxel of this.map.iterateOnVoxels(cacheStart, cacheEnd)) {
             const localPosition = new THREE.Vector3().subVectors(voxel.position, cacheStart);
             const cacheIndex = buildIndex(localPosition);
             cache[cacheIndex] = 1 + voxel.materialId;
+            isEmpty = false;
         }
 
         return {
             data: cache,
             size: cacheSize,
+            isEmpty,
             neighbourExists,
         };
     }
