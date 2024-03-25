@@ -43,11 +43,13 @@ class Terrain {
         },
     };
 
+    private maxPatchesInCache = 200;
+
     private readonly map: IVoxelMap;
     private readonly patchFactory: PatchFactoryBase;
     private readonly patchSize: THREE.Vector3;
 
-    private patches: Record<string, AsyncPatch> = {};
+    private readonly patches: Record<string, AsyncPatch> = {};
 
     /**
      *
@@ -132,10 +134,14 @@ class Terrain {
             }
         }
 
+        this.garbageCollectPatches();
+
         await Promise.all(promises);
     }
 
-    /** Call this method before rendering. */
+    /**
+     * Call this method before rendering.
+     * */
     public updateUniforms(): void {
         for (const asyncPatch of Object.values(this.patches)) {
             const patch = asyncPatch.patch;
@@ -163,11 +169,10 @@ class Terrain {
      * It will be recomputed if needed again.
      */
     public clear(): void {
-        for (const patch of Object.values(this.patches)) {
-            patch.dispose();
+        for (const patchId of Object.keys(this.patches)) {
+            this.disposePatch(patchId);
         }
         this.container.clear();
-        this.patches = {};
     }
 
     /**
@@ -178,6 +183,48 @@ class Terrain {
         this.patchFactory.dispose();
     }
 
+    /**
+     * Gets the maximum size of the GPU LRU cache of invisible patches.
+     */
+    public get patchesCacheSize(): number {
+        return this.maxPatchesInCache;
+    }
+
+    /**
+     * Sets the maximum size of the GPU LRU cache of invisible patches.
+     */
+    public set patchesCacheSize(value: number) {
+        if (value <= 0) {
+            throw new Error(`Invalid patches cache size "${value}".`);
+        }
+        this.maxPatchesInCache = value;
+        this.garbageCollectPatches();
+    }
+
+    private garbageCollectPatches(): void {
+        const patches = Object.entries(this.patches);
+        const invisiblePatches = patches.filter(([, patch]) => !patch.visible);
+        invisiblePatches.sort(([, patch1], [, patch2]) => patch1.invisibleSince - patch2.invisibleSince);
+
+        while (invisiblePatches.length > this.maxPatchesInCache) {
+            const nextPatchToDelete = invisiblePatches.shift();
+            if (!nextPatchToDelete) {
+                break;
+            }
+            this.disposePatch(nextPatchToDelete[0]);
+        }
+    }
+
+    private disposePatch(patchId: string): void {
+        const patch = this.patches[patchId];
+        if (patch) {
+            patch.dispose();
+            delete this.patches[patchId];
+        } else {
+            logger.warn(`Patch ${patchId} does not exist.`);
+        }
+    }
+
     private getPatch(patchStart: THREE.Vector3): AsyncPatch {
         const patchId = this.computePatchId(patchStart);
 
@@ -185,8 +232,9 @@ class Terrain {
         if (typeof patch === 'undefined') {
             const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
 
+            const boundingBox = new THREE.Box3(patchStart.clone(), patchEnd.clone());
             const promise = this.patchFactory.buildPatch(patchStart, patchEnd);
-            patch = new AsyncPatch(this.container, promise);
+            patch = new AsyncPatch(this.container, promise, patchId, boundingBox);
 
             this.patches[patchId] = patch;
         }
