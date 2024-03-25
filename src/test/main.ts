@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 
-import { Terrain, setVerbosity, EVerbosity } from '../lib/index';
+import { EVerbosity, Terrain, setVerbosity } from '../lib/index';
 
 import { VoxelMap } from './voxel-map';
 
@@ -24,7 +25,7 @@ udpateRendererSize();
 
 const scene = new THREE.Scene();
 
-const voxelMap = new VoxelMap(256, 256, 16);
+const voxelMap = new VoxelMap(512, 512, 16);
 const terrain = new Terrain(voxelMap);
 scene.add(terrain.container);
 
@@ -34,7 +35,30 @@ camera.position.set(-50, 100, -50);
 const cameraControl = new OrbitControls(camera, renderer.domElement);
 cameraControl.target.set(voxelMap.size.x / 2, 0, voxelMap.size.z / 2);
 
-terrain.showEntireMap();
+const playerViewRadius = 32;
+const playerContainer = new THREE.Group();
+playerContainer.position.x = voxelMap.size.x / 2;
+playerContainer.position.y = voxelMap.size.y + 1;
+playerContainer.position.z = voxelMap.size.z / 2;
+const player = new THREE.Mesh(new THREE.SphereGeometry(2), new THREE.MeshBasicMaterial({ color: '#FF0000' }));
+const playerViewSphere = new THREE.Mesh(
+    new THREE.SphereGeometry(playerViewRadius, 16, 16),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true })
+);
+playerContainer.add(player);
+playerContainer.add(playerViewSphere);
+const playerControls = new TransformControls(camera, renderer.domElement);
+playerControls.addEventListener('dragging-changed', event => {
+    cameraControl.enabled = !event.value;
+});
+playerControls.attach(playerContainer);
+scene.add(playerContainer);
+scene.add(playerControls);
+setInterval(() => {
+    terrain.showMapAroundPosition(playerContainer.position, playerViewRadius);
+}, 200);
+
+// terrain.showEntireMap();
 function render(): void {
     cameraControl.update();
     terrain.updateUniforms();
