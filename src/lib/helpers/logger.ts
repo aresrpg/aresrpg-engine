@@ -20,7 +20,7 @@ class Logger {
         private readonly logStyle: Record<ELogLevel, LevelStyle>
     ) { }
 
-    public verbosity = ELogLevel.INFO;
+    public verbosity = ELogLevel.WARN;
 
     public readonly warn = this.log.bind(this, ELogLevel.WARN);
     public readonly info = this.log.bind(this, ELogLevel.INFO);
