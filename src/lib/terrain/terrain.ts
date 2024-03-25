@@ -105,8 +105,8 @@ class Terrain {
      * @param radius The visibility radius, in voxels.
      */
     public async showMapAroundPosition(position: THREE.Vector3, radius: number): Promise<void> {
-        const voxelFrom = new THREE.Vector3().copy(position).subScalar(radius);
-        const voxelTo = new THREE.Vector3().copy(position).addScalar(radius);
+        const voxelFrom = new THREE.Vector3().copy(position).subScalar(radius).max({ x: 0, y: 0, z: 0 });
+        const voxelTo = new THREE.Vector3().copy(position).addScalar(radius).min(this.map.size);
         const patchIdFrom = voxelFrom.divide(this.patchSize).floor();
         const patchIdTo = voxelTo.divide(this.patchSize).ceil();
 
