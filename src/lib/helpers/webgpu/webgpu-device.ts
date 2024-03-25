@@ -1,5 +1,7 @@
 /// <reference types="@webgpu/types" />
 
+import { logger } from '../logger';
+
 let devicePromise: Promise<GPUDevice> | null = null;
 
 async function getGpuDevice(): Promise<GPUDevice> {
@@ -18,7 +20,7 @@ async function getGpuDevice(): Promise<GPUDevice> {
         }
 
         if (adapter.isFallbackAdapter) {
-            console.warn('The retrieved GPU adapter is fallback. The performance might be degraded.');
+            logger.warn('The retrieved GPU adapter is fallback. The performance might be degraded.');
         }
 
         devicePromise = adapter.requestDevice();

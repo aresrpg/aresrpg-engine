@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-import { Terrain } from '../lib/index';
+import { Terrain, setVerbosity, EVerbosity } from '../lib/index';
 
 import { VoxelMap } from './voxel-map';
+
+setVerbosity(EVerbosity.DIAGNOSTIC);
 
 const renderer = new THREE.WebGLRenderer();
 document.body.appendChild(renderer.domElement);

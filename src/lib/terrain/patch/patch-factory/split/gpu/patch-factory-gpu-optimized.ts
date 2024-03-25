@@ -30,14 +30,14 @@ class PatchFactoryGpuOptimized extends PatchFactoryGpu {
 
         return new Promise<GeometryAndMaterial[]>(resolve => {
             const patchId = this.nextPatchId++;
-            // console.log(`Asking for patch ${patchId}`);
+            // logger.diagnostic(`Asking for patch ${patchId}`);
 
             this.pendingJobs.push({
                 patchId,
                 cpuTask: () => {
-                    // console.log(`CPU ${patchId} start`);
+                    // logger.diagnostic(`CPU ${patchId} start`);
                     const result = this.buildLocalMapCache(patchStart, patchEnd);
-                    // console.log(`CPU ${patchId} end`);
+                    // logger.diagnostic(`CPU ${patchId} end`);
                     return result;
                 },
                 resolve,
@@ -59,10 +59,10 @@ class PatchFactoryGpuOptimized extends PatchFactoryGpu {
                 const localMapCache = currentJob.cpuTaskOutput;
 
                 currentJob.gpuTaskPromise = (async () => {
-                    // console.log(`GPU ${currentJob.patchId} start`);
+                    // logger.diagnostic(`GPU ${currentJob.patchId} start`);
                     const patchComputerGpu = await this.getPatchComputerGpu();
                     const gpuTaskOutput = await patchComputerGpu.computeBuffers(localMapCache);
-                    // console.log(`GPU ${currentJob.patchId} end`);
+                    // logger.diagnostic(`GPU ${currentJob.patchId} end`);
 
                     const result = this.assembleGeometryAndMaterials(gpuTaskOutput);
                     currentJob.resolve(result);
