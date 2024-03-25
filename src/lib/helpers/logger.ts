@@ -18,7 +18,7 @@ class Logger {
     public constructor(
         private readonly prefix: string,
         private readonly logStyle: Record<ELogLevel, LevelStyle>
-    ) { }
+    ) {}
 
     public verbosity = ELogLevel.WARN;
 
