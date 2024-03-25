@@ -1,3 +1,4 @@
+import { logger } from '../helpers/logger';
 import * as THREE from '../three-usage';
 
 import { AsyncPatch } from './async-patch';
@@ -73,7 +74,7 @@ class Terrain {
         }
 
         this.patchSize = this.patchFactory.maxPatchSize.clone();
-        console.log(`Using max patch size ${this.patchSize.x}x${this.patchSize.y}x${this.patchSize.z}.`);
+        logger.info(`Using max patch size ${this.patchSize.x}x${this.patchSize.y}x${this.patchSize.z}.`);
 
         this.container = new THREE.Group();
     }

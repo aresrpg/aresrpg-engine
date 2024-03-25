@@ -2,6 +2,7 @@
 
 import * as THREE from 'three';
 
+import { logger } from '../../../../../helpers/logger';
 import { getGpuDevice } from '../../../../../helpers/webgpu/webgpu-device';
 import * as Cube from '../../cube';
 import { type LocalMapCache } from '../../patch-factory-base';
@@ -16,6 +17,7 @@ type ComputationOutputs = Record<Cube.FaceType, Uint32Array>;
 
 class PatchComputerGpu {
     public static async create(localCacheSize: THREE.Vector3, vertexDataEncoder: VertexDataEncoder): Promise<PatchComputerGpu> {
+        logger.debug('Requesting WebGPU device...');
         const device = await getGpuDevice();
         return new PatchComputerGpu(device, localCacheSize, vertexDataEncoder);
     }
@@ -205,7 +207,7 @@ class PatchComputerGpu {
         Object.values(this.faceBuffers).forEach(
             faceBuffer => (totalBuffersSize += faceBuffer.readableBuffer.size + faceBuffer.storageBuffer.size)
         );
-        console.log(`Allocated ${(totalBuffersSize / 1024 / 1024).toFixed(1)} MB of webgpu buffers.`);
+        logger.info(`Allocated ${(totalBuffersSize / 1024 / 1024).toFixed(1)} MB of webgpu buffers.`);
 
         const bindgroupBuffers = [this.localCacheBuffer, ...Object.values(this.faceBuffers).map(faceBuffer => faceBuffer.storageBuffer)];
         this.computePipelineBindgroup = this.device.createBindGroup({
