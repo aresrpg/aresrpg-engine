@@ -31,16 +31,11 @@ class Patch {
         },
     };
 
-    public readonly patchStart: THREE.Vector3;
-    public readonly patchSize: THREE.Vector3;
-
     private gpuResources: {
         readonly patchMeshes: ReadonlyArray<PatchMesh>;
     } | null = null;
 
-    public constructor(patchStart: THREE.Vector3, patchSize: THREE.Vector3, patchMeshes: PatchMesh[]) {
-        this.patchStart = patchStart;
-        this.patchSize = patchSize;
+    public constructor(patchMeshes: PatchMesh[]) {
         this.gpuResources = { patchMeshes };
 
         this.container = new THREE.Object3D();

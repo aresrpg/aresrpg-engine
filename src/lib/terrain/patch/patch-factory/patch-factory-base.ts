@@ -100,8 +100,6 @@ abstract class PatchFactoryBase {
         boundingBox.getBoundingSphere(boundingSphere);
 
         return new Patch(
-            patchStart,
-            patchSize,
             geometryAndMaterialsList.map(geometryAndMaterial => {
                 const { geometry } = geometryAndMaterial;
                 geometry.boundingBox = boundingBox.clone();
