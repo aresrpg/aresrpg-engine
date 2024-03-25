@@ -282,10 +282,13 @@ class PatchComputerGpu {
     }
 
     public dispose(): void {
+        this.localCacheBuffer.destroy();
         for (const buffer of Object.values(this.faceBuffers)) {
             buffer.storageBuffer.destroy();
             buffer.readableBuffer.destroy();
         }
+        logger.debug('Destroying WebGPU device...');
+        this.device.destroy();
     }
 }
 
