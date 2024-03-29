@@ -31,7 +31,7 @@
     "declaration": true,
     "declarationMap": false,
     "outDir": "dist",
-    "sourceMap": false,
+    "sourceMap": true,
 
     /* JavaScript Support */
     "allowJs": false,
