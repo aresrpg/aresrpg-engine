@@ -28,7 +28,7 @@ class Terrain {
             noiseStrength: 0.025,
         },
         lighting: {
-            color: new THREE.Color(0xff9999),
+            color: new THREE.Color(0xffffff),
 
             ambient: {
                 intensity: 0.7,
