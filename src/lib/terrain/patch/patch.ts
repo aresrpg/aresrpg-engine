@@ -1,10 +1,10 @@
 import * as THREE from '../../three-usage';
 
-import { EDisplayMode, PatchMaterial } from './material';
+import { EDisplayMode, PatchMaterials } from './material';
 
 type PatchMesh = {
     readonly mesh: THREE.Mesh;
-    readonly material: PatchMaterial;
+    readonly materials: PatchMaterials;
 };
 
 class Patch {
@@ -53,19 +53,20 @@ class Patch {
     public updateUniforms(): void {
         if (this.gpuResources) {
             for (const patchMesh of this.gpuResources.patchMeshes) {
-                patchMesh.material.uniforms.uAoStrength.value = +this.parameters.ao.enabled * this.parameters.ao.strength;
-                patchMesh.material.uniforms.uAoSpread.value = this.parameters.ao.spread;
-                patchMesh.material.uniforms.uSmoothEdgeRadius.value =
-                    +this.parameters.smoothEdges.enabled * this.parameters.smoothEdges.radius;
-                patchMesh.material.uniforms.uSmoothEdgeMethod.value = this.parameters.smoothEdges.quality;
-                patchMesh.material.uniforms.uDisplayMode.value = this.parameters.voxels.displayMode;
+                const material = patchMesh.materials.material;
 
-                patchMesh.material.uniforms.uLightColor.value = this.parameters.lighting.color;
-                patchMesh.material.uniforms.uAmbientIntensity.value = this.parameters.lighting.ambient.intensity;
-                patchMesh.material.uniforms.uDiffuseDirection.value = this.parameters.lighting.diffuse.direction;
-                patchMesh.material.uniforms.uDiffuseIntensity.value = this.parameters.lighting.diffuse.intensity;
+                material.uniforms.uAoStrength.value = +this.parameters.ao.enabled * this.parameters.ao.strength;
+                material.uniforms.uAoSpread.value = this.parameters.ao.spread;
+                material.uniforms.uSmoothEdgeRadius.value = +this.parameters.smoothEdges.enabled * this.parameters.smoothEdges.radius;
+                material.uniforms.uSmoothEdgeMethod.value = this.parameters.smoothEdges.quality;
+                material.uniforms.uDisplayMode.value = this.parameters.voxels.displayMode;
 
-                patchMesh.material.uniforms.uNoiseStrength.value = this.parameters.voxels.noiseStrength;
+                material.uniforms.uLightColor.value = this.parameters.lighting.color;
+                material.uniforms.uAmbientIntensity.value = this.parameters.lighting.ambient.intensity;
+                material.uniforms.uDiffuseDirection.value = this.parameters.lighting.diffuse.direction;
+                material.uniforms.uDiffuseIntensity.value = this.parameters.lighting.diffuse.intensity;
+
+                material.uniforms.uNoiseStrength.value = this.parameters.voxels.noiseStrength;
             }
         }
     }
@@ -75,7 +76,8 @@ class Patch {
             for (const patchMesh of this.gpuResources.patchMeshes) {
                 this.container.remove(patchMesh.mesh);
                 patchMesh.mesh.geometry.dispose();
-                patchMesh.material.dispose();
+                patchMesh.materials.material.dispose();
+                patchMesh.materials.shadowMaterial.dispose();
             }
 
             this.gpuResources = null;
