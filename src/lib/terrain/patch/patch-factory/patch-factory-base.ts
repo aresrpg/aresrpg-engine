@@ -1,6 +1,6 @@
 import * as THREE from '../../../three-usage';
 import type { IVoxelMap, IVoxelMaterial } from '../../i-voxel-map';
-import type { PatchMaterial, PatchMaterialUniforms } from '../material';
+import type { PatchMaterials, PatchMaterialUniforms } from '../material';
 import { Patch } from '../patch';
 
 import * as Cube from './cube';
@@ -8,7 +8,7 @@ import type { PackedUintFragment } from './uint-packing';
 
 type GeometryAndMaterial = {
     readonly geometry: THREE.BufferGeometry;
-    readonly material: PatchMaterial;
+    readonly materials: PatchMaterials;
 };
 
 type VertexData = {
@@ -108,13 +108,21 @@ abstract class PatchFactoryBase {
                 geometry.boundingBox = boundingBox.clone();
                 geometry.boundingSphere = boundingSphere.clone();
 
-                const material = geometryAndMaterial.material.clone();
+                const material = geometryAndMaterial.materials.material.clone();
+                const shadowMaterial = geometryAndMaterial.materials.shadowMaterial.clone();
                 const mesh = new THREE.Mesh(geometryAndMaterial.geometry, material);
+                mesh.customDepthMaterial = shadowMaterial;
+                mesh.castShadow = true;
                 mesh.frustumCulled = false;
                 mesh.translateX(patchStart.x);
                 mesh.translateY(patchStart.y);
                 mesh.translateZ(patchStart.z);
-                return { mesh, material };
+
+                const materials = {
+                    material,
+                    shadowMaterial,
+                };
+                return { mesh, materials };
             })
         );
     }

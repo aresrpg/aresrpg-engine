@@ -3,11 +3,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 
-import { EVerbosity, Terrain, setVerbosity } from '../lib/index';
+import { ELogLevel, Terrain, setVerbosity } from '../lib/index';
 
 import { VoxelMap } from './voxel-map';
 
-setVerbosity(EVerbosity.DIAGNOSTIC);
+setVerbosity(ELogLevel.DIAGNOSTIC);
 
 const stats = new Stats();
 document.body.appendChild(stats.dom);
@@ -58,11 +58,49 @@ playerControls.addEventListener('dragging-changed', event => {
 playerControls.attach(playerContainer);
 scene.add(playerContainer);
 scene.add(playerControls);
-setInterval(() => {
-    terrain.showMapAroundPosition(playerContainer.position, playerViewRadius);
-}, 200);
+// setInterval(() => {
+//     terrain.showMapAroundPosition(playerContainer.position, playerViewRadius);
+// }, 200);
+// terrain.parameters.lighting.diffuse.direction = new THREE.Vector3(-1, -1, -1);
+terrain.showEntireMap();
 
-// terrain.showEntireMap();
+// shadows testing
+{
+    const planeReceivingShadows = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial());
+    planeReceivingShadows.position.set(0, -20, 0);
+    planeReceivingShadows.rotateOnAxis(new THREE.Vector3(1, 0, 0), -Math.PI / 4);
+    planeReceivingShadows.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 4);
+    planeReceivingShadows.receiveShadow = true;
+    scene.add(planeReceivingShadows);
+    const planeControls = new TransformControls(camera, renderer.domElement);
+    planeControls.addEventListener('dragging-changed', event => {
+        cameraControl.enabled = !event.value;
+    });
+    planeControls.attach(planeReceivingShadows);
+    scene.add(planeControls);
+
+    // const sphereCastingShadows = new THREE.Mesh(new THREE.SphereGeometry(10), new THREE.MeshPhongMaterial());
+    // sphereCastingShadows.position.set(20, 30, 20);
+    // sphereCastingShadows.castShadow = true;
+    // scene.add(sphereCastingShadows);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.target.position.set(0, 0, 0);
+    dirLight.position.set(50, 50, 50);
+    dirLight.castShadow = true;
+    dirLight.shadow.camera.top = 100;
+    dirLight.shadow.camera.bottom = -100;
+    dirLight.shadow.camera.left = -100;
+    dirLight.shadow.camera.right = 100;
+
+    dirLight.shadow.mapSize.width = 512;
+    dirLight.shadow.mapSize.height = 512;
+    scene.add(dirLight);
+
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+}
+
 function render(): void {
     stats.update();
 

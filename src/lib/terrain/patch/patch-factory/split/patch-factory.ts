@@ -1,6 +1,6 @@
 import * as THREE from '../../../../three-usage';
 import { IVoxelMap } from '../../../i-voxel-map';
-import { EDisplayMode, PatchMaterial } from '../../material';
+import { EDisplayMode, PatchMaterial, PatchMaterials } from '../../material';
 import * as Cube from '../cube';
 import { EPatchComputingMode, GeometryAndMaterial, PatchFactoryBase } from '../patch-factory-base';
 
@@ -17,7 +17,7 @@ abstract class PatchFactory extends PatchFactoryBase {
         PatchFactory.vertexDataEncoder.voxelZ.maxValue + 1
     );
 
-    private readonly materialsTemplates: Record<Cube.FaceType, PatchMaterial> = {
+    private readonly materialsTemplates: Record<Cube.FaceType, PatchMaterials> = {
         up: this.buildPatchMaterial('up'),
         down: this.buildPatchMaterial('down'),
         left: this.buildPatchMaterial('left'),
@@ -26,8 +26,8 @@ abstract class PatchFactory extends PatchFactoryBase {
         back: this.buildPatchMaterial('back'),
     };
 
-    private buildPatchMaterial(faceType: Cube.FaceType): PatchMaterial {
-        return new THREE.ShaderMaterial({
+    private buildPatchMaterial(faceType: Cube.FaceType): PatchMaterials {
+        const material = new THREE.ShaderMaterial({
             glslVersion: '300 es',
             uniforms: this.uniformsTemplate,
             vertexShader: `
@@ -171,6 +171,61 @@ abstract class PatchFactory extends PatchFactoryBase {
         }
         `,
         }) as unknown as PatchMaterial;
+
+        // Custom shadow material using RGBA depth packing.
+        // A custom material for shadows is needed here, because the geometry is created inside the vertex shader,
+        // so the builtin threejs shadow material will not work.
+        // Written like:
+        // https://github.com/mrdoob/three.js/blob/2ff77e4b335e31c108aac839a07401664998c730/src/renderers/shaders/ShaderLib/depth.glsl.js#L47
+        const shadowMaterial = new THREE.ShaderMaterial({
+            glslVersion: '300 es',
+            vertexShader: `
+        in uint ${PatchFactory.dataAttributeName};
+
+        // This is used for computing an equivalent of gl_FragCoord.z that is as high precision as possible.
+        // Some platforms compute gl_FragCoord at a lower precision which makes the manually computed value better for
+        // depth-based postprocessing effects. Reproduced on iPad with A10 processor / iPadOS 13.3.1.
+        varying vec2 vHighPrecisionZW;
+
+        void main(void) {
+            const uint vertexIds[] = uint[](${Cube.faceIndices.map(indice => `${indice}u`).join(', ')});
+            uint vertexId = vertexIds[gl_VertexID % 6];
+
+            uvec3 worldVoxelPosition = uvec3(
+                ${PatchFactory.vertexDataEncoder.voxelX.glslDecode(PatchFactory.dataAttributeName)},
+                ${PatchFactory.vertexDataEncoder.voxelY.glslDecode(PatchFactory.dataAttributeName)},
+                ${PatchFactory.vertexDataEncoder.voxelZ.glslDecode(PatchFactory.dataAttributeName)}
+            );
+
+            const uvec3 localVertexPositions[] = uvec3[](
+                ${Cube.faces[faceType].vertices
+                    .map(vertex => `uvec3(${vertex.vertex.x}, ${vertex.vertex.y}, ${vertex.vertex.z})`)
+                    .join(',\n')}
+            );
+            uvec3 localVertexPosition = localVertexPositions[vertexId];
+            vec3 worldPosition = vec3(worldVoxelPosition + localVertexPosition);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPosition, 1.0);
+
+            vHighPrecisionZW = gl_Position.zw;
+        }`,
+            fragmentShader: `precision highp float;
+
+        #include <packing>
+
+        in vec2 vHighPrecisionZW;
+
+        out vec4 fragColor;
+
+        void main(void) {
+            // Higher precision equivalent of gl_FragCoord.z. This assumes depthRange has been left to its default values.
+            float fragCoordZ = 0.5 * vHighPrecisionZW[0] / vHighPrecisionZW[1] + 0.5;
+
+            // RGBA depth packing 
+            fragColor = packDepthToRGBA( fragCoordZ );
+        }`,
+        });
+
+        return { material, shadowMaterial };
     }
 
     protected constructor(map: IVoxelMap, computingMode: EPatchComputingMode) {
@@ -179,7 +234,8 @@ abstract class PatchFactory extends PatchFactoryBase {
 
     protected async disposeInternal(): Promise<void> {
         for (const material of Object.values(this.materialsTemplates)) {
-            material.dispose();
+            material.material.dispose();
+            material.shadowMaterial.dispose();
         }
     }
 
@@ -209,7 +265,7 @@ abstract class PatchFactory extends PatchFactoryBase {
             return null;
         }
 
-        const material = this.materialsTemplates[faceType];
+        const materials = this.materialsTemplates[faceType];
         const geometry = new THREE.BufferGeometry();
         const faceTypeVerticesDataBuffer = new THREE.Uint32BufferAttribute(buffer, 1, false);
         faceTypeVerticesDataBuffer.onUpload(() => {
@@ -218,8 +274,8 @@ abstract class PatchFactory extends PatchFactoryBase {
         geometry.setAttribute(PatchFactory.dataAttributeName, faceTypeVerticesDataBuffer);
         geometry.setDrawRange(0, verticesCount);
 
-        return { material, geometry };
+        return { materials, geometry };
     }
 }
 
-export { PatchFactory, type PatchMaterial };
+export { PatchFactory, type PatchMaterials };
