@@ -28,8 +28,15 @@ class Terrain {
             noiseStrength: 0.025,
         },
         lighting: {
-            ambient: 0.7,
-            diffuse: 0.8,
+            color: new THREE.Color(0xff9999),
+
+            ambient: {
+                intensity: 0.7,
+            },
+            diffuse: {
+                direction: new THREE.Vector3(1, 1, 1).normalize(),
+                intensity: 0.8,
+            },
         },
         smoothEdges: {
             enabled: true,
@@ -143,14 +150,15 @@ class Terrain {
      * Call this method before rendering.
      * */
     public updateUniforms(): void {
+        this.parameters.lighting.diffuse.direction.normalize();
+
         for (const asyncPatch of Object.values(this.patches)) {
             const patch = asyncPatch.patch;
             if (patch) {
                 patch.parameters.voxels.displayMode = this.parameters.voxels.displayMode;
                 patch.parameters.voxels.noiseStrength = this.parameters.voxels.noiseStrength;
 
-                patch.parameters.lighting.ambient = this.parameters.lighting.ambient;
-                patch.parameters.lighting.diffuse = this.parameters.lighting.diffuse;
+                patch.parameters.lighting = this.parameters.lighting;
 
                 patch.parameters.smoothEdges.enabled = this.parameters.smoothEdges.enabled;
                 patch.parameters.smoothEdges.radius = this.parameters.smoothEdges.radius;

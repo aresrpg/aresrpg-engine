@@ -16,8 +16,14 @@ class Patch {
             noiseStrength: 0.05,
         },
         lighting: {
-            ambient: 0.7,
-            diffuse: 0.8,
+            color: new THREE.Color(0xffffff),
+            ambient: {
+                intensity: 0.7,
+            },
+            diffuse: {
+                direction: new THREE.Vector3(1, 1, 1).normalize(),
+                intensity: 0.8,
+            },
         },
         smoothEdges: {
             enabled: true,
@@ -53,8 +59,12 @@ class Patch {
                     +this.parameters.smoothEdges.enabled * this.parameters.smoothEdges.radius;
                 patchMesh.material.uniforms.uSmoothEdgeMethod.value = this.parameters.smoothEdges.quality;
                 patchMesh.material.uniforms.uDisplayMode.value = this.parameters.voxels.displayMode;
-                patchMesh.material.uniforms.uAmbient.value = this.parameters.lighting.ambient;
-                patchMesh.material.uniforms.uDiffuse.value = this.parameters.lighting.diffuse;
+
+                patchMesh.material.uniforms.uLightColor.value = this.parameters.lighting.color;
+                patchMesh.material.uniforms.uAmbientIntensity.value = this.parameters.lighting.ambient.intensity;
+                patchMesh.material.uniforms.uDiffuseDirection.value = this.parameters.lighting.diffuse.direction;
+                patchMesh.material.uniforms.uDiffuseIntensity.value = this.parameters.lighting.diffuse.intensity;
+
                 patchMesh.material.uniforms.uNoiseStrength.value = this.parameters.voxels.noiseStrength;
             }
         }
