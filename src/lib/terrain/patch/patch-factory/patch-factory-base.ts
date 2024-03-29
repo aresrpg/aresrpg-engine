@@ -73,8 +73,11 @@ abstract class PatchFactoryBase {
             uAoSpread: { value: 0 },
             uSmoothEdgeRadius: { value: 0 },
             uSmoothEdgeMethod: { value: 0 },
-            uAmbient: { value: 0 },
-            uDiffuse: { value: 0 },
+
+            uLightColor: { value: new THREE.Color() },
+            uAmbientIntensity: { value: 0 },
+            uDiffuseDirection: { value: new THREE.Vector3() },
+            uDiffuseIntensity: { value: 0 },
         };
         this.uniformsTemplate.uTexture.value = this.texture;
     }

@@ -87,8 +87,10 @@ abstract class PatchFactory extends PatchFactoryBase {
         uniform sampler2D uTexture;
         uniform sampler2D uNoiseTexture;
         uniform float uNoiseStrength;
-        uniform float uAmbient;
-        uniform float uDiffuse;
+        uniform vec3 uLightColor;
+        uniform float uAmbientIntensity;
+        uniform vec3 uDiffuseDirection;
+        uniform float uDiffuseIntensity;
         uniform float uAoStrength;
         uniform float uAoSpread;
         uniform float uSmoothEdgeRadius;
@@ -158,13 +160,12 @@ abstract class PatchFactory extends PatchFactoryBase {
 
             color += computeNoise();
             
-            const vec3 diffuseDirection = normalize(vec3(1, 1, 1));
-            float diffuse = max(0.0, dot(modelFaceNormal, diffuseDirection));
+            float diffuse = max(0.0, dot(modelFaceNormal, uDiffuseDirection));
 
-            float light = uAmbient + uDiffuse * diffuse;
+            float lightIntensity = uAmbientIntensity + uDiffuseIntensity * diffuse;
             float ao = (1.0 - uAoStrength) + uAoStrength * (smoothstep(0.0, uAoSpread, 1.0 - vAo));
-            light *= ao;
-            color *= light;
+            lightIntensity *= ao;
+            color *= lightIntensity * uLightColor;
 
             fragColor = vec4(color, 1);
         }

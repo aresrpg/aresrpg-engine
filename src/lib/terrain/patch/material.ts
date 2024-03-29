@@ -20,8 +20,11 @@ type PatchMaterialUniforms = {
     readonly uAoSpread: { value: number };
     readonly uSmoothEdgeRadius: { value: number };
     readonly uSmoothEdgeMethod: { value: number };
-    readonly uAmbient: { value: number };
-    readonly uDiffuse: { value: number };
+
+    readonly uLightColor: { value: THREE.Color };
+    readonly uAmbientIntensity: { value: number };
+    readonly uDiffuseDirection: { value: THREE.Vector3 };
+    readonly uDiffuseIntensity: { value: number };
 };
 
 type PatchMaterial = THREE.Material & {

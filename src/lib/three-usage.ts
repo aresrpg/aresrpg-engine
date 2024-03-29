@@ -1,6 +1,7 @@
 export {
     Box3,
     BufferGeometry,
+    Color,
     DataTexture,
     Group,
     Mesh,
