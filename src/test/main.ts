@@ -45,27 +45,32 @@ playerContainer.position.x = voxelMap.size.x / 2;
 playerContainer.position.y = voxelMap.size.y + 1;
 playerContainer.position.z = voxelMap.size.z / 2;
 const player = new THREE.Mesh(new THREE.SphereGeometry(2), new THREE.MeshBasicMaterial({ color: '#FF0000' }));
-const playerViewSphere = new THREE.Mesh(
-    new THREE.SphereGeometry(playerViewRadius, 16, 16),
-    new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true })
-);
 playerContainer.add(player);
-playerContainer.add(playerViewSphere);
-const playerControls = new TransformControls(camera, renderer.domElement);
-playerControls.addEventListener('dragging-changed', event => {
-    cameraControl.enabled = !event.value;
-});
-playerControls.attach(playerContainer);
 scene.add(playerContainer);
-scene.add(playerControls);
-// setInterval(() => {
-//     terrain.showMapAroundPosition(playerContainer.position, playerViewRadius);
-// }, 200);
-// terrain.parameters.lighting.diffuse.direction = new THREE.Vector3(-1, -1, -1);
-terrain.showEntireMap();
 
-// shadows testing
-{
+const showWholeMap = false;
+if (showWholeMap) {
+    terrain.showEntireMap();
+} else {
+    const playerViewSphere = new THREE.Mesh(
+        new THREE.SphereGeometry(playerViewRadius, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true })
+    );
+    playerContainer.add(playerViewSphere);
+    const playerControls = new TransformControls(camera, renderer.domElement);
+    playerControls.addEventListener('dragging-changed', event => {
+        cameraControl.enabled = !event.value;
+    });
+    playerControls.attach(playerContainer);
+    scene.add(playerControls);
+
+    setInterval(() => {
+        terrain.showMapAroundPosition(playerContainer.position, playerViewRadius);
+    }, 200);
+}
+
+const testShadows = true;
+if (testShadows) {
     const planeReceivingShadows = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial());
     planeReceivingShadows.position.set(0, -20, 0);
     planeReceivingShadows.rotateOnAxis(new THREE.Vector3(1, 0, 0), -Math.PI / 4);
@@ -86,12 +91,12 @@ terrain.showEntireMap();
 
     const dirLight = new THREE.DirectionalLight(0xffffff, 1);
     dirLight.target.position.set(0, 0, 0);
-    dirLight.position.set(50, 50, 50);
+    dirLight.position.set(100, 100, 100);
     dirLight.castShadow = true;
-    dirLight.shadow.camera.top = 100;
-    dirLight.shadow.camera.bottom = -100;
-    dirLight.shadow.camera.left = -100;
-    dirLight.shadow.camera.right = 100;
+    dirLight.shadow.camera.top = 200;
+    dirLight.shadow.camera.bottom = -200;
+    dirLight.shadow.camera.left = -200;
+    dirLight.shadow.camera.right = 200;
 
     dirLight.shadow.mapSize.width = 512;
     dirLight.shadow.mapSize.height = 512;
