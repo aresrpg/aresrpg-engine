@@ -28,7 +28,9 @@ type PatchMaterialUniforms = {
 };
 
 type PatchMaterial = THREE.Material & {
-    readonly uniforms: PatchMaterialUniforms;
+    readonly userData: {
+        readonly uniforms: PatchMaterialUniforms;
+    };
 };
 
 type PatchMaterials = {

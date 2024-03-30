@@ -35,7 +35,7 @@ scene.add(terrain.container);
 
 scene.add(new THREE.AxesHelper(500));
 
-camera.position.set(-50, 100, -50);
+camera.position.set(-50, 100, 50);
 const cameraControl = new OrbitControls(camera, renderer.domElement);
 cameraControl.target.set(voxelMap.size.x / 2, 0, voxelMap.size.z / 2);
 
@@ -48,7 +48,7 @@ const player = new THREE.Mesh(new THREE.SphereGeometry(2), new THREE.MeshBasicMa
 playerContainer.add(player);
 scene.add(playerContainer);
 
-const showWholeMap = false;
+const showWholeMap = true;
 if (showWholeMap) {
     terrain.showEntireMap();
 } else {
@@ -68,6 +68,9 @@ if (showWholeMap) {
         terrain.showMapAroundPosition(playerContainer.position, playerViewRadius);
     }, 200);
 }
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+const ambientLight = new THREE.AmbientLight(0xffffff);
 
 const testShadows = true;
 if (testShadows) {
@@ -89,22 +92,29 @@ if (testShadows) {
     // sphereCastingShadows.castShadow = true;
     // scene.add(sphereCastingShadows);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
     dirLight.target.position.set(0, 0, 0);
-    dirLight.position.set(100, 100, 100);
+    dirLight.position.set(100, 50, 100);
     dirLight.castShadow = true;
     dirLight.shadow.camera.top = 200;
     dirLight.shadow.camera.bottom = -200;
     dirLight.shadow.camera.left = -200;
     dirLight.shadow.camera.right = 200;
 
-    dirLight.shadow.mapSize.width = 512;
-    dirLight.shadow.mapSize.height = 512;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
 
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFShadowMap;
 }
+
+scene.add(ambientLight);
+
+ambientLight.color = terrain.parameters.lighting.color;
+ambientLight.intensity = 0.3;
+
+dirLight.color = terrain.parameters.lighting.color;
+dirLight.intensity = 1.5;
 
 function render(): void {
     stats.update();

@@ -1,10 +1,16 @@
 import * as THREE from '../../../../three-usage';
 import { IVoxelMap } from '../../../i-voxel-map';
-import { EDisplayMode, PatchMaterial, PatchMaterials } from '../../material';
+import { EDisplayMode, PatchMaterial, PatchMaterialUniforms, PatchMaterials } from '../../material';
 import * as Cube from '../cube';
 import { EPatchComputingMode, GeometryAndMaterial, PatchFactoryBase } from '../patch-factory-base';
 
 import { VertexDataEncoder } from './vertex-data-encoder';
+
+type PatchMaterialTemp = THREE.Material & {
+    readonly userData: {
+        uniforms: PatchMaterialUniforms;
+    };
+};
 
 abstract class PatchFactory extends PatchFactoryBase {
     private static readonly dataAttributeName = 'aData';
@@ -26,7 +32,8 @@ abstract class PatchFactory extends PatchFactoryBase {
         back: this.buildPatchMaterial('back'),
     };
 
-    private buildPatchMaterial(faceType: Cube.FaceType): PatchMaterials {
+    // Custom material that cannot receive three.js shadows but is a bit more performant
+    private buildCustomPatchMaterial(faceType: Cube.FaceType): PatchMaterial {
         const material = new THREE.ShaderMaterial({
             glslVersion: '300 es',
             uniforms: this.uniformsTemplate,
@@ -168,16 +175,181 @@ abstract class PatchFactory extends PatchFactoryBase {
             color *= lightIntensity * uLightColor;
 
             fragColor = vec4(color, 1);
-        }
-        `,
-        }) as unknown as PatchMaterial;
+        }`,
+        }) as unknown as PatchMaterialTemp;
+        material.userData.uniforms = this.uniformsTemplate;
+        return material;
+    }
 
+    private buildThreeJsPatchMaterial(faceType: Cube.FaceType): PatchMaterial {
+        function applyReplacements(source: string, replacements: Record<string, string>): string {
+            let result = source;
+
+            for (const [source, replacement] of Object.entries(replacements)) {
+                result = result.replace(source, replacement);
+            }
+
+            return result;
+        }
+
+        const phongMaterial = new THREE.MeshPhongMaterial();
+        phongMaterial.shininess = 0;
+        const material = phongMaterial as unknown as PatchMaterialTemp;
+        material.userData.uniforms = this.uniformsTemplate;
+        material.customProgramCacheKey = () => `patch-factory-split_${faceType}`;
+        material.onBeforeCompile = parameters => {
+            parameters.uniforms = {
+                ...parameters.uniforms,
+                ...material.userData.uniforms,
+            };
+
+            parameters.vertexShader = applyReplacements(parameters.vertexShader, {
+                'void main() {': `
+in uint ${PatchFactory.dataAttributeName};
+
+out vec2 vUv;
+out vec2 vEdgeRoundness;
+flat out int vMaterial;
+flat out int vNoise;
+out float vAo;
+
+void main() {`,
+                '#include <begin_vertex>': `
+    const uint vertexIds[] = uint[](${Cube.faceIndices.map(indice => `${indice}u`).join(', ')});
+    uint vertexId = vertexIds[gl_VertexID % 6];
+
+    uvec3 modelVoxelPosition = uvec3(
+        ${PatchFactory.vertexDataEncoder.voxelX.glslDecode(PatchFactory.dataAttributeName)},
+        ${PatchFactory.vertexDataEncoder.voxelY.glslDecode(PatchFactory.dataAttributeName)},
+        ${PatchFactory.vertexDataEncoder.voxelZ.glslDecode(PatchFactory.dataAttributeName)}
+    );
+
+    const uvec3 localVertexPositions[] = uvec3[](
+        ${Cube.faces[faceType].vertices.map(vertex => `uvec3(${vertex.vertex.x}, ${vertex.vertex.y}, ${vertex.vertex.z})`).join(',\n\t\t')}
+    );
+    uvec3 localVertexPosition = localVertexPositions[vertexId];
+    vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
+    vec3 transformed = modelPosition;
+    
+    const vec2 uvs[] = vec2[](
+            vec2(0,0),
+            vec2(0,1),
+            vec2(1,0),
+            vec2(1,1)
+        );
+        vUv = uvs[vertexId];
+
+        const vec2 edgeRoundness[] = vec2[](
+            vec2(0,0),
+            vec2(1,0),
+            vec2(0,1),
+            vec2(1,1)
+        );
+        uint edgeRoundnessId = ${PatchFactory.vertexDataEncoder.edgeRoundness.glslDecode(PatchFactory.dataAttributeName)};
+        vEdgeRoundness = edgeRoundness[edgeRoundnessId];
+
+        vAo = float(${PatchFactory.vertexDataEncoder.ao.glslDecode(
+            PatchFactory.dataAttributeName
+        )}) / ${PatchFactory.vertexDataEncoder.ao.maxValue.toFixed(1)};
+
+        vMaterial = int(${PatchFactory.vertexDataEncoder.voxelMaterialId.glslDecode(PatchFactory.dataAttributeName)});
+        vNoise = int(modelVoxelPosition.x + modelVoxelPosition.y * 3u + modelVoxelPosition.z * 2u) % ${this.noiseTypes};
+        `,
+                '#include <beginnormal_vertex>': `
+    vec3 objectNormal = vec3(${Cube.faces[faceType].normal.x}, ${Cube.faces[faceType].normal.y}, ${Cube.faces[faceType].normal.z});
+`,
+            });
+
+            parameters.fragmentShader = applyReplacements(parameters.fragmentShader, {
+                'void main() {': `
+uniform sampler2D uTexture;
+uniform sampler2D uNoiseTexture;
+uniform float uNoiseStrength;
+uniform vec3 uLightColor;
+uniform float uAmbientIntensity;
+uniform vec3 uDiffuseDirection;
+uniform float uDiffuseIntensity;
+uniform float uAoStrength;
+uniform float uAoSpread;
+uniform float uSmoothEdgeRadius;
+uniform uint uSmoothEdgeMethod;
+uniform uint uDisplayMode;
+
+in vec2 vUv;
+in vec2 vEdgeRoundness;
+flat in int vMaterial;
+flat in int vNoise;
+in float vAo;
+
+vec3 computeModelNormal() {
+    const vec3 worldFaceNormal = vec3(${Cube.faces[faceType].normal.x.toFixed(1)}, ${Cube.faces[faceType].normal.y.toFixed(
+        1
+    )}, ${Cube.faces[faceType].normal.z.toFixed(1)});
+    if (uSmoothEdgeRadius <= 0.0) {
+        return worldFaceNormal;
+    }
+
+    vec3 localNormal;
+
+    vec2 edgeRoundness = step(${PatchFactoryBase.maxSmoothEdgeRadius.toFixed(2)}, vEdgeRoundness);
+    if (uSmoothEdgeMethod == 0u) {
+        vec2 margin = mix(vec2(0), vec2(uSmoothEdgeRadius), edgeRoundness);
+        vec3 roundnessCenter = vec3(clamp(vUv, margin, 1.0 - margin), -uSmoothEdgeRadius);
+        localNormal = normalize(vec3(vUv, 0) - roundnessCenter);
+    } else if (uSmoothEdgeMethod == 1u) {
+        vec2 symetricUv = clamp(vUv - 0.5, -0.5,  0.5);
+        vec2 distanceFromMargin = edgeRoundness * sign(symetricUv) * max(abs(symetricUv) - (0.5 - uSmoothEdgeRadius), 0.0) / uSmoothEdgeRadius;
+        localNormal = normalize(vec3(distanceFromMargin, 1));
+    } else if (uSmoothEdgeMethod == 2u) {
+        vec2 symetricUv = clamp(vUv - 0.5, -0.5,  0.5);
+        vec2 distanceFromMargin = edgeRoundness * sign(symetricUv) * max(abs(symetricUv) - (0.5 - uSmoothEdgeRadius), 0.0) / uSmoothEdgeRadius;
+        distanceFromMargin = sign(distanceFromMargin) * distanceFromMargin * distanceFromMargin;
+        localNormal = normalize(vec3(distanceFromMargin, 1));
+    }
+
+    const vec3 uvUp = vec3(${Cube.faces[faceType].uvUp.x.toFixed(1)}, ${Cube.faces[faceType].uvUp.y.toFixed(1)}, ${Cube.faces[
+        faceType
+    ].uvUp.z.toFixed(1)});
+    const vec3 uvRight = vec3(${Cube.faces[faceType].uvRight.x.toFixed(1)}, ${Cube.faces[faceType].uvRight.y.toFixed(1)}, ${Cube.faces[
+        faceType
+    ].uvRight.z.toFixed(1)});
+    return localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * worldFaceNormal;
+}
+
+float computeNoise() {
+    ivec2 texelCoords = clamp(ivec2(vUv * ${this.noiseResolution.toFixed(1)}), ivec2(0), ivec2(${this.noiseResolution - 1}));
+    texelCoords.x += vNoise * ${this.noiseResolution};
+    float noise = texelFetch(uNoiseTexture, texelCoords, 0).r - 0.5;
+    return uNoiseStrength * noise;
+}
+
+void main() {
+    vec3 modelFaceNormal = computeModelNormal();
+`,
+                '#include <normal_fragment_begin>': `
+    vec3 normal = modelFaceNormal;`,
+                '#include <map_fragment>': `
+                diffuseColor.rgb = vec3(0.75);
+    if (uDisplayMode == ${EDisplayMode.TEXTURES}u) {
+        ivec2 texelCoords = ivec2(vMaterial, 0);
+        diffuseColor.rgb = texelFetch(uTexture, texelCoords, 0).rgb;
+    } else if (uDisplayMode == ${EDisplayMode.NORMALS}u) {
+        diffuseColor.rgb = 0.5 + 0.5 * modelFaceNormal;
+    }
+    
+    diffuseColor.rgb += computeNoise();`,
+            });
+        };
+        return material;
+    }
+
+    private buildShadowMaterial(faceType: Cube.FaceType): THREE.Material {
         // Custom shadow material using RGBA depth packing.
         // A custom material for shadows is needed here, because the geometry is created inside the vertex shader,
         // so the builtin threejs shadow material will not work.
         // Written like:
         // https://github.com/mrdoob/three.js/blob/2ff77e4b335e31c108aac839a07401664998c730/src/renderers/shaders/ShaderLib/depth.glsl.js#L47
-        const shadowMaterial = new THREE.ShaderMaterial({
+        return new THREE.ShaderMaterial({
             glslVersion: '300 es',
             vertexShader: `
         in uint ${PatchFactory.dataAttributeName};
@@ -224,7 +396,18 @@ abstract class PatchFactory extends PatchFactoryBase {
             fragColor = packDepthToRGBA( fragCoordZ );
         }`,
         });
+    }
 
+    private buildPatchMaterial(faceType: Cube.FaceType): PatchMaterials {
+        let material: PatchMaterial;
+        const usePhongShader = true;
+        if (usePhongShader) {
+            material = this.buildThreeJsPatchMaterial(faceType);
+        } else {
+            material = this.buildCustomPatchMaterial(faceType);
+        }
+
+        const shadowMaterial = this.buildShadowMaterial(faceType);
         return { material, shadowMaterial };
     }
 
