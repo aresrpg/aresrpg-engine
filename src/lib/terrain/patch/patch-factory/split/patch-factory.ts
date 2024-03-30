@@ -275,6 +275,8 @@ uniform float uSmoothEdgeRadius;
 uniform uint uSmoothEdgeMethod;
 uniform uint uDisplayMode;
 
+uniform mat3 normalMatrix; // from three.js
+
 in vec2 vUv;
 in vec2 vEdgeRoundness;
 flat in int vMaterial;
@@ -313,7 +315,8 @@ vec3 computeModelNormal() {
     const vec3 uvRight = vec3(${Cube.faces[faceType].uvRight.x.toFixed(1)}, ${Cube.faces[faceType].uvRight.y.toFixed(1)}, ${Cube.faces[
         faceType
     ].uvRight.z.toFixed(1)});
-    return localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * worldFaceNormal;
+    vec3 modelNormal = localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * worldFaceNormal;
+    return normalMatrix * modelNormal;
 }
 
 float computeNoise() {
@@ -329,15 +332,18 @@ void main() {
                 '#include <normal_fragment_begin>': `
     vec3 normal = modelFaceNormal;`,
                 '#include <map_fragment>': `
-                diffuseColor.rgb = vec3(0.75);
+    diffuseColor.rgb = vec3(0.75);
     if (uDisplayMode == ${EDisplayMode.TEXTURES}u) {
         ivec2 texelCoords = ivec2(vMaterial, 0);
         diffuseColor.rgb = texelFetch(uTexture, texelCoords, 0).rgb;
     } else if (uDisplayMode == ${EDisplayMode.NORMALS}u) {
         diffuseColor.rgb = 0.5 + 0.5 * modelFaceNormal;
     }
+    diffuseColor.rgb += computeNoise();
     
-    diffuseColor.rgb += computeNoise();`,
+    float ao = (1.0 - uAoStrength) + uAoStrength * (smoothstep(0.0, uAoSpread, 1.0 - vAo));
+    diffuseColor.rgb *= ao;
+    `,
             });
         };
         return material;
