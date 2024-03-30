@@ -108,8 +108,8 @@ abstract class PatchFactoryBase {
                 geometry.boundingBox = boundingBox.clone();
                 geometry.boundingSphere = boundingSphere.clone();
 
-                const material = geometryAndMaterial.materials.material.clone();
-                const shadowMaterial = geometryAndMaterial.materials.shadowMaterial.clone();
+                const material = geometryAndMaterial.materials.material;
+                const shadowMaterial = geometryAndMaterial.materials.shadowMaterial;
                 const mesh = new THREE.Mesh(geometryAndMaterial.geometry, material);
                 mesh.customDepthMaterial = shadowMaterial;
                 mesh.castShadow = true;
