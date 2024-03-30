@@ -43,7 +43,7 @@ abstract class PatchFactory extends PatchFactoryBase {
             const uint vertexIds[] = uint[](${Cube.faceIndices.map(indice => `${indice}u`).join(', ')});
             uint vertexId = vertexIds[gl_VertexID % 6];
 
-            uvec3 worldVoxelPosition = uvec3(
+            uvec3 modelVoxelPosition = uvec3(
                 ${PatchFactory.vertexDataEncoder.voxelX.glslDecode(PatchFactory.dataAttributeName)},
                 ${PatchFactory.vertexDataEncoder.voxelY.glslDecode(PatchFactory.dataAttributeName)},
                 ${PatchFactory.vertexDataEncoder.voxelZ.glslDecode(PatchFactory.dataAttributeName)}
@@ -55,8 +55,8 @@ abstract class PatchFactory extends PatchFactoryBase {
                     .join(',\n')}
             );
             uvec3 localVertexPosition = localVertexPositions[vertexId];
-            vec3 worldPosition = vec3(worldVoxelPosition + localVertexPosition);
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPosition, 1.0);
+            vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(modelPosition, 1.0);
 
             const vec2 uvs[] = vec2[](
                 vec2(0,0),
@@ -80,7 +80,7 @@ abstract class PatchFactory extends PatchFactoryBase {
             )}) / ${PatchFactory.vertexDataEncoder.ao.maxValue.toFixed(1)};
 
             vMaterial = int(${PatchFactory.vertexDataEncoder.voxelMaterialId.glslDecode(PatchFactory.dataAttributeName)});
-            vNoise = int(worldVoxelPosition.x + worldVoxelPosition.y * 3u + worldVoxelPosition.z * 2u) % ${this.noiseTypes};
+            vNoise = int(modelVoxelPosition.x + modelVoxelPosition.y * 3u + modelVoxelPosition.z * 2u) % ${this.noiseTypes};
         }`,
             fragmentShader: `precision mediump float;
 
@@ -191,7 +191,7 @@ abstract class PatchFactory extends PatchFactoryBase {
             const uint vertexIds[] = uint[](${Cube.faceIndices.map(indice => `${indice}u`).join(', ')});
             uint vertexId = vertexIds[gl_VertexID % 6];
 
-            uvec3 worldVoxelPosition = uvec3(
+            uvec3 modelVoxelPosition = uvec3(
                 ${PatchFactory.vertexDataEncoder.voxelX.glslDecode(PatchFactory.dataAttributeName)},
                 ${PatchFactory.vertexDataEncoder.voxelY.glslDecode(PatchFactory.dataAttributeName)},
                 ${PatchFactory.vertexDataEncoder.voxelZ.glslDecode(PatchFactory.dataAttributeName)}
@@ -203,8 +203,8 @@ abstract class PatchFactory extends PatchFactoryBase {
                     .join(',\n')}
             );
             uvec3 localVertexPosition = localVertexPositions[vertexId];
-            vec3 worldPosition = vec3(worldVoxelPosition + localVertexPosition);
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPosition, 1.0);
+            vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(modelPosition, 1.0);
 
             vHighPrecisionZW = gl_Position.zw;
         }`,
