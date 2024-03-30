@@ -54,19 +54,21 @@ class Patch {
         if (this.gpuResources) {
             for (const patchMesh of this.gpuResources.patchMeshes) {
                 const material = patchMesh.materials.material;
+                const uniforms = material.userData.uniforms;
 
-                material.uniforms.uAoStrength.value = +this.parameters.ao.enabled * this.parameters.ao.strength;
-                material.uniforms.uAoSpread.value = this.parameters.ao.spread;
-                material.uniforms.uSmoothEdgeRadius.value = +this.parameters.smoothEdges.enabled * this.parameters.smoothEdges.radius;
-                material.uniforms.uSmoothEdgeMethod.value = this.parameters.smoothEdges.quality;
-                material.uniforms.uDisplayMode.value = this.parameters.voxels.displayMode;
+                uniforms.uAoStrength.value = +this.parameters.ao.enabled * this.parameters.ao.strength;
+                uniforms.uAoSpread.value = this.parameters.ao.spread;
+                uniforms.uSmoothEdgeRadius.value = +this.parameters.smoothEdges.enabled * this.parameters.smoothEdges.radius;
+                uniforms.uSmoothEdgeMethod.value = this.parameters.smoothEdges.quality;
+                uniforms.uDisplayMode.value = this.parameters.voxels.displayMode;
 
-                material.uniforms.uLightColor.value = this.parameters.lighting.color;
-                material.uniforms.uAmbientIntensity.value = this.parameters.lighting.ambient.intensity;
-                material.uniforms.uDiffuseDirection.value = this.parameters.lighting.diffuse.direction;
-                material.uniforms.uDiffuseIntensity.value = this.parameters.lighting.diffuse.intensity;
+                uniforms.uLightColor.value = this.parameters.lighting.color;
+                uniforms.uAmbientIntensity.value = this.parameters.lighting.ambient.intensity;
+                uniforms.uDiffuseDirection.value = this.parameters.lighting.diffuse.direction;
+                uniforms.uDiffuseIntensity.value = this.parameters.lighting.diffuse.intensity;
 
-                material.uniforms.uNoiseStrength.value = this.parameters.voxels.noiseStrength;
+                uniforms.uNoiseStrength.value = this.parameters.voxels.noiseStrength;
+                material.needsUpdate = true;
             }
         }
     }

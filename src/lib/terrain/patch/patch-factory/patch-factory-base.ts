@@ -113,6 +113,7 @@ abstract class PatchFactoryBase {
                 const mesh = new THREE.Mesh(geometryAndMaterial.geometry, material);
                 mesh.customDepthMaterial = shadowMaterial;
                 mesh.castShadow = true;
+                mesh.receiveShadow = true;
                 mesh.frustumCulled = false;
                 mesh.translateX(patchStart.x);
                 mesh.translateY(patchStart.y);

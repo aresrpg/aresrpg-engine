@@ -5,6 +5,7 @@ export {
     DataTexture,
     Group,
     Mesh,
+    MeshPhongMaterial,
     Object3D,
     ShaderMaterial,
     Sphere,
