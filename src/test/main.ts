@@ -110,11 +110,12 @@ if (testShadows) {
 
 scene.add(ambientLight);
 
-ambientLight.color = terrain.parameters.lighting.color;
-ambientLight.intensity = 0.3;
+const lightColor = new THREE.Color(0xFFFFFF);
+ambientLight.color = lightColor;
+ambientLight.intensity = 1;
 
-dirLight.color = terrain.parameters.lighting.color;
-dirLight.intensity = 1.5;
+dirLight.color = lightColor;
+dirLight.intensity = 3;
 
 function render(): void {
     stats.update();

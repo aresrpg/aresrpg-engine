@@ -265,10 +265,6 @@ void main() {`,
 uniform sampler2D uTexture;
 uniform sampler2D uNoiseTexture;
 uniform float uNoiseStrength;
-uniform vec3 uLightColor;
-uniform float uAmbientIntensity;
-uniform vec3 uDiffuseDirection;
-uniform float uDiffuseIntensity;
 uniform float uAoStrength;
 uniform float uAoSpread;
 uniform float uSmoothEdgeRadius;
