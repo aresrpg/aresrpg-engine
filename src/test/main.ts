@@ -110,7 +110,7 @@ if (testShadows) {
 
 scene.add(ambientLight);
 
-const lightColor = new THREE.Color(0xFFFFFF);
+const lightColor = new THREE.Color(0xffffff);
 ambientLight.color = lightColor;
 ambientLight.intensity = 1;
 
