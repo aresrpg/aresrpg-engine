@@ -98,7 +98,9 @@ abstract class PatchFactoryBase {
             return null;
         }
 
-        const boundingBox = new THREE.Box3(patchStart, patchEnd);
+        const boundingBoxFrom = new THREE.Vector3(0, 0, 0);
+        const boundingBoxTo = patchEnd.clone().sub(patchStart);
+        const boundingBox = new THREE.Box3(boundingBoxFrom, boundingBoxTo);
         const boundingSphere = new THREE.Sphere();
         boundingBox.getBoundingSphere(boundingSphere);
 
@@ -114,7 +116,7 @@ abstract class PatchFactoryBase {
                 mesh.customDepthMaterial = shadowMaterial;
                 mesh.castShadow = true;
                 mesh.receiveShadow = true;
-                mesh.frustumCulled = false;
+                mesh.frustumCulled = true;
                 mesh.translateX(patchStart.x);
                 mesh.translateY(patchStart.y);
                 mesh.translateZ(patchStart.z);
