@@ -11,6 +11,10 @@ class Patch {
     public readonly container: THREE.Object3D;
 
     public readonly parameters = {
+        shadows: {
+            cast: true,
+            receive: true,
+        },
         voxels: {
             displayMode: EDisplayMode.TEXTURES,
             noiseStrength: 0.05,
@@ -54,6 +58,9 @@ class Patch {
 
                 uniforms.uNoiseStrength.value = this.parameters.voxels.noiseStrength;
                 material.needsUpdate = true;
+
+                patchMesh.mesh.receiveShadow = this.parameters.shadows.receive;
+                patchMesh.mesh.castShadow = this.parameters.shadows.cast;
             }
         }
     }

@@ -23,6 +23,10 @@ class Terrain {
     public readonly container: THREE.Object3D;
 
     public readonly parameters = {
+        shadows: {
+            cast: true,
+            receive: true,
+        },
         voxels: {
             displayMode: EDisplayMode.TEXTURES,
             noiseStrength: 0.025,
@@ -152,6 +156,9 @@ class Terrain {
                 patch.parameters.ao.enabled = this.parameters.ao.enabled;
                 patch.parameters.ao.strength = this.parameters.ao.strength;
                 patch.parameters.ao.spread = this.parameters.ao.spread;
+
+                patch.parameters.shadows = this.parameters.shadows;
+
                 patch.updateUniforms();
             }
         }
