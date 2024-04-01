@@ -15,16 +15,6 @@ class Patch {
             displayMode: EDisplayMode.TEXTURES,
             noiseStrength: 0.05,
         },
-        lighting: {
-            color: new THREE.Color(0xffffff),
-            ambient: {
-                intensity: 0.7,
-            },
-            diffuse: {
-                direction: new THREE.Vector3(1, 1, 1).normalize(),
-                intensity: 0.8,
-            },
-        },
         smoothEdges: {
             enabled: true,
             radius: 0.1,
@@ -61,11 +51,6 @@ class Patch {
                 uniforms.uSmoothEdgeRadius.value = +this.parameters.smoothEdges.enabled * this.parameters.smoothEdges.radius;
                 uniforms.uSmoothEdgeMethod.value = this.parameters.smoothEdges.quality;
                 uniforms.uDisplayMode.value = this.parameters.voxels.displayMode;
-
-                uniforms.uLightColor.value = this.parameters.lighting.color;
-                uniforms.uAmbientIntensity.value = this.parameters.lighting.ambient.intensity;
-                uniforms.uDiffuseDirection.value = this.parameters.lighting.diffuse.direction;
-                uniforms.uDiffuseIntensity.value = this.parameters.lighting.diffuse.intensity;
 
                 uniforms.uNoiseStrength.value = this.parameters.voxels.noiseStrength;
                 material.needsUpdate = true;
