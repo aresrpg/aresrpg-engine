@@ -1,7 +1,7 @@
 import { EPatchComputingMode, type GeometryAndMaterial, type VertexData } from '../../patch-factory-base';
 import { PatchFactory } from '../patch-factory';
 import * as Cube from '../../cube';
-import { IVoxelMap } from '../../../../i-voxel-map';
+import { type IVoxelMap } from '../../../../i-voxel-map';
 
 class PatchFactoryCpu extends PatchFactory {
     public constructor(map: IVoxelMap, computingMode: EPatchComputingMode) {

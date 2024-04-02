@@ -1,8 +1,8 @@
 import * as THREE from '../../../../three-usage';
-import { IVoxelMap } from '../../../i-voxel-map';
-import { EDisplayMode, PatchMaterial, PatchMaterialUniforms, PatchMaterials } from '../../material';
+import { type IVoxelMap } from '../../../i-voxel-map';
+import { EDisplayMode, type PatchMaterial, type PatchMaterialUniforms, type PatchMaterials } from '../../material';
 import * as Cube from '../cube';
-import { EPatchComputingMode, GeometryAndMaterial, PatchFactoryBase } from '../patch-factory-base';
+import { EPatchComputingMode, type GeometryAndMaterial, PatchFactoryBase } from '../patch-factory-base';
 
 import { VertexDataEncoder } from './vertex-data-encoder';
 
