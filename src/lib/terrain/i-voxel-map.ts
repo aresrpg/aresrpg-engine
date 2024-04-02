@@ -20,10 +20,10 @@ interface ILocalMapData {
      * An element:
      * - should be equal to 0 if there is no voxel at these coordinates
      * - should be equal to the voxel's material id + 1 if there is a voxel at these coordinates
-     * 
+     *
      * The elements should be ordered by coordinates as follow by Z first, then Y then X.
      * For example, for a portion of the map between (0,0,0) and (2,2,2): (0,0,0) then (1,0,0) then (0,1,0) then (1,1,0) then (0,1,1) then (1,1,1)
-    */
+     */
     readonly data: Uint16Array;
 
     /** Should be:
