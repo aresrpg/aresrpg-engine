@@ -4,11 +4,8 @@ import * as Cube from '../../cube';
 import { type IVoxelMap } from '../../../../i-voxel-map';
 
 class PatchFactoryCpu extends PatchFactory {
-    public constructor(map: IVoxelMap, computingMode: EPatchComputingMode) {
-        if (computingMode !== EPatchComputingMode.CPU_CACHED) {
-            throw new Error();
-        }
-        super(map, computingMode);
+    public constructor(map: IVoxelMap) {
+        super(map, EPatchComputingMode.CPU_CACHED);
     }
 
     protected async computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
