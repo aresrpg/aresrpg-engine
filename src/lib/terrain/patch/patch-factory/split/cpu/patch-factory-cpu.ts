@@ -9,6 +9,8 @@ class PatchFactoryCpu extends PatchFactory {
     }
 
     protected async computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
+        const iterator = await this.iterateOnVisibleFaces(patchStart, patchEnd);
+
         const patchSize = patchEnd.clone().sub(patchStart);
         const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
 
@@ -36,7 +38,6 @@ class PatchFactoryCpu extends PatchFactory {
         };
 
         const faceVerticesData = new Uint32Array(4 * uint32PerVertex);
-        const iterator = await this.iterateOnVisibleFaces(patchStart, patchEnd);
         for (const faceData of iterator()) {
             faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
                 faceVerticesData[faceVertexIndex] = PatchFactory.vertexDataEncoder.encode(
