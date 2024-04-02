@@ -55,7 +55,7 @@ class Terrain {
      * @param map The map that will be rendered.
      */
     public constructor(map: IVoxelMap, options?: TerrainOptions) {
-        let computingMode = EPatchComputingMode.CPU_CACHED;
+        let computingMode = EPatchComputingMode.GPU_OPTIMIZED;
         if (options) {
             if (typeof options.computingMode !== 'undefined') {
                 computingMode = options.computingMode;

@@ -1,8 +1,4 @@
-type Uint3 = {
-    readonly x: number;
-    readonly y: number;
-    readonly z: number;
-};
+import type { Vector3Like } from '../three-usage';
 
 /**
  * A color stored in RGB format. Each component should be normalized.
@@ -17,18 +13,14 @@ interface IVoxelMaterial {
     readonly color: Color;
 }
 
-/**
- * A representation of a voxel.
- */
-interface IVoxel {
-    readonly position: Uint3;
-    readonly materialId: number;
+interface ILocalMapData {
+    readonly data: Uint16Array;
+    readonly isEmpty: boolean;
 }
 
 /**
  * Interface for a class storing a 3D voxel map.
- * Each voxel should have positive integer coordinates.
- * The map starts at coordinates { x: 0, y: 0, z: 0 }.
+ * Each voxel should have integer coordinates.
  */
 interface IVoxelMap {
     /**
@@ -37,17 +29,7 @@ interface IVoxelMap {
      */
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
 
-    /**
-     * Iterates on all for voxels within a given sub-section of the map.
-     * @param from Start of the subsection
-     * @param to End of the subsection (exclusive)
-     */
-    iterateOnVoxels(from: Uint3, to: Uint3): Generator<IVoxel>;
-
-    /**
-     * @returns whether or not a voxel exists at these coordinates.
-     */
-    voxelExists(x: number, y: number, z: number): boolean;
+    getLocalMapData(from: Vector3Like, to: Vector3Like): Promise<ILocalMapData>;
 }
 
-export type { IVoxel, IVoxelMap, IVoxelMaterial };
+export type { IVoxelMap, IVoxelMaterial, ILocalMapData };

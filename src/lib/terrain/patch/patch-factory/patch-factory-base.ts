@@ -234,7 +234,7 @@ abstract class PatchFactoryBase {
     protected abstract disposeInternal(): void;
 
     protected async buildLocalMapCache(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<LocalMapCache> {
-        const localMapData = await this.buildLocalMapData(patchStart, patchEnd);
+        const localMapData = await this.map.getLocalMapData(patchStart, patchEnd);
 
         const cacheStart = patchStart.clone().subScalar(1);
         const cacheEnd = patchEnd.clone().addScalar(1);
@@ -265,35 +265,6 @@ abstract class PatchFactoryBase {
             size: cacheSize,
             neighbourExists,
         });
-    }
-
-    private async buildLocalMapData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<LocalMapData> {
-        const cacheStart = patchStart.clone().subScalar(1);
-        const cacheEnd = patchEnd.clone().addScalar(1);
-        const cacheSize = new THREE.Vector3().subVectors(cacheEnd, cacheStart);
-        const cache = new Uint16Array(cacheSize.x * cacheSize.y * cacheSize.z);
-
-        const indexFactor = { x: 1, y: cacheSize.x, z: cacheSize.x * cacheSize.y };
-
-        const buildIndex = (position: THREE.Vector3) => {
-            if (position.x < 0 || position.y < 0 || position.z < 0) {
-                throw new Error();
-            }
-            return position.x * indexFactor.x + position.y * indexFactor.y + position.z * indexFactor.z;
-        };
-
-        let isEmpty = true;
-        for (const voxel of this.map.iterateOnVoxels(cacheStart, cacheEnd)) {
-            const localPosition = new THREE.Vector3().subVectors(voxel.position, cacheStart);
-            const cacheIndex = buildIndex(localPosition);
-            cache[cacheIndex] = 1 + voxel.materialId;
-            isEmpty = false;
-        }
-
-        return {
-            data: cache,
-            isEmpty,
-        };
     }
 
     private static buildMaterialsTexture(

@@ -14,4 +14,5 @@ export {
     type Material,
     Uint32BufferAttribute,
     Vector3,
+    type Vector3Like,
 } from 'three';
