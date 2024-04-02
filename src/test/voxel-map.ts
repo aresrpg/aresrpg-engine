@@ -1,7 +1,7 @@
 import { createNoise2D } from 'simplex-noise';
 import * as THREE from 'three';
 
-import type { IVoxel, IVoxelMap, IVoxelMaterial } from '../lib/index';
+import type { ILocalMapData, IVoxelMap, IVoxelMaterial } from '../lib/index';
 
 enum EVoxelType {
     ROCK,
@@ -9,6 +9,11 @@ enum EVoxelType {
     SNOW,
     WATER,
     SAND,
+}
+
+interface IVoxel {
+    readonly position: THREE.Vector3Like;
+    readonly materialId: number;
 }
 
 const voxelMaterials: Record<EVoxelType, IVoxelMaterial> = [
@@ -73,7 +78,36 @@ class VoxelMap implements IVoxelMap {
         console.log(`Generated map of size ${this.size.x}x${this.size.y}x${this.size.z} (${this.voxels.length.toLocaleString()} voxels)`);
     }
 
-    public *iterateOnVoxels(from: THREE.Vector3, to: THREE.Vector3): Generator<IVoxel> {
+    public async getLocalMapData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<ILocalMapData> {
+        const cacheStart = patchStart.clone().subScalar(1);
+        const cacheEnd = patchEnd.clone().addScalar(1);
+        const cacheSize = new THREE.Vector3().subVectors(cacheEnd, cacheStart);
+        const cache = new Uint16Array(cacheSize.x * cacheSize.y * cacheSize.z);
+
+        const indexFactor = { x: 1, y: cacheSize.x, z: cacheSize.x * cacheSize.y };
+
+        const buildIndex = (position: THREE.Vector3) => {
+            if (position.x < 0 || position.y < 0 || position.z < 0) {
+                throw new Error();
+            }
+            return position.x * indexFactor.x + position.y * indexFactor.y + position.z * indexFactor.z;
+        };
+
+        let isEmpty = true;
+        for (const voxel of this.iterateOnVoxels(cacheStart, cacheEnd)) {
+            const localPosition = new THREE.Vector3().subVectors(voxel.position, cacheStart);
+            const cacheIndex = buildIndex(localPosition);
+            cache[cacheIndex] = 1 + voxel.materialId;
+            isEmpty = false;
+        }
+
+        return {
+            data: cache,
+            isEmpty,
+        };
+    }
+
+    private *iterateOnVoxels(from: THREE.Vector3, to: THREE.Vector3): Generator<IVoxel> {
         if (to.x < from.x || to.y < from.y || to.z < from.z) {
             throw new Error();
         }
@@ -93,11 +127,6 @@ class VoxelMap implements IVoxelMap {
                 }
             }
         }
-    }
-
-    public voxelExists(x: number, y: number, z: number): boolean {
-        const voxel = this.getVoxel(x, z);
-        return voxel?.y === y;
     }
 
     private getVoxel(x: number, z: number): StoredVoxel | null {
