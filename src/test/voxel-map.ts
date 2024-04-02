@@ -29,9 +29,17 @@ class VoxelMap implements IVoxelMap {
     public readonly voxelMaterialsList = Object.values(voxelMaterials);
 
     private readonly voxels: ReadonlyArray<StoredVoxel>;
+    private readonly coordsShift: THREE.Vector3;
 
     public constructor(width: number, height: number, altitude: number) {
         this.size = new THREE.Vector3(width, altitude, height);
+
+        const centerMap = true;
+        if (centerMap) {
+            this.coordsShift = this.size.clone().multiplyScalar(-0.5).floor();
+        } else {
+            this.coordsShift = new THREE.Vector3(0, 0, 0);
+        }
 
         const noise2D = createNoise2D();
 
@@ -103,6 +111,8 @@ class VoxelMap implements IVoxelMap {
     }
 
     private getVoxel(x: number, z: number): StoredVoxel | null {
+        x -= this.coordsShift.x;
+        z -= this.coordsShift.z;
         if (x >= 0 && x < this.size.x && z >= 0 && z < this.size.z) {
             const index = this.buildId(x, z);
             return this.voxels[index] || null;

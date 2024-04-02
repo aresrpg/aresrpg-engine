@@ -45,7 +45,6 @@ class Terrain {
 
     private maxPatchesInCache = 200;
 
-    private readonly map: IVoxelMap;
     private readonly patchFactory: PatchFactoryBase;
     private readonly patchSize: THREE.Vector3;
 
@@ -56,8 +55,6 @@ class Terrain {
      * @param map The map that will be rendered.
      */
     public constructor(map: IVoxelMap, options?: TerrainOptions) {
-        this.map = map;
-
         let computingMode = EPatchComputingMode.GPU_OPTIMIZED;
         if (options) {
             if (typeof options.computingMode !== 'undefined') {
@@ -82,15 +79,22 @@ class Terrain {
     }
 
     /**
-     * Makes the whole make visible.
+     * Makes the portion of the map within a box visible.
      */
-    public async showEntireMap(): Promise<void> {
+    public async showMapPortion(box: THREE.Box3): Promise<void> {
+        const voxelFrom = box.min;
+        const voxelTo = box.max;
+        const patchIdFrom = voxelFrom.divide(this.patchSize).floor();
+        const patchIdTo = voxelTo.divide(this.patchSize).ceil();
+
         const promises: Promise<void>[] = [];
 
+        const patchId = new THREE.Vector3();
         const patchStart = new THREE.Vector3();
-        for (patchStart.x = 0; patchStart.x < this.map.size.x; patchStart.x += this.patchSize.x) {
-            for (patchStart.y = 0; patchStart.y < this.map.size.y; patchStart.y += this.patchSize.y) {
-                for (patchStart.z = 0; patchStart.z < this.map.size.z; patchStart.z += this.patchSize.z) {
+        for (patchId.x = patchIdFrom.x; patchId.x < patchIdTo.x; patchId.x++) {
+            for (patchId.y = patchIdFrom.y; patchId.y < patchIdTo.y; patchId.y++) {
+                for (patchId.z = patchIdFrom.z; patchId.z < patchIdTo.z; patchId.z++) {
+                    patchStart.multiplyVectors(patchId, this.patchSize);
                     const patch = this.getPatch(patchStart);
                     patch.visible = true;
                     promises.push(patch.ready());
@@ -107,8 +111,8 @@ class Terrain {
      * @param radius The visibility radius, in voxels.
      */
     public async showMapAroundPosition(position: THREE.Vector3, radius: number): Promise<void> {
-        const voxelFrom = new THREE.Vector3().copy(position).subScalar(radius).max({ x: 0, y: 0, z: 0 });
-        const voxelTo = new THREE.Vector3().copy(position).addScalar(radius).min(this.map.size);
+        const voxelFrom = new THREE.Vector3().copy(position).subScalar(radius);
+        const voxelTo = new THREE.Vector3().copy(position).addScalar(radius);
         const patchIdFrom = voxelFrom.divide(this.patchSize).floor();
         const patchIdTo = voxelTo.divide(this.patchSize).ceil();
 

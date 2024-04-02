@@ -50,7 +50,7 @@ scene.add(playerContainer);
 
 const showWholeMap = true;
 if (showWholeMap) {
-    terrain.showEntireMap();
+    terrain.showMapPortion(new THREE.Box3(new THREE.Vector3(-256, -256, -256), new THREE.Vector3(256, 256, 256)));
 } else {
     const playerViewSphere = new THREE.Mesh(
         new THREE.SphereGeometry(playerViewRadius, 16, 16),

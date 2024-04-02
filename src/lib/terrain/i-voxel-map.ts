@@ -32,14 +32,6 @@ interface IVoxel {
  */
 interface IVoxelMap {
     /**
-     * Size of the map. Should be integers.
-     *
-     * Since the coordinates start at { x: 0, y: 0, z: 0 }, this means that
-     * the higher coordinates are { x: size.x - 1, y: size.y - 1, z: size.z - 1 }.
-     */
-    readonly size: Uint3;
-
-    /**
      * @returns an array of all the possible voxel materials contained in the map.
      * Each material is then identified by its index in the array.
      */
