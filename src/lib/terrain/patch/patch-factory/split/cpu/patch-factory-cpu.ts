@@ -41,7 +41,8 @@ class PatchFactoryCpu extends PatchFactory {
         };
 
         const faceVerticesData = new Uint32Array(4 * uint32PerVertex);
-        for (const faceData of this.iterateOnVisibleFaces(patchStart, patchEnd)) {
+        const iterator = await this.iterateOnVisibleFaces(patchStart, patchEnd);
+        for (const faceData of iterator()) {
             faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
                 faceVerticesData[faceVertexIndex] = PatchFactory.vertexDataEncoder.encode(
                     faceData.voxelLocalPosition.x,

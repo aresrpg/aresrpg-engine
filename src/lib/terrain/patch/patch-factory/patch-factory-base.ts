@@ -1,6 +1,6 @@
 import * as THREE from '../../../three-usage';
 import type { IVoxelMap, IVoxelMaterial } from '../../i-voxel-map';
-import type { PatchMaterials, PatchMaterialUniforms } from '../material';
+import type { PatchMaterialUniforms, PatchMaterials } from '../material';
 import { Patch } from '../patch';
 
 import * as Cube from './cube';
@@ -26,10 +26,13 @@ type FaceData = {
     readonly verticesData: [VertexData, VertexData, VertexData, VertexData];
 };
 
-type LocalMapCache = {
+type LocalMapData = {
     readonly data: Uint16Array;
-    readonly size: THREE.Vector3;
     readonly isEmpty: boolean;
+};
+
+type LocalMapCache = LocalMapData & {
+    readonly size: THREE.Vector3;
     neighbourExists(voxelIndex: number, neighbourRelativePosition: THREE.Vector3): boolean;
 };
 
@@ -136,16 +139,22 @@ abstract class PatchFactoryBase {
         this.noiseTexture.dispose();
     }
 
-    protected *iterateOnVisibleFaces(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Generator<FaceData> {
+    protected async iterateOnVisibleFaces(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<() => Generator<FaceData>> {
+        const that = this;
+
         if (this.computingMode === EPatchComputingMode.CPU_SIMPLE) {
-            for (const a of this.iterateOnVisibleFacesSimple(patchStart, patchEnd)) {
-                yield a;
-            }
+            return function* () {
+                for (const a of that.iterateOnVisibleFacesSimple(patchStart, patchEnd)) {
+                    yield a;
+                }
+            };
         } else if (this.computingMode === EPatchComputingMode.CPU_CACHED) {
-            const localMapCache = this.buildLocalMapCache(patchStart, patchEnd);
-            for (const a of this.iterateOnVisibleFacesWithCache(localMapCache)) {
-                yield a;
-            }
+            const localMapCache = await this.buildLocalMapCache(patchStart, patchEnd);
+            return function* () {
+                for (const a of that.iterateOnVisibleFacesWithCache(localMapCache)) {
+                    yield a;
+                }
+            };
         } else {
             throw new Error(`Unsupported patch computing mode ${this.computingMode}`);
         }
@@ -298,7 +307,41 @@ abstract class PatchFactoryBase {
 
     protected abstract disposeInternal(): void;
 
-    protected buildLocalMapCache(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): LocalMapCache {
+    protected async buildLocalMapCache(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<LocalMapCache> {
+        const localMapData = await this.buildLocalMapData(patchStart, patchEnd);
+
+        const cacheStart = patchStart.clone().subScalar(1);
+        const cacheEnd = patchEnd.clone().addScalar(1);
+        const cacheSize = new THREE.Vector3().subVectors(cacheEnd, cacheStart);
+
+        const expectedCacheItemsCount = cacheSize.x * cacheSize.y * cacheSize.z;
+        if (localMapData.data.length !== expectedCacheItemsCount) {
+            throw new Error(`Invalid cache length. Should be ${expectedCacheItemsCount} items but is ${localMapData.data.length} items`);
+        }
+
+        const indexFactor = { x: 1, y: cacheSize.x, z: cacheSize.x * cacheSize.y };
+
+        const buildIndexUnsafe = (position: THREE.Vector3) => {
+            return position.x * indexFactor.x + position.y * indexFactor.y + position.z * indexFactor.z;
+        };
+
+        const neighbourExists = (index: number, neighbour: THREE.Vector3) => {
+            const deltaIndex = buildIndexUnsafe(neighbour);
+            const neighbourIndex = index + deltaIndex;
+            const neighbourData = localMapData.data[neighbourIndex];
+            if (typeof neighbourData === 'undefined') {
+                throw new Error();
+            }
+            return neighbourData !== 0;
+        };
+
+        return Object.assign(localMapData, {
+            size: cacheSize,
+            neighbourExists,
+        });
+    }
+
+    private async buildLocalMapData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<LocalMapData> {
         const cacheStart = patchStart.clone().subScalar(1);
         const cacheEnd = patchEnd.clone().addScalar(1);
         const cacheSize = new THREE.Vector3().subVectors(cacheEnd, cacheStart);
@@ -306,24 +349,11 @@ abstract class PatchFactoryBase {
 
         const indexFactor = { x: 1, y: cacheSize.x, z: cacheSize.x * cacheSize.y };
 
-        const buildIndexUnsafe = (position: THREE.Vector3) => {
-            return position.x * indexFactor.x + position.y * indexFactor.y + position.z * indexFactor.z;
-        };
         const buildIndex = (position: THREE.Vector3) => {
             if (position.x < 0 || position.y < 0 || position.z < 0) {
                 throw new Error();
             }
-            return buildIndexUnsafe(position);
-        };
-
-        const neighbourExists = (index: number, neighbour: THREE.Vector3) => {
-            const deltaIndex = buildIndexUnsafe(neighbour);
-            const neighbourIndex = index + deltaIndex;
-            const neighbourData = cache[neighbourIndex];
-            if (typeof neighbourData === 'undefined') {
-                throw new Error();
-            }
-            return neighbourData !== 0;
+            return position.x * indexFactor.x + position.y * indexFactor.y + position.z * indexFactor.z;
         };
 
         let isEmpty = true;
@@ -336,9 +366,7 @@ abstract class PatchFactoryBase {
 
         return {
             data: cache,
-            size: cacheSize,
             isEmpty,
-            neighbourExists,
         };
     }
 

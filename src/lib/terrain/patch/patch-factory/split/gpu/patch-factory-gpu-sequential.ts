@@ -20,7 +20,7 @@ class PatchFactoryGpuSequential extends PatchFactoryGpu {
                 return [];
             }
 
-            const localMapCache = this.buildLocalMapCache(patchStart, patchEnd);
+            const localMapCache = await this.buildLocalMapCache(patchStart, patchEnd);
             if (localMapCache.isEmpty) {
                 return [];
             }
