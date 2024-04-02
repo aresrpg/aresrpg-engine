@@ -12,10 +12,8 @@ class PatchFactoryCpu extends PatchFactory {
     }
 
     protected async computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
-        const voxelsCountPerPatch = this.map.getMaxVoxelsCount(patchStart, patchEnd);
-        if (voxelsCountPerPatch <= 0) {
-            return [];
-        }
+        const patchSize = patchEnd.clone().sub(patchStart);
+        const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
 
         type BufferData = {
             readonly buffer: Uint32Array;
@@ -60,7 +58,7 @@ class PatchFactoryCpu extends PatchFactory {
             }
         }
 
-        const truncateFaceBufferData = (bufferData: BufferData) => bufferData.buffer.subarray(0, bufferData.verticesCount);
+        const truncateFaceBufferData = (bufferData: BufferData) => new Uint32Array(bufferData.buffer.subarray(0, bufferData.verticesCount));
 
         const buffers: Record<Cube.FaceType, Uint32Array> = {
             up: truncateFaceBufferData(facesBufferData.up),

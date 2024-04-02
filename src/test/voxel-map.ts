@@ -73,10 +73,6 @@ class VoxelMap implements IVoxelMap {
         console.log(`Generated map of size ${this.size.x}x${this.size.y}x${this.size.z} (${this.voxels.length.toLocaleString()} voxels)`);
     }
 
-    public getMaxVoxelsCount(from: THREE.Vector3, to: THREE.Vector3): number {
-        return (to.x - from.x) * (to.z - from.z);
-    }
-
     public *iterateOnVoxels(from: THREE.Vector3, to: THREE.Vector3): Generator<IVoxel> {
         if (to.x < from.x || to.y < from.y || to.z < from.z) {
             throw new Error();

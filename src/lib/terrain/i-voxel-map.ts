@@ -38,13 +38,6 @@ interface IVoxelMap {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
 
     /**
-     * @param from Start of the subsection
-     * @param to End of the subsection (exclusive)
-     * @returns An upper bound of the count of voxels withing the given sub-section of the map.
-     */
-    getMaxVoxelsCount(from: Uint3, to: Uint3): number;
-
-    /**
      * Iterates on all for voxels within a given sub-section of the map.
      * @param from Start of the subsection
      * @param to End of the subsection (exclusive)
