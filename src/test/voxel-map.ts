@@ -74,13 +74,7 @@ class VoxelMap implements IVoxelMap {
     }
 
     public getMaxVoxelsCount(from: THREE.Vector3, to: THREE.Vector3): number {
-        const fromX = Math.max(from.x, 0);
-        const fromZ = Math.max(from.z, 0);
-
-        const toX = Math.min(to.x, this.size.x);
-        const toZ = Math.min(to.z, this.size.z);
-
-        return (toX - fromX) * (toZ - fromZ);
+        return (to.x - from.x) * (to.z - from.z);
     }
 
     public *iterateOnVoxels(from: THREE.Vector3, to: THREE.Vector3): Generator<IVoxel> {
