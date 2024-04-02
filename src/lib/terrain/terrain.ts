@@ -63,7 +63,7 @@ class Terrain {
         }
 
         if (computingMode === EPatchComputingMode.CPU_CACHED) {
-            this.patchFactory = new PatchFactoryCpu(map, computingMode);
+            this.patchFactory = new PatchFactoryCpu(map);
         } else if (computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
             this.patchFactory = new PatchFactoryGpuSequential(map);
         } else if (computingMode === EPatchComputingMode.GPU_OPTIMIZED) {
