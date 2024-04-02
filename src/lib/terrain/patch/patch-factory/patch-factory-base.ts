@@ -37,7 +37,6 @@ type LocalMapCache = LocalMapData & {
 };
 
 enum EPatchComputingMode {
-    CPU_SIMPLE,
     CPU_CACHED,
     GPU_SEQUENTIAL,
     GPU_OPTIMIZED,
@@ -142,13 +141,7 @@ abstract class PatchFactoryBase {
     protected async iterateOnVisibleFaces(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<() => Generator<FaceData>> {
         const that = this;
 
-        if (this.computingMode === EPatchComputingMode.CPU_SIMPLE) {
-            return function* () {
-                for (const a of that.iterateOnVisibleFacesSimple(patchStart, patchEnd)) {
-                    yield a;
-                }
-            };
-        } else if (this.computingMode === EPatchComputingMode.CPU_CACHED) {
+        if (this.computingMode === EPatchComputingMode.CPU_CACHED) {
             const localMapCache = await this.buildLocalMapCache(patchStart, patchEnd);
             return function* () {
                 for (const a of that.iterateOnVisibleFacesWithCache(localMapCache)) {
@@ -157,73 +150,6 @@ abstract class PatchFactoryBase {
             };
         } else {
             throw new Error(`Unsupported patch computing mode ${this.computingMode}`);
-        }
-    }
-
-    private *iterateOnVisibleFacesSimple(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Generator<FaceData> {
-        for (const voxel of this.map.iterateOnVoxels(patchStart, patchEnd)) {
-            const voxelWorldPosition = voxel.position;
-            const voxelLocalPosition = new THREE.Vector3().subVectors(voxelWorldPosition, patchStart);
-
-            for (const face of Object.values(Cube.faces)) {
-                if (
-                    this.map.voxelExists(
-                        voxelWorldPosition.x + face.normal.x,
-                        voxelWorldPosition.y + face.normal.y,
-                        voxelWorldPosition.z + face.normal.z
-                    )
-                ) {
-                    // this face will be hidden -> skip it
-                    continue;
-                }
-
-                yield {
-                    voxelLocalPosition,
-                    voxelMaterialId: voxel.materialId,
-                    faceType: face.type,
-                    faceId: face.id,
-                    verticesData: face.vertices.map((faceVertex: Cube.FaceVertex): VertexData => {
-                        let ao = 0;
-                        const [a, b, c] = faceVertex.shadowingNeighbourVoxels.map(neighbourVoxel =>
-                            this.map.voxelExists(
-                                voxelWorldPosition.x + neighbourVoxel.x,
-                                voxelWorldPosition.y + neighbourVoxel.y,
-                                voxelWorldPosition.z + neighbourVoxel.z
-                            )
-                        ) as [boolean, boolean, boolean];
-                        if (a && b) {
-                            ao = 3;
-                        } else {
-                            ao = +a + +b + +c;
-                        }
-
-                        let roundnessX = true;
-                        let roundnessY = true;
-                        if (faceVertex.edgeNeighbourVoxels) {
-                            for (const neighbourVoxel of faceVertex.edgeNeighbourVoxels.x) {
-                                roundnessX &&= !this.map.voxelExists(
-                                    voxelWorldPosition.x + neighbourVoxel.x,
-                                    voxelWorldPosition.y + neighbourVoxel.y,
-                                    voxelWorldPosition.z + neighbourVoxel.z
-                                );
-                            }
-                            for (const neighbourVoxel of faceVertex.edgeNeighbourVoxels.y) {
-                                roundnessY &&= !this.map.voxelExists(
-                                    voxelWorldPosition.x + neighbourVoxel.x,
-                                    voxelWorldPosition.y + neighbourVoxel.y,
-                                    voxelWorldPosition.z + neighbourVoxel.z
-                                );
-                            }
-                        }
-                        return {
-                            localPosition: faceVertex.vertex,
-                            ao,
-                            roundnessX,
-                            roundnessY,
-                        };
-                    }) as [VertexData, VertexData, VertexData, VertexData],
-                };
-            }
         }
     }
 

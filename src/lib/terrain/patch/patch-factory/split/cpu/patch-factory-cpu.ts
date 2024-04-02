@@ -5,7 +5,7 @@ import { type IVoxelMap } from '../../../../i-voxel-map';
 
 class PatchFactoryCpu extends PatchFactory {
     public constructor(map: IVoxelMap, computingMode: EPatchComputingMode) {
-        if (computingMode !== EPatchComputingMode.CPU_CACHED && computingMode !== EPatchComputingMode.CPU_SIMPLE) {
+        if (computingMode !== EPatchComputingMode.CPU_CACHED) {
             throw new Error();
         }
         super(map, computingMode);
