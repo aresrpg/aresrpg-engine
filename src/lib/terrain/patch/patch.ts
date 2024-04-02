@@ -1,6 +1,6 @@
 import * as THREE from '../../three-usage';
 
-import { EDisplayMode, PatchMaterials } from './material';
+import { EDisplayMode, type PatchMaterials } from './material';
 
 type PatchMesh = {
     readonly mesh: THREE.Mesh;
