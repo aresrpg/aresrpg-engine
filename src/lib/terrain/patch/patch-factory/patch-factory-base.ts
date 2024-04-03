@@ -234,11 +234,11 @@ abstract class PatchFactoryBase {
     protected abstract disposeInternal(): void;
 
     protected async buildLocalMapCache(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<LocalMapCache> {
-        const localMapData = await this.map.getLocalMapData(patchStart, patchEnd);
-
         const cacheStart = patchStart.clone().subScalar(1);
         const cacheEnd = patchEnd.clone().addScalar(1);
         const cacheSize = new THREE.Vector3().subVectors(cacheEnd, cacheStart);
+
+        const localMapData = await this.map.getLocalMapData(cacheStart, cacheEnd);
 
         const expectedCacheItemsCount = cacheSize.x * cacheSize.y * cacheSize.z;
         if (localMapData.data.length !== expectedCacheItemsCount) {

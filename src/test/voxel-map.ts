@@ -78,13 +78,11 @@ class VoxelMap implements IVoxelMap {
         console.log(`Generated map of size ${this.size.x}x${this.size.y}x${this.size.z} (${this.voxels.length.toLocaleString()} voxels)`);
     }
 
-    public async getLocalMapData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<ILocalMapData> {
-        const cacheStart = patchStart.clone().subScalar(1);
-        const cacheEnd = patchEnd.clone().addScalar(1);
-        const cacheSize = new THREE.Vector3().subVectors(cacheEnd, cacheStart);
-        const cache = new Uint16Array(cacheSize.x * cacheSize.y * cacheSize.z);
+    public async getLocalMapData(blockStart: THREE.Vector3, blockEnd: THREE.Vector3): Promise<ILocalMapData> {
+        const blockSize = new THREE.Vector3().subVectors(blockEnd, blockStart);
+        const cache = new Uint16Array(blockSize.x * blockSize.y * blockSize.z);
 
-        const indexFactor = { x: 1, y: cacheSize.x, z: cacheSize.x * cacheSize.y };
+        const indexFactor = { x: 1, y: blockSize.x, z: blockSize.x * blockSize.y };
 
         const buildIndex = (position: THREE.Vector3) => {
             if (position.x < 0 || position.y < 0 || position.z < 0) {
@@ -94,8 +92,8 @@ class VoxelMap implements IVoxelMap {
         };
 
         let isEmpty = true;
-        for (const voxel of this.iterateOnVoxels(cacheStart, cacheEnd)) {
-            const localPosition = new THREE.Vector3().subVectors(voxel.position, cacheStart);
+        for (const voxel of this.iterateOnVoxels(blockStart, blockEnd)) {
+            const localPosition = new THREE.Vector3().subVectors(voxel.position, blockStart);
             const cacheIndex = buildIndex(localPosition);
             cache[cacheIndex] = 1 + voxel.materialId;
             isEmpty = false;
