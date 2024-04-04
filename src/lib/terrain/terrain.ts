@@ -215,7 +215,8 @@ class Terrain {
             if (!nextPatchToDelete) {
                 break;
             }
-            this.disposePatch(nextPatchToDelete[0]);
+            const nextPatchIdToDelete = nextPatchToDelete[0];
+            this.disposePatch(nextPatchIdToDelete);
         }
     }
 
