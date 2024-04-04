@@ -11,6 +11,7 @@ class AsyncPatch {
         | {
               readonly state: 'ready';
               readonly patch: Patch | null;
+              visible: boolean;
               disposed: boolean;
           };
 
@@ -34,30 +35,27 @@ class AsyncPatch {
                 throw new Error();
             }
 
-            if (patch) {
-                patch.container.visible = this.data.visible;
-                container.add(patch.container);
-            }
-
             this.data = {
                 state: 'ready',
                 patch,
+                visible: this.data.visible,
                 disposed: this.data.disposed,
             };
-            if (this.data.disposed) {
-                // disposal has been asked before the computation ended
-                this.patch?.dispose();
+
+            if (this.data.patch) {
+                if (this.data.disposed) {
+                    // disposal has been asked before the computation ended
+                    this.data.patch.dispose();
+                } else {
+                    this.data.patch.container.visible = this.data.visible;
+                    container.add(this.data.patch.container);
+                }
             }
         });
     }
 
     public get visible(): boolean {
-        if (this.data.state === 'pending') {
-            return this.data.visible;
-        } else if (this.data.patch) {
-            return this.data.patch.container.visible;
-        }
-        return false;
+        return this.data.visible;
     }
 
     public set visible(value: boolean) {
@@ -69,9 +67,8 @@ class AsyncPatch {
             this.invisibilityTimestamp = performance.now();
         }
 
-        if (this.data.state === 'pending') {
-            this.data.visible = value;
-        } else if (this.data.patch) {
+        this.data.visible = value;
+        if (this.data.state === 'ready' && this.data.patch) {
             this.data.patch.container.visible = value;
         }
     }
