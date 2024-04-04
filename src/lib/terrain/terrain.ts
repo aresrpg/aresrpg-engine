@@ -223,6 +223,7 @@ class Terrain {
         const patch = this.patches[patchId];
         if (patch) {
             patch.dispose();
+            logger.diagnostic(`Freeing patch ${patchId}`);
             delete this.patches[patchId];
         } else {
             logger.warn(`Patch ${patchId} does not exist.`);
@@ -241,6 +242,8 @@ class Terrain {
             patch = new AsyncPatch(this.container, promise, patchId, boundingBox);
 
             this.patches[patchId] = patch;
+
+            logger.diagnostic(`Building patch ${patchId}`);
         }
         return patch;
     }
