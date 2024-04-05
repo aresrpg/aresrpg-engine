@@ -43,6 +43,8 @@ class Terrain {
         },
     };
 
+    private readonly patchesContainer: THREE.Group;
+
     private maxPatchesInCache = 200;
 
     private readonly patchFactory: PatchFactoryBase;
@@ -76,6 +78,11 @@ class Terrain {
         logger.info(`Using max patch size ${this.patchSize.x}x${this.patchSize.y}x${this.patchSize.z}.`);
 
         this.container = new THREE.Group();
+        this.container.name = 'Terrain container';
+
+        this.patchesContainer = new THREE.Group();
+        this.patchesContainer.name = 'Voxel patches container';
+        this.container.add(this.patchesContainer);
     }
 
     /**
@@ -195,7 +202,7 @@ class Terrain {
         for (const patchId of Object.keys(this.patches)) {
             this.disposePatch(patchId);
         }
-        this.container.clear();
+        this.patchesContainer.clear();
     }
 
     /**
@@ -258,8 +265,8 @@ class Terrain {
             const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
 
             const boundingBox = new THREE.Box3(patchStart.clone(), patchEnd.clone());
-            const promise = this.patchFactory.buildPatch(patchStart, patchEnd);
-            patch = new AsyncPatch(this.container, promise, patchId, boundingBox);
+            const promise = this.patchFactory.buildPatch(patchId, patchStart, patchEnd);
+            patch = new AsyncPatch(this.patchesContainer, promise, patchId, boundingBox);
 
             this.patches[patchId] = patch;
 

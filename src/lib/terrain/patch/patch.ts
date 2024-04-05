@@ -35,10 +35,11 @@ class Patch {
         readonly patchMeshes: ReadonlyArray<PatchMesh>;
     } | null = null;
 
-    public constructor(patchMeshes: PatchMesh[]) {
+    public constructor(patchId: string, patchMeshes: PatchMesh[]) {
         this.gpuResources = { patchMeshes };
 
         this.container = new THREE.Object3D();
+        this.container.name = `Terrain patch ${patchId}`;
         for (const patchMesh of patchMeshes) {
             this.container.add(patchMesh.mesh);
         }
