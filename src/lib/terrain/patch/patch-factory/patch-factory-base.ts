@@ -7,6 +7,7 @@ import * as Cube from './cube';
 import type { PackedUintFragment } from './uint-packing';
 
 type GeometryAndMaterial = {
+    readonly id: string;
     readonly geometry: THREE.BufferGeometry;
     readonly materials: PatchMaterials;
 };
@@ -84,7 +85,7 @@ abstract class PatchFactoryBase {
         this.uniformsTemplate.uTexture.value = this.texture;
     }
 
-    public async buildPatch(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<Patch | null> {
+    public async buildPatch(patchId: string, patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<Patch | null> {
         patchStart = patchStart.clone();
         patchEnd = patchEnd.clone();
 
@@ -107,6 +108,7 @@ abstract class PatchFactoryBase {
         boundingBox.getBoundingSphere(boundingSphere);
 
         return new Patch(
+            patchId,
             geometryAndMaterialsList.map(geometryAndMaterial => {
                 const { geometry } = geometryAndMaterial;
                 geometry.boundingBox = boundingBox.clone();
@@ -115,6 +117,7 @@ abstract class PatchFactoryBase {
                 const material = geometryAndMaterial.materials.material;
                 const shadowMaterial = geometryAndMaterial.materials.shadowMaterial;
                 const mesh = new THREE.Mesh(geometryAndMaterial.geometry, material);
+                mesh.name = geometryAndMaterial.id;
                 mesh.customDepthMaterial = shadowMaterial;
                 mesh.castShadow = true;
                 mesh.receiveShadow = true;

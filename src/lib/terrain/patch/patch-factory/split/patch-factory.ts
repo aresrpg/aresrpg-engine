@@ -459,7 +459,7 @@ void main() {
         geometry.setAttribute(PatchFactory.dataAttributeName, faceTypeVerticesDataBuffer);
         geometry.setDrawRange(0, verticesCount);
 
-        return { materials, geometry };
+        return { id: faceType, materials, geometry };
     }
 }
 
