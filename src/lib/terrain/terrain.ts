@@ -114,6 +114,7 @@ class Terrain {
         const voxelFrom = new THREE.Vector3().copy(position).subScalar(radius);
         const voxelTo = new THREE.Vector3().copy(position).addScalar(radius);
         const patchIdFrom = voxelFrom.divide(this.patchSize).floor();
+        const patchIdCenter = new THREE.Vector3().copy(position).divide(this.patchSize).floor();
         const patchIdTo = voxelTo.divide(this.patchSize).ceil();
 
         for (const patch of Object.values(this.patches)) {
@@ -121,7 +122,13 @@ class Terrain {
         }
 
         const visibilitySphere = new THREE.Sphere(position, radius);
-        const promises: Promise<void>[] = [];
+
+        type WantedPatch = {
+            readonly patchStart: THREE.Vector3;
+            readonly distance: number;
+        };
+        const wantedPatchesList: WantedPatch[] = [];
+
         const patchId = new THREE.Vector3();
         for (patchId.x = patchIdFrom.x; patchId.x < patchIdTo.x; patchId.x++) {
             for (patchId.y = patchIdFrom.y; patchId.y < patchIdTo.y; patchId.y++) {
@@ -130,13 +137,25 @@ class Terrain {
 
                     const boundingBox = new THREE.Box3(patchStart, patchStart.clone().add(this.patchSize));
                     if (visibilitySphere.intersectsBox(boundingBox)) {
-                        const patch = this.getPatch(patchStart);
-                        patch.visible = true;
-                        promises.push(patch.ready());
+                        wantedPatchesList.push({
+                            patchStart,
+                            distance: Math.max(
+                                Math.abs(patchId.x - patchIdCenter.x),
+                                Math.abs(patchId.y - patchIdCenter.y),
+                                Math.abs(patchId.z - patchIdCenter.z)
+                            ),
+                        });
                     }
                 }
             }
         }
+
+        wantedPatchesList.sort((patchA: WantedPatch, patchB: WantedPatch) => patchA.distance - patchB.distance);
+        const promises = wantedPatchesList.map(wantedPatch => {
+            const patch = this.getPatch(wantedPatch.patchStart);
+            patch.visible = true;
+            return patch.ready();
+        });
 
         this.garbageCollectPatches();
 
