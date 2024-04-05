@@ -2,6 +2,7 @@ import { logger } from '../helpers/logger';
 import * as THREE from '../three-usage';
 
 import { AsyncPatch } from './async-patch';
+import { HeightmapViewer } from "./heightmap/heightmap-viewer";
 import { type IVoxelMap } from './i-voxel-map';
 import { EDisplayMode } from './patch/patch';
 import { EPatchComputingMode, PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
@@ -44,6 +45,7 @@ class Terrain {
     };
 
     private readonly patchesContainer: THREE.Group;
+    private readonly heightmapContainer: THREE.Group;
 
     private maxPatchesInCache = 200;
 
@@ -52,6 +54,7 @@ class Terrain {
 
     private readonly patches: Record<string, AsyncPatch> = {};
 
+    private readonly heightmapViewer: HeightmapViewer;
     /**
      *
      * @param map The map that will be rendered.
@@ -83,6 +86,12 @@ class Terrain {
         this.patchesContainer = new THREE.Group();
         this.patchesContainer.name = 'Voxel patches container';
         this.container.add(this.patchesContainer);
+
+        this.heightmapContainer = new THREE.Group();
+        this.heightmapContainer.name = `Heightmap patches container`;
+        this.heightmapViewer = new HeightmapViewer();
+        this.heightmapContainer.add(this.heightmapViewer.container);
+        this.container.add(this.heightmapContainer);
     }
 
     /**
@@ -131,6 +140,7 @@ class Terrain {
         const visibilitySphere = new THREE.Sphere(position, radius);
 
         type WantedPatch = {
+            readonly patchId: THREE.Vector3;
             readonly patchStart: THREE.Vector3;
             readonly distance: number;
         };
@@ -145,6 +155,7 @@ class Terrain {
                     const boundingBox = new THREE.Box3(patchStart, patchStart.clone().add(this.patchSize));
                     if (visibilitySphere.intersectsBox(boundingBox)) {
                         wantedPatchesList.push({
+                            patchId: patchId.clone(),
                             patchStart,
                             distance: Math.max(
                                 Math.abs(patchId.x - patchIdCenter.x),
@@ -161,6 +172,7 @@ class Terrain {
         const promises = wantedPatchesList.map(wantedPatch => {
             const patch = this.getPatch(wantedPatch.patchStart);
             patch.visible = true;
+            this.heightmapViewer.hidePatch(wantedPatch.patchId.x, wantedPatch.patchId.z)
             return patch.ready();
         });
 
