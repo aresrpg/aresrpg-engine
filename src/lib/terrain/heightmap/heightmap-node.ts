@@ -46,57 +46,14 @@ class HeightmapNode {
         this.container.name = `Heightmap node ${this.id.asString()}`;
     }
 
-    public getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {
-        if (this.id.equals(nodeId)) {
-            return this;
-        } else if (nodeId.level >= this.id.level) {
-            // node cannot be not a child of this
-            return null;
-        }
-
-        if (this.id.contains(nodeId)) {
-            if (!this.children) {
-                this.split();
-            }
-            const children = this.children;
-            if (!children) {
-                throw new Error();
-            }
+    public resetSubdivisions(): void {
+        if (this.isSubdivided) {
             for (const child of this.childrenList) {
-                const result = child.getOrBuildSubNode(nodeId);
-                if (result) {
-                    return result;
-                }
+                child.resetSubdivisions();
             }
-            throw new Error();
+            this.isSubdivided = false;
         }
-
-        return null;
-    }
-
-    public getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {
-        if (this.id.equals(nodeId)) {
-            return this;
-        } else if (nodeId.level >= this.id.level) {
-            // node cannot be not a child of this
-            return null;
-        }
-
-        if (this.id.contains(nodeId)) {
-            if (!this.children) {
-                return null;
-            }
-
-            for (const child of this.childrenList) {
-                const result = child.getSubNode(nodeId);
-                if (result) {
-                    return result;
-                }
-            }
-            // throw new Error();
-        }
-
-        return null;
+        this.container.visible = true;
     }
 
     public dispose(): void {
@@ -113,14 +70,15 @@ class HeightmapNode {
             }
             this.children = null;
         }
+        this.isSubdivided = false;
     }
 
-    public update(): void {
+    public updateMesh(): void {
         this.container.clear();
 
         if (this.isSubdivided) {
             for (const child of this.childrenList) {
-                child.update();
+                child.updateMesh();
                 this.container.add(child.container);
             }
         } else {
@@ -145,11 +103,58 @@ class HeightmapNode {
         }
     }
 
+    public getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {
+        if (this.id.equals(nodeId)) {
+            return this;
+        } else if (nodeId.level >= this.id.level) {
+            // node cannot be not a child of this
+            return null;
+        }
+
+        if (this.id.contains(nodeId)) {
+            if (!this.children || !this.isSubdivided) {
+                this.split();
+            }
+
+            for (const child of this.childrenList) {
+                const result = child.getOrBuildSubNode(nodeId);
+                if (result) {
+                    return result;
+                }
+            }
+            throw new Error();
+        }
+
+        return null;
+    }
+
+    private getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {
+        if (this.id.equals(nodeId)) {
+            return this;
+        } else if (nodeId.level >= this.id.level) {
+            // node cannot be not a child of this
+            return null;
+        }
+
+        if (this.isSubdivided && this.id.contains(nodeId)) {
+            for (const child of this.childrenList) {
+                const result = child.getSubNode(nodeId);
+                if (result) {
+                    return result;
+                }
+            }
+        }
+
+        return null;
+    }
+
     private split(): void {
-        if (this.children || this.id.level <= 0) {
+        if (this.id.level <= 0) {
             logger.warn("Cannot split heightmap node");
             return;
         }
+
+        this.isSubdivided = true;
 
         if (this.root) {
             this.root.getOrBuildSubNode(new HeightmapNodeId(this.id.shift, this.id.level, { x: this.id.coordsInLevel.x - 1, y: this.id.coordsInLevel.y + 0 }));
@@ -158,34 +163,28 @@ class HeightmapNode {
             this.root.getOrBuildSubNode(new HeightmapNodeId(this.id.shift, this.id.level, { x: this.id.coordsInLevel.x + 0, y: this.id.coordsInLevel.y + 1 }));
         }
 
-        const childrenLevel = this.id.level - 1;
-        const subLevelBaseCoords = new THREE.Vector2().copy(this.id.coordsInLevel).multiplyScalar(2);
-        const root = this.root || this;
+        if (!this.children) {
+            const childrenLevel = this.id.level - 1;
+            const subLevelBaseCoords = new THREE.Vector2().copy(this.id.coordsInLevel).multiplyScalar(2);
+            const root = this.root || this;
 
-        this.children = {
-            mm: new HeightmapNode(new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 0, y: subLevelBaseCoords.y + 0 }), root),
-            pm: new HeightmapNode(new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 1, y: subLevelBaseCoords.y + 0 }), root),
-            mp: new HeightmapNode(new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 0, y: subLevelBaseCoords.y + 1 }), root),
-            pp: new HeightmapNode(new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 1, y: subLevelBaseCoords.y + 1 }), root),
-        };
-
-        this.container.clear();
-        for (const child of this.childrenList) {
-            this.container.add(child.container);
+            this.children = {
+                mm: new HeightmapNode(new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 0, y: subLevelBaseCoords.y + 0 }), root),
+                pm: new HeightmapNode(new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 1, y: subLevelBaseCoords.y + 0 }), root),
+                mp: new HeightmapNode(new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 0, y: subLevelBaseCoords.y + 1 }), root),
+                pp: new HeightmapNode(new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 1, y: subLevelBaseCoords.y + 1 }), root),
+            };
         }
-
-        this.isSubdivided = true;
     }
 
     private get childrenList(): HeightmapNode[] {
-        if (this.children) {
-            return Object.values(this.children);
+        if (!this.children) {
+            throw new Error();
         }
-        return [];
+        return Object.values(this.children);
     }
 
     private buildGeometryData(edgesType: EdgesType): GeometryData {
-        console.log("Building geometry");
         const levelScaling = (1 << this.id.level);
         const voxelRatio = 4;
         const voxelsCount = HeightmapNodeId.smallestLevelSizeInVoxels;

@@ -16,7 +16,7 @@ const renderer = new THREE.WebGLRenderer();
 document.body.appendChild(renderer.domElement);
 renderer.setClearColor(0x880000);
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
 const udpateRendererSize = () => {
     const width = window.innerWidth;
     const height = window.innerHeight;
@@ -122,7 +122,7 @@ function render(): void {
     stats.update();
 
     cameraControl.update();
-    terrain.updateUniforms();
+    terrain.update();
     renderer.render(scene, camera);
     window.requestAnimationFrame(render);
 }

@@ -92,6 +92,10 @@ class AsyncPatch {
         }
     }
 
+    public hasVisibleMesh(): boolean {
+        return this.data.state === "ready" && this.visible && !!this.data.patch;
+    }
+
     public async ready(): Promise<void> {
         if (this.data.state === 'pending') {
             await this.data.promise;

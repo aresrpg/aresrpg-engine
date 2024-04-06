@@ -2,6 +2,7 @@ import * as THREE from '../../../three-usage';
 import type { IVoxelMap, IVoxelMaterial } from '../../i-voxel-map';
 import type { PatchMaterialUniforms, PatchMaterials } from '../material';
 import { Patch } from '../patch';
+import { PatchId } from '../patch-id';
 
 import * as Cube from './cube';
 import type { PackedUintFragment } from './uint-packing';
@@ -85,7 +86,7 @@ abstract class PatchFactoryBase {
         this.uniformsTemplate.uTexture.value = this.texture;
     }
 
-    public async buildPatch(patchId: string, patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<Patch | null> {
+    public async buildPatch(patchId: PatchId, patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<Patch | null> {
         patchStart = patchStart.clone();
         patchEnd = patchEnd.clone();
 
