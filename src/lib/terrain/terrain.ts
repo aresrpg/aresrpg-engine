@@ -92,7 +92,7 @@ class Terrain {
 
         this.heightmapContainer = new THREE.Group();
         this.heightmapContainer.name = `Heightmap patches container`;
-        this.heightmapViewer = new HeightmapViewer();
+        this.heightmapViewer = new HeightmapViewer(map);
         this.heightmapContainer.add(this.heightmapViewer.container);
         this.container.add(this.heightmapContainer);
     }

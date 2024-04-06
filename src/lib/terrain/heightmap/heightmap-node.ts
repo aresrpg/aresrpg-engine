@@ -1,5 +1,6 @@
 import { logger } from "../../helpers/logger";
 import * as THREE from "../../three-usage";
+import type { IHeightmapSample } from "../i-voxel-map";
 import { HeightmapNodeId } from "./heightmap-node-id";
 
 type Children = {
@@ -11,6 +12,7 @@ type Children = {
 
 type GeometryData = {
     readonly positions: ReadonlyArray<number>;
+    readonly colors: ReadonlyArray<number>;
     readonly indices: number[];
 };
 
@@ -22,10 +24,12 @@ type EdgesType = {
     readonly code: number;
 };
 
-let trianglesCount = 0;
+type HeightmapSampler = {
+    sampleHeightmap(x: number, y: number): IHeightmapSample;
+};
 
 class HeightmapNode {
-    private static readonly material = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, wireframe: true });
+    private static readonly material = new THREE.MeshPhongMaterial({ vertexColors: true, transparent: false});
 
     public readonly container: THREE.Object3D;
 
@@ -33,10 +37,12 @@ class HeightmapNode {
     private children: Children | null = null;
     private isSubdivided: boolean = false;
 
+    private readonly sampler: HeightmapSampler;
     private readonly root: HeightmapNode | null = null;
     private readonly id: HeightmapNodeId;
 
-    public constructor(id: HeightmapNodeId, root?: HeightmapNode) {
+    public constructor(sampler: HeightmapSampler, id: HeightmapNodeId, root?: HeightmapNode) {
+        this.sampler = sampler;
         this.id = id;
         if (root) {
             this.root = root;
@@ -90,11 +96,14 @@ class HeightmapNode {
 
                 const geometry = new THREE.BufferGeometry();
                 geometry.setAttribute("position", new THREE.Float32BufferAttribute(geometryData.positions, 3));
+                geometry.setAttribute("color", new THREE.Float32BufferAttribute(geometryData.colors, 3));
                 geometry.setIndex(geometryData.indices);
                 geometry.computeVertexNormals();
 
                 mesh = new THREE.Mesh(geometry, HeightmapNode.material);
                 mesh.name = `Heightmap node mesh ${this.id.asString()}`;
+                mesh.receiveShadow = true;
+                mesh.castShadow = true;
                 const firstVoxelPosition = this.id.box.min;
                 mesh.position.set(firstVoxelPosition.x, 0, firstVoxelPosition.y);
                 this.meshes[edgesType.code] = mesh;
@@ -169,10 +178,10 @@ class HeightmapNode {
             const root = this.root || this;
 
             this.children = {
-                mm: new HeightmapNode(new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 0, y: subLevelBaseCoords.y + 0 }), root),
-                pm: new HeightmapNode(new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 1, y: subLevelBaseCoords.y + 0 }), root),
-                mp: new HeightmapNode(new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 0, y: subLevelBaseCoords.y + 1 }), root),
-                pp: new HeightmapNode(new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 1, y: subLevelBaseCoords.y + 1 }), root),
+                mm: new HeightmapNode(this.sampler, new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 0, y: subLevelBaseCoords.y + 0 }), root),
+                pm: new HeightmapNode(this.sampler, new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 1, y: subLevelBaseCoords.y + 0 }), root),
+                mp: new HeightmapNode(this.sampler, new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 0, y: subLevelBaseCoords.y + 1 }), root),
+                pp: new HeightmapNode(this.sampler, new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 1, y: subLevelBaseCoords.y + 1 }), root),
             };
         }
     }
@@ -186,7 +195,7 @@ class HeightmapNode {
 
     private buildGeometryData(edgesType: EdgesType): GeometryData {
         const levelScaling = (1 << this.id.level);
-        const voxelRatio = 4;
+        const voxelRatio = 2;
         const voxelsCount = HeightmapNodeId.smallestLevelSizeInVoxels;
         const quadsCount = voxelsCount / voxelRatio;
         const scaling = levelScaling * voxelRatio;
@@ -210,7 +219,6 @@ class HeightmapNode {
                     const pm = buildInnerIndex(iX + 1, iY + 0);
                     const pp = buildInnerIndex(iX + 1, iY + 1);
                     indexData.push(mm, pp, pm, mm, mp, pp)
-                    trianglesCount += 2;
                 }
             }
         }
@@ -294,7 +302,20 @@ class HeightmapNode {
             buildEdge(edgesType.leftSimple, true, mpCornerIndex, mmCornerIndex, { x: 0, y: quadsCount - 2 }, { x: 0, y: 0 });
         }
 
-        return { positions: geometryData, indices: indexData };
+        const colorData: number[] = [];
+        { // post-processing: altitude, colors
+            for (let i = 0; i < geometryData.length; i += 3) {
+                const x = geometryData[i]! + this.id.box.min.x;
+                const y = geometryData[i + 2]! + this.id.box.min.y;
+
+                const mapSample = this.sampler.sampleHeightmap(x, y);
+                geometryData[i + 1] = mapSample.altitude;
+
+                colorData.push(mapSample.color.r, mapSample.color.g, mapSample.color.b);
+            }
+        }
+
+        return { positions: geometryData, indices: indexData, colors: colorData };
     }
 
     private buildEdgesType(): EdgesType {
@@ -309,6 +330,7 @@ class HeightmapNode {
 }
 
 export {
-    HeightmapNode
+    HeightmapNode,
+    type HeightmapSampler
 };
 

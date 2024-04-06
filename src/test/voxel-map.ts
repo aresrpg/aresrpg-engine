@@ -1,7 +1,9 @@
-import { createNoise2D } from 'simplex-noise';
+import { NoiseFunction2D, createNoise2D } from 'simplex-noise';
+import alea from "alea";
+
 import * as THREE from 'three';
 
-import type { ILocalMapData, IVoxelMap, IVoxelMaterial } from '../lib/index';
+import type { ILocalMapData, IVoxelMap, IVoxelMaterial, IHeightmapSample } from '../lib/index';
 
 enum EVoxelType {
     ROCK,
@@ -33,40 +35,24 @@ class VoxelMap implements IVoxelMap {
     public readonly size: THREE.Vector3;
     public readonly voxelMaterialsList = Object.values(voxelMaterials);
 
+    private readonly noise2D: NoiseFunction2D;
     private readonly voxels: ReadonlyArray<StoredVoxel>;
-    private readonly coordsShift: THREE.Vector3;
+    private readonly coordsShift: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
 
-    public constructor(width: number, height: number, altitude: number) {
+    public constructor(width: number, height: number, altitude: number, seed: string) {
         this.size = new THREE.Vector3(width, altitude, height);
 
-        const centerMap = true;
-        if (centerMap) {
-            this.coordsShift = this.size.clone().multiplyScalar(-0.5).floor();
-        } else {
-            this.coordsShift = new THREE.Vector3(0, 0, 0);
-        }
-
-        const noise2D = createNoise2D();
+        const prng = alea(seed);
+        this.noise2D = createNoise2D(prng);
 
         const voxels: StoredVoxel[] = [];
         for (let iX = 0; iX < this.size.x; iX++) {
             for (let iZ = 0; iZ < this.size.z; iZ++) {
-                const yNoise = 0.5 + 0.5 * noise2D(iX / 50, iZ / 50);
-                const iY = Math.floor(yNoise * this.size.y);
-                const id = this.buildId(iX, iZ);
+                const yNoise = this.sampleHeightmap(iX, iZ).altitude;
 
-                let type: EVoxelType;
-                if (iY < 0.1 * altitude) {
-                    type = EVoxelType.WATER;
-                } else if (iY < 0.3 * altitude) {
-                    type = EVoxelType.SAND;
-                } else if (iY < 0.75 * altitude) {
-                    type = EVoxelType.GRASS;
-                } else if (iY < 0.85 * altitude) {
-                    type = EVoxelType.ROCK;
-                } else {
-                    type = EVoxelType.SNOW;
-                }
+                const type = this.altitudeToVoxelType(yNoise);
+                const iY = Math.floor(yNoise);
+                const id = this.buildId(iX, iZ);
                 voxels[id] = {
                     y: iY,
                     type,
@@ -74,6 +60,11 @@ class VoxelMap implements IVoxelMap {
             }
         }
         this.voxels = voxels;
+
+        const centerMap = true;
+        if (centerMap) {
+            this.coordsShift = this.size.clone().multiplyScalar(-0.5).floor();
+        }
 
         console.log(`Generated map of size ${this.size.x}x${this.size.y}x${this.size.z} (${this.voxels.length.toLocaleString()} voxels)`);
     }
@@ -103,6 +94,35 @@ class VoxelMap implements IVoxelMap {
             data: cache,
             isEmpty,
         };
+    }
+
+    public sampleHeightmap(x: number, z: number): IHeightmapSample {
+        x -= this.coordsShift.x;
+        z -= this.coordsShift.z;
+
+        const noise = this.noise2D(x / 50, z / 50);
+        const altitude = (0.5 + 0.5 * noise) * this.size.y;
+
+        const voxelType = this.altitudeToVoxelType(altitude);
+        const material = this.voxelMaterialsList[voxelType]!;
+        return {
+            altitude,
+            color: material.color,
+        };
+    }
+
+    private altitudeToVoxelType(y: number): EVoxelType {
+        if (y < 0.1 * this.size.y) {
+            return EVoxelType.WATER;
+        } else if (y < 0.3 * this.size.y) {
+            return EVoxelType.SAND;
+        } else if (y < 0.75 * this.size.y) {
+            return EVoxelType.GRASS;
+        } else if (y < 0.85 * this.size.y) {
+            return EVoxelType.ROCK;
+        } else {
+            return EVoxelType.SNOW;
+        }
     }
 
     private *iterateOnVoxels(from: THREE.Vector3, to: THREE.Vector3): Generator<IVoxel> {

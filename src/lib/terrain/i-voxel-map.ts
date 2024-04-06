@@ -13,6 +13,11 @@ interface IVoxelMaterial {
     readonly color: Color;
 }
 
+interface IHeightmapSample {
+    readonly altitude: number;
+    readonly color: Color;
+}
+
 /** Compact object storing a portion of the map data  */
 interface ILocalMapData {
     /** Compact array storing the voxel data.
@@ -50,6 +55,12 @@ interface IVoxelMap {
      * @param to Upper limit (exclusive) for the voxels coordinates
      */
     getLocalMapData(from: Vector3Like, to: Vector3Like): Promise<ILocalMapData>;
+
+    /**
+     * Samples a point on the map, assuming it is a heightmap.
+     */
+    sampleHeightmap(x: number, z: number): IHeightmapSample;
 }
 
-export type { IVoxelMap, IVoxelMaterial, ILocalMapData };
+export type { IHeightmapSample, ILocalMapData, IVoxelMap, IVoxelMaterial };
+

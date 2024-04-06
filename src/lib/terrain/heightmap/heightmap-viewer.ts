@@ -1,6 +1,6 @@
 import * as THREE from "../../three-usage";
 
-import { HeightmapNode } from "./heightmap-node";
+import { HeightmapNode, type HeightmapSampler } from "./heightmap-node";
 import { HeightmapNodeId } from "./heightmap-node-id";
 
 class HeightmapViewer {
@@ -9,7 +9,7 @@ class HeightmapViewer {
     private readonly rootNode: HeightmapNode;
     private readonly shift: THREE.Vector2Like;
 
-    public constructor() {
+    public constructor(sampler: HeightmapSampler) {
         this.container = new THREE.Group();
         this.container.name = "Heightmap nodes container";
 
@@ -21,7 +21,7 @@ class HeightmapViewer {
             rootLevel,
             { x: 0, y: 0 }
         );
-        this.rootNode = new HeightmapNode(rootId);
+        this.rootNode = new HeightmapNode(sampler, rootId);
         this.container.add(this.rootNode.container);
     }
 
@@ -54,3 +54,4 @@ class HeightmapViewer {
 export {
     HeightmapViewer
 };
+
