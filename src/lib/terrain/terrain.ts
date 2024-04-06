@@ -9,6 +9,7 @@ import { EPatchComputingMode, PatchFactoryBase } from './patch/patch-factory/pat
 import { PatchFactoryCpu } from './patch/patch-factory/split/cpu/patch-factory-cpu';
 import { PatchFactoryGpuOptimized } from './patch/patch-factory/split/gpu/patch-factory-gpu-optimized';
 import { PatchFactoryGpuSequential } from './patch/patch-factory/split/gpu/patch-factory-gpu-sequential';
+import { PatchId } from './patch/patch-id';
 
 type TerrainOptions = {
     computingMode?: EPatchComputingMode;
@@ -276,7 +277,7 @@ class Terrain {
     private getPatch(patchStart: THREE.Vector3): AsyncPatch {
         const patchId = this.computePatchId(patchStart);
 
-        let patch = this.patches[patchId];
+        let patch = this.patches[patchId.asString];
         if (typeof patch === 'undefined') {
             const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
 
@@ -284,15 +285,15 @@ class Terrain {
             const promise = this.patchFactory.buildPatch(patchId, patchStart, patchEnd);
             patch = new AsyncPatch(this.patchesContainer, promise, patchId, boundingBox);
 
-            this.patches[patchId] = patch;
+            this.patches[patchId.asString] = patch;
 
             logger.diagnostic(`Building patch ${patchId}`);
         }
         return patch;
     }
 
-    private computePatchId(patchStart: THREE.Vector3): string {
-        return `${patchStart.x / this.patchSize.x}_${patchStart.y / this.patchSize.y}_${patchStart.z / this.patchSize.z}`;
+    private computePatchId(patchStart: THREE.Vector3): PatchId {
+        return new PatchId(patchStart.clone().divide(this.patchSize));
     }
 }
 

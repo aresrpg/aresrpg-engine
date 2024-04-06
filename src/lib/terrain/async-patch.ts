@@ -1,4 +1,5 @@
 import { Patch } from './patch/patch';
+import { PatchId} from "./patch/patch-id";
 
 class AsyncPatch {
     private data:
@@ -15,11 +16,11 @@ class AsyncPatch {
               disposed: boolean;
           };
 
-    public readonly id: string;
+    public readonly id: PatchId;
     public readonly boundingBox: THREE.Box3;
     private invisibilityTimestamp = performance.now();
 
-    public constructor(container: THREE.Object3D, promise: Promise<Patch | null>, id: string, boundingBox: THREE.Box3) {
+    public constructor(container: THREE.Object3D, promise: Promise<Patch | null>, id: PatchId, boundingBox: THREE.Box3) {
         this.data = {
             state: 'pending',
             promise,
