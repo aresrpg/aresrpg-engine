@@ -28,10 +28,14 @@ class HeightmapViewer {
     public hidePatch(x: number, y: number): void {
         const patchCentralVoxel = new THREE.Vector2(x, y).addScalar(0.5).multiplyScalar(HeightmapNodeId.smallestLevelSizeInVoxels);
         const patchCoords = patchCentralVoxel.sub(this.shift).divideScalar(HeightmapNodeId.smallestLevelSizeInVoxels).ceil();
-        const node = this.rootNode.getSubNode(new HeightmapNodeId(this.shift, 0, patchCoords));
+        const node = this.rootNode.getOrBuildSubNode(new HeightmapNodeId(this.shift, 0, patchCoords));
         if (node) {
             node.container.visible = false;
         }
+    }
+
+    public update(): void {
+        this.rootNode.update();
     }
 }
 

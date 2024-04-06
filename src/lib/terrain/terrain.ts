@@ -181,6 +181,10 @@ class Terrain {
         await Promise.all(promises);
     }
 
+    public updateLod(): void {
+        this.heightmapViewer.update();
+    }
+
     /**
      * Call this method before rendering.
      * */
