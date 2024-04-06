@@ -15,24 +15,96 @@ const baseGeometry = (() => {
     const voxelRatio = 4;
     const voxelsCount = HeightmapNodeId.smallestLevelSizeInVoxels;
     const quadsCount = voxelsCount / voxelRatio;
+
     const geometryData: number[] = [];
-    for (let iX = 0; iX <= quadsCount; iX++) {
-        for (let iY = 0; iY <= quadsCount; iY++) {
-            geometryData.push(voxelRatio * iX, 0, voxelRatio * iY);
+    const indexData: number[] = [];
+
+    const buildInnerIndex = (x: number, y: number) => y + x * (quadsCount - 1);
+
+    // inner part
+    {
+        for (let iX = 1; iX < quadsCount; iX++) {
+            for (let iY = 1; iY < quadsCount; iY++) {
+                geometryData.push(voxelRatio * iX, 0, voxelRatio * iY);
+            }
+        }
+
+        for (let iX = 0; iX < quadsCount - 2; iX++) {
+            for (let iY = 0; iY < quadsCount - 2; iY++) {
+                const mm = buildInnerIndex(iX + 0, iY + 0);
+                const mp = buildInnerIndex(iX + 0, iY + 1);
+                const pm = buildInnerIndex(iX + 1, iY + 0);
+                const pp = buildInnerIndex(iX + 1, iY + 1);
+                indexData.push(mm, pp, pm, mm, mp, pp)
+                trianglesCount += 2;
+            }
         }
     }
 
-    const buildIndex = (x: number, y: number) => y + x * (quadsCount + 1);
-    const indexData: number[] = [];
-    for (let iX = 0; iX < quadsCount; iX++) {
-        for (let iY = 0; iY < quadsCount; iY++) {
-            const mm = buildIndex(iX + 0, iY + 0);
-            const mp = buildIndex(iX + 0, iY + 1);
-            const pm = buildIndex(iX + 1, iY + 0);
-            const pp = buildIndex(iX + 1, iY + 1);
-            indexData.push(mm, pp, pm, mm, mp, pp)
-            trianglesCount += 2;
-        }
+    { // outer part
+
+        const mmCornerIndex = geometryData.length / 3;
+        geometryData.push(0, 0, 0);
+
+        const mpCornerIndex = geometryData.length / 3;
+        geometryData.push(0, 0, voxelRatio * quadsCount);
+
+        const pmCornerIndex = geometryData.length / 3;
+        geometryData.push(voxelRatio * quadsCount, 0, 0);
+
+        const ppCornerIndex = geometryData.length / 3;
+        geometryData.push(voxelRatio * quadsCount, 0, voxelRatio * quadsCount);
+
+        const buildEdge = (simpleEdge: boolean, cornerIndex1: number, cornerIndex2: number, innerFrom: THREE.Vector2Like, innerTo: THREE.Vector2Like) => {
+            const innerIndices: number[] = [buildInnerIndex(innerFrom.x, innerFrom.y)];
+            {
+                const innerStepsCount = quadsCount - 2;
+                const innerStep = { x: (innerTo.x - innerFrom.x) / innerStepsCount, y: (innerTo.y - innerFrom.y) / innerStepsCount };
+                for (let i = 1; i <= innerStepsCount - 1; i++) {
+                    innerIndices.push(buildInnerIndex(innerFrom.x + i * innerStep.x, innerFrom.y + i * innerStep.y));
+                }
+                innerIndices.push(buildInnerIndex(innerTo.x, innerTo.y));
+            }
+
+            const outerFrom = { x: geometryData[3 * cornerIndex1]!, y: geometryData[3 * cornerIndex1 + 2]! };
+            const outerTo = { x: geometryData[3 * cornerIndex2]!, y: geometryData[3 * cornerIndex2 + 2]! };
+
+            const outerIndices: number[] = [cornerIndex1];
+
+            const outerStepsCount = simpleEdge ? quadsCount : 2 * quadsCount;
+            {
+                const outerStep = { x: (outerTo.x - outerFrom.x) / outerStepsCount, y: (outerTo.y - outerFrom.y) / outerStepsCount };
+                for (let i = 1; i <= outerStepsCount - 1; i++) {
+                    outerIndices.push(geometryData.length / 3);
+                    geometryData.push(outerFrom.x + i * outerStep.x, 0, outerFrom.y + i * outerStep.y);
+                }
+                outerIndices.push(cornerIndex2)
+            }
+
+            if (simpleEdge) {
+                indexData.push(outerIndices[0]!, innerIndices[0]!, outerIndices[1]!);
+                for (let i = 0; i < innerIndices.length - 1; i++) {
+                    indexData.push(innerIndices[i]!, innerIndices[i + 1]!, outerIndices[i + 1]!);
+                    indexData.push(innerIndices[i + 1]!, outerIndices[i + 2]!, outerIndices[i + 1]!);
+                }
+                indexData.push(outerIndices[outerIndices.length - 2]!, innerIndices[innerIndices.length - 1]!, outerIndices[outerIndices.length - 1]!);
+            } else {
+                indexData.push(outerIndices[0]!, innerIndices[0]!, outerIndices[1]!);
+                for (let i = 0; i < innerIndices.length; i++) {
+                    indexData.push(outerIndices[1 + 2 * i]!, innerIndices[i]!, outerIndices[2 + 2 * i]!);
+                    if (i < innerIndices.length - 1) {
+                        indexData.push(innerIndices[i]!, innerIndices[i + 1]!, outerIndices[3 + 2 * i]!);
+                    }
+                    indexData.push(outerIndices[2 + 2 * i]!, innerIndices[i]!, outerIndices[3 + 2 * i]!);
+                }
+                indexData.push(outerIndices[outerIndices.length - 2]!, innerIndices[innerIndices.length - 1]!, outerIndices[outerIndices.length - 1]!);
+            }
+        };
+
+        buildEdge(true, mmCornerIndex, pmCornerIndex, { x: 0, y: 0 }, { x: quadsCount - 2, y: 0 });
+        buildEdge(true, pmCornerIndex, ppCornerIndex, { x: quadsCount - 2, y: 0 }, { x: quadsCount - 2, y: quadsCount - 2 });
+        buildEdge(true, ppCornerIndex, mpCornerIndex, { x: quadsCount - 2, y: quadsCount - 2 }, { x: 0, y: quadsCount - 2 });
+        buildEdge(true, mpCornerIndex, mmCornerIndex, { x: 0, y: quadsCount - 2 }, { x: 0, y: 0 });
     }
 
     return { geometryData, indexData };
@@ -64,6 +136,7 @@ class HeightmapNode {
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute("position", geometryPositionAttribute);
         geometry.setIndex(baseGeometry.indexData);
+        geometry.computeVertexNormals();
 
         const nodeIdAsString = id.asString();
         this.mesh = new THREE.Mesh(geometry, HeightmapNode.material);
