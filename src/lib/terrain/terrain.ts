@@ -56,6 +56,8 @@ class Terrain {
     private readonly patches: Record<string, AsyncPatch> = {};
 
     private readonly heightmapViewer: HeightmapViewer;
+    private heightmapViewerNeedsUpdate: boolean = true;
+
     /**
      *
      * @param map The map that will be rendered.
@@ -173,23 +175,20 @@ class Terrain {
         const promises = wantedPatchesList.map(wantedPatch => {
             const patch = this.getPatch(wantedPatch.patchStart);
             patch.visible = true;
-            this.heightmapViewer.hidePatch(wantedPatch.patchId.x, wantedPatch.patchId.z)
             return patch.ready();
         });
 
         this.garbageCollectPatches();
 
-        await Promise.all(promises);
-    }
+        this.heightmapViewerNeedsUpdate = true;
 
-    public updateLod(): void {
-        this.heightmapViewer.update();
+        await Promise.all(promises);
     }
 
     /**
      * Call this method before rendering.
      * */
-    public updateUniforms(): void {
+    public update(): void {
         for (const asyncPatch of Object.values(this.patches)) {
             const patch = asyncPatch.patch;
             if (patch) {
@@ -208,6 +207,18 @@ class Terrain {
 
                 patch.updateUniforms();
             }
+        }
+
+        if (this.heightmapViewerNeedsUpdate) {
+            this.heightmapViewer.resetSubdivisions();
+            for (const patch of Object.values(this.patches)) {
+                if (patch.hasVisibleMesh()) {
+                    this.heightmapViewer.hidePatch(patch.id.x, patch.id.z);
+                }
+            }
+            this.heightmapViewer.updateMesh();
+
+            this.heightmapViewerNeedsUpdate = false;
         }
     }
 
@@ -267,10 +278,10 @@ class Terrain {
         const patch = this.patches[patchId];
         if (patch) {
             patch.dispose();
-            logger.diagnostic(`Freeing patch ${patchId}`);
+            logger.diagnostic(`Freeing voxels patch ${patchId}`);
             delete this.patches[patchId];
         } else {
-            logger.warn(`Patch ${patchId} does not exist.`);
+            logger.warn(`Voxels patch ${patchId} does not exist.`);
         }
     }
 
@@ -284,10 +295,14 @@ class Terrain {
             const boundingBox = new THREE.Box3(patchStart.clone(), patchEnd.clone());
             const promise = this.patchFactory.buildPatch(patchId, patchStart, patchEnd);
             patch = new AsyncPatch(this.patchesContainer, promise, patchId, boundingBox);
-
+            patch.ready().then(() => {
+                if (patch?.hasVisibleMesh) {
+                    this.heightmapViewerNeedsUpdate = true;
+                }
+            });
             this.patches[patchId.asString] = patch;
 
-            logger.diagnostic(`Building patch ${patchId}`);
+            logger.diagnostic(`Building voxels patch ${patchId.asString}`);
         }
         return patch;
     }
