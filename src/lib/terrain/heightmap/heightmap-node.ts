@@ -34,6 +34,11 @@ type HeightmapSampler = {
     sampleHeightmap(x: number, y: number): IHeightmapSample;
 };
 
+interface IHeightmapRoot {
+    getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
+    getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
+}
+
 class HeightmapNode {
     private static readonly material = new THREE.MeshPhongMaterial({ vertexColors: true });
 
@@ -44,15 +49,13 @@ class HeightmapNode {
     private isSubdivided: boolean = false;
 
     private readonly sampler: HeightmapSampler;
-    private readonly root: HeightmapNode | null = null;
+    private readonly root: IHeightmapRoot;
     private readonly id: HeightmapNodeId;
 
-    public constructor(sampler: HeightmapSampler, id: HeightmapNodeId, root?: HeightmapNode) {
+    public constructor(sampler: HeightmapSampler, id: HeightmapNodeId, root: IHeightmapRoot) {
         this.sampler = sampler;
         this.id = id;
-        if (root) {
-            this.root = root;
-        }
+        this.root = root;
 
         this.container = new THREE.Group();
         this.container.name = `Heightmap node ${this.id.asString()}`;
@@ -151,7 +154,7 @@ class HeightmapNode {
         return this.container.visible;
     }
 
-    private getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {
+    public getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {
         if (this.id.equals(nodeId)) {
             return this;
         } else if (nodeId.level >= this.id.level) {
@@ -180,10 +183,10 @@ class HeightmapNode {
         this.isSubdivided = true;
 
         if (this.root) {
-            this.root.getOrBuildSubNode(new HeightmapNodeId(this.id.shift, this.id.level, { x: this.id.coordsInLevel.x - 1, y: this.id.coordsInLevel.y + 0 }));
-            this.root.getOrBuildSubNode(new HeightmapNodeId(this.id.shift, this.id.level, { x: this.id.coordsInLevel.x + 1, y: this.id.coordsInLevel.y + 0 }));
-            this.root.getOrBuildSubNode(new HeightmapNodeId(this.id.shift, this.id.level, { x: this.id.coordsInLevel.x + 0, y: this.id.coordsInLevel.y - 1 }));
-            this.root.getOrBuildSubNode(new HeightmapNodeId(this.id.shift, this.id.level, { x: this.id.coordsInLevel.x + 0, y: this.id.coordsInLevel.y + 1 }));
+            this.root.getOrBuildSubNode(this.id.getNeighbour(-1, 0));
+            this.root.getOrBuildSubNode(this.id.getNeighbour(+1, 0));
+            this.root.getOrBuildSubNode(this.id.getNeighbour(0, -1));
+            this.root.getOrBuildSubNode(this.id.getNeighbour(0, +1));
         }
 
         if (!this.children) {
@@ -191,11 +194,12 @@ class HeightmapNode {
             const subLevelBaseCoords = new THREE.Vector2().copy(this.id.coordsInLevel).multiplyScalar(2);
             const root = this.root || this;
 
+            const mmChildId = new HeightmapNodeId(childrenLevel, { x: subLevelBaseCoords.x, y: subLevelBaseCoords.y });
             this.children = {
-                mm: new HeightmapNode(this.sampler, new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 0, y: subLevelBaseCoords.y + 0 }), root),
-                pm: new HeightmapNode(this.sampler, new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 1, y: subLevelBaseCoords.y + 0 }), root),
-                mp: new HeightmapNode(this.sampler, new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 0, y: subLevelBaseCoords.y + 1 }), root),
-                pp: new HeightmapNode(this.sampler, new HeightmapNodeId(this.id.shift, childrenLevel, { x: subLevelBaseCoords.x + 1, y: subLevelBaseCoords.y + 1 }), root),
+                mm: new HeightmapNode(this.sampler, mmChildId, root),
+                pm: new HeightmapNode(this.sampler, mmChildId.getNeighbour(1, 0), root),
+                mp: new HeightmapNode(this.sampler, mmChildId.getNeighbour(0, 1), root),
+                pp: new HeightmapNode(this.sampler, mmChildId.getNeighbour(1, 1), root),
             };
         }
     }
@@ -337,8 +341,8 @@ class HeightmapNode {
 
     private buildEdgesType(): EdgesType {
         const getEdge = (dX: number, dY: number) => {
-            const neighbourId = new HeightmapNodeId(this.id.shift, this.id.level, { x: this.id.coordsInLevel.x + dX, y: this.id.coordsInLevel.y + dY });
-            const neighbour = this.root?.getSubNode(neighbourId);
+            const neighbourId = new HeightmapNodeId(this.id.level, { x: this.id.coordsInLevel.x + dX, y: this.id.coordsInLevel.y + dY });
+            const neighbour = this.root.getSubNode(neighbourId);
             if (neighbour) {
                 if (neighbour.isSubdivided) {
                     return EEdgeType.TESSELATED;
