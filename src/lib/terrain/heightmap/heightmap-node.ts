@@ -71,6 +71,23 @@ class HeightmapNode {
         this.visible = true;
     }
 
+    public garbageCollect(): void {
+        this.container.clear();
+
+        if (this.children) {
+            if (!this.isSubdivided) {
+                for (const child of this.childrenList) {
+                    child.dispose();
+                }
+                this.children = null;
+            } else {
+                for (const child of this.childrenList) {
+                    child.garbageCollect();
+                }
+            }
+        }
+    }
+
     public dispose(): void {
         this.container.clear();
 
