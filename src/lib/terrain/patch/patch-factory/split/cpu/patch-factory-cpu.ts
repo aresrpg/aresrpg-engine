@@ -1,7 +1,8 @@
+import * as THREE from '../../../../../three-usage';
+import { type IVoxelMap } from '../../../../i-voxel-map';
+import * as Cube from '../../cube';
 import { EPatchComputingMode, type GeometryAndMaterial, type VertexData } from '../../patch-factory-base';
 import { PatchFactory } from '../patch-factory';
-import * as Cube from '../../cube';
-import { type IVoxelMap } from '../../../../i-voxel-map';
 
 class PatchFactoryCpu extends PatchFactory {
     public constructor(map: IVoxelMap) {
