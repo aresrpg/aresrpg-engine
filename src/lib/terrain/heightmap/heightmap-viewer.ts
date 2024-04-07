@@ -6,6 +6,9 @@ import { HeightmapNodeId } from "./heightmap-node-id";
 class HeightmapViewer {
     public readonly container: THREE.Object3D;
 
+    public focusPoint: THREE.Vector2Like | null = null;
+    public focusDistance: number = -1;
+
     private readonly rootNode: HeightmapNode;
     private readonly shift: THREE.Vector2Like;
 
@@ -31,8 +34,8 @@ class HeightmapViewer {
 
     public hidePatch(x: number, y: number): void {
         const patchCentralVoxel = new THREE.Vector2(x, y).addScalar(0.5).multiplyScalar(HeightmapNodeId.smallestLevelSizeInVoxels);
-        const patchCoords = patchCentralVoxel.sub(this.shift).divideScalar(HeightmapNodeId.smallestLevelSizeInVoxels).floor();
-        const node = this.rootNode.getOrBuildSubNode(new HeightmapNodeId(this.shift, 0, patchCoords));
+        const patchId = this.getPatchId(patchCentralVoxel);
+        const node = this.rootNode.getOrBuildSubNode(patchId);
         if (node) {
             node.visible = false;
         }
@@ -40,7 +43,19 @@ class HeightmapViewer {
         for (let dX = -1; dX <= 1; dX++) {
             for (let dY = -1; dY <= 1; dY++) {
                 if (dX !== 0 || dY !== 0) {
-                    this.rootNode.getOrBuildSubNode(new HeightmapNodeId(this.shift, 0, { x: patchCoords.x + dX, y: patchCoords.y + dY }));
+                    this.rootNode.getOrBuildSubNode(new HeightmapNodeId(this.shift, 0, { x: patchId.coordsInLevel.x + dX, y: patchId.coordsInLevel.y + dY }));
+                }
+            }
+        }
+    }
+
+    public applyFocus(): void {
+        if (this.focusPoint) {
+            const patchId = this.getPatchId(new THREE.Vector2().copy(this.focusPoint));
+            const delta = Math.ceil(this.focusDistance / HeightmapNodeId.smallestLevelSizeInVoxels);
+            for (let dX = -delta; dX <= delta; dX++) {
+                for (let dY = -delta; dY <= delta; dY++) {
+                    this.rootNode.getOrBuildSubNode(new HeightmapNodeId(this.shift, 0, { x: patchId.coordsInLevel.x + dX, y: patchId.coordsInLevel.y + dY }));
                 }
             }
         }
@@ -48,6 +63,11 @@ class HeightmapViewer {
 
     public updateMesh(): void {
         this.rootNode.updateMesh();
+    }
+
+    private getPatchId(voxel: THREE.Vector2): HeightmapNodeId {
+        const patchCoords = voxel.sub(this.shift).divideScalar(HeightmapNodeId.smallestLevelSizeInVoxels).floor();
+        return new HeightmapNodeId(this.shift, 0, patchCoords)
     }
 }
 

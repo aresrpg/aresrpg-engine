@@ -118,6 +118,10 @@ ambientLight.intensity = 1;
 dirLight.color = lightColor;
 dirLight.intensity = 3;
 
+setInterval(() => {
+    terrain.lodSetFocus(camera.position, 100);
+}, 200);
+
 function render(): void {
     stats.update();
 
