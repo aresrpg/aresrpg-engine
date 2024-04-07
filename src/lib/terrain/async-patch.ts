@@ -1,3 +1,5 @@
+import * as THREE from '../three-usage';
+
 import { Patch } from './patch/patch';
 import { PatchId } from './patch/patch-id';
 
