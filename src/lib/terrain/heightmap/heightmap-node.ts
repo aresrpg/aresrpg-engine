@@ -16,11 +16,17 @@ type GeometryData = {
     readonly indices: number[];
 };
 
+enum EEdgeType {
+    SIMPLE = 0,
+    TESSELATED = 1,
+    LIMIT = 2,
+}
+
 type EdgesType = {
-    readonly upSimple: boolean;
-    readonly downSimple: boolean;
-    readonly leftSimple: boolean;
-    readonly rightSimple: boolean;
+    readonly up: EEdgeType;
+    readonly down: EEdgeType;
+    readonly left: EEdgeType;
+    readonly right: EEdgeType;
     readonly code: number;
 };
 
@@ -29,7 +35,7 @@ type HeightmapSampler = {
 };
 
 class HeightmapNode {
-    private static readonly material = new THREE.MeshPhongMaterial({ vertexColors: true, transparent: false});
+    private static readonly material = new THREE.MeshPhongMaterial({ vertexColors: true });
 
     public readonly container: THREE.Object3D;
 
@@ -224,7 +230,6 @@ class HeightmapNode {
         }
 
         { // outer part
-
             const mmCornerIndex = geometryData.length / 3;
             geometryData.push(0, 0, 0);
 
@@ -237,7 +242,7 @@ class HeightmapNode {
             const ppCornerIndex = geometryData.length / 3;
             geometryData.push(scaling * quadsCount, 0, scaling * quadsCount);
 
-            const buildEdge = (simpleEdge: boolean, invertEdgeIfSimple: boolean, cornerIndex1: number, cornerIndex2: number, innerFrom: THREE.Vector2Like, innerTo: THREE.Vector2Like) => {
+            const buildEdge = (edgeType: EEdgeType, invertEdgeIfSimple: boolean, cornerIndex1: number, cornerIndex2: number, innerFrom: THREE.Vector2Like, innerTo: THREE.Vector2Like, margin: THREE.Vector2Like) => {
                 const innerIndices: number[] = [buildInnerIndex(innerFrom.x, innerFrom.y)];
                 {
                     const innerStepsCount = quadsCount - 2;
@@ -248,23 +253,37 @@ class HeightmapNode {
                     innerIndices.push(buildInnerIndex(innerTo.x, innerTo.y));
                 }
 
-                const outerFrom = { x: geometryData[3 * cornerIndex1]!, y: geometryData[3 * cornerIndex1 + 2]! };
-                const outerTo = { x: geometryData[3 * cornerIndex2]!, y: geometryData[3 * cornerIndex2 + 2]! };
-
-                const outerIndices: number[] = [cornerIndex1];
-
-                const outerStepsCount = simpleEdge ? quadsCount : 2 * quadsCount;
+                const outerIndices: number[] = [];
                 {
+                    const outerFrom = { x: geometryData[3 * cornerIndex1]!, y: geometryData[3 * cornerIndex1 + 2]! };
+                    const outerTo = { x: geometryData[3 * cornerIndex2]!, y: geometryData[3 * cornerIndex2 + 2]! };
+
+                    const outerStepsCount = (edgeType === EEdgeType.TESSELATED) ? 2 * quadsCount : quadsCount;
+
+                    const dX = (edgeType === EEdgeType.LIMIT) ? 2 * margin.x : 0;
+                    const dY = (edgeType === EEdgeType.LIMIT) ? -1 : 0;
+                    const dZ = (edgeType === EEdgeType.LIMIT) ? 2 * margin.y : 0;
+
+                    outerIndices.push(cornerIndex1);
                     const outerStep = { x: (outerTo.x - outerFrom.x) / outerStepsCount, y: (outerTo.y - outerFrom.y) / outerStepsCount };
                     for (let i = 1; i <= outerStepsCount - 1; i++) {
                         outerIndices.push(geometryData.length / 3);
-                        geometryData.push(outerFrom.x + i * outerStep.x, 0, outerFrom.y + i * outerStep.y);
+                        geometryData.push(outerFrom.x + i * outerStep.x + dX, dY, outerFrom.y + i * outerStep.y + dZ);
                     }
-                    outerIndices.push(cornerIndex2)
+                    outerIndices.push(cornerIndex2);
                 }
 
-                if (simpleEdge) {
-
+                if (edgeType === EEdgeType.TESSELATED) {
+                    indexData.push(outerIndices[0]!, innerIndices[0]!, outerIndices[1]!);
+                    for (let i = 0; i < innerIndices.length; i++) {
+                        indexData.push(outerIndices[1 + 2 * i]!, innerIndices[i]!, outerIndices[2 + 2 * i]!);
+                        if (i < innerIndices.length - 1) {
+                            indexData.push(innerIndices[i]!, innerIndices[i + 1]!, outerIndices[3 + 2 * i]!);
+                        }
+                        indexData.push(outerIndices[2 + 2 * i]!, innerIndices[i]!, outerIndices[3 + 2 * i]!);
+                    }
+                    indexData.push(outerIndices[outerIndices.length - 2]!, innerIndices[innerIndices.length - 1]!, outerIndices[outerIndices.length - 1]!);
+                } else {
                     if (invertEdgeIfSimple) {
                         innerIndices.reverse();
                         outerIndices.reverse();
@@ -283,23 +302,13 @@ class HeightmapNode {
                         }
                         indexData.push(outerIndices[outerIndices.length - 2]!, innerIndices[innerIndices.length - 1]!, outerIndices[outerIndices.length - 1]!);
                     }
-                } else {
-                    indexData.push(outerIndices[0]!, innerIndices[0]!, outerIndices[1]!);
-                    for (let i = 0; i < innerIndices.length; i++) {
-                        indexData.push(outerIndices[1 + 2 * i]!, innerIndices[i]!, outerIndices[2 + 2 * i]!);
-                        if (i < innerIndices.length - 1) {
-                            indexData.push(innerIndices[i]!, innerIndices[i + 1]!, outerIndices[3 + 2 * i]!);
-                        }
-                        indexData.push(outerIndices[2 + 2 * i]!, innerIndices[i]!, outerIndices[3 + 2 * i]!);
-                    }
-                    indexData.push(outerIndices[outerIndices.length - 2]!, innerIndices[innerIndices.length - 1]!, outerIndices[outerIndices.length - 1]!);
                 }
             };
 
-            buildEdge(edgesType.downSimple, false, mmCornerIndex, pmCornerIndex, { x: 0, y: 0 }, { x: quadsCount - 2, y: 0 });
-            buildEdge(edgesType.rightSimple, true, pmCornerIndex, ppCornerIndex, { x: quadsCount - 2, y: 0 }, { x: quadsCount - 2, y: quadsCount - 2 });
-            buildEdge(edgesType.upSimple, false, ppCornerIndex, mpCornerIndex, { x: quadsCount - 2, y: quadsCount - 2 }, { x: 0, y: quadsCount - 2 });
-            buildEdge(edgesType.leftSimple, true, mpCornerIndex, mmCornerIndex, { x: 0, y: quadsCount - 2 }, { x: 0, y: 0 });
+            buildEdge(edgesType.down, false, mmCornerIndex, pmCornerIndex, { x: 0, y: 0 }, { x: quadsCount - 2, y: 0 }, { x: 0, y: -1 });
+            buildEdge(edgesType.right, true, pmCornerIndex, ppCornerIndex, { x: quadsCount - 2, y: 0 }, { x: quadsCount - 2, y: quadsCount - 2 }, { x: 1, y: 0 });
+            buildEdge(edgesType.up, false, ppCornerIndex, mpCornerIndex, { x: quadsCount - 2, y: quadsCount - 2 }, { x: 0, y: quadsCount - 2 }, { x: 0, y: 1 });
+            buildEdge(edgesType.left, true, mpCornerIndex, mmCornerIndex, { x: 0, y: quadsCount - 2 }, { x: 0, y: 0 }, { x: -1, y: 0 });
         }
 
         const colorData: number[] = [];
@@ -309,7 +318,7 @@ class HeightmapNode {
                 const y = geometryData[i + 2]! + this.id.box.min.y;
 
                 const mapSample = this.sampler.sampleHeightmap(x, y);
-                geometryData[i + 1] = mapSample.altitude;
+                geometryData[i + 1] += mapSample.altitude;
 
                 colorData.push(mapSample.color.r, mapSample.color.g, mapSample.color.b);
             }
@@ -319,13 +328,28 @@ class HeightmapNode {
     }
 
     private buildEdgesType(): EdgesType {
-        const upSimple = !this.root?.getSubNode(new HeightmapNodeId(this.id.shift, this.id.level, { x: this.id.coordsInLevel.x, y: this.id.coordsInLevel.y + 1 }))?.isSubdivided;
-        const downSimple = !this.root?.getSubNode(new HeightmapNodeId(this.id.shift, this.id.level, { x: this.id.coordsInLevel.x, y: this.id.coordsInLevel.y - 1 }))?.isSubdivided;
-        const leftSimple = !this.root?.getSubNode(new HeightmapNodeId(this.id.shift, this.id.level, { x: this.id.coordsInLevel.x - 1, y: this.id.coordsInLevel.y }))?.isSubdivided;
-        const rightSimple = !this.root?.getSubNode(new HeightmapNodeId(this.id.shift, this.id.level, { x: this.id.coordsInLevel.x + 1, y: this.id.coordsInLevel.y }))?.isSubdivided;
+        const getEdge = (dX: number, dY: number) => {
+            const neighbourId = new HeightmapNodeId(this.id.shift, this.id.level, { x: this.id.coordsInLevel.x + dX, y: this.id.coordsInLevel.y + dY });
+            const neighbour = this.root?.getSubNode(neighbourId);
+            if (neighbour) {
+                if (neighbour.isSubdivided) {
+                    return EEdgeType.TESSELATED;
+                }
 
-        const code = (+upSimple) + (+downSimple << 1) + (+leftSimple << 2) + (+rightSimple << 3);
-        return { upSimple, downSimple, leftSimple, rightSimple, code };
+                if (!neighbour.container.visible) {
+                    return EEdgeType.LIMIT;
+                }
+            }
+            return EEdgeType.SIMPLE;
+        };
+
+        const up = getEdge(0, +1);
+        const down = getEdge(0, -1);
+        const left = getEdge(-1, 0);
+        const right = getEdge(+1, 0);
+
+        const code = (+up) + (+down << 2) + (+left << 4) + (+right << 6);
+        return { up, down, left, right, code };
     }
 }
 
