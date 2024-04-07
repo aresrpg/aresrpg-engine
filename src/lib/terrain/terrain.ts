@@ -2,7 +2,7 @@ import { logger } from '../helpers/logger';
 import * as THREE from '../three-usage';
 
 import { AsyncPatch } from './async-patch';
-import { HeightmapViewer } from "./heightmap/heightmap-viewer";
+import { HeightmapViewer } from './heightmap/heightmap-viewer';
 import { type IVoxelMap } from './i-voxel-map';
 import { EDisplayMode } from './patch/patch';
 import { EPatchComputingMode, PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
@@ -340,4 +340,3 @@ class Terrain {
 }
 
 export { EPatchComputingMode, Terrain, type IVoxelMap };
-

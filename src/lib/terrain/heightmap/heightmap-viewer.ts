@@ -1,8 +1,8 @@
-import * as THREE from "../../three-usage";
+import * as THREE from '../../three-usage';
 
-import { type HeightmapSampler } from "./heightmap-node";
-import { HeightmapNodeId } from "./heightmap-node-id";
-import { HeightmapRoot } from "./heightmap-root";
+import { type HeightmapSampler } from './heightmap-node';
+import { HeightmapNodeId } from './heightmap-node-id';
+import { HeightmapRoot } from './heightmap-root';
 
 class HeightmapViewer {
     public readonly container: THREE.Object3D;
@@ -15,7 +15,7 @@ class HeightmapViewer {
 
     public constructor(sampler: HeightmapSampler) {
         this.container = new THREE.Group();
-        this.container.name = "Heightmap nodes container";
+        this.container.name = 'Heightmap nodes container';
 
         this.root = new HeightmapRoot(sampler, 5);
         this.container.add(this.root.container);
@@ -44,7 +44,7 @@ class HeightmapViewer {
 
     public applyVisibility(): void {
         this.root.applyVisibility(this.focusPoint, this.visibilityDistance);
-        
+
         const centralPatchId = this.getPatchId(new THREE.Vector2().copy(this.focusPoint));
         const delta = Math.ceil(this.focusDistance / HeightmapNodeId.smallestLevelSizeInVoxels);
         for (let dX = -delta; dX <= delta; dX++) {
@@ -60,11 +60,8 @@ class HeightmapViewer {
 
     private getPatchId(voxel: THREE.Vector2): HeightmapNodeId {
         const patchCoords = voxel.divideScalar(HeightmapNodeId.smallestLevelSizeInVoxels).floor();
-        return new HeightmapNodeId(0, patchCoords)
+        return new HeightmapNodeId(0, patchCoords);
     }
 }
 
-export {
-    HeightmapViewer
-};
-
+export { HeightmapViewer };

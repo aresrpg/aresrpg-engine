@@ -1,4 +1,4 @@
-import * as THREE from "../../three-usage";
+import * as THREE from '../../three-usage';
 
 class HeightmapNodeId {
     public static readonly smallestLevelSizeInVoxels = 64;
@@ -19,17 +19,21 @@ class HeightmapNodeId {
     }
 
     public contains(patchId: HeightmapNodeId): boolean {
-        const levelPatchSizeInVoxels = (1 << patchId.level) * HeightmapNodeId.smallestLevelSizeInVoxels
+        const levelPatchSizeInVoxels = (1 << patchId.level) * HeightmapNodeId.smallestLevelSizeInVoxels;
         const patchMiddleVoxel = new THREE.Vector2().copy(patchId.coordsInLevel).addScalar(0.5).multiplyScalar(levelPatchSizeInVoxels);
         return this.box.containsPoint(patchMiddleVoxel);
     }
 
     public equals(patchId: HeightmapNodeId): boolean {
-        return this.level === patchId.level && this.coordsInLevel.x === patchId.coordsInLevel.x && this.coordsInLevel.y === patchId.coordsInLevel.y;
+        return (
+            this.level === patchId.level &&
+            this.coordsInLevel.x === patchId.coordsInLevel.x &&
+            this.coordsInLevel.y === patchId.coordsInLevel.y
+        );
     }
 
     public asString(): string {
-        return `${this.level}__${this.coordsInLevel.x}x${this.coordsInLevel.y}`
+        return `${this.level}__${this.coordsInLevel.x}x${this.coordsInLevel.y}`;
     }
 
     public getNeighbour(dX: number, dY: number): HeightmapNodeId {
@@ -41,7 +45,4 @@ class HeightmapNodeId {
     }
 }
 
-export {
-    HeightmapNodeId,
-};
-
+export { HeightmapNodeId };

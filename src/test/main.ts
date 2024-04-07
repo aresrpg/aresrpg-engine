@@ -29,7 +29,7 @@ udpateRendererSize();
 
 const scene = new THREE.Scene();
 
-const voxelMap = new VoxelMap(1024, 1024, 16, "fixed_seed");
+const voxelMap = new VoxelMap(1024, 1024, 16, 'fixed_seed');
 const terrain = new Terrain(voxelMap);
 scene.add(terrain.container);
 

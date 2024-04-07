@@ -1,4 +1,4 @@
-import * as THREE from "../../three-usage";
+import * as THREE from '../../three-usage';
 
 class PatchId {
     public readonly x: number;
@@ -16,6 +16,4 @@ class PatchId {
     }
 }
 
-export {
-    PatchId,
-};
+export { PatchId };
