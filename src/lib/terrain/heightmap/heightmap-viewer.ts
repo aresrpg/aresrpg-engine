@@ -34,7 +34,7 @@ class HeightmapViewer {
         const patchCoords = patchCentralVoxel.sub(this.shift).divideScalar(HeightmapNodeId.smallestLevelSizeInVoxels).floor();
         const node = this.rootNode.getOrBuildSubNode(new HeightmapNodeId(this.shift, 0, patchCoords));
         if (node) {
-            node.container.visible = false;
+            node.visible = false;
         }
 
         for (let dX = -1; dX <= 1; dX++) {

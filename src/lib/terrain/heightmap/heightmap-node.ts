@@ -65,7 +65,7 @@ class HeightmapNode {
             }
             this.isSubdivided = false;
         }
-        this.container.visible = true;
+        this.visible = true;
     }
 
     public dispose(): void {
@@ -93,7 +93,7 @@ class HeightmapNode {
                 child.updateMesh();
                 this.container.add(child.container);
             }
-        } else {
+        } else if (this.visible) {
             const edgesType = this.buildEdgesType();
 
             let mesh = this.meshes[edgesType.code];
@@ -141,6 +141,14 @@ class HeightmapNode {
         }
 
         return null;
+    }
+
+    public set visible(value: boolean) {
+        this.container.visible = value;
+    }
+
+    public get visible(): boolean {
+        return this.container.visible;
     }
 
     private getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {
@@ -336,7 +344,7 @@ class HeightmapNode {
                     return EEdgeType.TESSELATED;
                 }
 
-                if (!neighbour.container.visible) {
+                if (!neighbour.visible) {
                     return EEdgeType.LIMIT;
                 }
             }
