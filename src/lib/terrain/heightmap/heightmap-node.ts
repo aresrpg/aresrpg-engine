@@ -241,6 +241,7 @@ class HeightmapNode {
 
         const buildInnerIndex = (x: number, y: number) => y + x * (quadsCount - 1);
 
+        // eslint-disable-next-line no-lone-blocks
         {
             // inner part
             for (let iX = 1; iX < quadsCount; iX++) {
@@ -260,6 +261,7 @@ class HeightmapNode {
             }
         }
 
+        // eslint-disable-next-line no-lone-blocks
         {
             // outer part
             const mmCornerIndex = geometryData.length / 3;
@@ -380,6 +382,7 @@ class HeightmapNode {
         }
 
         const colorData: number[] = [];
+        // eslint-disable-next-line no-lone-blocks
         {
             // post-processing: altitude, colors
             for (let i = 0; i < geometryData.length; i += 3) {
