@@ -30,18 +30,23 @@ class Terrain {
             receive: true,
         },
         voxels: {
-            displayMode: EDisplayMode.TEXTURES,
-            noiseStrength: 0.025,
+            faces: {
+                displayMode: EDisplayMode.TEXTURES,
+                noiseStrength: 0.025,
+            },
+            smoothEdges: {
+                enabled: true,
+                radius: 0.1,
+                quality: 2,
+            },
+            ao: {
+                enabled: true,
+                strength: 0.4,
+                spread: 0.85,
+            },
         },
-        smoothEdges: {
+        lod: {
             enabled: true,
-            radius: 0.1,
-            quality: 2,
-        },
-        ao: {
-            enabled: true,
-            strength: 0.4,
-            spread: 0.85,
         },
     };
 
@@ -94,7 +99,6 @@ class Terrain {
         this.heightmapContainer.name = `Heightmap patches container`;
         this.heightmapViewer = new HeightmapViewer(map);
         this.heightmapContainer.add(this.heightmapViewer.container);
-        this.container.add(this.heightmapContainer);
     }
 
     /**
@@ -189,19 +193,20 @@ class Terrain {
      * Call this method before rendering.
      * */
     public update(): void {
+        const voxelsSettings = this.parameters.voxels;
         for (const asyncPatch of Object.values(this.patches)) {
             const patch = asyncPatch.patch;
             if (patch) {
-                patch.parameters.voxels.displayMode = this.parameters.voxels.displayMode;
-                patch.parameters.voxels.noiseStrength = this.parameters.voxels.noiseStrength;
+                patch.parameters.voxels.displayMode = voxelsSettings.faces.displayMode;
+                patch.parameters.voxels.noiseStrength = voxelsSettings.faces.noiseStrength;
 
-                patch.parameters.smoothEdges.enabled = this.parameters.smoothEdges.enabled;
-                patch.parameters.smoothEdges.radius = this.parameters.smoothEdges.radius;
-                patch.parameters.smoothEdges.quality = this.parameters.smoothEdges.quality;
+                patch.parameters.smoothEdges.enabled = voxelsSettings.smoothEdges.enabled;
+                patch.parameters.smoothEdges.radius = voxelsSettings.smoothEdges.radius;
+                patch.parameters.smoothEdges.quality = voxelsSettings.smoothEdges.quality;
 
-                patch.parameters.ao.enabled = this.parameters.ao.enabled;
-                patch.parameters.ao.strength = this.parameters.ao.strength;
-                patch.parameters.ao.spread = this.parameters.ao.spread;
+                patch.parameters.ao.enabled = voxelsSettings.ao.enabled;
+                patch.parameters.ao.strength = voxelsSettings.ao.strength;
+                patch.parameters.ao.spread = voxelsSettings.ao.spread;
 
                 patch.parameters.shadows = this.parameters.shadows;
 
@@ -209,16 +214,24 @@ class Terrain {
             }
         }
 
-        if (this.heightmapViewerNeedsUpdate) {
-            this.heightmapViewer.resetSubdivisions();
-            for (const patch of Object.values(this.patches)) {
-                if (patch.hasVisibleMesh()) {
-                    this.heightmapViewer.hidePatch(patch.id.x, patch.id.z);
-                }
+        if (this.parameters.lod.enabled) {
+            if (!this.heightmapContainer.parent) {
+                this.container.add(this.heightmapContainer);
             }
-            this.heightmapViewer.updateMesh();
 
-            this.heightmapViewerNeedsUpdate = false;
+            if (this.heightmapViewerNeedsUpdate) {
+                this.heightmapViewer.resetSubdivisions();
+                for (const patch of Object.values(this.patches)) {
+                    if (patch.hasVisibleMesh()) {
+                        this.heightmapViewer.hidePatch(patch.id.x, patch.id.z);
+                    }
+                }
+                this.heightmapViewer.updateMesh();
+
+                this.heightmapViewerNeedsUpdate = false;
+            }
+        } else if (this.heightmapContainer.parent) {
+            this.container.remove(this.heightmapContainer);
         }
     }
 
@@ -313,3 +326,4 @@ class Terrain {
 }
 
 export { EPatchComputingMode, Terrain, type IVoxelMap };
+
