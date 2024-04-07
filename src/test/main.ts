@@ -119,7 +119,7 @@ dirLight.color = lightColor;
 dirLight.intensity = 3;
 
 setInterval(() => {
-    terrain.lodSetFocus(camera.position, 100);
+    terrain.setLod(camera.position, 100, 8000);
 }, 200);
 
 function render(): void {

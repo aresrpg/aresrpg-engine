@@ -7,8 +7,9 @@ import { HeightmapRoot } from "./heightmap-root";
 class HeightmapViewer {
     public readonly container: THREE.Object3D;
 
-    public focusPoint: THREE.Vector2Like | null = null;
-    public focusDistance: number = -1;
+    public focusPoint: THREE.Vector2Like = { x: 0, y: 0 };
+    public focusDistance: number = 50;
+    public visibilityDistance: number = 2000;
 
     private readonly root: HeightmapRoot;
 
@@ -41,14 +42,14 @@ class HeightmapViewer {
         }
     }
 
-    public applyFocus(): void {
-        if (this.focusPoint) {
-            const patchId = this.getPatchId(new THREE.Vector2().copy(this.focusPoint));
-            const delta = Math.ceil(this.focusDistance / HeightmapNodeId.smallestLevelSizeInVoxels);
-            for (let dX = -delta; dX <= delta; dX++) {
-                for (let dY = -delta; dY <= delta; dY++) {
-                    this.root.getOrBuildSubNode(patchId.getNeighbour(dX, dY));
-                }
+    public applyVisibility(): void {
+        this.root.applyVisibility(this.focusPoint, this.visibilityDistance);
+        
+        const centralPatchId = this.getPatchId(new THREE.Vector2().copy(this.focusPoint));
+        const delta = Math.ceil(this.focusDistance / HeightmapNodeId.smallestLevelSizeInVoxels);
+        for (let dX = -delta; dX <= delta; dX++) {
+            for (let dY = -delta; dY <= delta; dY++) {
+                this.root.getOrBuildSubNode(centralPatchId.getNeighbour(dX, dY));
             }
         }
     }
