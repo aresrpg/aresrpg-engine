@@ -1,5 +1,5 @@
 import { Patch } from './patch/patch';
-import { PatchId} from "./patch/patch-id";
+import { PatchId } from './patch/patch-id';
 
 class AsyncPatch {
     private data:
@@ -93,7 +93,7 @@ class AsyncPatch {
     }
 
     public hasVisibleMesh(): boolean {
-        return this.data.state === "ready" && this.visible && !!this.data.patch;
+        return this.data.state === 'ready' && this.visible && !!this.data.patch;
     }
 
     public async ready(): Promise<void> {

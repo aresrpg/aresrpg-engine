@@ -63,4 +63,3 @@ interface IVoxelMap {
 }
 
 export type { IHeightmapSample, ILocalMapData, IVoxelMap, IVoxelMaterial };
-

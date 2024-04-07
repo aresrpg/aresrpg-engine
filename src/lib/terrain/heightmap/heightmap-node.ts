@@ -1,13 +1,14 @@
-import { logger } from "../../helpers/logger";
-import * as THREE from "../../three-usage";
-import type { IHeightmapSample } from "../i-voxel-map";
-import { HeightmapNodeId } from "./heightmap-node-id";
+import { logger } from '../../helpers/logger';
+import * as THREE from '../../three-usage';
+import type { IHeightmapSample } from '../i-voxel-map';
+
+import { HeightmapNodeId } from './heightmap-node-id';
 
 type Children = {
-    readonly mm: HeightmapNode,
-    readonly mp: HeightmapNode,
-    readonly pm: HeightmapNode,
-    readonly pp: HeightmapNode,
+    readonly mm: HeightmapNode;
+    readonly mp: HeightmapNode;
+    readonly pm: HeightmapNode;
+    readonly pp: HeightmapNode;
 };
 
 type GeometryData = {
@@ -121,8 +122,8 @@ class HeightmapNode {
                 const geometryData = this.buildGeometryData(edgesType);
 
                 const geometry = new THREE.BufferGeometry();
-                geometry.setAttribute("position", new THREE.Float32BufferAttribute(geometryData.positions, 3));
-                geometry.setAttribute("color", new THREE.Float32BufferAttribute(geometryData.colors, 3));
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(geometryData.positions, 3));
+                geometry.setAttribute('color', new THREE.Float32BufferAttribute(geometryData.colors, 3));
                 geometry.setIndex(geometryData.indices);
                 geometry.computeVertexNormals();
 
@@ -193,7 +194,7 @@ class HeightmapNode {
 
     private split(): void {
         if (this.id.level <= 0) {
-            logger.warn("Cannot split heightmap node");
+            logger.warn('Cannot split heightmap node');
             return;
         }
 
@@ -229,7 +230,7 @@ class HeightmapNode {
     }
 
     private buildGeometryData(edgesType: EdgesType): GeometryData {
-        const levelScaling = (1 << this.id.level);
+        const levelScaling = 1 << this.id.level;
         const voxelRatio = 2;
         const voxelsCount = HeightmapNodeId.smallestLevelSizeInVoxels;
         const quadsCount = voxelsCount / voxelRatio;
@@ -240,7 +241,8 @@ class HeightmapNode {
 
         const buildInnerIndex = (x: number, y: number) => y + x * (quadsCount - 1);
 
-        { // inner part
+        {
+            // inner part
             for (let iX = 1; iX < quadsCount; iX++) {
                 for (let iY = 1; iY < quadsCount; iY++) {
                     geometryData.push(scaling * iX, 0, scaling * iY);
@@ -253,12 +255,13 @@ class HeightmapNode {
                     const mp = buildInnerIndex(iX + 0, iY + 1);
                     const pm = buildInnerIndex(iX + 1, iY + 0);
                     const pp = buildInnerIndex(iX + 1, iY + 1);
-                    indexData.push(mm, pp, pm, mm, mp, pp)
+                    indexData.push(mm, pp, pm, mm, mp, pp);
                 }
             }
         }
 
-        { // outer part
+        {
+            // outer part
             const mmCornerIndex = geometryData.length / 3;
             geometryData.push(0, 0, 0);
 
@@ -271,7 +274,15 @@ class HeightmapNode {
             const ppCornerIndex = geometryData.length / 3;
             geometryData.push(scaling * quadsCount, 0, scaling * quadsCount);
 
-            const buildEdge = (edgeType: EEdgeType, invertEdgeIfSimple: boolean, cornerIndex1: number, cornerIndex2: number, innerFrom: THREE.Vector2Like, innerTo: THREE.Vector2Like, margin: THREE.Vector2Like) => {
+            const buildEdge = (
+                edgeType: EEdgeType,
+                invertEdgeIfSimple: boolean,
+                cornerIndex1: number,
+                cornerIndex2: number,
+                innerFrom: THREE.Vector2Like,
+                innerTo: THREE.Vector2Like,
+                margin: THREE.Vector2Like
+            ) => {
                 const innerIndices: number[] = [buildInnerIndex(innerFrom.x, innerFrom.y)];
                 {
                     const innerStepsCount = quadsCount - 2;
@@ -287,11 +298,11 @@ class HeightmapNode {
                     const outerFrom = { x: geometryData[3 * cornerIndex1]!, y: geometryData[3 * cornerIndex1 + 2]! };
                     const outerTo = { x: geometryData[3 * cornerIndex2]!, y: geometryData[3 * cornerIndex2 + 2]! };
 
-                    const outerStepsCount = (edgeType === EEdgeType.TESSELATED) ? 2 * quadsCount : quadsCount;
+                    const outerStepsCount = edgeType === EEdgeType.TESSELATED ? 2 * quadsCount : quadsCount;
 
-                    const dX = (edgeType === EEdgeType.LIMIT) ? 2 * margin.x : 0;
-                    const dY = (edgeType === EEdgeType.LIMIT) ? -1 : 0;
-                    const dZ = (edgeType === EEdgeType.LIMIT) ? 2 * margin.y : 0;
+                    const dX = edgeType === EEdgeType.LIMIT ? 2 * margin.x : 0;
+                    const dY = edgeType === EEdgeType.LIMIT ? -1 : 0;
+                    const dZ = edgeType === EEdgeType.LIMIT ? 2 * margin.y : 0;
 
                     outerIndices.push(cornerIndex1);
                     const outerStep = { x: (outerTo.x - outerFrom.x) / outerStepsCount, y: (outerTo.y - outerFrom.y) / outerStepsCount };
@@ -311,7 +322,11 @@ class HeightmapNode {
                         }
                         indexData.push(outerIndices[2 + 2 * i]!, innerIndices[i]!, outerIndices[3 + 2 * i]!);
                     }
-                    indexData.push(outerIndices[outerIndices.length - 2]!, innerIndices[innerIndices.length - 1]!, outerIndices[outerIndices.length - 1]!);
+                    indexData.push(
+                        outerIndices[outerIndices.length - 2]!,
+                        innerIndices[innerIndices.length - 1]!,
+                        outerIndices[outerIndices.length - 1]!
+                    );
                 } else {
                     if (invertEdgeIfSimple) {
                         innerIndices.reverse();
@@ -322,26 +337,51 @@ class HeightmapNode {
                             indexData.push(innerIndices[i + 1]!, innerIndices[i]!, outerIndices[i + 1]!);
                             indexData.push(innerIndices[i + 1]!, outerIndices[i + 1]!, outerIndices[i + 2]!);
                         }
-                        indexData.push(outerIndices[outerIndices.length - 1]!, innerIndices[innerIndices.length - 1]!, outerIndices[outerIndices.length - 2]!);
+                        indexData.push(
+                            outerIndices[outerIndices.length - 1]!,
+                            innerIndices[innerIndices.length - 1]!,
+                            outerIndices[outerIndices.length - 2]!
+                        );
                     } else {
                         indexData.push(outerIndices[0]!, innerIndices[0]!, outerIndices[1]!);
                         for (let i = 0; i < innerIndices.length - 1; i++) {
                             indexData.push(innerIndices[i]!, innerIndices[i + 1]!, outerIndices[i + 1]!);
                             indexData.push(innerIndices[i + 1]!, outerIndices[i + 2]!, outerIndices[i + 1]!);
                         }
-                        indexData.push(outerIndices[outerIndices.length - 2]!, innerIndices[innerIndices.length - 1]!, outerIndices[outerIndices.length - 1]!);
+                        indexData.push(
+                            outerIndices[outerIndices.length - 2]!,
+                            innerIndices[innerIndices.length - 1]!,
+                            outerIndices[outerIndices.length - 1]!
+                        );
                     }
                 }
             };
 
             buildEdge(edgesType.down, false, mmCornerIndex, pmCornerIndex, { x: 0, y: 0 }, { x: quadsCount - 2, y: 0 }, { x: 0, y: -1 });
-            buildEdge(edgesType.right, true, pmCornerIndex, ppCornerIndex, { x: quadsCount - 2, y: 0 }, { x: quadsCount - 2, y: quadsCount - 2 }, { x: 1, y: 0 });
-            buildEdge(edgesType.up, false, ppCornerIndex, mpCornerIndex, { x: quadsCount - 2, y: quadsCount - 2 }, { x: 0, y: quadsCount - 2 }, { x: 0, y: 1 });
+            buildEdge(
+                edgesType.right,
+                true,
+                pmCornerIndex,
+                ppCornerIndex,
+                { x: quadsCount - 2, y: 0 },
+                { x: quadsCount - 2, y: quadsCount - 2 },
+                { x: 1, y: 0 }
+            );
+            buildEdge(
+                edgesType.up,
+                false,
+                ppCornerIndex,
+                mpCornerIndex,
+                { x: quadsCount - 2, y: quadsCount - 2 },
+                { x: 0, y: quadsCount - 2 },
+                { x: 0, y: 1 }
+            );
             buildEdge(edgesType.left, true, mpCornerIndex, mmCornerIndex, { x: 0, y: quadsCount - 2 }, { x: 0, y: 0 }, { x: -1, y: 0 });
         }
 
         const colorData: number[] = [];
-        { // post-processing: altitude, colors
+        {
+            // post-processing: altitude, colors
             for (let i = 0; i < geometryData.length; i += 3) {
                 const x = geometryData[i]! + this.id.box.min.x;
                 const y = geometryData[i + 2]! + this.id.box.min.y;
@@ -377,13 +417,9 @@ class HeightmapNode {
         const left = getEdge(-1, 0);
         const right = getEdge(+1, 0);
 
-        const code = (+up) + (+down << 2) + (+left << 4) + (+right << 6);
+        const code = +up + (+down << 2) + (+left << 4) + (+right << 6);
         return { up, down, left, right, code };
     }
 }
 
-export {
-    HeightmapNode,
-    type HeightmapSampler
-};
-
+export { HeightmapNode, type HeightmapSampler };

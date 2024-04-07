@@ -1,6 +1,5 @@
 import { NoiseFunction2D, createNoise2D } from 'simplex-noise';
-import alea from "alea";
-
+import alea from 'alea';
 import * as THREE from 'three';
 
 import type { ILocalMapData, IVoxelMap, IVoxelMaterial, IHeightmapSample } from '../lib/index';

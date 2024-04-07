@@ -1,6 +1,7 @@
-import * as THREE from "../../three-usage";
-import { HeightmapNode, type HeightmapSampler } from "./heightmap-node";
-import { HeightmapNodeId } from "./heightmap-node-id";
+import * as THREE from '../../three-usage';
+
+import { HeightmapNode, type HeightmapSampler } from './heightmap-node';
+import { HeightmapNodeId } from './heightmap-node-id';
 
 class HeightmapRoot {
     public readonly container: THREE.Object3D;
@@ -48,7 +49,10 @@ class HeightmapRoot {
     }
 
     public applyVisibility(voxelId: THREE.Vector2Like, distance: number): void {
-        const centralTopNodeId = new HeightmapNodeId(this.maxLevel, { x: Math.floor(voxelId.x / this.maxLevelSizeInVoxels), y: Math.floor(voxelId.y / this.maxLevelSizeInVoxels) });
+        const centralTopNodeId = new HeightmapNodeId(this.maxLevel, {
+            x: Math.floor(voxelId.x / this.maxLevelSizeInVoxels),
+            y: Math.floor(voxelId.y / this.maxLevelSizeInVoxels),
+        });
         const margin = Math.ceil(distance / this.maxLevelSizeInVoxels);
 
         for (const topNode of this.topNodesList) {
@@ -97,11 +101,11 @@ class HeightmapRoot {
         }
 
         const shrinkFactor = 1 << (this.maxLevel - nodeId.level);
-        return new HeightmapNodeId(this.maxLevel, { x: Math.floor(nodeId.coordsInLevel.x / shrinkFactor), y: Math.floor(nodeId.coordsInLevel.y / shrinkFactor) });
+        return new HeightmapNodeId(this.maxLevel, {
+            x: Math.floor(nodeId.coordsInLevel.x / shrinkFactor),
+            y: Math.floor(nodeId.coordsInLevel.y / shrinkFactor),
+        });
     }
 }
 
-export {
-    HeightmapRoot
-};
-
+export { HeightmapRoot };
