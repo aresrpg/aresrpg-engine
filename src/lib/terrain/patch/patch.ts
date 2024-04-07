@@ -39,7 +39,7 @@ class Patch {
     public constructor(patchId: PatchId, patchMeshes: PatchMesh[]) {
         this.gpuResources = { patchMeshes };
 
-        this.container = new THREE.Object3D();
+        this.container = new THREE.Group();
         this.container.name = `Terrain patch ${patchId.asString}`;
         for (const patchMesh of patchMeshes) {
             this.container.add(patchMesh.mesh);

@@ -1,3 +1,3 @@
 export { ELogLevel, setVerbosity } from './helpers/logger';
-export type { IVoxelMap, IVoxelMaterial, ILocalMapData, IHeightmapSample } from './terrain/i-voxel-map';
+export type { IHeightmapSample, ILocalMapData, IVoxelMap, IVoxelMaterial } from './terrain/i-voxel-map';
 export { EPatchComputingMode, Terrain } from './terrain/terrain';
