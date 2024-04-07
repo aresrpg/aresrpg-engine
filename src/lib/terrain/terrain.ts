@@ -226,6 +226,7 @@ class Terrain {
                         this.heightmapViewer.hidePatch(patch.id.x, patch.id.z);
                     }
                 }
+                this.heightmapViewer.applyFocus();
                 this.heightmapViewer.updateMesh();
 
                 this.heightmapViewerNeedsUpdate = false;
@@ -233,6 +234,17 @@ class Terrain {
         } else if (this.heightmapContainer.parent) {
             this.container.remove(this.heightmapContainer);
         }
+    }
+
+    /**
+     * Requests for the LOD map to be precise around a certain position
+     * @param focusPoint Coords in voxels of the point to focus
+     * @param focusDistance Radius in voxels of the area that must use max LOD quality
+     */
+    public lodSetFocus(focusPoint: THREE.Vector3Like, focusDistance: number): void {
+        this.heightmapViewer.focusPoint = new THREE.Vector2(focusPoint.x, focusPoint.z);
+        this.heightmapViewer.focusDistance = focusDistance;
+        this.heightmapViewerNeedsUpdate = true;
     }
 
     /**
