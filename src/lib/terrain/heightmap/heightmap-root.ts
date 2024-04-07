@@ -66,7 +66,7 @@ class HeightmapRoot {
         }
 
         const timeSinceLastGarbageCollect = performance.now() - this.lastGarbageCollectTimestamp;
-        if (timeSinceLastGarbageCollect > this.lastGarbageCollectTimestamp) {
+        if (timeSinceLastGarbageCollect > this.garbageCollectInterval) {
             this.garbageCollect();
         }
     }
