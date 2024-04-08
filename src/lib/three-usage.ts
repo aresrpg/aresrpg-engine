@@ -19,4 +19,6 @@ export {
     type TypedArray,
     type Vector2Like,
     type Vector3Like,
+    InterleavedBuffer,
+    InterleavedBufferAttribute,
 } from 'three';
