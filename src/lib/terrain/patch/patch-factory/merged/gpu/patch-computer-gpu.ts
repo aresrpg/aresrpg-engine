@@ -52,7 +52,7 @@ class PatchComputerGpu {
         @group(0) @binding(5) var<storage,read_write> frontFaceVerticesData: FaceVerticesBuffer;
         @group(0) @binding(6) var<storage,read_write> backFaceVerticesData: FaceVerticesBuffer;
         struct ComputeIn {
-            @builtin(global_invocation_id) globalInvocationId : vec3<u32>,
+            @builtin(global_invocation_id) globalInvocationId : vec3u,
         };
         
         fn sampleLocalCache(index: i32) -> u32 {
@@ -72,15 +72,16 @@ class PatchComputerGpu {
             let neighbourData = sampleLocalCache(neighbourCacheIndex);
             return neighbourData != 0u;
         }
-        fn encodeVoxelData1(localPositionX: u32, localPositionY: u32, localPositionZ: u32) -> u32 {
-            return ${vertexData1Encoder.wgslEncodeVoxelData('localPositionX', 'localPositionY', 'localPositionZ')};
+        fn encodeVoxelData1(voxelPosition: vec3u) -> u32 {
+            return ${vertexData1Encoder.wgslEncodeVoxelData('voxelPosition')};
+        }
+        fn encodeVertexData1(encodedVoxelPosition: u32, verticePosition: vec3u, ao: u32, edgeRoundnessX: u32, edgeRoundnessY: u32) -> u32 {
+            return encodedVoxelPosition + ${vertexData1Encoder.wgslEncodeVertexData('verticePosition', 'ao', 'edgeRoundnessX', 'edgeRoundnessY')};
         }
         fn encodeVoxelData2(voxelMaterialId: u32, faceNoiseId: u32) -> u32 {
             return ${vertexData2Encoder.wgslEncodeVoxelData('voxelMaterialId', 'faceNoiseId')};
         }
-        fn encodeVertexData(voxelData: u32, ao: u32, edgeRoundnessX: u32, edgeRoundnessY: u32) -> u32 {
-            return voxelData + ${vertexData1Encoder.wgslEncodeVertexData('ao', 'edgeRoundnessX', 'edgeRoundnessY')};
-        }
+
         @compute @workgroup_size(${this.workgroupSize})
         fn main(in: ComputeIn) {
             let globalInvocationId: u32 = in.globalInvocationId.x;
@@ -108,7 +109,7 @@ class PatchComputerGpu {
                 let voxelData: u32 = sampleLocalCache(cacheIndex);
                 if (voxelData != 0u) {
                     let voxelMaterialId: u32 = voxelData - 1u;
-                    let voxelData = encodeVoxelData1(voxelLocalPosition.x, voxelLocalPosition.y, voxelLocalPosition.z);
+                    let encodedVoxelPosition = ${vertexData1Encoder.wgslEncodeVoxelData('voxelLocalPosition')};
                     ${Object.values(Cube.faces)
                 .map(
                     face => `
@@ -141,7 +142,8 @@ class PatchComputerGpu {
                         edgeRoundnessY = ${faceVertex.edgeNeighbourVoxels.y
                                         .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${neighbour.x},${neighbour.y},${neighbour.z}))`)
                                         .join(' && ')};
-                        let vertex${faceVertexId}Data = encodeVertexData(voxelData, ao, u32(edgeRoundnessX), u32(edgeRoundnessY));`
+                        let vertex${faceVertexId}Position = vec3u(${faceVertex.vertex.x}u, ${faceVertex.vertex.y}u, ${faceVertex.vertex.z}u);
+                        let vertex${faceVertexId}Data = encodeVertexData1(encodedVoxelPosition, vertex${faceVertexId}Position, ao, u32(edgeRoundnessX), u32(edgeRoundnessY));`
                             )
                             .join('')}
                         ${Cube.faceIndices
