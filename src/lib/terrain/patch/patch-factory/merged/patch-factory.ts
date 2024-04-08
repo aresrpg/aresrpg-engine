@@ -64,8 +64,7 @@ in uint ${PatchFactory.data2AttributeName};
 
 out vec2 vUv;
 out vec2 vEdgeRoundness;
-flat out int vMaterial;
-flat out int vNoise;
+flat out uint vData2;
 out float vAo;
 
 void main() {`,
@@ -107,8 +106,7 @@ void main() {`,
             PatchFactory.data1AttributeName
         )}) / ${PatchFactory.vertexData1Encoder.ao.maxValue.toFixed(1)};
 
-        vMaterial = int(${PatchFactory.data2AttributeName} & 255u);
-        vNoise = int(modelVoxelPosition.x + modelVoxelPosition.y * 3u + modelVoxelPosition.z * 2u) % ${this.noiseTypes};
+        vData2 = ${PatchFactory.data2AttributeName};
         `,
                 '#include <beginnormal_vertex>': `
     vec3 objectNormal = vec3(${Cube.faces[faceType].normal.x}, ${Cube.faces[faceType].normal.y}, ${Cube.faces[faceType].normal.z});
@@ -130,8 +128,7 @@ uniform mat3 normalMatrix; // from three.js
 
 in vec2 vUv;
 in vec2 vEdgeRoundness;
-flat in int vMaterial;
-flat in int vNoise;
+flat in uint vData2;
 in float vAo;
 
 vec3 computeModelNormal() {
@@ -171,8 +168,9 @@ vec3 computeModelNormal() {
 }
 
 float computeNoise() {
+    int noiseId = int(${PatchFactory.vertexData2Encoder.faceNoiseId.glslDecode('vData2')});
     ivec2 texelCoords = clamp(ivec2(vUv * ${this.noiseResolution.toFixed(1)}), ivec2(0), ivec2(${this.noiseResolution - 1}));
-    texelCoords.x += vNoise * ${this.noiseResolution};
+    texelCoords.x += noiseId * ${this.noiseResolution};
     float noise = texelFetch(uNoiseTexture, texelCoords, 0).r - 0.5;
     return uNoiseStrength * noise;
 }
@@ -185,7 +183,8 @@ void main() {
                 '#include <map_fragment>': `
     diffuseColor.rgb = vec3(0.75);
     if (uDisplayMode == ${EDisplayMode.TEXTURES}u) {
-        ivec2 texelCoords = ivec2(vMaterial, 0);
+        uint voxelMaterialId = ${PatchFactory.vertexData2Encoder.voxelMaterialId.glslDecode('vData2')};
+        ivec2 texelCoords = ivec2(voxelMaterialId, 0);
         diffuseColor.rgb = texelFetch(uTexture, texelCoords, 0).rgb;
     } else if (uDisplayMode == ${EDisplayMode.NORMALS}u) {
         diffuseColor.rgb = 0.5 + 0.5 * modelFaceNormal;
