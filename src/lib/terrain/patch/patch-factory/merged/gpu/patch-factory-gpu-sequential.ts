@@ -26,8 +26,8 @@ class PatchFactoryGpuSequential extends PatchFactoryGpu {
             }
 
             const patchComputerGpu = await this.getPatchComputerGpu();
-            const buffers = await patchComputerGpu.computeBuffers(localMapCache);
-            return this.assembleGeometryAndMaterials(buffers);
+            const buffer = await patchComputerGpu.computeBuffer(localMapCache);
+            return this.assembleGeometryAndMaterials(buffer);
         });
     }
 }
