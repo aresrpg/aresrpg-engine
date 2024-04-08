@@ -97,14 +97,14 @@ void main() {`,
     vEdgeRoundness = edgeRoundness[edgeRoundnessId];
 
     vAo = float(${PatchFactory.vertexData1Encoder.ao.glslDecode(
-                    PatchFactory.data1AttributeName
-                )}) / ${PatchFactory.vertexData1Encoder.ao.maxValue.toFixed(1)};
+        PatchFactory.data1AttributeName
+    )}) / ${PatchFactory.vertexData1Encoder.ao.maxValue.toFixed(1)};
 
     vData2 = ${PatchFactory.data2AttributeName};
         `,
                 '#include <beginnormal_vertex>': `
     const vec3 faceNormalById[] = vec3[](
-        ${Cube.facesById.map(face => `vec3(${face.normal.vec.x}, ${face.normal.vec.y}, ${face.normal.vec.z})`).join(",\n")}
+        ${Cube.facesById.map(face => `vec3(${face.normal.vec.x}, ${face.normal.vec.y}, ${face.normal.vec.z})`).join(',\n')}
     );
     uint faceId = ${PatchFactory.vertexData1Encoder.faceId.glslDecode(PatchFactory.data1AttributeName)};
     vec3 objectNormal = faceNormalById[faceId];
@@ -131,10 +131,10 @@ in float vAo;
 
 vec3 computeModelNormal() {
     const vec3 modelNormalsById[] = vec3[](
-        ${Cube.normalsById.map(value => `vec3(${value.x}, ${value.y}, ${value.z})`).join(",\n")}
+        ${Cube.normalsById.map(value => `vec3(${value.x}, ${value.y}, ${value.z})`).join(',\n')}
     );
 
-    vec3 modelFaceNormal = modelNormalsById[${PatchFactory.vertexData2Encoder.normalId.glslDecode("vData2")}];
+    vec3 modelFaceNormal = modelNormalsById[${PatchFactory.vertexData2Encoder.normalId.glslDecode('vData2')}];
     if (uSmoothEdgeRadius <= 0.0) {
         return modelFaceNormal;
     }
@@ -157,7 +157,7 @@ vec3 computeModelNormal() {
         localNormal = normalize(vec3(distanceFromMargin, 1));
     }
 
-    vec3 uvRight = modelNormalsById[${PatchFactory.vertexData2Encoder.uvRightId.glslDecode("vData2")}];
+    vec3 uvRight = modelNormalsById[${PatchFactory.vertexData2Encoder.uvRightId.glslDecode('vData2')}];
     vec3 uvUp = cross(modelFaceNormal, uvRight);
 
     vec3 modelNormal = localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * modelFaceNormal;
@@ -285,7 +285,7 @@ void main() {
         geometry.setAttribute(PatchFactory.data2AttributeName, data2Attribute);
         geometry.setDrawRange(0, verticesCount);
 
-        return [{ id: "merged", materials: this.materialsTemplates, geometry }];
+        return [{ id: 'merged', materials: this.materialsTemplates, geometry }];
     }
 }
 

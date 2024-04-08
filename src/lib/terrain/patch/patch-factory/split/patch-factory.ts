@@ -83,8 +83,8 @@ abstract class PatchFactory extends PatchFactoryBase {
             vEdgeRoundness = edgeRoundness[edgeRoundnessId];
 
             vAo = float(${PatchFactory.vertexDataEncoder.ao.glslDecode(
-                        PatchFactory.dataAttributeName
-                    )}) / ${PatchFactory.vertexDataEncoder.ao.maxValue.toFixed(1)};
+                PatchFactory.dataAttributeName
+            )}) / ${PatchFactory.vertexDataEncoder.ao.maxValue.toFixed(1)};
 
             vMaterial = int(${PatchFactory.vertexDataEncoder.voxelMaterialId.glslDecode(PatchFactory.dataAttributeName)});
             vNoise = int(modelVoxelPosition.x + modelVoxelPosition.y * 3u + modelVoxelPosition.z * 2u) % ${this.noiseTypes};
@@ -252,8 +252,8 @@ void main() {`,
         vEdgeRoundness = edgeRoundness[edgeRoundnessId];
 
         vAo = float(${PatchFactory.vertexDataEncoder.ao.glslDecode(
-                    PatchFactory.dataAttributeName
-                )}) / ${PatchFactory.vertexDataEncoder.ao.maxValue.toFixed(1)};
+            PatchFactory.dataAttributeName
+        )}) / ${PatchFactory.vertexDataEncoder.ao.maxValue.toFixed(1)};
 
         vMaterial = int(${PatchFactory.vertexDataEncoder.voxelMaterialId.glslDecode(PatchFactory.dataAttributeName)});
         vNoise = int(modelVoxelPosition.x + modelVoxelPosition.y * 3u + modelVoxelPosition.z * 2u) % ${this.noiseTypes};
@@ -322,7 +322,7 @@ vec3 computeModelNormal() {
     const vec3 uvRight = vec3(
         ${Cube.faces[faceType].uvRight.vec.x},
         ${Cube.faces[faceType].uvRight.vec.y},
-        ${Cube.faces[faceType ].uvRight.vec.z}
+        ${Cube.faces[faceType].uvRight.vec.z}
     );
     vec3 modelNormal = localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * modelFaceNormal;
     return modelNormal;

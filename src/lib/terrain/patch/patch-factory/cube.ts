@@ -45,7 +45,7 @@ function buildNormal(vec: THREE.Vector3): Normal {
             };
         }
     }
-    throw new Error("Invalid normal");
+    throw new Error('Invalid normal');
 }
 
 type Face = {

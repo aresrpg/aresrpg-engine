@@ -28,7 +28,7 @@ class PatchFactoryCpu extends PatchFactory {
         let faceId = 0;
         const faceVerticesData = new Uint32Array(uint32PerVertex * 4);
         for (const faceData of iterator()) {
-            const faceNoiseId = (faceId++) % PatchFactory.vertexData2Encoder.faceNoiseId.maxValue;
+            const faceNoiseId = faceId++ % PatchFactory.vertexData2Encoder.faceNoiseId.maxValue;
 
             faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
                 faceVerticesData[2 * faceVertexIndex + 0] = PatchFactory.vertexData1Encoder.encode(
@@ -42,12 +42,12 @@ class PatchFactoryCpu extends PatchFactory {
                     faceData.voxelMaterialId,
                     faceNoiseId,
                     Cube.faces[faceData.faceType].normal.id,
-                    Cube.faces[faceData.faceType].uvRight.id,
+                    Cube.faces[faceData.faceType].uvRight.id
                 );
             });
 
             for (const index of Cube.faceIndices) {
-                const vertexIndex = uint32PerVertex * (bufferData.verticesCount++);
+                const vertexIndex = uint32PerVertex * bufferData.verticesCount++;
                 bufferData.buffer[vertexIndex] = faceVerticesData[2 * index + 0]!;
                 bufferData.buffer[vertexIndex + 1] = faceVerticesData[2 * index + 1]!;
             }

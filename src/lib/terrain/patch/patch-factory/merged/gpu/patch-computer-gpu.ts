@@ -17,7 +17,11 @@ type FaceBuffer = {
 type ComputationOutputs = Uint32Array;
 
 class PatchComputerGpu {
-    public static async create(localCacheSize: THREE.Vector3, vertexData1Encoder: VertexData1Encoder, vertexData2Encoder: VertexData2Encoder): Promise<PatchComputerGpu> {
+    public static async create(
+        localCacheSize: THREE.Vector3,
+        vertexData1Encoder: VertexData1Encoder,
+        vertexData2Encoder: VertexData2Encoder
+    ): Promise<PatchComputerGpu> {
         logger.debug('Requesting WebGPU device...');
         const device = await getGpuDevice();
         return new PatchComputerGpu(device, localCacheSize, vertexData1Encoder, vertexData2Encoder);
@@ -32,7 +36,12 @@ class PatchComputerGpu {
 
     private readonly workgroupSize = 256;
 
-    private constructor(device: GPUDevice, localCacheSize: THREE.Vector3, vertexData1Encoder: VertexData1Encoder, vertexData2Encoder: VertexData2Encoder) {
+    private constructor(
+        device: GPUDevice,
+        localCacheSize: THREE.Vector3,
+        vertexData1Encoder: VertexData1Encoder,
+        vertexData2Encoder: VertexData2Encoder
+    ) {
         this.device = device;
 
         const code = `
@@ -101,8 +110,8 @@ class PatchComputerGpu {
                     let voxelMaterialId: u32 = voxelData - 1u;
                     let encodedVoxelPosition = ${vertexData1Encoder.wgslEncodeVoxelData('voxelLocalPosition')};
                     ${Object.values(Cube.faces)
-                .map(
-                    face => `
+                        .map(
+                            face => `
                     if (!doesNeighbourExist(cacheIndex, vec3i(${face.normal.vec.x}, ${face.normal.vec.y}, ${face.normal.vec.z}))) {
                         let firstVertexIndex: u32 = atomicAdd(&verticesBuffer.verticesCount, 6u);
                         let faceNoiseId: u32 = (firstVertexIndex / 6u) % (${vertexData2Encoder.faceNoiseId.maxValue});
@@ -114,12 +123,15 @@ class PatchComputerGpu {
                                 (faceVertex: Cube.FaceVertex, faceVertexId: number) => `
                         ao = 0u;
                         {
-                            let a: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[0].x},${faceVertex.shadowingNeighbourVoxels[0].y
-                                    },${faceVertex.shadowingNeighbourVoxels[0].z}));
-                            let b: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[1].x},${faceVertex.shadowingNeighbourVoxels[1].y
-                                    },${faceVertex.shadowingNeighbourVoxels[1].z}));
-                            let c: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[2].x},${faceVertex.shadowingNeighbourVoxels[2].y
-                                    },${faceVertex.shadowingNeighbourVoxels[2].z}));
+                            let a: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[0].x},${
+                                faceVertex.shadowingNeighbourVoxels[0].y
+                            },${faceVertex.shadowingNeighbourVoxels[0].z}));
+                            let b: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[1].x},${
+                                faceVertex.shadowingNeighbourVoxels[1].y
+                            },${faceVertex.shadowingNeighbourVoxels[1].z}));
+                            let c: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[2].x},${
+                                faceVertex.shadowingNeighbourVoxels[2].y
+                            },${faceVertex.shadowingNeighbourVoxels[2].z}));
                             if (a && b) {
                                 ao = 3u;
                               } else {
@@ -127,11 +139,11 @@ class PatchComputerGpu {
                               }
                         }
                         edgeRoundnessX = ${faceVertex.edgeNeighbourVoxels.x
-                                        .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${neighbour.x},${neighbour.y},${neighbour.z}))`)
-                                        .join(' && ')};
+                            .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${neighbour.x},${neighbour.y},${neighbour.z}))`)
+                            .join(' && ')};
                         edgeRoundnessY = ${faceVertex.edgeNeighbourVoxels.y
-                                        .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${neighbour.x},${neighbour.y},${neighbour.z}))`)
-                                        .join(' && ')};
+                            .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${neighbour.x},${neighbour.y},${neighbour.z}))`)
+                            .join(' && ')};
                         let vertex${faceVertexId}Position = vec3u(${faceVertex.vertex.x}u, ${faceVertex.vertex.y}u, ${faceVertex.vertex.z}u);
                         let vertex${faceVertexId}Data = encodeVertexData1(encodedVoxelPosition, vertex${faceVertexId}Position, ao, u32(edgeRoundnessX), u32(edgeRoundnessY));`
                             )
@@ -144,8 +156,8 @@ class PatchComputerGpu {
                             )
                             .join('')}
                     }`
-                )
-                .join('\n')}
+                        )
+                        .join('\n')}
                 }
             }
         }
@@ -191,13 +203,16 @@ class PatchComputerGpu {
 
         this.computePipelineBindgroup = this.device.createBindGroup({
             layout: this.computePipeline.getBindGroupLayout(0),
-            entries: [{
-                binding: 0,
-                resource: { buffer: this.localCacheBuffer },
-            }, {
-                binding: 1,
-                resource: { buffer: this.buffer.storageBuffer },
-            }]
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.localCacheBuffer },
+                },
+                {
+                    binding: 1,
+                    resource: { buffer: this.buffer.storageBuffer },
+                },
+            ],
         });
     }
 
@@ -223,10 +238,7 @@ class PatchComputerGpu {
 
         this.device.queue.submit([commandEncoder.finish()]);
 
-        await Promise.all([
-            this.device.queue.onSubmittedWorkDone(),
-            this.buffer.readableBuffer.mapAsync(GPUMapMode.READ),
-        ]);
+        await Promise.all([this.device.queue.onSubmittedWorkDone(), this.buffer.readableBuffer.mapAsync(GPUMapMode.READ)]);
 
         const cpuBuffer = new Uint32Array(this.buffer.readableBuffer.getMappedRange());
 
