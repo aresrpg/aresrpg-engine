@@ -98,6 +98,10 @@ class AsyncPatch {
         return this.data.state === 'ready' && this.visible && !!this.data.patch;
     }
 
+    public get isReady(): boolean {
+        return this.data.state === 'ready';
+    }
+
     public async ready(): Promise<void> {
         if (this.data.state === 'pending') {
             await this.data.promise;
