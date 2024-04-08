@@ -78,10 +78,11 @@ void main() {`,
         ${PatchFactory.vertexData1Encoder.voxelZ.glslDecode(PatchFactory.data1AttributeName)}
     );
 
-    const uvec3 localVertexPositions[] = uvec3[](
-        ${Cube.faces[faceType].vertices.map(vertex => `uvec3(${vertex.vertex.x}, ${vertex.vertex.y}, ${vertex.vertex.z})`).join(',\n\t\t')}
+    uvec3 localVertexPosition = uvec3(
+        ${PatchFactory.vertexData1Encoder.localX.glslDecode(PatchFactory.data1AttributeName)},
+        ${PatchFactory.vertexData1Encoder.localY.glslDecode(PatchFactory.data1AttributeName)},
+        ${PatchFactory.vertexData1Encoder.localZ.glslDecode(PatchFactory.data1AttributeName)}
     );
-    uvec3 localVertexPosition = localVertexPositions[vertexId];
     vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
     vec3 transformed = modelPosition;
     
@@ -199,7 +200,7 @@ void main() {
         return material;
     }
 
-    private buildShadowMaterial(faceType: Cube.FaceType): THREE.Material {
+    private buildShadowMaterial(): THREE.Material {
         // Custom shadow material using RGBA depth packing.
         // A custom material for shadows is needed here, because the geometry is created inside the vertex shader,
         // so the builtin threejs shadow material will not work.
@@ -225,12 +226,11 @@ void main() {
                 ${PatchFactory.vertexData1Encoder.voxelZ.glslDecode(PatchFactory.data1AttributeName)}
             );
 
-            const uvec3 localVertexPositions[] = uvec3[](
-                ${Cube.faces[faceType].vertices
-                    .map(vertex => `uvec3(${vertex.vertex.x}, ${vertex.vertex.y}, ${vertex.vertex.z})`)
-                    .join(',\n')}
+            uvec3 localVertexPosition = uvec3(
+                ${PatchFactory.vertexData1Encoder.localX.glslDecode(PatchFactory.data1AttributeName)},
+                ${PatchFactory.vertexData1Encoder.localY.glslDecode(PatchFactory.data1AttributeName)},
+                ${PatchFactory.vertexData1Encoder.localZ.glslDecode(PatchFactory.data1AttributeName)}
             );
-            uvec3 localVertexPosition = localVertexPositions[vertexId];
             vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
             gl_Position = projectionMatrix * modelViewMatrix * vec4(modelPosition, 1.0);
 
@@ -256,7 +256,7 @@ void main() {
 
     private buildPatchMaterial(faceType: Cube.FaceType): PatchMaterials {
         const material = this.buildThreeJsPatchMaterial(faceType);
-        const shadowMaterial = this.buildShadowMaterial(faceType);
+        const shadowMaterial = this.buildShadowMaterial();
         return { material, shadowMaterial };
     }
 
@@ -300,7 +300,7 @@ void main() {
         const materials = this.materialsTemplates[faceType];
         const geometry = new THREE.BufferGeometry();
         const interleavedBuffer = new THREE.InterleavedBuffer(buffer, 2);
-        
+
         const data1Attribute = new THREE.InterleavedBufferAttribute(interleavedBuffer, 1, 0);
         const data2Attribute = new THREE.InterleavedBufferAttribute(interleavedBuffer, 1, 1);
 

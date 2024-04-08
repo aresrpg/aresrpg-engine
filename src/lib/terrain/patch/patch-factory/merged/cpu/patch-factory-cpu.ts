@@ -45,9 +45,8 @@ class PatchFactoryCpu extends PatchFactory {
 
             faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
                 faceVerticesData[2 * faceVertexIndex + 0] = PatchFactory.vertexData1Encoder.encode(
-                    faceData.voxelLocalPosition.x,
-                    faceData.voxelLocalPosition.y,
-                    faceData.voxelLocalPosition.z,
+                    faceData.voxelLocalPosition,
+                    faceVertexData.localPosition,
                     faceVertexData.ao,
                     [faceVertexData.roundnessX, faceVertexData.roundnessY]
                 );
