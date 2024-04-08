@@ -75,8 +75,8 @@ class PatchComputerGpu {
         fn encodeVoxelData1(localPositionX: u32, localPositionY: u32, localPositionZ: u32) -> u32 {
             return ${vertexData1Encoder.wgslEncodeVoxelData('localPositionX', 'localPositionY', 'localPositionZ')};
         }
-        fn encodeVoxelData2(voxelMaterialId: u32) -> u32 {
-            return ${vertexData2Encoder.wgslEncodeVoxelData('voxelMaterialId')};
+        fn encodeVoxelData2(voxelMaterialId: u32, faceNoiseId: u32) -> u32 {
+            return ${vertexData2Encoder.wgslEncodeVoxelData('voxelMaterialId', 'faceNoiseId')};
         }
         fn encodeVertexData(voxelData: u32, ao: u32, edgeRoundnessX: u32, edgeRoundnessY: u32) -> u32 {
             return voxelData + ${vertexData1Encoder.wgslEncodeVertexData('ao', 'edgeRoundnessX', 'edgeRoundnessY')};
@@ -86,11 +86,11 @@ class PatchComputerGpu {
             let globalInvocationId: u32 = in.globalInvocationId.x;
             if (globalInvocationId == 0u) {
                 ${Object.values(Cube.faces)
-                    .map(
-                        face => `
+                .map(
+                    face => `
                 atomicStore(&${face.type}FaceVerticesData.verticesCount, 0u);`
-                    )
-                    .join('')};
+                )
+                .join('')};
             }
             storageBarrier();
             let patchIndex: u32 = globalInvocationId;
@@ -110,10 +110,11 @@ class PatchComputerGpu {
                     let voxelMaterialId: u32 = voxelData - 1u;
                     let voxelData = encodeVoxelData1(voxelLocalPosition.x, voxelLocalPosition.y, voxelLocalPosition.z);
                     ${Object.values(Cube.faces)
-                        .map(
-                            face => `
+                .map(
+                    face => `
                     if (!doesNeighbourExist(cacheIndex, vec3i(${face.normal.x}, ${face.normal.y}, ${face.normal.z}))) {
-                        let firstVertexIndex: u32 = atomicAdd(&${face.type}FaceVerticesData.verticesCount, 12u);
+                        let firstVertexIndex: u32 = atomicAdd(&${face.type}FaceVerticesData.verticesCount, 6u);
+                        let faceNoiseId: u32 = (firstVertexIndex / 6u) % (${vertexData2Encoder.faceNoiseId.maxValue});
                         var ao: u32;
                         var edgeRoundnessX: bool;
                         var edgeRoundnessY: bool;
@@ -122,15 +123,12 @@ class PatchComputerGpu {
                                 (faceVertex: Cube.FaceVertex, faceVertexId: number) => `
                         ao = 0u;
                         {
-                            let a: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[0].x},${
-                                faceVertex.shadowingNeighbourVoxels[0].y
-                            },${faceVertex.shadowingNeighbourVoxels[0].z}));
-                            let b: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[1].x},${
-                                faceVertex.shadowingNeighbourVoxels[1].y
-                            },${faceVertex.shadowingNeighbourVoxels[1].z}));
-                            let c: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[2].x},${
-                                faceVertex.shadowingNeighbourVoxels[2].y
-                            },${faceVertex.shadowingNeighbourVoxels[2].z}));
+                            let a: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[0].x},${faceVertex.shadowingNeighbourVoxels[0].y
+                                    },${faceVertex.shadowingNeighbourVoxels[0].z}));
+                            let b: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[1].x},${faceVertex.shadowingNeighbourVoxels[1].y
+                                    },${faceVertex.shadowingNeighbourVoxels[1].z}));
+                            let c: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[2].x},${faceVertex.shadowingNeighbourVoxels[2].y
+                                    },${faceVertex.shadowingNeighbourVoxels[2].z}));
                             if (a && b) {
                                 ao = 3u;
                               } else {
@@ -138,24 +136,24 @@ class PatchComputerGpu {
                               }
                         }
                         edgeRoundnessX = ${faceVertex.edgeNeighbourVoxels.x
-                            .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${neighbour.x},${neighbour.y},${neighbour.z}))`)
-                            .join(' && ')};
+                                        .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${neighbour.x},${neighbour.y},${neighbour.z}))`)
+                                        .join(' && ')};
                         edgeRoundnessY = ${faceVertex.edgeNeighbourVoxels.y
-                            .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${neighbour.x},${neighbour.y},${neighbour.z}))`)
-                            .join(' && ')};
+                                        .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${neighbour.x},${neighbour.y},${neighbour.z}))`)
+                                        .join(' && ')};
                         let vertex${faceVertexId}Data = encodeVertexData(voxelData, ao, u32(edgeRoundnessX), u32(edgeRoundnessY));`
                             )
                             .join('')}
                         ${Cube.faceIndices
                             .map(
                                 (faceVertexId: number, index: number) => `
-                        ${face.type}FaceVerticesData.verticesData[firstVertexIndex + ${2 * index}u + 0u] = vertex${faceVertexId}Data;
-                        ${face.type}FaceVerticesData.verticesData[firstVertexIndex + ${2 * index}u + 1u] = encodeVoxelData2(voxelMaterialId);`
+                        ${face.type}FaceVerticesData.verticesData[2u * (firstVertexIndex + ${index}u) + 0u] = vertex${faceVertexId}Data;
+                        ${face.type}FaceVerticesData.verticesData[2u * (firstVertexIndex + ${index}u) + 1u] = encodeVoxelData2(voxelMaterialId, faceNoiseId);`
                             )
                             .join('')}
                     }`
-                        )
-                        .join('\n')}
+                )
+                .join('\n')}
                 }
             }
         }
@@ -271,8 +269,9 @@ class PatchComputerGpu {
                     throw new Error();
                 }
 
-                const verticesDataBuffer = cpuBuffer.subarray(1, 1 + verticesCount);
-                const finalBuffer = new Uint32Array(verticesCount);
+                const uint32PerVertex = 2;
+                const verticesDataBuffer = cpuBuffer.subarray(1, 1 + uint32PerVertex * verticesCount);
+                const finalBuffer = new Uint32Array(verticesDataBuffer.length);
                 finalBuffer.set(verticesDataBuffer);
                 faceBuffer.readableBuffer.unmap();
 
