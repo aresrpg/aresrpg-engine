@@ -305,7 +305,7 @@ class Terrain {
     }
 
     private get minPatchIdY(): number {
-        return Math.ceil(this.parameters.voxels.map.minAltitude / this.patchFactory.maxPatchSize.y);
+        return Math.floor(this.parameters.voxels.map.minAltitude / this.patchFactory.maxPatchSize.y);
     }
 
     private get maxPatchIdY(): number {
