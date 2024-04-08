@@ -83,8 +83,8 @@ abstract class PatchFactory extends PatchFactoryBase {
             vEdgeRoundness = edgeRoundness[edgeRoundnessId];
 
             vAo = float(${PatchFactory.vertexDataEncoder.ao.glslDecode(
-                PatchFactory.dataAttributeName
-            )}) / ${PatchFactory.vertexDataEncoder.ao.maxValue.toFixed(1)};
+                        PatchFactory.dataAttributeName
+                    )}) / ${PatchFactory.vertexDataEncoder.ao.maxValue.toFixed(1)};
 
             vMaterial = int(${PatchFactory.vertexDataEncoder.voxelMaterialId.glslDecode(PatchFactory.dataAttributeName)});
             vNoise = int(modelVoxelPosition.x + modelVoxelPosition.y * 3u + modelVoxelPosition.z * 2u) % ${this.noiseTypes};
@@ -113,9 +113,10 @@ abstract class PatchFactory extends PatchFactoryBase {
         out vec4 fragColor;
 
         vec3 computeModelNormal() {
-            const vec3 worldFaceNormal = vec3(${Cube.faces[faceType].normal.x.toFixed(1)}, ${Cube.faces[faceType].normal.y.toFixed(
-                1
-            )}, ${Cube.faces[faceType].normal.z.toFixed(1)});
+            const vec3 worldFaceNormal = vec3(
+                ${Cube.faces[faceType].normal.vec.x},
+                ${Cube.faces[faceType].normal.vec.y},
+                ${Cube.faces[faceType].normal.vec.z});
             if (uSmoothEdgeRadius <= 0.0) {
                 return worldFaceNormal;
             }
@@ -138,12 +139,14 @@ abstract class PatchFactory extends PatchFactoryBase {
                 localNormal = normalize(vec3(distanceFromMargin, 1));
             }
 
-            const vec3 uvUp = vec3(${Cube.faces[faceType].uvUp.x.toFixed(1)}, ${Cube.faces[faceType].uvUp.y.toFixed(1)}, ${Cube.faces[
-                faceType
-            ].uvUp.z.toFixed(1)});
-            const vec3 uvRight = vec3(${Cube.faces[faceType].uvRight.x.toFixed(1)}, ${Cube.faces[faceType].uvRight.y.toFixed(
-                1
-            )}, ${Cube.faces[faceType].uvRight.z.toFixed(1)});
+            const vec3 uvUp = vec3(
+                ${Cube.faces[faceType].uvUp.vec.x},
+                ${Cube.faces[faceType].uvUp.vec.y},
+                ${Cube.faces[faceType].uvUp.vec.z});
+            const vec3 uvRight = vec3(
+                ${Cube.faces[faceType].uvRight.vec.x},
+                ${Cube.faces[faceType].uvRight.vec.y},
+                ${Cube.faces[faceType].uvRight.vec.z});
             return localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * worldFaceNormal;
         }
 
@@ -249,14 +252,18 @@ void main() {`,
         vEdgeRoundness = edgeRoundness[edgeRoundnessId];
 
         vAo = float(${PatchFactory.vertexDataEncoder.ao.glslDecode(
-            PatchFactory.dataAttributeName
-        )}) / ${PatchFactory.vertexDataEncoder.ao.maxValue.toFixed(1)};
+                    PatchFactory.dataAttributeName
+                )}) / ${PatchFactory.vertexDataEncoder.ao.maxValue.toFixed(1)};
 
         vMaterial = int(${PatchFactory.vertexDataEncoder.voxelMaterialId.glslDecode(PatchFactory.dataAttributeName)});
         vNoise = int(modelVoxelPosition.x + modelVoxelPosition.y * 3u + modelVoxelPosition.z * 2u) % ${this.noiseTypes};
         `,
                 '#include <beginnormal_vertex>': `
-    vec3 objectNormal = vec3(${Cube.faces[faceType].normal.x}, ${Cube.faces[faceType].normal.y}, ${Cube.faces[faceType].normal.z});
+    vec3 objectNormal = vec3(
+        ${Cube.faces[faceType].normal.vec.x},
+        ${Cube.faces[faceType].normal.vec.y},
+        ${Cube.faces[faceType].normal.vec.z}
+    );
 `,
             });
 
@@ -280,11 +287,13 @@ flat in int vNoise;
 in float vAo;
 
 vec3 computeModelNormal() {
-    const vec3 worldFaceNormal = vec3(${Cube.faces[faceType].normal.x.toFixed(1)}, ${Cube.faces[faceType].normal.y.toFixed(
-        1
-    )}, ${Cube.faces[faceType].normal.z.toFixed(1)});
+    const vec3 modelFaceNormal = vec3(
+        ${Cube.faces[faceType].normal.vec.x},
+        ${Cube.faces[faceType].normal.vec.y},
+        ${Cube.faces[faceType].normal.vec.z}
+    );
     if (uSmoothEdgeRadius <= 0.0) {
-        return worldFaceNormal;
+        return modelFaceNormal;
     }
 
     vec3 localNormal;
@@ -305,14 +314,18 @@ vec3 computeModelNormal() {
         localNormal = normalize(vec3(distanceFromMargin, 1));
     }
 
-    const vec3 uvUp = vec3(${Cube.faces[faceType].uvUp.x.toFixed(1)}, ${Cube.faces[faceType].uvUp.y.toFixed(1)}, ${Cube.faces[
-        faceType
-    ].uvUp.z.toFixed(1)});
-    const vec3 uvRight = vec3(${Cube.faces[faceType].uvRight.x.toFixed(1)}, ${Cube.faces[faceType].uvRight.y.toFixed(1)}, ${Cube.faces[
-        faceType
-    ].uvRight.z.toFixed(1)});
-    vec3 modelNormal = localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * worldFaceNormal;
-    return normalMatrix * modelNormal;
+    const vec3 uvUp = vec3(
+        ${Cube.faces[faceType].uvUp.vec.x},
+        ${Cube.faces[faceType].uvUp.vec.y},
+        ${Cube.faces[faceType].uvUp.vec.z}
+    );
+    const vec3 uvRight = vec3(
+        ${Cube.faces[faceType].uvRight.vec.x},
+        ${Cube.faces[faceType].uvRight.vec.y},
+        ${Cube.faces[faceType ].uvRight.vec.z}
+    );
+    vec3 modelNormal = localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * modelFaceNormal;
+    return modelNormal;
 }
 
 float computeNoise() {
@@ -326,7 +339,7 @@ void main() {
     vec3 modelFaceNormal = computeModelNormal();
 `,
                 '#include <normal_fragment_begin>': `
-    vec3 normal = modelFaceNormal;`,
+    vec3 normal = normalMatrix * modelFaceNormal;`,
                 '#include <map_fragment>': `
     diffuseColor.rgb = vec3(0.75);
     if (uDisplayMode == ${EDisplayMode.TEXTURES}u) {

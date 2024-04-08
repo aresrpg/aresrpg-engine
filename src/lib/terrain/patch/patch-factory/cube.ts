@@ -29,14 +29,32 @@ const normals: Record<FaceType, THREE.Vector3> = {
     front: new THREE.Vector3(0, 0, +1),
     back: new THREE.Vector3(0, 0, -1),
 };
+const normalsById = Object.values(normals);
+
+type Normal = {
+    readonly id: number;
+    readonly vec: THREE.Vector3;
+};
+
+function buildNormal(vec: THREE.Vector3): Normal {
+    for (let i = 0; i < normalsById.length; i++) {
+        if (normalsById[i]!.equals(vec)) {
+            return {
+                id: i,
+                vec,
+            };
+        }
+    }
+    throw new Error("Invalid normal");
+}
 
 type Face = {
     readonly id: number;
     readonly type: FaceType;
     readonly vertices: [FaceVertex, FaceVertex, FaceVertex, FaceVertex];
-    readonly normal: THREE.Vector3;
-    readonly uvUp: THREE.Vector3;
-    readonly uvRight: THREE.Vector3;
+    readonly normal: Normal;
+    readonly uvUp: Normal;
+    readonly uvRight: Normal;
 };
 
 const faceIndices: [number, number, number, number, number, number] = [0, 2, 1, 1, 2, 3];
@@ -103,9 +121,9 @@ function buildFace(type: FaceType, v00: THREE.Vector3, v01: THREE.Vector3, v10: 
                 },
             },
         ],
-        normal,
-        uvUp,
-        uvRight,
+        normal: buildNormal(normal),
+        uvUp: buildNormal(uvUp),
+        uvRight: buildNormal(uvRight),
     };
 }
 
@@ -119,4 +137,4 @@ const faces: Record<FaceType, Face> = {
 };
 const facesById = Object.values(faces).sort((face1: Face, face2: Face) => face1.id - face2.id);
 
-export { faceIndices, faces, facesById, type FaceType, type FaceVertex };
+export { faceIndices, faces, facesById, normalsById, type Face, type FaceType, type FaceVertex };

@@ -47,12 +47,15 @@ class PatchFactoryCpu extends PatchFactory {
                 faceVerticesData[2 * faceVertexIndex + 0] = PatchFactory.vertexData1Encoder.encode(
                     faceData.voxelLocalPosition,
                     faceVertexData.localPosition,
+                    faceData.faceId,
                     faceVertexData.ao,
                     [faceVertexData.roundnessX, faceVertexData.roundnessY]
                 );
                 faceVerticesData[2 * faceVertexIndex + 1] = PatchFactory.vertexData2Encoder.encode(
                     faceData.voxelMaterialId,
                     faceNoiseId,
+                    Cube.faces[faceData.faceType].normal.id,
+                    Cube.faces[faceData.faceType].uvRight.id,
                 );
             });
 

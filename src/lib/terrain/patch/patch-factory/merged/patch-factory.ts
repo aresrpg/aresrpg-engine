@@ -92,25 +92,29 @@ void main() {`,
             vec2(1,0),
             vec2(1,1)
         );
-        vUv = uvs[vertexId];
+    vUv = uvs[vertexId];
 
-        const vec2 edgeRoundness[] = vec2[](
-            vec2(0,0),
-            vec2(1,0),
-            vec2(0,1),
-            vec2(1,1)
-        );
-        uint edgeRoundnessId = ${PatchFactory.vertexData1Encoder.edgeRoundness.glslDecode(PatchFactory.data1AttributeName)};
-        vEdgeRoundness = edgeRoundness[edgeRoundnessId];
+    const vec2 edgeRoundness[] = vec2[](
+        vec2(0,0),
+        vec2(1,0),
+        vec2(0,1),
+        vec2(1,1)
+    );
+    uint edgeRoundnessId = ${PatchFactory.vertexData1Encoder.edgeRoundness.glslDecode(PatchFactory.data1AttributeName)};
+    vEdgeRoundness = edgeRoundness[edgeRoundnessId];
 
-        vAo = float(${PatchFactory.vertexData1Encoder.ao.glslDecode(
-            PatchFactory.data1AttributeName
-        )}) / ${PatchFactory.vertexData1Encoder.ao.maxValue.toFixed(1)};
+    vAo = float(${PatchFactory.vertexData1Encoder.ao.glslDecode(
+                    PatchFactory.data1AttributeName
+                )}) / ${PatchFactory.vertexData1Encoder.ao.maxValue.toFixed(1)};
 
-        vData2 = ${PatchFactory.data2AttributeName};
+    vData2 = ${PatchFactory.data2AttributeName};
         `,
                 '#include <beginnormal_vertex>': `
-    vec3 objectNormal = vec3(${Cube.faces[faceType].normal.x}, ${Cube.faces[faceType].normal.y}, ${Cube.faces[faceType].normal.z});
+    const vec3 faceNormalById[] = vec3[](
+        ${Cube.facesById.map(face => `vec3(${face.normal.vec.x}, ${face.normal.vec.y}, ${face.normal.vec.z})`).join(",\n")}
+    );
+    uint faceId = ${PatchFactory.vertexData1Encoder.faceId.glslDecode(PatchFactory.data1AttributeName)};
+    vec3 objectNormal = faceNormalById[faceId];
 `,
             });
 
@@ -133,11 +137,13 @@ flat in uint vData2;
 in float vAo;
 
 vec3 computeModelNormal() {
-    const vec3 worldFaceNormal = vec3(${Cube.faces[faceType].normal.x.toFixed(1)}, ${Cube.faces[faceType].normal.y.toFixed(
-        1
-    )}, ${Cube.faces[faceType].normal.z.toFixed(1)});
+    const vec3 modelNormalsById[] = vec3[](
+        ${Cube.normalsById.map(value => `vec3(${value.x}, ${value.y}, ${value.z})`).join(",\n")}
+    );
+
+    vec3 modelFaceNormal = modelNormalsById[${PatchFactory.vertexData2Encoder.normalId.glslDecode("vData2")}];
     if (uSmoothEdgeRadius <= 0.0) {
-        return worldFaceNormal;
+        return modelFaceNormal;
     }
 
     vec3 localNormal;
@@ -158,14 +164,11 @@ vec3 computeModelNormal() {
         localNormal = normalize(vec3(distanceFromMargin, 1));
     }
 
-    const vec3 uvUp = vec3(${Cube.faces[faceType].uvUp.x.toFixed(1)}, ${Cube.faces[faceType].uvUp.y.toFixed(1)}, ${Cube.faces[
-        faceType
-    ].uvUp.z.toFixed(1)});
-    const vec3 uvRight = vec3(${Cube.faces[faceType].uvRight.x.toFixed(1)}, ${Cube.faces[faceType].uvRight.y.toFixed(1)}, ${Cube.faces[
-        faceType
-    ].uvRight.z.toFixed(1)});
-    vec3 modelNormal = localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * worldFaceNormal;
-    return normalMatrix * modelNormal;
+    vec3 uvRight = modelNormalsById[${PatchFactory.vertexData2Encoder.uvRightId.glslDecode("vData2")}];
+    vec3 uvUp = cross(modelFaceNormal, uvRight);
+
+    vec3 modelNormal = localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * modelFaceNormal;
+    return modelNormal;
 }
 
 float computeNoise() {
@@ -180,7 +183,7 @@ void main() {
     vec3 modelFaceNormal = computeModelNormal();
 `,
                 '#include <normal_fragment_begin>': `
-    vec3 normal = modelFaceNormal;`,
+    vec3 normal = normalMatrix * modelFaceNormal;`,
                 '#include <map_fragment>': `
     diffuseColor.rgb = vec3(0.75);
     if (uDisplayMode == ${EDisplayMode.TEXTURES}u) {

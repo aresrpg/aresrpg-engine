@@ -78,8 +78,8 @@ class PatchComputerGpu {
         fn encodeVertexData1(encodedVoxelPosition: u32, verticePosition: vec3u, ao: u32, edgeRoundnessX: u32, edgeRoundnessY: u32) -> u32 {
             return encodedVoxelPosition + ${vertexData1Encoder.wgslEncodeVertexData('verticePosition', 'ao', 'edgeRoundnessX', 'edgeRoundnessY')};
         }
-        fn encodeVoxelData2(voxelMaterialId: u32, faceNoiseId: u32) -> u32 {
-            return ${vertexData2Encoder.wgslEncodeVoxelData('voxelMaterialId', 'faceNoiseId')};
+        fn encodeVoxelData2(voxelMaterialId: u32, faceNoiseId: u32, normalId: u32, uvRightId: u32) -> u32 {
+            return ${vertexData2Encoder.wgslEncodeVoxelData('voxelMaterialId', 'faceNoiseId', 'normalId', 'uvRightId')};
         }
 
         @compute @workgroup_size(${this.workgroupSize})
@@ -113,7 +113,7 @@ class PatchComputerGpu {
                     ${Object.values(Cube.faces)
                 .map(
                     face => `
-                    if (!doesNeighbourExist(cacheIndex, vec3i(${face.normal.x}, ${face.normal.y}, ${face.normal.z}))) {
+                    if (!doesNeighbourExist(cacheIndex, vec3i(${face.normal.vec.x}, ${face.normal.vec.y}, ${face.normal.vec.z}))) {
                         let firstVertexIndex: u32 = atomicAdd(&${face.type}FaceVerticesData.verticesCount, 6u);
                         let faceNoiseId: u32 = (firstVertexIndex / 6u) % (${vertexData2Encoder.faceNoiseId.maxValue});
                         var ao: u32;
@@ -150,7 +150,7 @@ class PatchComputerGpu {
                             .map(
                                 (faceVertexId: number, index: number) => `
                         ${face.type}FaceVerticesData.verticesData[2u * (firstVertexIndex + ${index}u) + 0u] = vertex${faceVertexId}Data;
-                        ${face.type}FaceVerticesData.verticesData[2u * (firstVertexIndex + ${index}u) + 1u] = encodeVoxelData2(voxelMaterialId, faceNoiseId);`
+                        ${face.type}FaceVerticesData.verticesData[2u * (firstVertexIndex + ${index}u) + 1u] = encodeVoxelData2(voxelMaterialId, faceNoiseId, ${face.normal.id}u, ${face.uvRight.id}u);`
                             )
                             .join('')}
                     }`
