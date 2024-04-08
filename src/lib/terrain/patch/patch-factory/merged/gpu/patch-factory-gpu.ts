@@ -13,7 +13,11 @@ abstract class PatchFactoryGpu extends PatchFactory {
         }
         super(map, computingMode);
         const localCacheSize = this.maxPatchSize.clone().addScalar(2);
-        this.patchComputerGpuPromise = PatchComputerGpu.create(localCacheSize, PatchFactory.vertexData1Encoder, PatchFactory.vertexData2Encoder);
+        this.patchComputerGpuPromise = PatchComputerGpu.create(
+            localCacheSize,
+            PatchFactory.vertexData1Encoder,
+            PatchFactory.vertexData2Encoder
+        );
     }
 
     protected override async disposeInternal(): Promise<void> {

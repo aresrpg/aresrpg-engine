@@ -1,5 +1,5 @@
 import { PackedUintFactory } from '../uint-packing';
-import * as THREE from "../../../../three-usage";
+import * as THREE from '../../../../three-usage';
 
 class VertexData1Encoder {
     private readonly packedUintFactory = new PackedUintFactory(32);
@@ -34,11 +34,11 @@ class VertexData1Encoder {
     }
 
     public wgslEncodeVoxelData(voxelPosVarname: string): string {
-        return `(${this.voxelX.wgslEncode(voxelPosVarname + ".x")} + ${this.voxelY.wgslEncode(voxelPosVarname + ".y")} + ${this.voxelZ.wgslEncode(voxelPosVarname + ".z")})`;
+        return `(${this.voxelX.wgslEncode(voxelPosVarname + '.x')} + ${this.voxelY.wgslEncode(voxelPosVarname + '.y')} + ${this.voxelZ.wgslEncode(voxelPosVarname + '.z')})`;
     }
 
     public wgslEncodeVertexData(localPosVarname: string, aoVarname: string, edgeRoundessX: string, edgeRoundnessY: string): string {
-        return `(${this.localX.wgslEncode(localPosVarname + ".x")} + ${this.localY.wgslEncode(localPosVarname + ".y")} + ${this.localZ.wgslEncode(localPosVarname + ".z")} +
+        return `(${this.localX.wgslEncode(localPosVarname + '.x')} + ${this.localY.wgslEncode(localPosVarname + '.y')} + ${this.localZ.wgslEncode(localPosVarname + '.z')} +
             ${this.ao.wgslEncode(aoVarname)} + ${this.edgeRoundness.wgslEncode(`(${edgeRoundessX} + (${edgeRoundnessY} << 1u))`)})`;
     }
 }
