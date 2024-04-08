@@ -26,16 +26,9 @@ abstract class PatchFactory extends PatchFactoryBase {
         PatchFactory.vertexData1Encoder.voxelZ.maxValue + 1
     );
 
-    private readonly materialsTemplates: Record<Cube.FaceType, PatchMaterials> = {
-        up: this.buildPatchMaterial('up'),
-        down: this.buildPatchMaterial('down'),
-        left: this.buildPatchMaterial('left'),
-        right: this.buildPatchMaterial('right'),
-        front: this.buildPatchMaterial('front'),
-        back: this.buildPatchMaterial('back'),
-    };
+    private readonly materialsTemplates: PatchMaterials = this.buildPatchMaterial();
 
-    private buildThreeJsPatchMaterial(faceType: Cube.FaceType): PatchMaterial {
+    private buildThreeJsPatchMaterial(): PatchMaterial {
         function applyReplacements(source: string, replacements: Record<string, string>): string {
             let result = source;
 
@@ -50,7 +43,7 @@ abstract class PatchFactory extends PatchFactoryBase {
         phongMaterial.shininess = 0;
         const material = phongMaterial as unknown as PatchMaterialTemp;
         material.userData.uniforms = this.uniformsTemplate;
-        material.customProgramCacheKey = () => `patch-factory-split_${faceType}`;
+        material.customProgramCacheKey = () => `patch-factory-merged`;
         material.onBeforeCompile = parameters => {
             parameters.uniforms = {
                 ...parameters.uniforms,
@@ -257,8 +250,8 @@ void main() {
         });
     }
 
-    private buildPatchMaterial(faceType: Cube.FaceType): PatchMaterials {
-        const material = this.buildThreeJsPatchMaterial(faceType);
+    private buildPatchMaterial(): PatchMaterials {
+        const material = this.buildThreeJsPatchMaterial();
         const shadowMaterial = this.buildShadowMaterial();
         return { material, shadowMaterial };
     }
@@ -268,10 +261,8 @@ void main() {
     }
 
     protected async disposeInternal(): Promise<void> {
-        for (const material of Object.values(this.materialsTemplates)) {
-            material.material.dispose();
-            material.shadowMaterial.dispose();
-        }
+        this.materialsTemplates.material.dispose();
+        this.materialsTemplates.shadowMaterial.dispose();
     }
 
     protected assembleGeometryAndMaterials(buffers: Record<Cube.FaceType, Uint32Array>): GeometryAndMaterial[] {
@@ -300,7 +291,7 @@ void main() {
             return null;
         }
 
-        const materials = this.materialsTemplates[faceType];
+        const materials = this.materialsTemplates;
         const geometry = new THREE.BufferGeometry();
         const interleavedBuffer = new THREE.InterleavedBuffer(buffer, 2);
 
