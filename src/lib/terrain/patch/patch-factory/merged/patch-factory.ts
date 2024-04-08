@@ -265,33 +265,12 @@ void main() {
         this.materialsTemplates.shadowMaterial.dispose();
     }
 
-    protected assembleGeometryAndMaterials(buffers: Record<Cube.FaceType, Uint32Array>): GeometryAndMaterial[] {
-        const processedBuffers = [
-            this.assembleGeometryAndMaterial('up', buffers),
-            this.assembleGeometryAndMaterial('down', buffers),
-            this.assembleGeometryAndMaterial('left', buffers),
-            this.assembleGeometryAndMaterial('right', buffers),
-            this.assembleGeometryAndMaterial('front', buffers),
-            this.assembleGeometryAndMaterial('back', buffers),
-        ];
-
-        const result: GeometryAndMaterial[] = [];
-        for (const processedBuffer of processedBuffers) {
-            if (processedBuffer) {
-                result.push(processedBuffer);
-            }
-        }
-        return result;
-    }
-
-    private assembleGeometryAndMaterial(faceType: Cube.FaceType, buffers: Record<Cube.FaceType, Uint32Array>): GeometryAndMaterial | null {
-        const buffer = buffers[faceType];
+    protected assembleGeometryAndMaterials(buffer: Uint32Array): GeometryAndMaterial[] {
         const verticesCount = buffer.length / 2;
         if (verticesCount === 0) {
-            return null;
+            return [];
         }
 
-        const materials = this.materialsTemplates;
         const geometry = new THREE.BufferGeometry();
         const interleavedBuffer = new THREE.InterleavedBuffer(buffer, 2);
 
@@ -306,8 +285,7 @@ void main() {
         geometry.setAttribute(PatchFactory.data2AttributeName, data2Attribute);
         geometry.setDrawRange(0, verticesCount);
 
-
-        return { id: faceType, materials, geometry };
+        return [{ id: "merged", materials: this.materialsTemplates, geometry }];
     }
 }
 

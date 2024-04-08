@@ -67,7 +67,7 @@ class PatchFactoryGpuOptimized extends PatchFactoryGpu {
                         currentJob.gpuTask = (async () => {
                             // logger.diagnostic(`GPU ${currentJob.patchId} start`);
                             const patchComputerGpu = await this.getPatchComputerGpu();
-                            const gpuTaskOutput = await patchComputerGpu.computeBuffers(localMapCache);
+                            const gpuTaskOutput = await patchComputerGpu.computeBuffer(localMapCache);
                             // logger.diagnostic(`GPU ${currentJob.patchId} end`);
 
                             return this.assembleGeometryAndMaterials(gpuTaskOutput);

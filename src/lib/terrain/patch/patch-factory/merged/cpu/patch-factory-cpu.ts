@@ -15,27 +15,14 @@ class PatchFactoryCpu extends PatchFactory {
         const patchSize = patchEnd.clone().sub(patchStart);
         const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
 
-        type BufferData = {
-            readonly buffer: Uint32Array;
-            verticesCount: number;
-        };
-
+        const maxFacesPerVoxel = 6;
         const verticesPerFace = 6;
         const uint32PerVertex = 2;
-        const bufferLength = voxelsCountPerPatch * verticesPerFace * uint32PerVertex;
-        const buildFaceBufferData = () => {
-            return {
-                buffer: new Uint32Array(bufferLength),
-                verticesCount: 0,
-            };
-        };
-        const facesBufferData: Record<Cube.FaceType, BufferData> = {
-            up: buildFaceBufferData(),
-            down: buildFaceBufferData(),
-            left: buildFaceBufferData(),
-            right: buildFaceBufferData(),
-            front: buildFaceBufferData(),
-            back: buildFaceBufferData(),
+        const bufferLength = maxFacesPerVoxel * voxelsCountPerPatch * verticesPerFace * uint32PerVertex;
+
+        const bufferData = {
+            buffer: new Uint32Array(bufferLength),
+            verticesCount: 0,
         };
 
         let faceId = 0;
@@ -59,26 +46,15 @@ class PatchFactoryCpu extends PatchFactory {
                 );
             });
 
-            const faceBufferData = facesBufferData[faceData.faceType];
             for (const index of Cube.faceIndices) {
-                const vertexIndex = uint32PerVertex * (faceBufferData.verticesCount++);
-                faceBufferData.buffer[vertexIndex] = faceVerticesData[2 * index + 0]!;
-                faceBufferData.buffer[vertexIndex + 1] = faceVerticesData[2 * index + 1]!;
+                const vertexIndex = uint32PerVertex * (bufferData.verticesCount++);
+                bufferData.buffer[vertexIndex] = faceVerticesData[2 * index + 0]!;
+                bufferData.buffer[vertexIndex + 1] = faceVerticesData[2 * index + 1]!;
             }
         }
 
-        const truncateFaceBufferData = (bufferData: BufferData) => new Uint32Array(bufferData.buffer.subarray(0, uint32PerVertex * bufferData.verticesCount));
-
-        const buffers: Record<Cube.FaceType, Uint32Array> = {
-            up: truncateFaceBufferData(facesBufferData.up),
-            down: truncateFaceBufferData(facesBufferData.down),
-            left: truncateFaceBufferData(facesBufferData.left),
-            right: truncateFaceBufferData(facesBufferData.right),
-            front: truncateFaceBufferData(facesBufferData.front),
-            back: truncateFaceBufferData(facesBufferData.back),
-        };
-
-        return this.assembleGeometryAndMaterials(buffers);
+        const buffer = new Uint32Array(bufferData.buffer.subarray(0, uint32PerVertex * bufferData.verticesCount));
+        return this.assembleGeometryAndMaterials(buffer);
     }
 }
 

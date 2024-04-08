@@ -14,7 +14,7 @@ type FaceBuffer = {
     readonly readableBuffer: GPUBuffer;
 };
 
-type ComputationOutputs = Record<Cube.FaceType, Uint32Array>;
+type ComputationOutputs = Uint32Array;
 
 class PatchComputerGpu {
     public static async create(localCacheSize: THREE.Vector3, vertexData1Encoder: VertexData1Encoder, vertexData2Encoder: VertexData2Encoder): Promise<PatchComputerGpu> {
@@ -28,7 +28,7 @@ class PatchComputerGpu {
     private readonly computePipeline: GPUComputePipeline;
     private readonly computePipelineBindgroup: GPUBindGroup;
     private readonly localCacheBuffer: GPUBuffer;
-    private readonly faceBuffers: Record<Cube.FaceType, FaceBuffer>;
+    private readonly buffer: FaceBuffer;
 
     private readonly workgroupSize = 256;
 
@@ -40,17 +40,12 @@ class PatchComputerGpu {
             size: vec3i,
             data: array<u32>,
         };
-        struct FaceVerticesBuffer {
+        struct VerticesBuffer {
             verticesCount: atomic<u32>,
             verticesData: array<u32>,
         };
         @group(0) @binding(0) var<storage,read> localMapCacheData: LocalMapCacheBuffer;
-        @group(0) @binding(1) var<storage,read_write> upFaceVerticesData: FaceVerticesBuffer;
-        @group(0) @binding(2) var<storage,read_write> downFaceVerticesData: FaceVerticesBuffer;
-        @group(0) @binding(3) var<storage,read_write> leftFaceVerticesData: FaceVerticesBuffer;
-        @group(0) @binding(4) var<storage,read_write> rightFaceVerticesData: FaceVerticesBuffer;
-        @group(0) @binding(5) var<storage,read_write> frontFaceVerticesData: FaceVerticesBuffer;
-        @group(0) @binding(6) var<storage,read_write> backFaceVerticesData: FaceVerticesBuffer;
+        @group(0) @binding(1) var<storage,read_write> verticesBuffer: VerticesBuffer;
         struct ComputeIn {
             @builtin(global_invocation_id) globalInvocationId : vec3u,
         };
@@ -86,12 +81,7 @@ class PatchComputerGpu {
         fn main(in: ComputeIn) {
             let globalInvocationId: u32 = in.globalInvocationId.x;
             if (globalInvocationId == 0u) {
-                ${Object.values(Cube.faces)
-                .map(
-                    face => `
-                atomicStore(&${face.type}FaceVerticesData.verticesCount, 0u);`
-                )
-                .join('')};
+                atomicStore(&verticesBuffer.verticesCount, 0u);
             }
             storageBarrier();
             let patchIndex: u32 = globalInvocationId;
@@ -114,7 +104,7 @@ class PatchComputerGpu {
                 .map(
                     face => `
                     if (!doesNeighbourExist(cacheIndex, vec3i(${face.normal.vec.x}, ${face.normal.vec.y}, ${face.normal.vec.z}))) {
-                        let firstVertexIndex: u32 = atomicAdd(&${face.type}FaceVerticesData.verticesCount, 6u);
+                        let firstVertexIndex: u32 = atomicAdd(&verticesBuffer.verticesCount, 6u);
                         let faceNoiseId: u32 = (firstVertexIndex / 6u) % (${vertexData2Encoder.faceNoiseId.maxValue});
                         var ao: u32;
                         var edgeRoundnessX: bool;
@@ -149,8 +139,8 @@ class PatchComputerGpu {
                         ${Cube.faceIndices
                             .map(
                                 (faceVertexId: number, index: number) => `
-                        ${face.type}FaceVerticesData.verticesData[2u * (firstVertexIndex + ${index}u) + 0u] = vertex${faceVertexId}Data;
-                        ${face.type}FaceVerticesData.verticesData[2u * (firstVertexIndex + ${index}u) + 1u] = encodeVoxelData2(voxelMaterialId, faceNoiseId, ${face.normal.id}u, ${face.uvRight.id}u);`
+                        verticesBuffer.verticesData[2u * (firstVertexIndex + ${index}u) + 0u] = vertex${faceVertexId}Data;
+                        verticesBuffer.verticesData[2u * (firstVertexIndex + ${index}u) + 1u] = encodeVoxelData2(voxelMaterialId, faceNoiseId, ${face.normal.id}u, ${face.uvRight.id}u);`
                             )
                             .join('')}
                     }`
@@ -178,53 +168,40 @@ class PatchComputerGpu {
             mappedAtCreation: false,
         });
 
+        const maxFacesPerVoxel = 6;
         const maxVoxelsCount = (localCacheSize.x - 2) * (localCacheSize.y - 2) * (localCacheSize.z - 2);
         const verticesPerVoxel = 6;
-        const bufferSize = Uint32Array.BYTES_PER_ELEMENT * (1 + Math.ceil(maxVoxelsCount / 2) * verticesPerVoxel);
+        const bufferSize = Uint32Array.BYTES_PER_ELEMENT * (1 + Math.ceil(maxVoxelsCount / 2) * maxFacesPerVoxel * verticesPerVoxel);
 
-        const buildFaceBuffer = () => {
-            return {
-                storageBuffer: this.device.createBuffer({
-                    size: bufferSize,
-                    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-                    mappedAtCreation: false,
-                }),
-                readableBuffer: this.device.createBuffer({
-                    size: bufferSize,
-                    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-                    mappedAtCreation: false,
-                }),
-            };
+        this.buffer = {
+            storageBuffer: this.device.createBuffer({
+                size: bufferSize,
+                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+                mappedAtCreation: false,
+            }),
+            readableBuffer: this.device.createBuffer({
+                size: bufferSize,
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+                mappedAtCreation: false,
+            }),
         };
 
-        this.faceBuffers = {
-            up: buildFaceBuffer(),
-            down: buildFaceBuffer(),
-            left: buildFaceBuffer(),
-            right: buildFaceBuffer(),
-            front: buildFaceBuffer(),
-            back: buildFaceBuffer(),
-        };
-
-        let totalBuffersSize = 0;
-        Object.values(this.faceBuffers).forEach(
-            faceBuffer => (totalBuffersSize += faceBuffer.readableBuffer.size + faceBuffer.storageBuffer.size)
-        );
+        const totalBuffersSize = this.buffer.storageBuffer.size + this.buffer.readableBuffer.size;
         logger.info(`Allocated ${(totalBuffersSize / 1024 / 1024).toFixed(1)} MB of webgpu buffers.`);
 
-        const bindgroupBuffers = [this.localCacheBuffer, ...Object.values(this.faceBuffers).map(faceBuffer => faceBuffer.storageBuffer)];
         this.computePipelineBindgroup = this.device.createBindGroup({
             layout: this.computePipeline.getBindGroupLayout(0),
-            entries: bindgroupBuffers.map((buffer: GPUBuffer, index: number) => {
-                return {
-                    binding: index,
-                    resource: { buffer },
-                };
-            }),
+            entries: [{
+                binding: 0,
+                resource: { buffer: this.localCacheBuffer },
+            }, {
+                binding: 1,
+                resource: { buffer: this.buffer.storageBuffer },
+            }]
         });
     }
 
-    public async computeBuffers(localMapCache: LocalMapCache): Promise<ComputationOutputs> {
+    public async computeBuffer(localMapCache: LocalMapCache): Promise<ComputationOutputs> {
         this.device.queue.writeBuffer(
             this.localCacheBuffer,
             0,
@@ -242,55 +219,36 @@ class PatchComputerGpu {
         computePass.dispatchWorkgroups(Math.ceil(totalPatchCells / this.workgroupSize));
         computePass.end();
 
-        for (const faceBuffer of Object.values(this.faceBuffers)) {
-            commandEncoder.copyBufferToBuffer(faceBuffer.storageBuffer, 0, faceBuffer.readableBuffer, 0, faceBuffer.readableBuffer.size);
-        }
+        commandEncoder.copyBufferToBuffer(this.buffer.storageBuffer, 0, this.buffer.readableBuffer, 0, this.buffer.readableBuffer.size);
 
         this.device.queue.submit([commandEncoder.finish()]);
 
-        const emptyArray = new Uint32Array();
-        const result = {
-            up: emptyArray,
-            down: emptyArray,
-            left: emptyArray,
-            right: emptyArray,
-            front: emptyArray,
-            back: emptyArray,
-        };
+        await Promise.all([
+            this.device.queue.onSubmittedWorkDone(),
+            this.buffer.readableBuffer.mapAsync(GPUMapMode.READ),
+        ]);
 
-        const promises = (Object.entries(this.faceBuffers) as [Cube.FaceType, FaceBuffer][]).map(
-            async (entry: [Cube.FaceType, FaceBuffer]) => {
-                const faceType = entry[0];
-                const faceBuffer = entry[1];
+        const cpuBuffer = new Uint32Array(this.buffer.readableBuffer.getMappedRange());
 
-                await faceBuffer.readableBuffer.mapAsync(GPUMapMode.READ);
-                const cpuBuffer = new Uint32Array(faceBuffer.readableBuffer.getMappedRange());
+        const verticesCount = cpuBuffer[0];
+        if (typeof verticesCount === 'undefined') {
+            throw new Error();
+        }
 
-                const verticesCount = cpuBuffer[0];
-                if (typeof verticesCount === 'undefined') {
-                    throw new Error();
-                }
+        const uint32PerVertex = 2;
+        const verticesDataBuffer = cpuBuffer.subarray(1, 1 + uint32PerVertex * verticesCount);
+        const finalBuffer = new Uint32Array(verticesDataBuffer.length);
+        finalBuffer.set(verticesDataBuffer);
+        this.buffer.readableBuffer.unmap();
 
-                const uint32PerVertex = 2;
-                const verticesDataBuffer = cpuBuffer.subarray(1, 1 + uint32PerVertex * verticesCount);
-                const finalBuffer = new Uint32Array(verticesDataBuffer.length);
-                finalBuffer.set(verticesDataBuffer);
-                faceBuffer.readableBuffer.unmap();
-
-                result[faceType] = finalBuffer;
-            }
-        );
-
-        await Promise.all(promises);
-        return result;
+        return finalBuffer;
     }
 
     public dispose(): void {
         this.localCacheBuffer.destroy();
-        for (const buffer of Object.values(this.faceBuffers)) {
-            buffer.storageBuffer.destroy();
-            buffer.readableBuffer.destroy();
-        }
+        this.buffer.storageBuffer.destroy();
+        this.buffer.readableBuffer.destroy();
+
         logger.debug('Destroying WebGPU device...');
         this.device.destroy();
     }
