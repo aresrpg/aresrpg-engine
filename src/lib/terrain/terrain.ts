@@ -44,6 +44,10 @@ class Terrain {
                 strength: 0.4,
                 spread: 0.85,
             },
+            map: {
+                minAltitude: -1,
+                maxAltitude: 256,
+            },
         },
         lod: {
             enabled: true,
@@ -144,7 +148,7 @@ class Terrain {
             patch.visible = false;
         }
 
-        const visibilitySphere = new THREE.Sphere(position, radius);
+        const visibilitySphere = new THREE.Sphere(new THREE.Vector3(position.x, 0, position.z), radius);
 
         type WantedPatch = {
             readonly patchId: THREE.Vector3;
@@ -155,12 +159,15 @@ class Terrain {
 
         const patchId = new THREE.Vector3();
         for (patchId.x = patchIdFrom.x; patchId.x < patchIdTo.x; patchId.x++) {
-            for (patchId.y = patchIdFrom.y; patchId.y < patchIdTo.y; patchId.y++) {
-                for (patchId.z = patchIdFrom.z; patchId.z < patchIdTo.z; patchId.z++) {
-                    const patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
+            for (patchId.z = patchIdFrom.z; patchId.z < patchIdTo.z; patchId.z++) {
+                patchId.y = 0;
 
-                    const boundingBox = new THREE.Box3(patchStart, patchStart.clone().add(this.patchSize));
-                    if (visibilitySphere.intersectsBox(boundingBox)) {
+                let patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
+
+                const boundingBox = new THREE.Box3(patchStart, patchStart.clone().add(this.patchSize));
+                if (visibilitySphere.intersectsBox(boundingBox)) {
+                    for (patchId.y = this.minPatchIdY; patchId.y < this.maxPatchIdY; patchId.y++) {
+                        patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
                         wantedPatchesList.push({
                             patchId: patchId.clone(),
                             patchStart,
@@ -222,7 +229,18 @@ class Terrain {
             if (this.heightmapViewerNeedsUpdate) {
                 this.heightmapViewer.resetSubdivisions();
                 for (const patch of Object.values(this.patches)) {
-                    if (patch.hasVisibleMesh()) {
+                    let wholeColumnIsDisplayed = true;
+
+                    for (let iY = this.minPatchIdY; iY < this.maxPatchIdY; iY++) {
+                        const id = new PatchId({ x: patch.id.x, y: iY, z: patch.id.z });
+                        const columnNeighbour = this.patches[id.asString];
+                        if (!columnNeighbour || !columnNeighbour.isReady || !columnNeighbour.visible) {
+                            wholeColumnIsDisplayed = false;
+                            break;
+                        }
+                    }
+
+                    if (wholeColumnIsDisplayed) {
                         this.heightmapViewer.hidePatch(patch.id.x, patch.id.z);
                     }
                 }
@@ -284,6 +302,14 @@ class Terrain {
         }
         this.maxPatchesInCache = value;
         this.garbageCollectPatches();
+    }
+
+    private get minPatchIdY(): number {
+        return Math.ceil(this.parameters.voxels.map.minAltitude / this.patchFactory.maxPatchSize.y);
+    }
+
+    private get maxPatchIdY(): number {
+        return Math.ceil(this.parameters.voxels.map.maxAltitude / this.patchFactory.maxPatchSize.y);
     }
 
     private garbageCollectPatches(): void {
