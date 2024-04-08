@@ -9,12 +9,14 @@ class VertexData1Encoder {
     public readonly localX = this.packedUintFactory.encodePart(2);
     public readonly localY = this.packedUintFactory.encodePart(2);
     public readonly localZ = this.packedUintFactory.encodePart(2);
+    public readonly faceId = this.packedUintFactory.encodePart(6);
     public readonly ao = this.packedUintFactory.encodePart(4);
     public readonly edgeRoundness = this.packedUintFactory.encodePart(4);
 
     public encode(
         voxelPos: THREE.Vector3Like,
         localPos: THREE.Vector3Like,
+        faceId: number,
         ao: number,
         edgeRoundness: [boolean, boolean]
     ): number {
@@ -25,6 +27,7 @@ class VertexData1Encoder {
             this.localX.encode(localPos.x) +
             this.localY.encode(localPos.y) +
             this.localZ.encode(localPos.z) +
+            this.faceId.encode(faceId) +
             this.ao.encode(ao) +
             this.edgeRoundness.encode(+edgeRoundness[0] + (+edgeRoundness[1] << 1))
         );

@@ -186,7 +186,7 @@ abstract class PatchFactoryBase {
                             const voxelMaterialId = cacheData - 1;
 
                             for (const face of Object.values(Cube.faces)) {
-                                if (localMapCache.neighbourExists(cacheIndex, face.normal)) {
+                                if (localMapCache.neighbourExists(cacheIndex, face.normal.vec)) {
                                     // this face will be hidden -> skip it
                                     continue;
                                 }

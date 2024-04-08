@@ -110,7 +110,7 @@ class PatchComputerGpu {
                     ${Object.values(Cube.faces)
                         .map(
                             face => `
-                    if (!doesNeighbourExist(cacheIndex, vec3i(${face.normal.x}, ${face.normal.y}, ${face.normal.z}))) {
+                    if (!doesNeighbourExist(cacheIndex, vec3i(${face.normal.vec.x}, ${face.normal.vec.y}, ${face.normal.vec.z}))) {
                         let firstVertexIndex: u32 = atomicAdd(&${face.type}FaceVerticesData.verticesCount, 6u);
                         var ao: u32;
                         var edgeRoundnessX: bool;
