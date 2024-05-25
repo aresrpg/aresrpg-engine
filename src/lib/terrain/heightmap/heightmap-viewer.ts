@@ -1,3 +1,4 @@
+import { type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../three-usage';
 
 import { type HeightmapSampler } from './heightmap-node';
@@ -56,6 +57,10 @@ class HeightmapViewer {
 
     public updateMesh(): void {
         this.root.updateMesh();
+    }
+
+    public getStatistics(): MeshesStatistics {
+        return this.root.getStatistics();
     }
 
     private getPatchId(voxel: THREE.Vector2): HeightmapNodeId {

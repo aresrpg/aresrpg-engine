@@ -1,3 +1,4 @@
+import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../three-usage';
 
 import { HeightmapNode, type HeightmapSampler } from './heightmap-node';
@@ -88,6 +89,25 @@ class HeightmapRoot {
         for (const topNode of this.topNodesList) {
             topNode.updateMesh();
         }
+    }
+
+    public getStatistics(): MeshesStatistics {
+        const result = createMeshesStatistics();
+
+        for (const topNode of this.topNodesList) {
+            const topNodeStatistics = topNode.getStatistics();
+
+            result.meshes.loadedCount += topNodeStatistics.meshes.loadedCount;
+            result.triangles.loadedCount += topNodeStatistics.triangles.loadedCount;
+
+            result.gpuMemoryBytes += topNodeStatistics.gpuMemoryBytes;
+
+            if (topNode.visible) {
+                result.meshes.visibleCount += topNodeStatistics.meshes.visibleCount;
+                result.triangles.visibleCount += topNodeStatistics.triangles.visibleCount;
+            }
+        }
+        return result;
     }
 
     private garbageCollect(): void {
