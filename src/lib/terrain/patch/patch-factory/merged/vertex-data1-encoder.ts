@@ -1,17 +1,34 @@
-import { PackedUintFactory } from '../uint-packing';
+import { PackedUintFactory, type PackedUintFragment } from '../uint-packing';
 import * as THREE from '../../../../three-usage';
+
+type PatchSize = {
+    xz: number;
+    y: number;
+};
 
 class VertexData1Encoder {
     private readonly packedUintFactory = new PackedUintFactory(32);
-    public readonly voxelX = this.packedUintFactory.encodePart(64);
-    public readonly voxelY = this.packedUintFactory.encodePart(64);
-    public readonly voxelZ = this.packedUintFactory.encodePart(64);
-    public readonly localX = this.packedUintFactory.encodePart(2);
-    public readonly localY = this.packedUintFactory.encodePart(2);
-    public readonly localZ = this.packedUintFactory.encodePart(2);
-    public readonly faceId = this.packedUintFactory.encodePart(6);
-    public readonly ao = this.packedUintFactory.encodePart(4);
-    public readonly edgeRoundness = this.packedUintFactory.encodePart(4);
+    public readonly voxelX: PackedUintFragment;
+    public readonly voxelY: PackedUintFragment;
+    public readonly voxelZ: PackedUintFragment;
+    public readonly localX: PackedUintFragment;
+    public readonly localY: PackedUintFragment;
+    public readonly localZ: PackedUintFragment;
+    public readonly faceId: PackedUintFragment;
+    public readonly ao: PackedUintFragment;
+    public readonly edgeRoundness: PackedUintFragment;
+
+    public constructor(patchSize: PatchSize) {
+        this.voxelX = this.packedUintFactory.encodePart(patchSize.xz);
+        this.voxelY = this.packedUintFactory.encodePart(patchSize.y);
+        this.voxelZ = this.packedUintFactory.encodePart(patchSize.xz);
+        this.localX = this.packedUintFactory.encodePart(2);
+        this.localY = this.packedUintFactory.encodePart(2);
+        this.localZ = this.packedUintFactory.encodePart(2);
+        this.faceId = this.packedUintFactory.encodePart(6);
+        this.ao = this.packedUintFactory.encodePart(4);
+        this.edgeRoundness = this.packedUintFactory.encodePart(4);
+    }
 
     public encode(
         voxelPos: THREE.Vector3Like,
@@ -43,4 +60,4 @@ class VertexData1Encoder {
     }
 }
 
-export { VertexData1Encoder };
+export { VertexData1Encoder, type PatchSize };

@@ -36,6 +36,8 @@ type HeightmapSampler = {
 };
 
 interface IHeightmapRoot {
+    readonly smallestLevelSizeInVoxels: number;
+
     getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
     getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
 }
@@ -212,7 +214,7 @@ class HeightmapNode {
             const subLevelBaseCoords = new THREE.Vector2().copy(this.id.coordsInLevel).multiplyScalar(2);
             const root = this.root || this;
 
-            const mmChildId = new HeightmapNodeId(childrenLevel, { x: subLevelBaseCoords.x, y: subLevelBaseCoords.y });
+            const mmChildId = new HeightmapNodeId(childrenLevel, { x: subLevelBaseCoords.x, y: subLevelBaseCoords.y }, this.root);
             this.children = {
                 mm: new HeightmapNode(this.sampler, mmChildId, root),
                 pm: new HeightmapNode(this.sampler, mmChildId.getNeighbour(1, 0), root),
@@ -232,7 +234,7 @@ class HeightmapNode {
     private buildGeometryData(edgesType: EdgesType): GeometryData {
         const levelScaling = 1 << this.id.level;
         const voxelRatio = 2;
-        const voxelsCount = HeightmapNodeId.smallestLevelSizeInVoxels;
+        const voxelsCount = this.root.smallestLevelSizeInVoxels;
         const quadsCount = voxelsCount / voxelRatio;
         const scaling = levelScaling * voxelRatio;
 
@@ -401,7 +403,11 @@ class HeightmapNode {
 
     private buildEdgesType(): EdgesType {
         const getEdge = (dX: number, dY: number) => {
-            const neighbourId = new HeightmapNodeId(this.id.level, { x: this.id.coordsInLevel.x + dX, y: this.id.coordsInLevel.y + dY });
+            const neighbourId = new HeightmapNodeId(
+                this.id.level,
+                { x: this.id.coordsInLevel.x + dX, y: this.id.coordsInLevel.y + dY },
+                this.root
+            );
             const neighbour = this.root.getSubNode(neighbourId);
             if (neighbour) {
                 if (neighbour.isSubdivided) {

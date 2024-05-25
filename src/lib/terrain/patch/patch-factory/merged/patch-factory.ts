@@ -4,7 +4,7 @@ import { EDisplayMode, type PatchMaterial, type PatchMaterialUniforms, type Patc
 import * as Cube from '../cube';
 import { EPatchComputingMode, type GeometryAndMaterial, PatchFactoryBase } from '../patch-factory-base';
 
-import { VertexData1Encoder } from './vertex-data1-encoder';
+import { type PatchSize, VertexData1Encoder } from './vertex-data1-encoder';
 import { VertexData2Encoder } from './vertex-data2-encoder';
 
 type PatchMaterialTemp = THREE.Material & {
@@ -17,16 +17,12 @@ abstract class PatchFactory extends PatchFactoryBase {
     private static readonly data1AttributeName = 'aData';
     private static readonly data2AttributeName = 'aData2';
 
-    protected static readonly vertexData1Encoder = new VertexData1Encoder();
+    protected readonly vertexData1Encoder: VertexData1Encoder;
     protected static readonly vertexData2Encoder = new VertexData2Encoder();
 
-    public readonly maxPatchSize = new THREE.Vector3(
-        PatchFactory.vertexData1Encoder.voxelX.maxValue + 1,
-        PatchFactory.vertexData1Encoder.voxelY.maxValue + 1,
-        PatchFactory.vertexData1Encoder.voxelZ.maxValue + 1
-    );
+    public readonly maxPatchSize: THREE.Vector3;
 
-    private readonly materialsTemplates: PatchMaterials = this.buildPatchMaterial();
+    private readonly materialsTemplates: PatchMaterials;
 
     private buildThreeJsPatchMaterial(): PatchMaterial {
         function applyReplacements(source: string, replacements: Record<string, string>): string {
@@ -66,15 +62,15 @@ void main() {`,
     uint vertexId = vertexIds[gl_VertexID % 6];
 
     uvec3 modelVoxelPosition = uvec3(
-        ${PatchFactory.vertexData1Encoder.voxelX.glslDecode(PatchFactory.data1AttributeName)},
-        ${PatchFactory.vertexData1Encoder.voxelY.glslDecode(PatchFactory.data1AttributeName)},
-        ${PatchFactory.vertexData1Encoder.voxelZ.glslDecode(PatchFactory.data1AttributeName)}
+        ${this.vertexData1Encoder.voxelX.glslDecode(PatchFactory.data1AttributeName)},
+        ${this.vertexData1Encoder.voxelY.glslDecode(PatchFactory.data1AttributeName)},
+        ${this.vertexData1Encoder.voxelZ.glslDecode(PatchFactory.data1AttributeName)}
     );
 
     uvec3 localVertexPosition = uvec3(
-        ${PatchFactory.vertexData1Encoder.localX.glslDecode(PatchFactory.data1AttributeName)},
-        ${PatchFactory.vertexData1Encoder.localY.glslDecode(PatchFactory.data1AttributeName)},
-        ${PatchFactory.vertexData1Encoder.localZ.glslDecode(PatchFactory.data1AttributeName)}
+        ${this.vertexData1Encoder.localX.glslDecode(PatchFactory.data1AttributeName)},
+        ${this.vertexData1Encoder.localY.glslDecode(PatchFactory.data1AttributeName)},
+        ${this.vertexData1Encoder.localZ.glslDecode(PatchFactory.data1AttributeName)}
     );
     vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
     vec3 transformed = modelPosition;
@@ -93,12 +89,12 @@ void main() {`,
         vec2(0,1),
         vec2(1,1)
     );
-    uint edgeRoundnessId = ${PatchFactory.vertexData1Encoder.edgeRoundness.glslDecode(PatchFactory.data1AttributeName)};
+    uint edgeRoundnessId = ${this.vertexData1Encoder.edgeRoundness.glslDecode(PatchFactory.data1AttributeName)};
     vEdgeRoundness = edgeRoundness[edgeRoundnessId];
 
-    vAo = float(${PatchFactory.vertexData1Encoder.ao.glslDecode(
+    vAo = float(${this.vertexData1Encoder.ao.glslDecode(
         PatchFactory.data1AttributeName
-    )}) / ${PatchFactory.vertexData1Encoder.ao.maxValue.toFixed(1)};
+    )}) / ${this.vertexData1Encoder.ao.maxValue.toFixed(1)};
 
     vData2 = ${PatchFactory.data2AttributeName};
         `,
@@ -106,7 +102,7 @@ void main() {`,
     const vec3 faceNormalById[] = vec3[](
         ${Cube.facesById.map(face => `vec3(${face.normal.vec.x}, ${face.normal.vec.y}, ${face.normal.vec.z})`).join(',\n')}
     );
-    uint faceId = ${PatchFactory.vertexData1Encoder.faceId.glslDecode(PatchFactory.data1AttributeName)};
+    uint faceId = ${this.vertexData1Encoder.faceId.glslDecode(PatchFactory.data1AttributeName)};
     vec3 objectNormal = faceNormalById[faceId];
 `,
             });
@@ -217,15 +213,15 @@ void main() {
             uint vertexId = vertexIds[gl_VertexID % 6];
 
             uvec3 modelVoxelPosition = uvec3(
-                ${PatchFactory.vertexData1Encoder.voxelX.glslDecode(PatchFactory.data1AttributeName)},
-                ${PatchFactory.vertexData1Encoder.voxelY.glslDecode(PatchFactory.data1AttributeName)},
-                ${PatchFactory.vertexData1Encoder.voxelZ.glslDecode(PatchFactory.data1AttributeName)}
+                ${this.vertexData1Encoder.voxelX.glslDecode(PatchFactory.data1AttributeName)},
+                ${this.vertexData1Encoder.voxelY.glslDecode(PatchFactory.data1AttributeName)},
+                ${this.vertexData1Encoder.voxelZ.glslDecode(PatchFactory.data1AttributeName)}
             );
 
             uvec3 localVertexPosition = uvec3(
-                ${PatchFactory.vertexData1Encoder.localX.glslDecode(PatchFactory.data1AttributeName)},
-                ${PatchFactory.vertexData1Encoder.localY.glslDecode(PatchFactory.data1AttributeName)},
-                ${PatchFactory.vertexData1Encoder.localZ.glslDecode(PatchFactory.data1AttributeName)}
+                ${this.vertexData1Encoder.localX.glslDecode(PatchFactory.data1AttributeName)},
+                ${this.vertexData1Encoder.localY.glslDecode(PatchFactory.data1AttributeName)},
+                ${this.vertexData1Encoder.localZ.glslDecode(PatchFactory.data1AttributeName)}
             );
             vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
             gl_Position = projectionMatrix * modelViewMatrix * vec4(modelPosition, 1.0);
@@ -256,8 +252,17 @@ void main() {
         return { material, shadowMaterial };
     }
 
-    protected constructor(map: IVoxelMap, computingMode: EPatchComputingMode) {
+    protected constructor(map: IVoxelMap, computingMode: EPatchComputingMode, patchSize: PatchSize) {
         super(map, PatchFactory.vertexData2Encoder.voxelMaterialId, computingMode);
+
+        this.vertexData1Encoder = new VertexData1Encoder(patchSize);
+        this.maxPatchSize = new THREE.Vector3(
+            this.vertexData1Encoder.voxelX.maxValue + 1,
+            this.vertexData1Encoder.voxelY.maxValue + 1,
+            this.vertexData1Encoder.voxelZ.maxValue + 1
+        );
+
+        this.materialsTemplates = this.buildPatchMaterial();
     }
 
     protected async disposeInternal(): Promise<void> {

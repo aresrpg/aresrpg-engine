@@ -6,6 +6,8 @@ import { HeightmapNodeId } from './heightmap-node-id';
 class HeightmapRoot {
     public readonly container: THREE.Object3D;
 
+    public readonly smallestLevelSizeInVoxels: number;
+
     private readonly sampler: HeightmapSampler;
     private readonly maxLevel: number;
     private readonly maxLevelSizeInVoxels: number;
@@ -15,11 +17,14 @@ class HeightmapRoot {
     private readonly garbageCollectInterval = 10000;
     private lastGarbageCollectTimestamp = performance.now();
 
-    public constructor(sampler: HeightmapSampler, maxLevel: number) {
+    public constructor(sampler: HeightmapSampler, maxLevel: number, smallestLevelSizeInVoxels: number) {
         this.container = new THREE.Group();
+
+        this.smallestLevelSizeInVoxels = smallestLevelSizeInVoxels;
+
         this.sampler = sampler;
         this.maxLevel = maxLevel;
-        this.maxLevelSizeInVoxels = HeightmapNodeId.getLevelSizeInVoxels(this.maxLevel);
+        this.maxLevelSizeInVoxels = HeightmapNodeId.getLevelSizeInVoxels(this.smallestLevelSizeInVoxels, this.maxLevel);
     }
 
     public getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {
@@ -49,10 +54,14 @@ class HeightmapRoot {
     }
 
     public applyVisibility(voxelId: THREE.Vector2Like, distance: number): void {
-        const centralTopNodeId = new HeightmapNodeId(this.maxLevel, {
-            x: Math.floor(voxelId.x / this.maxLevelSizeInVoxels),
-            y: Math.floor(voxelId.y / this.maxLevelSizeInVoxels),
-        });
+        const centralTopNodeId = new HeightmapNodeId(
+            this.maxLevel,
+            {
+                x: Math.floor(voxelId.x / this.maxLevelSizeInVoxels),
+                y: Math.floor(voxelId.y / this.maxLevelSizeInVoxels),
+            },
+            this
+        );
         const margin = Math.ceil(distance / this.maxLevelSizeInVoxels);
 
         for (const topNode of this.topNodesList) {
@@ -101,10 +110,14 @@ class HeightmapRoot {
         }
 
         const shrinkFactor = 1 << (this.maxLevel - nodeId.level);
-        return new HeightmapNodeId(this.maxLevel, {
-            x: Math.floor(nodeId.coordsInLevel.x / shrinkFactor),
-            y: Math.floor(nodeId.coordsInLevel.y / shrinkFactor),
-        });
+        return new HeightmapNodeId(
+            this.maxLevel,
+            {
+                x: Math.floor(nodeId.coordsInLevel.x / shrinkFactor),
+                y: Math.floor(nodeId.coordsInLevel.y / shrinkFactor),
+            },
+            this
+        );
     }
 }
 
