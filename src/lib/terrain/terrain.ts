@@ -1,5 +1,6 @@
 import { logger } from '../helpers/logger';
 import * as THREE from '../three-usage';
+import { createMeshesStatistics, type MeshesStatistics } from '../helpers/meshes-statistics';
 
 import { AsyncPatch } from './async-patch';
 import { HeightmapViewer } from './heightmap/heightmap-viewer';
@@ -18,18 +19,10 @@ type TerrainOptions = {
 };
 
 type TerrainStatistics = {
-    voxels: {
+    voxels: MeshesStatistics & {
         patchSize: THREE.Vector3Like;
-        meshes: {
-            loadedCount: number;
-            visibleCount: number;
-        };
-        triangles: {
-            loadedCount: number;
-            visibleCount: number;
-        };
-        gpuMemoryBytes: number;
     };
+    lod: MeshesStatistics;
 };
 
 /**
@@ -330,18 +323,10 @@ class Terrain {
      */
     public getStatistics(): TerrainStatistics {
         const result: TerrainStatistics = {
-            voxels: {
+            voxels: Object.assign(createMeshesStatistics(), {
                 patchSize: this.patchSize.clone(),
-                meshes: {
-                    loadedCount: 0,
-                    visibleCount: 0,
-                },
-                triangles: {
-                    loadedCount: 0,
-                    visibleCount: 0,
-                },
-                gpuMemoryBytes: 0,
-            },
+            }),
+            lod: this.heightmapViewer.getStatistics(),
         };
 
         for (const patch of Object.values(this.patches)) {

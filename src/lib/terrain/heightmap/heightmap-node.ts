@@ -1,4 +1,5 @@
 import { logger } from '../../helpers/logger';
+import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../three-usage';
 import type { IHeightmapSample } from '../i-voxel-map';
 
@@ -51,6 +52,9 @@ class HeightmapNode {
     private children: Children | null = null;
     private isSubdivided: boolean = false;
 
+    private selfTrianglesCount: number = 0;
+    private selfGpuMemoryBytes: number = 0;
+
     private readonly sampler: HeightmapSampler;
     private readonly root: IHeightmapRoot;
     private readonly id: HeightmapNodeId;
@@ -99,6 +103,9 @@ class HeightmapNode {
         }
         this.meshes = {};
 
+        this.selfTrianglesCount = 0;
+        this.selfGpuMemoryBytes = 0;
+
         if (this.children) {
             for (const child of this.childrenList) {
                 child.dispose();
@@ -128,6 +135,12 @@ class HeightmapNode {
                 geometry.setAttribute('color', new THREE.Float32BufferAttribute(geometryData.colors, 3));
                 geometry.setIndex(geometryData.indices);
                 geometry.computeVertexNormals();
+
+                this.selfTrianglesCount += geometryData.indices.length / 3;
+                for (const attribute of Object.values(geometry.attributes)) {
+                    this.selfGpuMemoryBytes += attribute.array.byteLength;
+                }
+                this.selfGpuMemoryBytes += geometry.getIndex()!.array.byteLength;
 
                 mesh = new THREE.Mesh(geometry, HeightmapNode.material);
                 mesh.name = `Heightmap node mesh ${this.id.asString()}`;
@@ -192,6 +205,46 @@ class HeightmapNode {
         }
 
         return null;
+    }
+
+    public getStatistics(): MeshesStatistics {
+        const result = createMeshesStatistics();
+
+        result.meshes.loadedCount += Object.values(this.meshes).length;
+        result.triangles.loadedCount += this.selfTrianglesCount;
+        result.gpuMemoryBytes += this.selfGpuMemoryBytes;
+
+        if (this.visible) {
+            const visibleMeshes = Object.values(this.meshes).filter(mesh => !!mesh.parent);
+
+            const visibleMesh = visibleMeshes[0];
+            if (visibleMesh) {
+                result.meshes.visibleCount++;
+                result.triangles.visibleCount += visibleMesh.geometry.getIndex()!.count / 3;
+
+                if (visibleMeshes.length > 1) {
+                    logger.warn(`Heightmap node has more that 1 mesh for itself.`);
+                }
+            }
+        }
+
+        if (this.children) {
+            for (const child of this.childrenList) {
+                const childStatistics = child.getStatistics();
+
+                result.meshes.loadedCount += childStatistics.meshes.loadedCount;
+                result.triangles.loadedCount += childStatistics.triangles.loadedCount;
+
+                result.gpuMemoryBytes += childStatistics.gpuMemoryBytes;
+
+                if (this.visible) {
+                    result.meshes.visibleCount += childStatistics.meshes.visibleCount;
+                    result.triangles.visibleCount += childStatistics.triangles.visibleCount;
+                }
+            }
+        }
+
+        return result;
     }
 
     private split(): void {
