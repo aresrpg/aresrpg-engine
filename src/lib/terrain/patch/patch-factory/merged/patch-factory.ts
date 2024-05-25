@@ -290,7 +290,9 @@ void main() {
         geometry.setAttribute(PatchFactory.data2AttributeName, data2Attribute);
         geometry.setDrawRange(0, verticesCount);
 
-        return [{ id: 'merged', materials: this.materialsTemplates, geometry }];
+        const trianglesCount = verticesCount / 3;
+        const gpuMemoryBytes = interleavedBuffer.array.byteLength;
+        return [{ id: 'merged', materials: this.materialsTemplates, geometry, trianglesCount, gpuMemoryBytes }];
     }
 }
 

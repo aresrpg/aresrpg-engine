@@ -17,6 +17,21 @@ type TerrainOptions = {
     patchSize?: PatchSize;
 };
 
+type TerrainStatistics = {
+    voxels: {
+        patchSize: THREE.Vector3Like;
+        meshes: {
+            loadedCount: number;
+            visibleCount: number;
+        };
+        triangles: {
+            loadedCount: number;
+            visibleCount: number;
+        };
+        gpuMemoryBytes: number;
+    };
+};
+
 /**
  * Class that takes an IVoxelMap and makes a renderable three.js object of it.
  */
@@ -310,6 +325,42 @@ class Terrain {
         this.garbageCollectPatches();
     }
 
+    /**
+     * Computes and returns technical statistics about the terrain.
+     */
+    public getStatistics(): TerrainStatistics {
+        const result: TerrainStatistics = {
+            voxels: {
+                patchSize: this.patchSize.clone(),
+                meshes: {
+                    loadedCount: 0,
+                    visibleCount: 0,
+                },
+                triangles: {
+                    loadedCount: 0,
+                    visibleCount: 0,
+                },
+                gpuMemoryBytes: 0,
+            },
+        };
+
+        for (const patch of Object.values(this.patches)) {
+            if (patch.patch) {
+                result.voxels.meshes.loadedCount++;
+                result.voxels.triangles.loadedCount += patch.patch.trianglesCount;
+
+                if (patch.visible) {
+                    result.voxels.meshes.visibleCount++;
+                    result.voxels.triangles.visibleCount += patch.patch.trianglesCount;
+                }
+
+                result.voxels.gpuMemoryBytes += patch.patch.gpuMemoryBytes;
+            }
+        }
+
+        return result;
+    }
+
     private get minPatchIdY(): number {
         return Math.floor(this.parameters.voxels.map.minAltitude / this.patchFactory.maxPatchSize.y);
     }
@@ -371,4 +422,4 @@ class Terrain {
     }
 }
 
-export { EPatchComputingMode, Terrain, type IVoxelMap, type TerrainOptions, type PatchSize };
+export { EPatchComputingMode, Terrain, type IVoxelMap, type TerrainOptions, type PatchSize, type TerrainStatistics };
