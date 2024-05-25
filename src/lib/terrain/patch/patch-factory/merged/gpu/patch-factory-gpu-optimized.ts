@@ -2,6 +2,7 @@ import * as THREE from '../../../../../three-usage';
 import { type IVoxelMap } from '../../../../i-voxel-map';
 import { EPatchComputingMode, type GeometryAndMaterial, type LocalMapCache } from '../../patch-factory-base';
 import { AsyncTask } from '../../../../../helpers/async-task';
+import { type PatchSize } from '../vertex-data1-encoder';
 
 import { PatchFactoryGpu } from './patch-factory-gpu';
 
@@ -17,8 +18,8 @@ class PatchFactoryGpuOptimized extends PatchFactoryGpu {
 
     private readonly pendingJobs: PatchGenerationJob[] = [];
 
-    public constructor(map: IVoxelMap) {
-        super(map, EPatchComputingMode.GPU_OPTIMIZED);
+    public constructor(map: IVoxelMap, patchSize: PatchSize) {
+        super(map, EPatchComputingMode.GPU_OPTIMIZED, patchSize);
     }
 
     protected computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {

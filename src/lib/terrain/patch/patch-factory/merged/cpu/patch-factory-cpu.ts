@@ -3,10 +3,11 @@ import { type IVoxelMap } from '../../../../i-voxel-map';
 import * as Cube from '../../cube';
 import { EPatchComputingMode, type GeometryAndMaterial, type VertexData } from '../../patch-factory-base';
 import { PatchFactory } from '../patch-factory';
+import { type PatchSize } from '../vertex-data1-encoder';
 
 class PatchFactoryCpu extends PatchFactory {
-    public constructor(map: IVoxelMap) {
-        super(map, EPatchComputingMode.CPU_CACHED);
+    public constructor(map: IVoxelMap, patchSize: PatchSize) {
+        super(map, EPatchComputingMode.CPU_CACHED, patchSize);
     }
 
     protected async computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
@@ -31,7 +32,7 @@ class PatchFactoryCpu extends PatchFactory {
             const faceNoiseId = faceId++ % PatchFactory.vertexData2Encoder.faceNoiseId.maxValue;
 
             faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
-                faceVerticesData[2 * faceVertexIndex + 0] = PatchFactory.vertexData1Encoder.encode(
+                faceVerticesData[2 * faceVertexIndex + 0] = this.vertexData1Encoder.encode(
                     faceData.voxelLocalPosition,
                     faceVertexData.localPosition,
                     faceData.faceId,

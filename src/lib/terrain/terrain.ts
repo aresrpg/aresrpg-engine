@@ -10,9 +10,11 @@ import { PatchFactoryCpu } from './patch/patch-factory/merged/cpu/patch-factory-
 import { PatchFactoryGpuOptimized } from './patch/patch-factory/merged/gpu/patch-factory-gpu-optimized';
 import { PatchFactoryGpuSequential } from './patch/patch-factory/merged/gpu/patch-factory-gpu-sequential';
 import { PatchId } from './patch/patch-id';
+import { type PatchSize } from './patch/patch-factory/merged/vertex-data1-encoder';
 
 type TerrainOptions = {
     computingMode?: EPatchComputingMode;
+    patchSize?: PatchSize;
 };
 
 /**
@@ -73,18 +75,22 @@ class Terrain {
      */
     public constructor(map: IVoxelMap, options?: TerrainOptions) {
         let computingMode = EPatchComputingMode.GPU_OPTIMIZED;
+        let patchSize = { xz: 64, y: 64 };
         if (options) {
             if (typeof options.computingMode !== 'undefined') {
                 computingMode = options.computingMode;
             }
+            if (typeof options.patchSize !== 'undefined') {
+                patchSize = options.patchSize;
+            }
         }
 
         if (computingMode === EPatchComputingMode.CPU_CACHED) {
-            this.patchFactory = new PatchFactoryCpu(map);
+            this.patchFactory = new PatchFactoryCpu(map, patchSize);
         } else if (computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
-            this.patchFactory = new PatchFactoryGpuSequential(map);
+            this.patchFactory = new PatchFactoryGpuSequential(map, patchSize);
         } else if (computingMode === EPatchComputingMode.GPU_OPTIMIZED) {
-            this.patchFactory = new PatchFactoryGpuOptimized(map);
+            this.patchFactory = new PatchFactoryGpuOptimized(map, patchSize);
         } else {
             throw new Error(`Unsupported computing mode "${computingMode}".`);
         }
@@ -101,7 +107,7 @@ class Terrain {
 
         this.heightmapContainer = new THREE.Group();
         this.heightmapContainer.name = `Heightmap patches container`;
-        this.heightmapViewer = new HeightmapViewer(map);
+        this.heightmapViewer = new HeightmapViewer(map, patchSize.xz);
         this.heightmapContainer.add(this.heightmapViewer.container);
     }
 
@@ -365,4 +371,4 @@ class Terrain {
     }
 }
 
-export { EPatchComputingMode, Terrain, type IVoxelMap };
+export { EPatchComputingMode, Terrain, type IVoxelMap, type TerrainOptions, type PatchSize };
