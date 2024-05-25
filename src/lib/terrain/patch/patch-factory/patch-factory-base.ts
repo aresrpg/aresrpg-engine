@@ -11,6 +11,8 @@ type GeometryAndMaterial = {
     readonly id: string;
     readonly geometry: THREE.BufferGeometry;
     readonly materials: PatchMaterials;
+    readonly trianglesCount: number;
+    readonly gpuMemoryBytes: number;
 };
 
 type VertexData = {
@@ -111,7 +113,7 @@ abstract class PatchFactoryBase {
         return new Patch(
             patchId,
             geometryAndMaterialsList.map(geometryAndMaterial => {
-                const { geometry } = geometryAndMaterial;
+                const { geometry, trianglesCount, gpuMemoryBytes } = geometryAndMaterial;
                 geometry.boundingBox = boundingBox.clone();
                 geometry.boundingSphere = boundingSphere.clone();
 
@@ -131,7 +133,7 @@ abstract class PatchFactoryBase {
                     material,
                     shadowMaterial,
                 };
-                return { mesh, materials };
+                return { mesh, materials, trianglesCount, gpuMemoryBytes };
             })
         );
     }

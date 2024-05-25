@@ -6,6 +6,8 @@ import { PatchId } from './patch-id';
 type PatchMesh = {
     readonly mesh: THREE.Mesh;
     readonly materials: PatchMaterials;
+    readonly trianglesCount: number;
+    readonly gpuMemoryBytes: number;
 };
 
 class Patch {
@@ -36,14 +38,23 @@ class Patch {
         readonly patchMeshes: ReadonlyArray<PatchMesh>;
     } | null = null;
 
+    public readonly trianglesCount: number;
+    public readonly gpuMemoryBytes: number;
+
     public constructor(patchId: PatchId, patchMeshes: PatchMesh[]) {
         this.gpuResources = { patchMeshes };
 
+        let trianglesCount = 0;
+        let gpuMemoryBytes = 0;
         this.container = new THREE.Group();
         this.container.name = `Terrain patch ${patchId.asString}`;
         for (const patchMesh of patchMeshes) {
             this.container.add(patchMesh.mesh);
+            trianglesCount += patchMesh.trianglesCount;
+            gpuMemoryBytes += patchMesh.gpuMemoryBytes;
         }
+        this.trianglesCount = trianglesCount;
+        this.gpuMemoryBytes = gpuMemoryBytes;
     }
 
     public updateUniforms(): void {
