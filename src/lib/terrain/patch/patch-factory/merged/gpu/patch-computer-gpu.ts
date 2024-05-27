@@ -1,7 +1,6 @@
 /// <reference types="@webgpu/types" />
 
-import * as THREE from 'three';
-
+import * as THREE from '../../../../../three-usage';
 import { logger } from '../../../../../helpers/logger';
 import { getGpuDevice } from '../../../../../helpers/webgpu/webgpu-device';
 import * as Cube from '../../cube';
