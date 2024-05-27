@@ -18,8 +18,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "three": "^0.163.0"
+  "peerDependencies": {
+    "three": ">=0.163.0"
   },
   "devDependencies": {
     "@types/three": "^0.163.0",
@@ -37,6 +37,7 @@
     "prettier": "^3.2.5",
     "shx": "^0.3.4",
     "simplex-noise": "^4.0.1",
+    "three": "^0.163.0",
     "ts-loader": "^9.5.1",
     "typescript": "^5.4.4",
     "webpack": "^5.91.0",
