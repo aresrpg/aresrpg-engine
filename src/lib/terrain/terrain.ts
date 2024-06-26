@@ -387,9 +387,8 @@ class Terrain {
         if (typeof patch === 'undefined') {
             const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
 
-            const boundingBox = new THREE.Box3(patchStart.clone(), patchEnd.clone());
             const promise = this.patchFactory.buildPatch(patchId, patchStart, patchEnd);
-            patch = new AsyncPatch(this.patchesContainer, promise, patchId, boundingBox);
+            patch = new AsyncPatch(this.patchesContainer, promise, patchId);
             patch.ready().then(() => {
                 if (patch?.hasVisibleMesh) {
                     this.heightmapViewerNeedsUpdate = true;
