@@ -2,19 +2,21 @@ interface IDisposable {
     dispose(): void;
 }
 
-class DisposableMap<T extends IDisposable> {
-    private store: Record<string, T> = {};
+type Key = string | number;
 
-    public setItem(id: string, item: T): void {
+class DisposableMap<T extends IDisposable> {
+    private store: Record<Key, T> = {};
+
+    public setItem(id: Key, item: T): void {
         this.deleteItem(id);
         this.store[id] = item;
     }
 
-    public getItem(id: string): T | null {
+    public getItem(id: Key): T | null {
         return this.store[id] || null;
     }
 
-    public deleteItem(id: string): boolean {
+    public deleteItem(id: Key): boolean {
         const item = this.store[id];
         if (typeof item !== 'undefined') {
             item.dispose();
@@ -26,6 +28,10 @@ class DisposableMap<T extends IDisposable> {
 
     public get allItems(): T[] {
         return Object.values(this.store);
+    }
+
+    public get itemsCount(): number {
+        return Object.keys(this.store).length;
     }
 
     public clear(): void {
