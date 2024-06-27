@@ -1,3 +1,4 @@
+import { DisposableMap } from '../helpers/disposable-map';
 import { logger } from '../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../helpers/meshes-statistics';
 import * as THREE from '../three-usage';
@@ -72,7 +73,7 @@ class Terrain {
     private readonly patchFactory: PatchFactoryBase;
     private readonly patchSize: THREE.Vector3;
 
-    private readonly patches: Record<string, AsyncPatch> = {};
+    private readonly patchesStore: DisposableMap<AsyncPatch> = new DisposableMap<AsyncPatch>();
 
     private readonly heightmapViewer: HeightmapViewer;
     private heightmapViewerNeedsUpdate: boolean = true;
@@ -158,7 +159,7 @@ class Terrain {
         const patchIdCenter = new THREE.Vector3().copy(position).divide(this.patchSize).floor();
         const patchIdTo = voxelTo.divide(this.patchSize).ceil();
 
-        for (const patch of Object.values(this.patches)) {
+        for (const patch of this.patchesStore.allItems) {
             patch.visible = false;
         }
 
@@ -215,7 +216,7 @@ class Terrain {
      * */
     public update(): void {
         const voxelsSettings = this.parameters.voxels;
-        for (const asyncPatch of Object.values(this.patches)) {
+        for (const asyncPatch of this.patchesStore.allItems) {
             const patch = asyncPatch.patch;
             if (patch) {
                 patch.parameters.voxels.displayMode = voxelsSettings.faces.displayMode;
@@ -242,12 +243,12 @@ class Terrain {
 
             if (this.heightmapViewerNeedsUpdate) {
                 this.heightmapViewer.resetSubdivisions();
-                for (const patch of Object.values(this.patches)) {
+                for (const patch of this.patchesStore.allItems) {
                     let wholeColumnIsDisplayed = true;
 
                     for (let iY = this.minPatchIdY; iY < this.maxPatchIdY; iY++) {
                         const id = new PatchId({ x: patch.id.x, y: iY, z: patch.id.z });
-                        const columnNeighbour = this.patches[id.asString];
+                        const columnNeighbour = this.patchesStore.getItem(id.asString);
                         if (!columnNeighbour || !columnNeighbour.isReady || !columnNeighbour.visible) {
                             wholeColumnIsDisplayed = false;
                             break;
@@ -286,9 +287,7 @@ class Terrain {
      * It will be recomputed if needed again.
      */
     public clear(): void {
-        for (const patchId of Object.keys(this.patches)) {
-            this.disposePatch(patchId);
-        }
+        this.patchesStore.clear();
         this.patchesContainer.clear();
     }
 
@@ -329,7 +328,7 @@ class Terrain {
             lod: this.heightmapViewer.getStatistics(),
         };
 
-        for (const patch of Object.values(this.patches)) {
+        for (const patch of this.patchesStore.allItems) {
             if (patch.patch) {
                 result.voxels.meshes.loadedCount++;
                 result.voxels.triangles.loadedCount += patch.patch.trianglesCount;
@@ -355,26 +354,23 @@ class Terrain {
     }
 
     private garbageCollectPatches(): void {
-        const patches = Object.entries(this.patches);
-        const invisiblePatches = patches.filter(([, patch]) => !patch.visible);
-        invisiblePatches.sort(([, patch1], [, patch2]) => patch1.invisibleSince - patch2.invisibleSince);
+        const patches = this.patchesStore.allItems;
+        const invisiblePatches = patches.filter(patch => !patch.visible);
+        invisiblePatches.sort((patch1, patch2) => patch1.invisibleSince - patch2.invisibleSince);
 
         while (invisiblePatches.length > this.maxPatchesInCache) {
             const nextPatchToDelete = invisiblePatches.shift();
             if (!nextPatchToDelete) {
                 break;
             }
-            const nextPatchIdToDelete = nextPatchToDelete[0];
-            this.disposePatch(nextPatchIdToDelete);
+            this.disposePatch(nextPatchToDelete.id.asString);
         }
     }
 
     private disposePatch(patchId: string): void {
-        const patch = this.patches[patchId];
-        if (patch) {
-            patch.dispose();
+        const patchExisted = this.patchesStore.deleteItem(patchId);
+        if (patchExisted) {
             logger.diagnostic(`Freeing voxels patch ${patchId}`);
-            delete this.patches[patchId];
         } else {
             logger.warn(`Voxels patch ${patchId} does not exist.`);
         }
@@ -383,8 +379,8 @@ class Terrain {
     private getPatch(patchStart: THREE.Vector3): AsyncPatch {
         const patchId = this.computePatchId(patchStart);
 
-        let patch = this.patches[patchId.asString];
-        if (typeof patch === 'undefined') {
+        let patch = this.patchesStore.getItem(patchId.asString);
+        if (!patch) {
             const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
 
             const promise = this.patchFactory.buildPatch(patchId, patchStart, patchEnd);
@@ -394,7 +390,7 @@ class Terrain {
                     this.heightmapViewerNeedsUpdate = true;
                 }
             });
-            this.patches[patchId.asString] = patch;
+            this.patchesStore.setItem(patchId.asString, patch);
 
             logger.diagnostic(`Building voxels patch ${patchId.asString}`);
         }
@@ -406,4 +402,4 @@ class Terrain {
     }
 }
 
-export { EPatchComputingMode, Terrain, type IVoxelMap, type TerrainOptions, type PatchSize, type TerrainStatistics };
+export { EPatchComputingMode, Terrain, type IVoxelMap, type PatchSize, type TerrainOptions, type TerrainStatistics };
