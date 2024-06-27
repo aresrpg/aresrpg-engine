@@ -1,8 +1,10 @@
+import { DisposableMap } from '../../helpers/disposable-map';
 import { logger } from '../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../three-usage';
 
 import { HeightmapNodeId } from './heightmap-node-id';
+import { HeightmapNodeMesh } from './heightmap-node-mesh';
 import type { IHeightmap } from './i-heightmap';
 
 type Children = {
@@ -43,7 +45,7 @@ interface IHeightmapRoot {
 class HeightmapNode {
     public readonly container: THREE.Object3D;
 
-    private meshes: Record<number, THREE.Mesh> = {};
+    private nodeMeshes = new DisposableMap<HeightmapNodeMesh>();
     private children: Children | null = null;
     private isSubdivided: boolean = false;
 
@@ -93,10 +95,7 @@ class HeightmapNode {
     public dispose(): void {
         this.container.clear();
 
-        for (const mesh of Object.values(this.meshes)) {
-            mesh.geometry.dispose();
-        }
-        this.meshes = {};
+        this.nodeMeshes.clear();
 
         this.selfTrianglesCount = 0;
         this.selfGpuMemoryBytes = 0;
@@ -121,8 +120,8 @@ class HeightmapNode {
         } else if (this.visible) {
             const edgesType = this.buildEdgesType();
 
-            let mesh = this.meshes[edgesType.code];
-            if (!mesh) {
+            let nodeMesh = this.nodeMeshes.getItem(edgesType.code);
+            if (!nodeMesh) {
                 const geometryData = this.buildGeometryData(edgesType);
 
                 const geometry = new THREE.BufferGeometry();
@@ -137,15 +136,17 @@ class HeightmapNode {
                 }
                 this.selfGpuMemoryBytes += geometry.getIndex()!.array.byteLength;
 
-                mesh = new THREE.Mesh(geometry, this.root.material);
+                const mesh = new THREE.Mesh(geometry, this.root.material);
                 mesh.name = `Heightmap node mesh ${this.id.asString()}`;
                 mesh.receiveShadow = true;
                 mesh.castShadow = true;
                 const firstVoxelPosition = this.id.box.min;
                 mesh.position.set(firstVoxelPosition.x, 0, firstVoxelPosition.y);
-                this.meshes[edgesType.code] = mesh;
+
+                nodeMesh = new HeightmapNodeMesh(mesh);
+                this.nodeMeshes.setItem(edgesType.code, nodeMesh);
             }
-            this.container.add(mesh);
+            this.container.add(nodeMesh.mesh);
         }
     }
 
@@ -205,12 +206,12 @@ class HeightmapNode {
     public getStatistics(): MeshesStatistics {
         const result = createMeshesStatistics();
 
-        result.meshes.loadedCount += Object.values(this.meshes).length;
+        result.meshes.loadedCount += this.nodeMeshes.itemsCount;
         result.triangles.loadedCount += this.selfTrianglesCount;
         result.gpuMemoryBytes += this.selfGpuMemoryBytes;
 
         if (this.visible) {
-            const visibleMeshes = Object.values(this.meshes).filter(mesh => !!mesh.parent);
+            const visibleMeshes = this.nodeMeshes.allItems.filter(mesh => !!mesh.mesh.parent).map(mesh => mesh.mesh);
 
             const visibleMesh = visibleMeshes[0];
             if (visibleMesh) {
