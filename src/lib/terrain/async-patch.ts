@@ -19,10 +19,9 @@ class AsyncPatch {
           };
 
     public readonly id: PatchId;
-    public readonly boundingBox: THREE.Box3;
     private invisibilityTimestamp = performance.now();
 
-    public constructor(container: THREE.Object3D, promise: Promise<Patch | null>, id: PatchId, boundingBox: THREE.Box3) {
+    public constructor(container: THREE.Object3D, promise: Promise<Patch | null>, id: PatchId) {
         this.data = {
             state: 'pending',
             promise,
@@ -31,7 +30,6 @@ class AsyncPatch {
         };
 
         this.id = id;
-        this.boundingBox = boundingBox;
 
         promise.then((patch: Patch | null) => {
             if (this.data.state !== 'pending') {
