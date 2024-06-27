@@ -7,6 +7,8 @@ import { HeightmapNodeId } from './heightmap-node-id';
 class HeightmapRoot {
     public readonly container: THREE.Object3D;
 
+    public readonly material = new THREE.MeshPhongMaterial({ vertexColors: true });
+
     public readonly smallestLevelSizeInVoxels: number;
 
     private readonly sampler: HeightmapSampler;

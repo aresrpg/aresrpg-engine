@@ -63,6 +63,16 @@ class HeightmapViewer {
         return this.root.getStatistics();
     }
 
+    public get wireframe(): boolean {
+        return this.root.material.wireframe;
+    }
+
+    public set wireframe(wireframe: boolean) {
+        if (this.root.material.wireframe !== wireframe) {
+            this.root.material.wireframe = wireframe;
+        }
+    }
+
     private getPatchId(voxel: THREE.Vector2): HeightmapNodeId {
         const patchCoords = voxel.divideScalar(this.root.smallestLevelSizeInVoxels).floor();
         return new HeightmapNodeId(0, patchCoords, this.root);

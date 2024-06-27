@@ -62,6 +62,7 @@ class Terrain {
         },
         lod: {
             enabled: true,
+            wireframe: false,
         },
     };
 
@@ -240,6 +241,8 @@ class Terrain {
             if (!this.heightmapContainer.parent) {
                 this.container.add(this.heightmapContainer);
             }
+
+            this.heightmapViewer.wireframe = this.parameters.lod.wireframe;
 
             if (this.heightmapViewerNeedsUpdate) {
                 this.heightmapViewer.resetSubdivisions();

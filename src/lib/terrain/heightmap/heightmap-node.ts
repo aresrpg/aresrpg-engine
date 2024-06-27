@@ -38,14 +38,13 @@ type HeightmapSampler = {
 
 interface IHeightmapRoot {
     readonly smallestLevelSizeInVoxels: number;
+    readonly material: THREE.Material;
 
     getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
     getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
 }
 
 class HeightmapNode {
-    private static readonly material = new THREE.MeshPhongMaterial({ vertexColors: true });
-
     public readonly container: THREE.Object3D;
 
     private meshes: Record<number, THREE.Mesh> = {};
@@ -142,7 +141,7 @@ class HeightmapNode {
                 }
                 this.selfGpuMemoryBytes += geometry.getIndex()!.array.byteLength;
 
-                mesh = new THREE.Mesh(geometry, HeightmapNode.material);
+                mesh = new THREE.Mesh(geometry, this.root.material);
                 mesh.name = `Heightmap node mesh ${this.id.asString()}`;
                 mesh.receiveShadow = true;
                 mesh.castShadow = true;
