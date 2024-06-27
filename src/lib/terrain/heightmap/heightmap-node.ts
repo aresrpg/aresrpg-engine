@@ -445,7 +445,7 @@ class HeightmapNode {
                 const y = geometryData[i + 2]! + this.id.box.min.y;
 
                 const mapSample = this.sampler.sampleHeightmap(x, y);
-                geometryData[i + 1] += mapSample.altitude;
+                geometryData[i + 1]! += mapSample.altitude;
 
                 colorData.push(mapSample.color.r, mapSample.color.g, mapSample.color.b);
             }
