@@ -5,6 +5,7 @@ import * as THREE from '../three-usage';
 
 import { AsyncPatch } from './async-patch';
 import { HeightmapViewer } from './heightmap/heightmap-viewer';
+import { IHeightmap } from './heightmap/i-heightmap';
 import { type IVoxelMap } from './i-voxel-map';
 import { EDisplayMode } from './patch/patch';
 import { PatchFactoryCpu } from './patch/patch-factory/merged/cpu/patch-factory-cpu';
@@ -83,7 +84,7 @@ class Terrain {
      *
      * @param map The map that will be rendered.
      */
-    public constructor(map: IVoxelMap, options?: TerrainOptions) {
+    public constructor(map: IVoxelMap & IHeightmap, options?: TerrainOptions) {
         let computingMode = EPatchComputingMode.GPU_OPTIMIZED;
         let patchSize = { xz: 64, y: 64 };
         if (options) {

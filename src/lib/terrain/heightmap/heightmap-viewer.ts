@@ -1,9 +1,9 @@
 import { type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../three-usage';
 
-import { type HeightmapSampler } from './heightmap-node';
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapRoot } from './heightmap-root';
+import { type IHeightmap } from './i-heightmap';
 
 class HeightmapViewer {
     public readonly container: THREE.Object3D;
@@ -14,7 +14,7 @@ class HeightmapViewer {
 
     private readonly root: HeightmapRoot;
 
-    public constructor(sampler: HeightmapSampler, smallestLevelSizeInVoxels: number) {
+    public constructor(sampler: IHeightmap, smallestLevelSizeInVoxels: number) {
         this.container = new THREE.Group();
         this.container.name = 'Heightmap nodes container';
 
