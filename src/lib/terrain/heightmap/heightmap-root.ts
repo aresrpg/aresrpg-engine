@@ -1,8 +1,9 @@
 import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../three-usage';
 
-import { HeightmapNode, type HeightmapSampler } from './heightmap-node';
+import { HeightmapNode } from './heightmap-node';
 import { HeightmapNodeId } from './heightmap-node-id';
+import type { IHeightmap } from './i-heightmap';
 
 class HeightmapRoot {
     public readonly container: THREE.Object3D;
@@ -11,7 +12,7 @@ class HeightmapRoot {
 
     public readonly smallestLevelSizeInVoxels: number;
 
-    private readonly sampler: HeightmapSampler;
+    private readonly sampler: IHeightmap;
     private readonly maxLevel: number;
     private readonly maxLevelSizeInVoxels: number;
 
@@ -20,7 +21,7 @@ class HeightmapRoot {
     private readonly garbageCollectInterval = 10000;
     private lastGarbageCollectTimestamp = performance.now();
 
-    public constructor(sampler: HeightmapSampler, maxLevel: number, smallestLevelSizeInVoxels: number) {
+    public constructor(sampler: IHeightmap, maxLevel: number, smallestLevelSizeInVoxels: number) {
         this.container = new THREE.Group();
 
         this.smallestLevelSizeInVoxels = smallestLevelSizeInVoxels;

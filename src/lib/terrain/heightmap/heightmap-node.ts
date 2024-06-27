@@ -1,9 +1,9 @@
 import { logger } from '../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../three-usage';
-import type { IHeightmapSample } from '../i-voxel-map';
 
 import { HeightmapNodeId } from './heightmap-node-id';
+import type { IHeightmap } from './i-heightmap';
 
 type Children = {
     readonly mm: HeightmapNode;
@@ -32,10 +32,6 @@ type EdgesType = {
     readonly code: number;
 };
 
-type HeightmapSampler = {
-    sampleHeightmap(x: number, y: number): IHeightmapSample;
-};
-
 interface IHeightmapRoot {
     readonly smallestLevelSizeInVoxels: number;
     readonly material: THREE.Material;
@@ -54,11 +50,11 @@ class HeightmapNode {
     private selfTrianglesCount: number = 0;
     private selfGpuMemoryBytes: number = 0;
 
-    private readonly sampler: HeightmapSampler;
+    private readonly sampler: IHeightmap;
     private readonly root: IHeightmapRoot;
     private readonly id: HeightmapNodeId;
 
-    public constructor(sampler: HeightmapSampler, id: HeightmapNodeId, root: IHeightmapRoot) {
+    public constructor(sampler: IHeightmap, id: HeightmapNodeId, root: IHeightmapRoot) {
         this.sampler = sampler;
         this.id = id;
         this.root = root;
@@ -483,4 +479,4 @@ class HeightmapNode {
     }
 }
 
-export { HeightmapNode, type HeightmapSampler };
+export { HeightmapNode };
