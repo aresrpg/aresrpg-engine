@@ -1,17 +1,17 @@
 import { logger } from '../helpers/logger';
-import * as THREE from '../three-usage';
 import { createMeshesStatistics, type MeshesStatistics } from '../helpers/meshes-statistics';
+import * as THREE from '../three-usage';
 
 import { AsyncPatch } from './async-patch';
 import { HeightmapViewer } from './heightmap/heightmap-viewer';
 import { type IVoxelMap } from './i-voxel-map';
 import { EDisplayMode } from './patch/patch';
-import { EPatchComputingMode, PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
 import { PatchFactoryCpu } from './patch/patch-factory/merged/cpu/patch-factory-cpu';
 import { PatchFactoryGpuOptimized } from './patch/patch-factory/merged/gpu/patch-factory-gpu-optimized';
 import { PatchFactoryGpuSequential } from './patch/patch-factory/merged/gpu/patch-factory-gpu-sequential';
-import { PatchId } from './patch/patch-id';
 import { type PatchSize } from './patch/patch-factory/merged/vertex-data1-encoder';
+import { EPatchComputingMode, PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
+import { PatchId } from './patch/patch-id';
 
 type TerrainOptions = {
     computingMode?: EPatchComputingMode;
