@@ -87,7 +87,7 @@ class AsyncPatch {
         return this.invisibilityTimestamp;
     }
 
-    public async dispose(): Promise<void> {
+    public dispose(): void {
         if (!this.data.disposed) {
             this.data.disposed = true;
             this.patch?.dispose();
