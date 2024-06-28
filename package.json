@@ -22,11 +22,13 @@
     "three": ">=0.163.0"
   },
   "devDependencies": {
+    "@types/dat.gui": "^0.7.13",
     "@types/three": "^0.163.0",
     "@typescript-eslint/eslint-plugin": "^7.5.0",
     "@typescript-eslint/parser": "^7.5.0",
     "@webgpu/types": "^0.1.40",
     "alea": "^1.0.1",
+    "dat.gui": "^0.7.9",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-config-standard": "^17.1.0",
