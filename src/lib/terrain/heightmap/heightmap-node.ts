@@ -5,7 +5,7 @@ import * as THREE from '../../three-usage';
 
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapNodeMesh } from './heightmap-node-mesh';
-import type { IHeightmap } from './i-heightmap';
+import type { IHeightmap, IHeightmapCoords } from './i-heightmap';
 
 type Children = {
     readonly mm: HeightmapNode;
@@ -122,31 +122,11 @@ class HeightmapNode {
 
             let nodeMesh = this.nodeMeshes.getItem(edgesType.code);
             if (!nodeMesh) {
-                const geometryData = this.buildGeometryData(edgesType);
-
-                const geometry = new THREE.BufferGeometry();
-                geometry.setAttribute('position', new THREE.Float32BufferAttribute(geometryData.positions, 3));
-                geometry.setAttribute('color', new THREE.Float32BufferAttribute(geometryData.colors, 3));
-                geometry.setIndex(geometryData.indices);
-                geometry.computeVertexNormals();
-
-                this.selfTrianglesCount += geometryData.indices.length / 3;
-                for (const attribute of Object.values(geometry.attributes)) {
-                    this.selfGpuMemoryBytes += attribute.array.byteLength;
-                }
-                this.selfGpuMemoryBytes += geometry.getIndex()!.array.byteLength;
-
-                const mesh = new THREE.Mesh(geometry, this.root.material);
-                mesh.name = `Heightmap node mesh ${this.id.asString()}`;
-                mesh.receiveShadow = true;
-                mesh.castShadow = true;
-                const firstVoxelPosition = this.id.box.min;
-                mesh.position.set(firstVoxelPosition.x, 0, firstVoxelPosition.y);
-
-                nodeMesh = new HeightmapNodeMesh(mesh);
+                const meshPromise = this.buildMesh(edgesType);
+                nodeMesh = new HeightmapNodeMesh(meshPromise);
                 this.nodeMeshes.setItem(edgesType.code, nodeMesh);
             }
-            this.container.add(nodeMesh.mesh);
+            nodeMesh.attachTo(this.container);
         }
     }
 
@@ -211,17 +191,13 @@ class HeightmapNode {
         result.gpuMemoryBytes += this.selfGpuMemoryBytes;
 
         if (this.visible) {
-            const visibleMeshes = this.nodeMeshes.allItems.filter(mesh => !!mesh.mesh.parent).map(mesh => mesh.mesh);
-
-            const visibleMesh = visibleMeshes[0];
-            if (visibleMesh) {
-                result.meshes.visibleCount++;
-                result.triangles.visibleCount += visibleMesh.geometry.getIndex()!.count / 3;
-
-                if (visibleMeshes.length > 1) {
-                    logger.warn(`Heightmap node has more that 1 mesh for itself.`);
-                }
+            const trianglesCounts = this.nodeMeshes.allItems.map(mesh => mesh.trianglesCountInScene).filter(count => count > 0);
+            if (trianglesCounts.length > 1) {
+                logger.warn(`Heightmap node has more that 1 mesh for itself.`);
             }
+
+            result.meshes.visibleCount += trianglesCounts.length;
+            result.triangles.visibleCount += trianglesCounts.reduce((total, count) => total + count);
         }
 
         if (this.children) {
@@ -280,7 +256,31 @@ class HeightmapNode {
         return Object.values(this.children);
     }
 
-    private buildGeometryData(edgesType: EdgesType): GeometryData {
+    private async buildMesh(edgesType: EdgesType): Promise<THREE.Mesh> {
+        const geometryData = await this.buildGeometryData(edgesType);
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(geometryData.positions, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(geometryData.colors, 3));
+        geometry.setIndex(geometryData.indices);
+        geometry.computeVertexNormals();
+
+        this.selfTrianglesCount += geometryData.indices.length / 3;
+        for (const attribute of Object.values(geometry.attributes)) {
+            this.selfGpuMemoryBytes += attribute.array.byteLength;
+        }
+        this.selfGpuMemoryBytes += geometry.getIndex()!.array.byteLength;
+
+        const mesh = new THREE.Mesh(geometry, this.root.material);
+        mesh.name = `Heightmap node mesh ${this.id.asString()}`;
+        mesh.receiveShadow = true;
+        mesh.castShadow = true;
+        const firstVoxelPosition = this.id.box.min;
+        mesh.position.set(firstVoxelPosition.x, 0, firstVoxelPosition.y);
+        return mesh;
+    }
+
+    private async buildGeometryData(edgesType: EdgesType): Promise<GeometryData> {
         const levelScaling = 1 << this.id.level;
         const voxelRatio = 2;
         const voxelsCount = this.root.smallestLevelSizeInVoxels;
@@ -432,19 +432,21 @@ class HeightmapNode {
             buildEdge(edgesType.left, true, mpCornerIndex, mmCornerIndex, { x: 0, y: quadsCount - 2 }, { x: 0, y: 0 }, { x: -1, y: 0 });
         }
 
+        const sampleCoords: IHeightmapCoords[] = [];
+        for (let i = 0; i < geometryData.length; i += 3) {
+            sampleCoords.push({
+                x: geometryData[i]! + this.id.box.min.x,
+                z: geometryData[i + 2]! + this.id.box.min.y,
+            });
+        }
+
+        const samples = await this.sampler.sampleHeightmapAsync(sampleCoords);
+
         const colorData: number[] = [];
-        // eslint-disable-next-line no-lone-blocks
-        {
-            // post-processing: altitude, colors
-            for (let i = 0; i < geometryData.length; i += 3) {
-                const x = geometryData[i]! + this.id.box.min.x;
-                const y = geometryData[i + 2]! + this.id.box.min.y;
-
-                const mapSample = this.sampler.sampleHeightmap(x, y);
-                geometryData[i + 1]! += mapSample.altitude;
-
-                colorData.push(mapSample.color.r, mapSample.color.g, mapSample.color.b);
-            }
+        for (let i = 0; i < samples.length; i++) {
+            const sample = samples[i]!;
+            geometryData[3 * i + 1]! += sample.altitude;
+            colorData.push(sample.color.r, sample.color.g, sample.color.b);
         }
 
         return { positions: geometryData, indices: indexData, colors: colorData };
