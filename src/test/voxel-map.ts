@@ -1,8 +1,8 @@
-import { NoiseFunction2D, createNoise2D } from 'simplex-noise';
 import alea from 'alea';
+import { NoiseFunction2D, createNoise2D } from 'simplex-noise';
 import * as THREE from 'three';
 
-import type { ILocalMapData, IVoxelMap, IVoxelMaterial, IHeightmapSample } from '../lib/index';
+import type { IHeightmap, IHeightmapCoords, IHeightmapSample, ILocalMapData, IVoxelMap, IVoxelMaterial } from '../lib/index';
 
 enum EVoxelType {
     ROCK,
@@ -30,7 +30,7 @@ type StoredVoxel = {
     readonly type: EVoxelType;
 };
 
-class VoxelMap implements IVoxelMap {
+class VoxelMap implements IVoxelMap, IHeightmap {
     public readonly size: THREE.Vector3;
     public readonly voxelMaterialsList = Object.values(voxelMaterials);
 
@@ -95,7 +95,16 @@ class VoxelMap implements IVoxelMap {
         };
     }
 
-    public sampleHeightmap(x: number, z: number): IHeightmapSample {
+    public async sampleHeightmapAsync(coords: IHeightmapCoords[]): Promise<IHeightmapSample[]> {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                const result = coords.map(coords => this.sampleHeightmap(coords.x, coords.z));
+                resolve(result);
+            }, Math.random() * 5000);
+        });
+    }
+
+    private sampleHeightmap(x: number, z: number): IHeightmapSample {
         x -= this.coordsShift.x;
         z -= this.coordsShift.z;
 

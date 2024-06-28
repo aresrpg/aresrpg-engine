@@ -1,14 +1,51 @@
 import * as THREE from '../../three-usage';
 
 class HeightmapNodeMesh {
-    public readonly mesh: THREE.Mesh;
+    private mesh: THREE.Mesh | null = null;
 
-    public constructor(mesh: THREE.Mesh) {
-        this.mesh = mesh;
+    private parent: THREE.Object3D | null = null;
+    private isDisposed: boolean = false;
+
+    public constructor(meshPromise: Promise<THREE.Mesh>) {
+        meshPromise.then(mesh => {
+            this.mesh = mesh;
+
+            if (this.parent) {
+                this.parent.add(this.mesh);
+            }
+
+            if (this.isDisposed) {
+                this.dispose();
+            }
+        });
+    }
+
+    public attachTo(parent: THREE.Object3D): void {
+        this.parent = parent;
+
+        if (this.mesh) {
+            parent.add(this.mesh);
+        }
     }
 
     public dispose(): void {
-        this.mesh.geometry.dispose();
+        this.isDisposed = true;
+
+        if (this.mesh) {
+            this.mesh.geometry.dispose();
+            if (this.mesh.parent) {
+                this.mesh.parent.remove(this.mesh);
+            }
+            this.mesh = null;
+        }
+        this.parent = null;
+    }
+
+    public get trianglesCountInScene(): number {
+        if (!this.mesh || !this.mesh.parent) {
+            return 0;
+        }
+        return this.mesh.geometry.getIndex()!.count / 3;
     }
 }
 
