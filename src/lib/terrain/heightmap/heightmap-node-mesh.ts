@@ -1,3 +1,4 @@
+import { processAsap, type SyncOrPromise } from '../../helpers/async-sync';
 import * as THREE from '../../three-usage';
 
 class HeightmapNodeMesh {
@@ -6,8 +7,8 @@ class HeightmapNodeMesh {
     private parent: THREE.Object3D | null = null;
     private isDisposed: boolean = false;
 
-    public constructor(meshPromise: Promise<THREE.Mesh>) {
-        meshPromise.then(mesh => {
+    public constructor(meshPromise: SyncOrPromise<THREE.Mesh>) {
+        processAsap(meshPromise, (mesh: THREE.Mesh) => {
             this.mesh = mesh;
 
             if (this.parent) {

@@ -22,10 +22,10 @@ interface IHeightmapSample {
  */
 interface IHeightmap {
     /**
-     * Samples points on the heightmap.
-     * @returns A promise returning a list of one sample per input coords, in the same order.
+     * Samples points on the heightmap, synchronously or asynchronously.
+     * @returns A list (or promise of list) of one sample per input coords, in the same order as the input coords.
      */
-    sampleHeightmapAsync(coords: IHeightmapCoords[]): Promise<IHeightmapSample[]>;
+    sampleHeightmap(coords: IHeightmapCoords[]): IHeightmapSample[] | Promise<IHeightmapSample[]>;
 }
 
 export type { IHeightmap, IHeightmapCoords, IHeightmapSample };
