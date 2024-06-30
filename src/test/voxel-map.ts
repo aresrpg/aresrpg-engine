@@ -47,7 +47,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         const voxels: StoredVoxel[] = [];
         for (let iX = 0; iX < this.size.x; iX++) {
             for (let iZ = 0; iZ < this.size.z; iZ++) {
-                const yNoise = this.sampleHeightmap(iX, iZ).altitude;
+                const yNoise = this.sampleHeightmapInternal(iX, iZ).altitude;
 
                 const type = this.altitudeToVoxelType(yNoise);
                 const iY = Math.floor(yNoise);
@@ -95,16 +95,22 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         };
     }
 
-    public async sampleHeightmapAsync(coords: IHeightmapCoords[]): Promise<IHeightmapSample[]> {
-        return new Promise(resolve => {
-            setTimeout(() => {
-                const result = coords.map(coords => this.sampleHeightmap(coords.x, coords.z));
-                resolve(result);
-            }, Math.random() * 5000);
-        });
+    public sampleHeightmap(coords: IHeightmapCoords[]): IHeightmapSample[] | Promise<IHeightmapSample[]> {
+        const synchronous = true;
+
+        if (synchronous) {
+            return coords.map(coords => this.sampleHeightmapInternal(coords.x, coords.z));
+        } else {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    const result = coords.map(coords => this.sampleHeightmapInternal(coords.x, coords.z));
+                    resolve(result);
+                }, Math.random() * 5000);
+            });
+        }
     }
 
-    private sampleHeightmap(x: number, z: number): IHeightmapSample {
+    private sampleHeightmapInternal(x: number, z: number): IHeightmapSample {
         x -= this.coordsShift.x;
         z -= this.coordsShift.z;
 
