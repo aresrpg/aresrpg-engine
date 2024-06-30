@@ -1,3 +1,4 @@
+import { nextPowerOfTwo } from '../../../helpers/math';
 import * as THREE from '../../../three-usage';
 import type { IVoxelMap, IVoxelMaterial } from '../../i-voxel-map';
 import type { PatchMaterialUniforms, PatchMaterials } from '../material';
@@ -55,7 +56,7 @@ abstract class PatchFactoryBase {
 
     protected readonly map: IVoxelMap;
 
-    private readonly texture: THREE.Texture;
+    protected readonly texture: THREE.DataTexture;
     private readonly noiseTexture: THREE.Texture;
 
     protected readonly noiseResolution = 5;
@@ -276,15 +277,17 @@ abstract class PatchFactoryBase {
     private static buildMaterialsTexture(
         voxelMaterials: ReadonlyArray<IVoxelMaterial>,
         voxelTypeEncoder: PackedUintFragment
-    ): THREE.Texture {
+    ): THREE.DataTexture {
         const voxelTypesCount = voxelMaterials.length;
         const maxVoxelTypesSupported = voxelTypeEncoder.maxValue + 1;
         if (voxelTypesCount > maxVoxelTypesSupported) {
             throw new Error(`A map cannot have more than ${maxVoxelTypesSupported} voxel types (received ${voxelTypesCount}).`);
         }
 
-        const textureWidth = voxelTypesCount;
-        const textureHeight = 1;
+        const maxTextureWidth = 256;
+        const idealTextureWidth = nextPowerOfTwo(voxelTypesCount);
+        const textureWidth = Math.min(idealTextureWidth, maxTextureWidth);
+        const textureHeight = Math.ceil(voxelTypesCount / textureWidth);
         const textureData = new Uint8Array(4 * textureWidth * textureHeight);
 
         voxelMaterials.forEach((material: IVoxelMaterial, materialId: number) => {

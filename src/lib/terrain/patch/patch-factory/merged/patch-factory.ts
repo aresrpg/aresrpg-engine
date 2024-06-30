@@ -2,9 +2,9 @@ import * as THREE from '../../../../three-usage';
 import { type IVoxelMap } from '../../../i-voxel-map';
 import { EDisplayMode, type PatchMaterial, type PatchMaterialUniforms, type PatchMaterials } from '../../material';
 import * as Cube from '../cube';
-import { EPatchComputingMode, type GeometryAndMaterial, PatchFactoryBase } from '../patch-factory-base';
+import { EPatchComputingMode, PatchFactoryBase, type GeometryAndMaterial } from '../patch-factory-base';
 
-import { type PatchSize, VertexData1Encoder } from './vertex-data1-encoder';
+import { VertexData1Encoder, type PatchSize } from './vertex-data1-encoder';
 import { VertexData2Encoder } from './vertex-data2-encoder';
 
 type PatchMaterialTemp = THREE.Material & {
@@ -177,7 +177,7 @@ void main() {
     diffuseColor.rgb = vec3(0.75);
     if (uDisplayMode == ${EDisplayMode.TEXTURES}u) {
         uint voxelMaterialId = ${PatchFactory.vertexData2Encoder.voxelMaterialId.glslDecode('vData2')};
-        ivec2 texelCoords = ivec2(voxelMaterialId, 0);
+        ivec2 texelCoords = ivec2(voxelMaterialId % ${this.texture.image.width}u, voxelMaterialId / ${this.texture.image.width}u);
         diffuseColor.rgb = texelFetch(uTexture, texelCoords, 0).rgb;
     } else if (uDisplayMode == ${EDisplayMode.NORMALS}u) {
         diffuseColor.rgb = 0.5 + 0.5 * modelFaceNormal;
