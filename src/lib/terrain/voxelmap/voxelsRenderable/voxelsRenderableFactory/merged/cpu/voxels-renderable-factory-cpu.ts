@@ -17,13 +17,18 @@ type VoxelsChunkCache = VoxelsChunkData & {
 
 class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
     public async buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkData): Promise<GeometryAndMaterial[]> {
-        const patchSize = voxelsChunkData.size.clone().subScalar(2);
-        const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
+        const buffer = this.buildBuffer(voxelsChunkData);
+        return this.assembleGeometryAndMaterials(buffer);
+    }
+
+    private buildBuffer(voxelsChunkData: VoxelsChunkData): Uint32Array {
+        const innerChunkSize = voxelsChunkData.size.clone().subScalar(2);
+        const maxVoxelsCount = innerChunkSize.x * innerChunkSize.y * innerChunkSize.z;
 
         const maxFacesPerVoxel = 6;
         const verticesPerFace = 6;
         const uint32PerVertex = 2;
-        const bufferLength = maxFacesPerVoxel * voxelsCountPerPatch * verticesPerFace * uint32PerVertex;
+        const bufferLength = maxFacesPerVoxel * maxVoxelsCount * verticesPerFace * uint32PerVertex;
 
         const bufferData = {
             buffer: new Uint32Array(bufferLength),
@@ -59,8 +64,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
             }
         }
 
-        const buffer = new Uint32Array(bufferData.buffer.subarray(0, uint32PerVertex * bufferData.verticesCount));
-        return this.assembleGeometryAndMaterials(buffer);
+        return new Uint32Array(bufferData.buffer.subarray(0, uint32PerVertex * bufferData.verticesCount));
     }
 
     private buildLocalMapCache(voxelsChunkData: VoxelsChunkData): VoxelsChunkCache {
