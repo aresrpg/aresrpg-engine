@@ -5,7 +5,7 @@ import { vec3ToString } from '../helpers/string';
 import * as THREE from '../three-usage';
 
 import { AsyncPatch } from './async-patch';
-import { HeightmapViewer } from './heightmap/heightmap-viewer';
+import { HeightmapViewer, type HeightmapStatistics } from './heightmap/heightmap-viewer';
 import { IHeightmap } from './heightmap/i-heightmap';
 import { type IVoxelMap } from './voxelmap/i-voxelmap';
 import { PatchFactoryCpu } from './voxelmap/patch/patch-factory/merged/patch-factory-cpu';
@@ -21,11 +21,13 @@ type TerrainOptions = {
     patchSize?: VoxelsChunkSize;
 };
 
+type VoxelMapStatistics = MeshesStatistics & {
+    patchSize: THREE.Vector3Like;
+};
+
 type TerrainStatistics = {
-    voxels: MeshesStatistics & {
-        patchSize: THREE.Vector3Like;
-    };
-    lod: MeshesStatistics;
+    voxelmap: VoxelMapStatistics;
+    heightmap: HeightmapStatistics;
 };
 
 enum EPatchComputingMode {
@@ -333,23 +335,23 @@ class Terrain {
      */
     public getStatistics(): TerrainStatistics {
         const result: TerrainStatistics = {
-            voxels: Object.assign(createMeshesStatistics(), {
+            voxelmap: Object.assign(createMeshesStatistics(), {
                 patchSize: this.patchSize.clone(),
             }),
-            lod: this.heightmapViewer.getStatistics(),
+            heightmap: this.heightmapViewer.getStatistics(),
         };
 
         for (const patch of this.patchesStore.allItems) {
             if (patch.renderable) {
-                result.voxels.meshes.loadedCount++;
-                result.voxels.triangles.loadedCount += patch.renderable.trianglesCount;
+                result.voxelmap.meshes.loadedCount++;
+                result.voxelmap.triangles.loadedCount += patch.renderable.trianglesCount;
 
                 if (patch.visible) {
-                    result.voxels.meshes.visibleCount++;
-                    result.voxels.triangles.visibleCount += patch.renderable.trianglesCount;
+                    result.voxelmap.meshes.visibleCount++;
+                    result.voxelmap.triangles.visibleCount += patch.renderable.trianglesCount;
                 }
 
-                result.voxels.gpuMemoryBytes += patch.renderable.gpuMemoryBytes;
+                result.voxelmap.gpuMemoryBytes += patch.renderable.gpuMemoryBytes;
             }
         }
 
@@ -413,4 +415,4 @@ class Terrain {
     }
 }
 
-export { EPatchComputingMode, Terrain, type IVoxelMap, type TerrainOptions, type TerrainStatistics, type VoxelsChunkSize };
+export { EPatchComputingMode, Terrain, type IVoxelMap, type TerrainOptions, type VoxelsChunkSize };
