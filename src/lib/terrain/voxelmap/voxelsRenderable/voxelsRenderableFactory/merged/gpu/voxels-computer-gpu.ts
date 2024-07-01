@@ -1,12 +1,12 @@
 /// <reference types="@webgpu/types" />
 
-import { logger } from '../../../../../helpers/logger';
-import { PromiseThrottler } from '../../../../../helpers/promise-throttler';
-import { vec3ToString } from '../../../../../helpers/string';
-import { getGpuDevice } from '../../../../../helpers/webgpu/webgpu-device';
-import * as THREE from '../../../../../three-usage';
+import { logger } from '../../../../../../helpers/logger';
+import { PromiseThrottler } from '../../../../../../helpers/promise-throttler';
+import { vec3ToString } from '../../../../../../helpers/string';
+import { getGpuDevice } from '../../../../../../helpers/webgpu/webgpu-device';
+import * as THREE from '../../../../../../three-usage';
 import * as Cube from '../../cube';
-import { type LocalMapData } from '../../patch-factory-base';
+import { type VoxelsChunkData } from '../../voxels-renderable-factory-base';
 import { VertexData1Encoder } from '../vertex-data1-encoder';
 import { VertexData2Encoder } from '../vertex-data2-encoder';
 
@@ -17,15 +17,15 @@ type FaceBuffer = {
 
 type ComputationOutputs = Uint32Array;
 
-class PatchComputerGpu {
+class VoxelsComputerGpu {
     public static async create(
-        localCacheSize: THREE.Vector3,
+        maxVoxelsChunkSize: THREE.Vector3Like,
         vertexData1Encoder: VertexData1Encoder,
         vertexData2Encoder: VertexData2Encoder
-    ): Promise<PatchComputerGpu> {
+    ): Promise<VoxelsComputerGpu> {
         logger.debug('Requesting WebGPU device...');
         const device = await getGpuDevice();
-        return new PatchComputerGpu(device, localCacheSize, vertexData1Encoder, vertexData2Encoder);
+        return new VoxelsComputerGpu(device, maxVoxelsChunkSize, vertexData1Encoder, vertexData2Encoder);
     }
 
     private readonly device: GPUDevice;
@@ -41,14 +41,14 @@ class PatchComputerGpu {
 
     private constructor(
         device: GPUDevice,
-        localCacheSize: THREE.Vector3,
+        maxVoxelsChunkSize: THREE.Vector3Like,
         vertexData1Encoder: VertexData1Encoder,
         vertexData2Encoder: VertexData2Encoder
     ) {
         this.device = device;
 
         const code = `
-        struct LocalMapDataBuffer {
+        struct VoxelsChunkBuffer {
             size: vec3i,
             data: array<u32>,
         };
@@ -56,27 +56,27 @@ class PatchComputerGpu {
             verticesCount: atomic<u32>,
             verticesData: array<u32>,
         };
-        @group(0) @binding(0) var<storage,read> localMapDataBBuffer: LocalMapDataBuffer;
+        @group(0) @binding(0) var<storage,read> voxelsChunkBuffer: VoxelsChunkBuffer;
         @group(0) @binding(1) var<storage,read_write> verticesBuffer: VerticesBuffer;
         struct ComputeIn {
             @builtin(global_invocation_id) globalInvocationId : vec3u,
         };
         
-        fn sampleLocalCache(index: i32) -> u32 {
+        fn sampleVoxelsChunk(index: i32) -> u32 {
             let actualIndex = index / 2;
-            let data = localMapDataBBuffer.data[actualIndex];
+            let data = voxelsChunkBuffer.data[actualIndex];
             if (index % 2 == 0) {
                 return data & ${(1 << 16) - 1};
             } else {
                 return data >> 16;
             }
         }
-        fn buildCacheIndex(coords: vec3i) -> i32 {
-            return coords.x + localMapDataBBuffer.size.x * (coords.y + localMapDataBBuffer.size.y * coords.z);
+        fn buildBufferIndex(coords: vec3i) -> i32 {
+            return coords.x + voxelsChunkBuffer.size.x * (coords.y + voxelsChunkBuffer.size.y * coords.z);
         }
         fn doesNeighbourExist(voxelCacheIndex: i32, neighbourRelativePosition: vec3i) -> bool {
-            let neighbourCacheIndex = voxelCacheIndex + buildCacheIndex(neighbourRelativePosition);
-            let neighbourData = sampleLocalCache(neighbourCacheIndex);
+            let neighbourCacheIndex = voxelCacheIndex + buildBufferIndex(neighbourRelativePosition);
+            let neighbourData = sampleVoxelsChunk(neighbourCacheIndex);
             return neighbourData != 0u;
         }
         fn encodeVoxelData1(voxelPosition: vec3u) -> u32 {
@@ -96,19 +96,22 @@ class PatchComputerGpu {
                 atomicStore(&verticesBuffer.verticesCount, 0u);
             }
             storageBarrier();
-            let patchIndex: u32 = globalInvocationId;
+            let voxelIndex: u32 = globalInvocationId;
         
-            let patchSize: vec3u = vec3u(localMapDataBBuffer.size) - 2u;
+            let innerChunkSize: vec3u = vec3u(voxelsChunkBuffer.size) - 2u;
         
             let voxelLocalPosition = vec3u(
-                patchIndex % patchSize.x,
-                (patchIndex / patchSize.x) % patchSize.y,
-                patchIndex / (patchSize.x * patchSize.y)
+                voxelIndex % innerChunkSize.x,
+                (voxelIndex / innerChunkSize.x) % innerChunkSize.y,
+                voxelIndex / (innerChunkSize.x * innerChunkSize.y)
             );
-            if (voxelLocalPosition.z < patchSize.z) { // if we are in the patch
+            let isInInnerChunk: bool = voxelLocalPosition.x < innerChunkSize.x &&
+                                       voxelLocalPosition.y < innerChunkSize.y &&
+                                       voxelLocalPosition.z < innerChunkSize.z;
+            if (isInInnerChunk) {
                 let cacheCoords = vec3i(voxelLocalPosition + 1u);
-                let cacheIndex: i32 = buildCacheIndex(cacheCoords);
-                let voxelData: u32 = sampleLocalCache(cacheIndex);
+                let cacheIndex: i32 = buildBufferIndex(cacheCoords);
+                let voxelData: u32 = sampleVoxelsChunk(cacheIndex);
                 if (voxelData != 0u) {
                     let voxelMaterialId: u32 = voxelData - 1u;
                     let encodedVoxelPosition = ${vertexData1Encoder.wgslEncodeVoxelData('voxelLocalPosition')};
@@ -172,13 +175,13 @@ class PatchComputerGpu {
         this.localCacheBuffer = this.device.createBuffer({
             size:
                 Uint32Array.BYTES_PER_ELEMENT * 3 +
-                Uint16Array.BYTES_PER_ELEMENT * (localCacheSize.x * localCacheSize.y * localCacheSize.z),
+                Uint16Array.BYTES_PER_ELEMENT * (maxVoxelsChunkSize.x * maxVoxelsChunkSize.y * maxVoxelsChunkSize.z),
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
             mappedAtCreation: false,
         });
 
         const maxFacesPerVoxel = 6;
-        const maxVoxelsCount = (localCacheSize.x - 2) * (localCacheSize.y - 2) * (localCacheSize.z - 2);
+        const maxVoxelsCount = (maxVoxelsChunkSize.x - 2) * (maxVoxelsChunkSize.y - 2) * (maxVoxelsChunkSize.z - 2);
         const verticesPerVoxel = 6;
         const bufferSize = Uint32Array.BYTES_PER_ELEMENT * (1 + Math.ceil(maxVoxelsCount / 2) * maxFacesPerVoxel * verticesPerVoxel);
 
@@ -213,23 +216,23 @@ class PatchComputerGpu {
         });
     }
 
-    public async computeBuffer(localMapData: LocalMapData): Promise<ComputationOutputs> {
+    public async computeBuffer(voxelsChunkData: VoxelsChunkData): Promise<ComputationOutputs> {
         return this.promiseThrottler.run(async () => {
             this.device.queue.writeBuffer(
                 this.localCacheBuffer,
                 0,
-                new Int32Array([localMapData.size.x, localMapData.size.y, localMapData.size.z])
+                new Int32Array([voxelsChunkData.size.x, voxelsChunkData.size.y, voxelsChunkData.size.z])
             );
-            this.device.queue.writeBuffer(this.localCacheBuffer, Int32Array.BYTES_PER_ELEMENT * 3, localMapData.data);
+            this.device.queue.writeBuffer(this.localCacheBuffer, Int32Array.BYTES_PER_ELEMENT * 3, voxelsChunkData.data);
 
-            const patchSize = localMapData.size.clone().subScalar(2);
-            const totalPatchCells = patchSize.x * patchSize.y * patchSize.z;
+            const innerChunkSize = voxelsChunkData.size.clone().subScalar(2);
+            const innerChunkVoxelsCount = innerChunkSize.x * innerChunkSize.y * innerChunkSize.z;
 
             const commandEncoder = this.device.createCommandEncoder();
             const computePass = commandEncoder.beginComputePass();
             computePass.setPipeline(this.computePipeline);
             computePass.setBindGroup(0, this.computePipelineBindgroup);
-            computePass.dispatchWorkgroups(Math.ceil(totalPatchCells / this.workgroupSize));
+            computePass.dispatchWorkgroups(Math.ceil(innerChunkVoxelsCount / this.workgroupSize));
             computePass.end();
 
             commandEncoder.copyBufferToBuffer(this.buffer.storageBuffer, 0, this.buffer.readableBuffer, 0, this.buffer.readableBuffer.size);
@@ -265,4 +268,4 @@ class PatchComputerGpu {
     }
 }
 
-export { PatchComputerGpu, type ComputationOutputs };
+export { VoxelsComputerGpu, type ComputationOutputs };

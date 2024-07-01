@@ -1,4 +1,4 @@
-import * as THREE from '../../../three-usage';
+import * as THREE from '../../../../three-usage';
 
 const vertices = {
     ppp: new THREE.Vector3(1, 1, 1),

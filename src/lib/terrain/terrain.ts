@@ -7,18 +7,18 @@ import * as THREE from '../three-usage';
 import { AsyncPatch } from './async-patch';
 import { HeightmapViewer } from './heightmap/heightmap-viewer';
 import { IHeightmap } from './heightmap/i-heightmap';
-import { PatchFactoryCpu } from './patch/patch-factory/merged/cpu/patch-factory-cpu';
-import { PatchFactoryGpuOptimized } from './patch/patch-factory/merged/gpu/patch-factory-gpu-optimized';
-import { PatchFactoryGpuSequential } from './patch/patch-factory/merged/gpu/patch-factory-gpu-sequential';
-import { type PatchSize } from './patch/patch-factory/merged/vertex-data1-encoder';
+import { PatchFactoryCpu } from './patch/patch-factory/merged/patch-factory-cpu';
+import { PatchFactoryGpuOptimized } from './patch/patch-factory/merged/patch-factory-gpu-optimized';
+import { PatchFactoryGpuSequential } from './patch/patch-factory/merged/patch-factory-gpu-sequential';
 import { PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
 import { PatchId } from './patch/patch-id';
 import { type IVoxelMap } from './voxelmap/i-voxel-map';
 import { EVoxelsDisplayMode } from './voxelmap/voxelsRenderable/voxels-renderable';
+import { type VoxelsChunkSize } from './voxelmap/voxelsRenderable/voxelsRenderableFactory/merged/vertex-data1-encoder';
 
 type TerrainOptions = {
     computingMode?: EPatchComputingMode;
-    patchSize?: PatchSize;
+    patchSize?: VoxelsChunkSize;
 };
 
 type TerrainStatistics = {
@@ -413,4 +413,4 @@ class Terrain {
     }
 }
 
-export { EPatchComputingMode, Terrain, type IVoxelMap, type PatchSize, type TerrainOptions, type TerrainStatistics };
+export { EPatchComputingMode, Terrain, type IVoxelMap, type TerrainOptions, type TerrainStatistics, type VoxelsChunkSize };

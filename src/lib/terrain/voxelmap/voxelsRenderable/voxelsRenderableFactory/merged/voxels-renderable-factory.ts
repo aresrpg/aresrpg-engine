@@ -1,36 +1,31 @@
-import { vec3ToString } from '../../../../helpers/string';
-import * as THREE from '../../../../three-usage';
-import { type IVoxelMap } from '../../../voxelmap/i-voxel-map';
-import {
-    EVoxelsDisplayMode,
-    type VoxelsMaterial,
-    type VoxelsMaterialUniforms,
-    type VoxelsMaterials,
-} from '../../../voxelmap/voxelsRenderable/voxels-material';
+import { vec3ToString } from '../../../../../helpers/string';
+import * as THREE from '../../../../../three-usage';
+import { type IVoxelMaterial } from '../../../i-voxel-map';
+import { EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterialUniforms, type VoxelsMaterials } from '../../voxels-material';
 import * as Cube from '../cube';
-import { PatchFactoryBase, type GeometryAndMaterial } from '../patch-factory-base';
+import { VoxelsRenderableFactoryBase, type GeometryAndMaterial } from '../voxels-renderable-factory-base';
 
-import { VertexData1Encoder, type PatchSize } from './vertex-data1-encoder';
+import { VertexData1Encoder, type VoxelsChunkSize } from './vertex-data1-encoder';
 import { VertexData2Encoder } from './vertex-data2-encoder';
 
-type PatchMaterialTemp = THREE.Material & {
+type VoxelsMaterialTemp = THREE.Material & {
     readonly userData: {
         uniforms: VoxelsMaterialUniforms;
     };
 };
 
-abstract class PatchFactory extends PatchFactoryBase {
+abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
     private static readonly data1AttributeName = 'aData';
     private static readonly data2AttributeName = 'aData2';
 
     protected readonly vertexData1Encoder: VertexData1Encoder;
     protected static readonly vertexData2Encoder = new VertexData2Encoder();
 
-    public readonly maxPatchSize: THREE.Vector3;
+    public readonly maxVoxelsChunkSize: THREE.Vector3;
 
     private readonly materialsTemplates: VoxelsMaterials;
 
-    private buildThreeJsPatchMaterial(): VoxelsMaterial {
+    private buildThreeJsVoxelsMaterial(): VoxelsMaterial {
         function applyReplacements(source: string, replacements: Record<string, string>): string {
             let result = source;
 
@@ -43,9 +38,9 @@ abstract class PatchFactory extends PatchFactoryBase {
 
         const phongMaterial = new THREE.MeshPhongMaterial();
         phongMaterial.shininess = 0;
-        const material = phongMaterial as unknown as PatchMaterialTemp;
+        const material = phongMaterial as unknown as VoxelsMaterialTemp;
         material.userData.uniforms = this.uniformsTemplate;
-        material.customProgramCacheKey = () => `patch-factory-merged`;
+        material.customProgramCacheKey = () => `voxels-factory-merged`;
         material.onBeforeCompile = parameters => {
             parameters.uniforms = {
                 ...parameters.uniforms,
@@ -54,8 +49,8 @@ abstract class PatchFactory extends PatchFactoryBase {
 
             parameters.vertexShader = applyReplacements(parameters.vertexShader, {
                 'void main() {': `
-in uint ${PatchFactory.data1AttributeName};
-in uint ${PatchFactory.data2AttributeName};
+in uint ${VoxelsRenderableFactory.data1AttributeName};
+in uint ${VoxelsRenderableFactory.data2AttributeName};
 
 out vec2 vUv;
 out vec2 vEdgeRoundness;
@@ -68,15 +63,15 @@ void main() {`,
     uint vertexId = vertexIds[gl_VertexID % 6];
 
     uvec3 modelVoxelPosition = uvec3(
-        ${this.vertexData1Encoder.voxelX.glslDecode(PatchFactory.data1AttributeName)},
-        ${this.vertexData1Encoder.voxelY.glslDecode(PatchFactory.data1AttributeName)},
-        ${this.vertexData1Encoder.voxelZ.glslDecode(PatchFactory.data1AttributeName)}
+        ${this.vertexData1Encoder.voxelX.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
+        ${this.vertexData1Encoder.voxelY.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
+        ${this.vertexData1Encoder.voxelZ.glslDecode(VoxelsRenderableFactory.data1AttributeName)}
     );
 
     uvec3 localVertexPosition = uvec3(
-        ${this.vertexData1Encoder.localX.glslDecode(PatchFactory.data1AttributeName)},
-        ${this.vertexData1Encoder.localY.glslDecode(PatchFactory.data1AttributeName)},
-        ${this.vertexData1Encoder.localZ.glslDecode(PatchFactory.data1AttributeName)}
+        ${this.vertexData1Encoder.localX.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
+        ${this.vertexData1Encoder.localY.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
+        ${this.vertexData1Encoder.localZ.glslDecode(VoxelsRenderableFactory.data1AttributeName)}
     );
     vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
     vec3 transformed = modelPosition;
@@ -95,20 +90,20 @@ void main() {`,
         vec2(0,1),
         vec2(1,1)
     );
-    uint edgeRoundnessId = ${this.vertexData1Encoder.edgeRoundness.glslDecode(PatchFactory.data1AttributeName)};
+    uint edgeRoundnessId = ${this.vertexData1Encoder.edgeRoundness.glslDecode(VoxelsRenderableFactory.data1AttributeName)};
     vEdgeRoundness = edgeRoundness[edgeRoundnessId];
 
     vAo = float(${this.vertexData1Encoder.ao.glslDecode(
-        PatchFactory.data1AttributeName
+        VoxelsRenderableFactory.data1AttributeName
     )}) / ${this.vertexData1Encoder.ao.maxValue.toFixed(1)};
 
-    vData2 = ${PatchFactory.data2AttributeName};
+    vData2 = ${VoxelsRenderableFactory.data2AttributeName};
         `,
                 '#include <beginnormal_vertex>': `
     const vec3 faceNormalById[] = vec3[](
         ${Cube.facesById.map(face => `vec3(${vec3ToString(face.normal.vec, ', ')})`).join(',\n')}
     );
-    uint faceId = ${this.vertexData1Encoder.faceId.glslDecode(PatchFactory.data1AttributeName)};
+    uint faceId = ${this.vertexData1Encoder.faceId.glslDecode(VoxelsRenderableFactory.data1AttributeName)};
     vec3 objectNormal = faceNormalById[faceId];
 `,
             });
@@ -136,14 +131,14 @@ vec3 computeModelNormal() {
         ${Cube.normalsById.map(value => `vec3(${vec3ToString(value, ', ')})`).join(',\n')}
     );
 
-    vec3 modelFaceNormal = modelNormalsById[${PatchFactory.vertexData2Encoder.normalId.glslDecode('vData2')}];
+    vec3 modelFaceNormal = modelNormalsById[${VoxelsRenderableFactory.vertexData2Encoder.normalId.glslDecode('vData2')}];
     if (uSmoothEdgeRadius <= 0.0) {
         return modelFaceNormal;
     }
 
     vec3 localNormal;
 
-    vec2 edgeRoundness = step(${PatchFactoryBase.maxSmoothEdgeRadius.toFixed(2)}, vEdgeRoundness);
+    vec2 edgeRoundness = step(${VoxelsRenderableFactory.maxSmoothEdgeRadius.toFixed(2)}, vEdgeRoundness);
     if (uSmoothEdgeMethod == 0u) {
         vec2 margin = mix(vec2(0), vec2(uSmoothEdgeRadius), edgeRoundness);
         vec3 roundnessCenter = vec3(clamp(vUv, margin, 1.0 - margin), -uSmoothEdgeRadius);
@@ -159,7 +154,7 @@ vec3 computeModelNormal() {
         localNormal = normalize(vec3(distanceFromMargin, 1));
     }
 
-    vec3 uvRight = modelNormalsById[${PatchFactory.vertexData2Encoder.uvRightId.glslDecode('vData2')}];
+    vec3 uvRight = modelNormalsById[${VoxelsRenderableFactory.vertexData2Encoder.uvRightId.glslDecode('vData2')}];
     vec3 uvUp = cross(modelFaceNormal, uvRight);
 
     vec3 modelNormal = localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * modelFaceNormal;
@@ -167,7 +162,7 @@ vec3 computeModelNormal() {
 }
 
 float computeNoise() {
-    int noiseId = int(${PatchFactory.vertexData2Encoder.faceNoiseId.glslDecode('vData2')});
+    int noiseId = int(${VoxelsRenderableFactory.vertexData2Encoder.faceNoiseId.glslDecode('vData2')});
     ivec2 texelCoords = clamp(ivec2(vUv * ${this.noiseResolution.toFixed(1)}), ivec2(0), ivec2(${this.noiseResolution - 1}));
     texelCoords.x += noiseId * ${this.noiseResolution};
     float noise = texelFetch(uNoiseTexture, texelCoords, 0).r - 0.5;
@@ -182,7 +177,7 @@ void main() {
                 '#include <map_fragment>': `
     diffuseColor.rgb = vec3(0.75);
     if (uDisplayMode == ${EVoxelsDisplayMode.TEXTURED}u) {
-        uint voxelMaterialId = ${PatchFactory.vertexData2Encoder.voxelMaterialId.glslDecode('vData2')};
+        uint voxelMaterialId = ${VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId.glslDecode('vData2')};
         ivec2 texelCoords = ivec2(voxelMaterialId % ${this.texture.image.width}u, voxelMaterialId / ${this.texture.image.width}u);
         diffuseColor.rgb = texelFetch(uTexture, texelCoords, 0).rgb;
     } else if (uDisplayMode == ${EVoxelsDisplayMode.NORMALS}u) {
@@ -207,7 +202,7 @@ void main() {
         return new THREE.ShaderMaterial({
             glslVersion: '300 es',
             vertexShader: `
-        in uint ${PatchFactory.data1AttributeName};
+        in uint ${VoxelsRenderableFactory.data1AttributeName};
 
         // This is used for computing an equivalent of gl_FragCoord.z that is as high precision as possible.
         // Some platforms compute gl_FragCoord at a lower precision which makes the manually computed value better for
@@ -219,15 +214,15 @@ void main() {
             uint vertexId = vertexIds[gl_VertexID % 6];
 
             uvec3 modelVoxelPosition = uvec3(
-                ${this.vertexData1Encoder.voxelX.glslDecode(PatchFactory.data1AttributeName)},
-                ${this.vertexData1Encoder.voxelY.glslDecode(PatchFactory.data1AttributeName)},
-                ${this.vertexData1Encoder.voxelZ.glslDecode(PatchFactory.data1AttributeName)}
+                ${this.vertexData1Encoder.voxelX.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
+                ${this.vertexData1Encoder.voxelY.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
+                ${this.vertexData1Encoder.voxelZ.glslDecode(VoxelsRenderableFactory.data1AttributeName)}
             );
 
             uvec3 localVertexPosition = uvec3(
-                ${this.vertexData1Encoder.localX.glslDecode(PatchFactory.data1AttributeName)},
-                ${this.vertexData1Encoder.localY.glslDecode(PatchFactory.data1AttributeName)},
-                ${this.vertexData1Encoder.localZ.glslDecode(PatchFactory.data1AttributeName)}
+                ${this.vertexData1Encoder.localX.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
+                ${this.vertexData1Encoder.localY.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
+                ${this.vertexData1Encoder.localZ.glslDecode(VoxelsRenderableFactory.data1AttributeName)}
             );
             vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
             gl_Position = projectionMatrix * modelViewMatrix * vec4(modelPosition, 1.0);
@@ -252,23 +247,23 @@ void main() {
         });
     }
 
-    private buildPatchMaterial(): VoxelsMaterials {
-        const material = this.buildThreeJsPatchMaterial();
+    private buildVoxelsMaterials(): VoxelsMaterials {
+        const material = this.buildThreeJsVoxelsMaterial();
         const shadowMaterial = this.buildShadowMaterial();
         return { material, shadowMaterial };
     }
 
-    public constructor(map: IVoxelMap, patchSize: PatchSize) {
-        super(map, PatchFactory.vertexData2Encoder.voxelMaterialId);
+    public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, maxVoxelsChunkSize: VoxelsChunkSize) {
+        super(voxelMaterialsList, VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId);
 
-        this.vertexData1Encoder = new VertexData1Encoder(patchSize);
-        this.maxPatchSize = new THREE.Vector3(
+        this.vertexData1Encoder = new VertexData1Encoder(maxVoxelsChunkSize);
+        this.maxVoxelsChunkSize = new THREE.Vector3(
             this.vertexData1Encoder.voxelX.maxValue + 1,
             this.vertexData1Encoder.voxelY.maxValue + 1,
             this.vertexData1Encoder.voxelZ.maxValue + 1
         );
 
-        this.materialsTemplates = this.buildPatchMaterial();
+        this.materialsTemplates = this.buildVoxelsMaterials();
     }
 
     protected async disposeInternal(): Promise<void> {
@@ -292,8 +287,8 @@ void main() {
         // faceTypeVerticesDataBuffer.onUpload(() => {
         //     (faceTypeVerticesDataBuffer.array as THREE.TypedArray | null) = null;
         // });
-        geometry.setAttribute(PatchFactory.data1AttributeName, data1Attribute);
-        geometry.setAttribute(PatchFactory.data2AttributeName, data2Attribute);
+        geometry.setAttribute(VoxelsRenderableFactory.data1AttributeName, data1Attribute);
+        geometry.setAttribute(VoxelsRenderableFactory.data2AttributeName, data2Attribute);
         geometry.setDrawRange(0, verticesCount);
 
         const trianglesCount = verticesCount / 3;
@@ -302,4 +297,4 @@ void main() {
     }
 }
 
-export { PatchFactory, type VoxelsMaterials as PatchMaterials };
+export { VoxelsRenderableFactory, type VoxelsMaterials };
