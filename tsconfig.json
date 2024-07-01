@@ -1,5 +1,5 @@
 {
-  "files": ["src/lib/index.ts"],
+  "files": ["src/lib/index.ts", "src/test/main.ts"],
   "compilerOptions": {
     /* Type Checking */
     "allowUnreachableCode": false,

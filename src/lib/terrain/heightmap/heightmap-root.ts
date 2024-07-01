@@ -3,7 +3,7 @@ import * as THREE from '../../three-usage';
 
 import { HeightmapNode } from './heightmap-node';
 import { HeightmapNodeId } from './heightmap-node-id';
-import type { IHeightmap } from './i-heightmap';
+import { type IHeightmap } from './i-heightmap';
 
 class HeightmapRoot {
     public readonly container: THREE.Object3D;

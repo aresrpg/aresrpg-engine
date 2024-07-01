@@ -1,4 +1,4 @@
-import * as THREE from '../../../three-usage';
+import type * as THREE from '../../../three-usage';
 
 enum EVoxelsDisplayMode {
     TEXTURED,
