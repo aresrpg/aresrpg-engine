@@ -1,6 +1,6 @@
 import { vec3ToString } from '../../../../../helpers/string';
 import * as THREE from '../../../../../three-usage';
-import { type IVoxelMaterial } from '../../../i-voxel-map';
+import { type IVoxelMaterial } from '../../../i-voxelmap';
 import { EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterialUniforms, type VoxelsMaterials } from '../../voxels-material';
 import * as Cube from '../cube';
 import { VoxelsRenderableFactoryBase, type GeometryAndMaterial } from '../voxels-renderable-factory-base';

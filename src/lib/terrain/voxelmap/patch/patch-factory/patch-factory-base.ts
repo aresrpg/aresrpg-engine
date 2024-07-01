@@ -1,7 +1,7 @@
 import { processAsap } from '../../../../helpers/async-sync';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
-import type { IVoxelMap } from '../../i-voxel-map';
+import type { IVoxelMap } from '../../i-voxelmap';
 import type { VoxelsMaterials } from '../../voxelsRenderable/voxels-material';
 import { VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
 import {
