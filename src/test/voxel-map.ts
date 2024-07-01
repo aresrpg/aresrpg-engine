@@ -2,7 +2,14 @@ import alea from 'alea';
 import { type NoiseFunction2D, createNoise2D } from 'simplex-noise';
 import * as THREE from 'three';
 
-import { type IHeightmap, type IHeightmapCoords, type IHeightmapSample, type ILocalMapData, type IVoxelMap, type IVoxelMaterial } from '../lib/index';
+import {
+    type IHeightmap,
+    type IHeightmapCoords,
+    type IHeightmapSample,
+    type ILocalMapData,
+    type IVoxelMap,
+    type IVoxelMaterial,
+} from '../lib/index';
 
 enum EVoxelType {
     ROCK,
