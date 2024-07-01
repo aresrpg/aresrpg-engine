@@ -2,6 +2,7 @@
 
 import { logger } from '../../../../../helpers/logger';
 import { PromiseThrottler } from '../../../../../helpers/promise-throttler';
+import { vec3ToString } from '../../../../../helpers/string';
 import { getGpuDevice } from '../../../../../helpers/webgpu/webgpu-device';
 import * as THREE from '../../../../../three-usage';
 import * as Cube from '../../cube';
@@ -114,7 +115,7 @@ class PatchComputerGpu {
                     ${Object.values(Cube.faces)
                         .map(
                             face => `
-                    if (!doesNeighbourExist(cacheIndex, vec3i(${face.normal.vec.x}, ${face.normal.vec.y}, ${face.normal.vec.z}))) {
+                    if (!doesNeighbourExist(cacheIndex, vec3i(${vec3ToString(face.normal.vec, ', ')}))) {
                         let firstVertexIndex: u32 = atomicAdd(&verticesBuffer.verticesCount, 6u);
                         let faceNoiseId: u32 = (firstVertexIndex / 6u) % (${vertexData2Encoder.faceNoiseId.maxValue});
                         var ao: u32;
@@ -125,15 +126,9 @@ class PatchComputerGpu {
                                 (faceVertex: Cube.FaceVertex, faceVertexId: number) => `
                         ao = 0u;
                         {
-                            let a: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[0].x},${
-                                faceVertex.shadowingNeighbourVoxels[0].y
-                            },${faceVertex.shadowingNeighbourVoxels[0].z}));
-                            let b: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[1].x},${
-                                faceVertex.shadowingNeighbourVoxels[1].y
-                            },${faceVertex.shadowingNeighbourVoxels[1].z}));
-                            let c: bool = doesNeighbourExist(cacheIndex, vec3i(${faceVertex.shadowingNeighbourVoxels[2].x},${
-                                faceVertex.shadowingNeighbourVoxels[2].y
-                            },${faceVertex.shadowingNeighbourVoxels[2].z}));
+                            let a: bool = doesNeighbourExist(cacheIndex, vec3i(${vec3ToString(faceVertex.shadowingNeighbourVoxels[0], ', ')}));
+                            let b: bool = doesNeighbourExist(cacheIndex, vec3i(${vec3ToString(faceVertex.shadowingNeighbourVoxels[1], ', ')}));
+                            let c: bool = doesNeighbourExist(cacheIndex, vec3i(${vec3ToString(faceVertex.shadowingNeighbourVoxels[2], ', ')}));
                             if (a && b) {
                                 ao = 3u;
                               } else {
@@ -141,10 +136,10 @@ class PatchComputerGpu {
                               }
                         }
                         edgeRoundnessX = ${faceVertex.edgeNeighbourVoxels.x
-                            .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${neighbour.x},${neighbour.y},${neighbour.z}))`)
+                            .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${vec3ToString(neighbour, ', ')}))`)
                             .join(' && ')};
                         edgeRoundnessY = ${faceVertex.edgeNeighbourVoxels.y
-                            .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${neighbour.x},${neighbour.y},${neighbour.z}))`)
+                            .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${vec3ToString(neighbour, ', ')}))`)
                             .join(' && ')};
                         let vertex${faceVertexId}Position = vec3u(${faceVertex.vertex.x}u, ${faceVertex.vertex.y}u, ${faceVertex.vertex.z}u);
                         let vertex${faceVertexId}Data = encodeVertexData1(encodedVoxelPosition, vertex${faceVertexId}Position, ao, u32(edgeRoundnessX), u32(edgeRoundnessY));`

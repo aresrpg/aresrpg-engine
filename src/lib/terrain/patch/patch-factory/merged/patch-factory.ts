@@ -1,3 +1,4 @@
+import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
 import { type IVoxelMap } from '../../../i-voxel-map';
 import { EDisplayMode, type PatchMaterial, type PatchMaterialUniforms, type PatchMaterials } from '../../material';
@@ -100,7 +101,7 @@ void main() {`,
         `,
                 '#include <beginnormal_vertex>': `
     const vec3 faceNormalById[] = vec3[](
-        ${Cube.facesById.map(face => `vec3(${face.normal.vec.x}, ${face.normal.vec.y}, ${face.normal.vec.z})`).join(',\n')}
+        ${Cube.facesById.map(face => `vec3(${vec3ToString(face.normal.vec, ', ')})`).join(',\n')}
     );
     uint faceId = ${this.vertexData1Encoder.faceId.glslDecode(PatchFactory.data1AttributeName)};
     vec3 objectNormal = faceNormalById[faceId];
@@ -127,7 +128,7 @@ in float vAo;
 
 vec3 computeModelNormal() {
     const vec3 modelNormalsById[] = vec3[](
-        ${Cube.normalsById.map(value => `vec3(${value.x}, ${value.y}, ${value.z})`).join(',\n')}
+        ${Cube.normalsById.map(value => `vec3(${vec3ToString(value, ', ')})`).join(',\n')}
     );
 
     vec3 modelFaceNormal = modelNormalsById[${PatchFactory.vertexData2Encoder.normalId.glslDecode('vData2')}];

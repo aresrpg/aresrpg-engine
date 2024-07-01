@@ -1,3 +1,4 @@
+import { vec2ToString } from '../../helpers/string';
 import * as THREE from '../../three-usage';
 
 interface IRoot {
@@ -38,7 +39,7 @@ class HeightmapNodeId {
     }
 
     public asString(): string {
-        return `${this.level}__${this.coordsInLevel.x}x${this.coordsInLevel.y}`;
+        return `${this.level}__${vec2ToString(this.coordsInLevel)}`;
     }
 
     public getNeighbour(dX: number, dY: number): HeightmapNodeId {
