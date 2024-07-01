@@ -12,7 +12,7 @@ import { PatchFactoryCpu } from './patch/patch-factory/merged/cpu/patch-factory-
 import { PatchFactoryGpuOptimized } from './patch/patch-factory/merged/gpu/patch-factory-gpu-optimized';
 import { PatchFactoryGpuSequential } from './patch/patch-factory/merged/gpu/patch-factory-gpu-sequential';
 import { type PatchSize } from './patch/patch-factory/merged/vertex-data1-encoder';
-import { EPatchComputingMode, PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
+import { PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
 import { PatchId } from './patch/patch-id';
 
 type TerrainOptions = {
@@ -26,6 +26,12 @@ type TerrainStatistics = {
     };
     lod: MeshesStatistics;
 };
+
+enum EPatchComputingMode {
+    CPU_CACHED,
+    GPU_SEQUENTIAL,
+    GPU_OPTIMIZED,
+}
 
 /**
  * Class that takes an IVoxelMap and makes a renderable three.js object of it.

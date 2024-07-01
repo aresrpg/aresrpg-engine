@@ -2,7 +2,7 @@ import * as THREE from '../../../../three-usage';
 import { type IVoxelMap } from '../../../i-voxel-map';
 import { EDisplayMode, type PatchMaterial, type PatchMaterialUniforms, type PatchMaterials } from '../../material';
 import * as Cube from '../cube';
-import { EPatchComputingMode, PatchFactoryBase, type GeometryAndMaterial } from '../patch-factory-base';
+import { PatchFactoryBase, type GeometryAndMaterial } from '../patch-factory-base';
 
 import { VertexData1Encoder, type PatchSize } from './vertex-data1-encoder';
 import { VertexData2Encoder } from './vertex-data2-encoder';
@@ -252,8 +252,8 @@ void main() {
         return { material, shadowMaterial };
     }
 
-    protected constructor(map: IVoxelMap, computingMode: EPatchComputingMode, patchSize: PatchSize) {
-        super(map, PatchFactory.vertexData2Encoder.voxelMaterialId, computingMode);
+    public constructor(map: IVoxelMap, patchSize: PatchSize) {
+        super(map, PatchFactory.vertexData2Encoder.voxelMaterialId);
 
         this.vertexData1Encoder = new VertexData1Encoder(patchSize);
         this.maxPatchSize = new THREE.Vector3(
