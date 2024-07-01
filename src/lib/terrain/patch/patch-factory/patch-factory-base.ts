@@ -128,11 +128,7 @@ abstract class PatchFactoryBase {
     }
 
     protected abstract buildGeometryAndMaterials(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]>;
-    protected abstract buildGeometryAndMaterialsFromMapData(
-        patchStart: THREE.Vector3,
-        patchEnd: THREE.Vector3,
-        localMapData: LocalMapData
-    ): Promise<GeometryAndMaterial[]>;
+    protected abstract buildGeometryAndMaterialsFromMapData(localMapData: LocalMapData): Promise<GeometryAndMaterial[]>;
 
     protected abstract disposeInternal(): void;
 
