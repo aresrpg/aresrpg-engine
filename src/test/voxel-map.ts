@@ -38,6 +38,7 @@ type StoredVoxel = {
 };
 
 class VoxelMap implements IVoxelMap, IHeightmap {
+    public readonly scaleXZ: number;
     public readonly size: THREE.Vector3;
     public readonly voxelMaterialsList = Object.values(voxelMaterials);
 
@@ -45,8 +46,9 @@ class VoxelMap implements IVoxelMap, IHeightmap {
     private readonly voxels: ReadonlyArray<StoredVoxel>;
     private readonly coordsShift: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
 
-    public constructor(width: number, height: number, altitude: number, seed: string) {
+    public constructor(width: number, height: number, scaleXZ: number, altitude: number, seed: string) {
         this.size = new THREE.Vector3(width, altitude, height);
+        this.scaleXZ = scaleXZ;
 
         const prng = alea(seed);
         this.noise2D = createNoise2D(prng);
@@ -128,7 +130,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         x -= this.coordsShift.x;
         z -= this.coordsShift.z;
 
-        const noise = this.noise2D(x / 50, z / 50);
+        const noise = this.noise2D(x / this.scaleXZ, z / this.scaleXZ);
         const altitude = (0.5 + 0.5 * noise) * this.size.y;
 
         const voxelType = this.altitudeToVoxelType(altitude);
