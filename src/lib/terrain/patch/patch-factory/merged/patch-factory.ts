@@ -1,6 +1,6 @@
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
-import { type IVoxelMap } from '../../../i-voxel-map';
+import { type IVoxelMap } from '../../../voxelmap/i-voxel-map';
 import {
     EVoxelsDisplayMode,
     type VoxelsMaterial,

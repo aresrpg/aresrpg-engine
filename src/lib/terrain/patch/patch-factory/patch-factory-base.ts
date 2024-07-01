@@ -1,7 +1,7 @@
 import { nextPowerOfTwo } from '../../../helpers/math';
 import { vec3ToString } from '../../../helpers/string';
 import * as THREE from '../../../three-usage';
-import type { IVoxelMap, IVoxelMaterial } from '../../i-voxel-map';
+import type { IVoxelMap, IVoxelMaterial } from '../../voxelmap/i-voxel-map';
 import type { VoxelsMaterialUniforms, VoxelsMaterials } from '../../voxelmap/voxelsRenderable/voxels-material';
 import { VoxelsRenderable } from '../../voxelmap/voxelsRenderable/voxels-renderable';
 import { PatchId } from '../patch-id';
