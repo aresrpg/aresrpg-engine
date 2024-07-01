@@ -68,7 +68,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         console.log(`Generated map of size ${this.size.x}x${this.size.y}x${this.size.z} (${this.voxels.length.toLocaleString()} voxels)`);
     }
 
-    public async getLocalMapData(blockStart: THREE.Vector3, blockEnd: THREE.Vector3): Promise<ILocalMapData> {
+    public getLocalMapData(blockStart: THREE.Vector3, blockEnd: THREE.Vector3): ILocalMapData | Promise<ILocalMapData> {
         const blockSize = new THREE.Vector3().subVectors(blockEnd, blockStart);
         const cache = new Uint16Array(blockSize.x * blockSize.y * blockSize.z);
 
@@ -89,23 +89,30 @@ class VoxelMap implements IVoxelMap, IHeightmap {
             isEmpty = false;
         }
 
-        return {
+        const result = {
             data: cache,
             isEmpty,
         };
+
+        const synchronous = false;
+        if (synchronous) {
+            return result;
+        } else {
+            return Promise.resolve(result);
+        }
     }
 
     public sampleHeightmap(coords: IHeightmapCoords[]): IHeightmapSample[] | Promise<IHeightmapSample[]> {
-        const synchronous = true;
+        const result = coords.map(coords => this.sampleHeightmapInternal(coords.x, coords.z));
 
+        const synchronous = false;
         if (synchronous) {
-            return coords.map(coords => this.sampleHeightmapInternal(coords.x, coords.z));
+            return result;
         } else {
             return new Promise(resolve => {
-                setTimeout(() => {
-                    const result = coords.map(coords => this.sampleHeightmapInternal(coords.x, coords.z));
-                    resolve(result);
-                }, Math.random() * 5000);
+                // setTimeout(() => {
+                resolve(result);
+                // }, Math.random() * 5000);
             });
         }
     }
