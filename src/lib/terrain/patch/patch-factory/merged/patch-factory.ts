@@ -1,7 +1,12 @@
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
 import { type IVoxelMap } from '../../../i-voxel-map';
-import { EDisplayMode, type PatchMaterial, type PatchMaterialUniforms, type PatchMaterials } from '../../material';
+import {
+    EVoxelsDisplayMode,
+    type VoxelsMaterial,
+    type VoxelsMaterialUniforms,
+    type VoxelsMaterials,
+} from '../../../voxelmap/voxelsRenderable/voxels-material';
 import * as Cube from '../cube';
 import { PatchFactoryBase, type GeometryAndMaterial } from '../patch-factory-base';
 
@@ -10,7 +15,7 @@ import { VertexData2Encoder } from './vertex-data2-encoder';
 
 type PatchMaterialTemp = THREE.Material & {
     readonly userData: {
-        uniforms: PatchMaterialUniforms;
+        uniforms: VoxelsMaterialUniforms;
     };
 };
 
@@ -23,9 +28,9 @@ abstract class PatchFactory extends PatchFactoryBase {
 
     public readonly maxPatchSize: THREE.Vector3;
 
-    private readonly materialsTemplates: PatchMaterials;
+    private readonly materialsTemplates: VoxelsMaterials;
 
-    private buildThreeJsPatchMaterial(): PatchMaterial {
+    private buildThreeJsPatchMaterial(): VoxelsMaterial {
         function applyReplacements(source: string, replacements: Record<string, string>): string {
             let result = source;
 
@@ -176,11 +181,11 @@ void main() {
     vec3 normal = normalMatrix * modelFaceNormal;`,
                 '#include <map_fragment>': `
     diffuseColor.rgb = vec3(0.75);
-    if (uDisplayMode == ${EDisplayMode.TEXTURED}u) {
+    if (uDisplayMode == ${EVoxelsDisplayMode.TEXTURED}u) {
         uint voxelMaterialId = ${PatchFactory.vertexData2Encoder.voxelMaterialId.glslDecode('vData2')};
         ivec2 texelCoords = ivec2(voxelMaterialId % ${this.texture.image.width}u, voxelMaterialId / ${this.texture.image.width}u);
         diffuseColor.rgb = texelFetch(uTexture, texelCoords, 0).rgb;
-    } else if (uDisplayMode == ${EDisplayMode.NORMALS}u) {
+    } else if (uDisplayMode == ${EVoxelsDisplayMode.NORMALS}u) {
         diffuseColor.rgb = 0.5 + 0.5 * modelFaceNormal;
     }
     diffuseColor.rgb += computeNoise();
@@ -247,7 +252,7 @@ void main() {
         });
     }
 
-    private buildPatchMaterial(): PatchMaterials {
+    private buildPatchMaterial(): VoxelsMaterials {
         const material = this.buildThreeJsPatchMaterial();
         const shadowMaterial = this.buildShadowMaterial();
         return { material, shadowMaterial };
@@ -297,4 +302,4 @@ void main() {
     }
 }
 
-export { PatchFactory, type PatchMaterials };
+export { PatchFactory, type VoxelsMaterials as PatchMaterials };

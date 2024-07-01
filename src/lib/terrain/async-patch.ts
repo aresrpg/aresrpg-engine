@@ -1,19 +1,19 @@
 import * as THREE from '../three-usage';
 
-import { Patch } from './patch/patch';
+import { VoxelsRenderable } from './voxelmap/voxelsRenderable/voxels-renderable';
 import { PatchId } from './patch/patch-id';
 
 class AsyncPatch {
     private data:
         | {
               readonly state: 'pending';
-              readonly promise: Promise<Patch | null>;
+              readonly promise: Promise<VoxelsRenderable | null>;
               visible: boolean;
               disposed: boolean;
           }
         | {
               readonly state: 'ready';
-              readonly patch: Patch | null;
+              readonly renderable: VoxelsRenderable | null;
               visible: boolean;
               disposed: boolean;
           };
@@ -21,7 +21,7 @@ class AsyncPatch {
     public readonly id: PatchId;
     private invisibilityTimestamp = performance.now();
 
-    public constructor(container: THREE.Object3D, promise: Promise<Patch | null>, id: PatchId) {
+    public constructor(container: THREE.Object3D, promise: Promise<VoxelsRenderable | null>, id: PatchId) {
         this.data = {
             state: 'pending',
             promise,
@@ -31,25 +31,25 @@ class AsyncPatch {
 
         this.id = id;
 
-        promise.then((patch: Patch | null) => {
+        promise.then((voxelsRenderable: VoxelsRenderable | null) => {
             if (this.data.state !== 'pending') {
                 throw new Error();
             }
 
             this.data = {
                 state: 'ready',
-                patch,
+                renderable: voxelsRenderable,
                 visible: this.data.visible,
                 disposed: this.data.disposed,
             };
 
-            if (this.data.patch) {
+            if (this.data.renderable) {
                 if (this.data.disposed) {
                     // disposal has been asked before the computation ended
-                    this.data.patch.dispose();
+                    this.data.renderable.dispose();
                 } else {
-                    this.data.patch.container.visible = this.data.visible;
-                    container.add(this.data.patch.container);
+                    this.data.renderable.container.visible = this.data.visible;
+                    container.add(this.data.renderable.container);
                 }
             }
         });
@@ -69,14 +69,14 @@ class AsyncPatch {
         }
 
         this.data.visible = value;
-        if (this.data.state === 'ready' && this.data.patch) {
-            this.data.patch.container.visible = value;
+        if (this.data.state === 'ready' && this.data.renderable) {
+            this.data.renderable.container.visible = value;
         }
     }
 
-    public get patch(): Patch | null {
+    public get renderable(): VoxelsRenderable | null {
         if (this.data.state === 'ready') {
-            return this.data.patch;
+            return this.data.renderable;
         }
         return null;
     }
@@ -88,12 +88,12 @@ class AsyncPatch {
     public dispose(): void {
         if (!this.data.disposed) {
             this.data.disposed = true;
-            this.patch?.dispose();
+            this.renderable?.dispose();
         }
     }
 
     public hasVisibleMesh(): boolean {
-        return this.data.state === 'ready' && this.visible && !!this.data.patch;
+        return this.data.state === 'ready' && this.visible && !!this.data.renderable;
     }
 
     public get isReady(): boolean {

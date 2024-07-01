@@ -1,13 +1,13 @@
-import * as THREE from '../../three-usage';
+import * as THREE from '../../../three-usage';
 
-enum EDisplayMode {
+enum EVoxelsDisplayMode {
     TEXTURED,
     NORMALS,
     GREY,
 }
 
-type PatchMaterialUniforms = {
-    readonly uDisplayMode: { value: EDisplayMode };
+type VoxelsMaterialUniforms = {
+    readonly uDisplayMode: { value: EVoxelsDisplayMode };
     readonly uTexture: { value: THREE.Texture };
     readonly uNoiseTexture: { value: THREE.Texture };
     readonly uNoiseStrength: { value: number };
@@ -17,15 +17,15 @@ type PatchMaterialUniforms = {
     readonly uSmoothEdgeMethod: { value: number };
 };
 
-type PatchMaterial = THREE.Material & {
+type VoxelsMaterial = THREE.Material & {
     readonly userData: {
-        readonly uniforms: PatchMaterialUniforms;
+        readonly uniforms: VoxelsMaterialUniforms;
     };
 };
 
-type PatchMaterials = {
-    readonly material: PatchMaterial;
+type VoxelsMaterials = {
+    readonly material: VoxelsMaterial;
     readonly shadowMaterial: THREE.Material;
 };
 
-export { EDisplayMode, type PatchMaterial, type PatchMaterialUniforms, type PatchMaterials };
+export { EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterialUniforms, type VoxelsMaterials };
