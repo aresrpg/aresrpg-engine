@@ -1,15 +1,15 @@
-import * as THREE from '../../three-usage';
+import * as THREE from '../../../three-usage';
 
-import { EDisplayMode, type PatchMaterials } from './material';
+import { EVoxelsDisplayMode, type VoxelsMaterials } from './voxels-material';
 
 type PatchMesh = {
     readonly mesh: THREE.Mesh;
-    readonly materials: PatchMaterials;
+    readonly materials: VoxelsMaterials;
     readonly trianglesCount: number;
     readonly gpuMemoryBytes: number;
 };
 
-class Patch {
+class VoxelsRenderable {
     public readonly container: THREE.Object3D;
 
     public readonly parameters = {
@@ -18,7 +18,7 @@ class Patch {
             receive: true,
         },
         voxels: {
-            displayMode: EDisplayMode.TEXTURED,
+            displayMode: EVoxelsDisplayMode.TEXTURED,
             noiseStrength: 0.05,
         },
         smoothEdges: {
@@ -90,4 +90,4 @@ class Patch {
     }
 }
 
-export { EDisplayMode, Patch };
+export { EVoxelsDisplayMode, VoxelsRenderable };

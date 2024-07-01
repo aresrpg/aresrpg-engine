@@ -8,13 +8,13 @@ import { AsyncPatch } from './async-patch';
 import { HeightmapViewer } from './heightmap/heightmap-viewer';
 import { IHeightmap } from './heightmap/i-heightmap';
 import { type IVoxelMap } from './i-voxel-map';
-import { EDisplayMode } from './patch/patch';
 import { PatchFactoryCpu } from './patch/patch-factory/merged/cpu/patch-factory-cpu';
 import { PatchFactoryGpuOptimized } from './patch/patch-factory/merged/gpu/patch-factory-gpu-optimized';
 import { PatchFactoryGpuSequential } from './patch/patch-factory/merged/gpu/patch-factory-gpu-sequential';
 import { type PatchSize } from './patch/patch-factory/merged/vertex-data1-encoder';
 import { PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
 import { PatchId } from './patch/patch-id';
+import { EVoxelsDisplayMode } from './voxelmap/voxelsRenderable/voxels-renderable';
 
 type TerrainOptions = {
     computingMode?: EPatchComputingMode;
@@ -50,7 +50,7 @@ class Terrain {
         },
         voxels: {
             faces: {
-                displayMode: EDisplayMode.TEXTURED,
+                displayMode: EVoxelsDisplayMode.TEXTURED,
                 noiseStrength: 0.025,
             },
             smoothEdges: {
@@ -226,7 +226,7 @@ class Terrain {
     public update(): void {
         const voxelsSettings = this.parameters.voxels;
         for (const asyncPatch of this.patchesStore.allItems) {
-            const patch = asyncPatch.patch;
+            const patch = asyncPatch.renderable;
             if (patch) {
                 patch.parameters.voxels.displayMode = voxelsSettings.faces.displayMode;
                 patch.parameters.voxels.noiseStrength = voxelsSettings.faces.noiseStrength;
@@ -340,16 +340,16 @@ class Terrain {
         };
 
         for (const patch of this.patchesStore.allItems) {
-            if (patch.patch) {
+            if (patch.renderable) {
                 result.voxels.meshes.loadedCount++;
-                result.voxels.triangles.loadedCount += patch.patch.trianglesCount;
+                result.voxels.triangles.loadedCount += patch.renderable.trianglesCount;
 
                 if (patch.visible) {
                     result.voxels.meshes.visibleCount++;
-                    result.voxels.triangles.visibleCount += patch.patch.trianglesCount;
+                    result.voxels.triangles.visibleCount += patch.renderable.trianglesCount;
                 }
 
-                result.voxels.gpuMemoryBytes += patch.patch.gpuMemoryBytes;
+                result.voxels.gpuMemoryBytes += patch.renderable.gpuMemoryBytes;
             }
         }
 

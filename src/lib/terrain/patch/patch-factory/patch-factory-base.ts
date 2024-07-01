@@ -2,8 +2,8 @@ import { nextPowerOfTwo } from '../../../helpers/math';
 import { vec3ToString } from '../../../helpers/string';
 import * as THREE from '../../../three-usage';
 import type { IVoxelMap, IVoxelMaterial } from '../../i-voxel-map';
-import type { PatchMaterialUniforms, PatchMaterials } from '../material';
-import { Patch } from '../patch';
+import type { VoxelsMaterialUniforms, VoxelsMaterials } from '../../voxelmap/voxelsRenderable/voxels-material';
+import { VoxelsRenderable } from '../../voxelmap/voxelsRenderable/voxels-renderable';
 import { PatchId } from '../patch-id';
 
 import type { PackedUintFragment } from './uint-packing';
@@ -11,7 +11,7 @@ import type { PackedUintFragment } from './uint-packing';
 type GeometryAndMaterial = {
     readonly id: string;
     readonly geometry: THREE.BufferGeometry;
-    readonly materials: PatchMaterials;
+    readonly materials: VoxelsMaterials;
     readonly trianglesCount: number;
     readonly gpuMemoryBytes: number;
 };
@@ -42,7 +42,7 @@ abstract class PatchFactoryBase {
     protected readonly noiseResolution = 5;
     protected readonly noiseTypes = 16;
 
-    protected readonly uniformsTemplate: PatchMaterialUniforms;
+    protected readonly uniformsTemplate: VoxelsMaterialUniforms;
 
     protected constructor(map: IVoxelMap, voxelTypeEncoder: PackedUintFragment) {
         this.map = map;
@@ -63,7 +63,7 @@ abstract class PatchFactoryBase {
         this.uniformsTemplate.uTexture.value = this.texture;
     }
 
-    public async buildPatch(patchId: PatchId, patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<Patch | null> {
+    public async buildPatch(patchId: PatchId, patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<VoxelsRenderable | null> {
         patchStart = patchStart.clone();
         patchEnd = patchEnd.clone();
 
@@ -87,7 +87,7 @@ abstract class PatchFactoryBase {
         patchStart: THREE.Vector3,
         patchEnd: THREE.Vector3,
         geometryAndMaterialsList: GeometryAndMaterial[]
-    ): Patch | null {
+    ): VoxelsRenderable | null {
         if (geometryAndMaterialsList.length === 0) {
             return null;
         }
@@ -98,7 +98,7 @@ abstract class PatchFactoryBase {
         const boundingSphere = new THREE.Sphere();
         boundingBox.getBoundingSphere(boundingSphere);
 
-        const patch = new Patch(
+        const patch = new VoxelsRenderable(
             geometryAndMaterialsList.map(geometryAndMaterial => {
                 const { geometry, trianglesCount, gpuMemoryBytes } = geometryAndMaterial;
                 geometry.boundingBox = boundingBox.clone();
