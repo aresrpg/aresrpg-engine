@@ -1,7 +1,6 @@
 import * as THREE from '../../three-usage';
 
 import { EDisplayMode, type PatchMaterials } from './material';
-import { PatchId } from './patch-id';
 
 type PatchMesh = {
     readonly mesh: THREE.Mesh;
@@ -41,13 +40,12 @@ class Patch {
     public readonly trianglesCount: number;
     public readonly gpuMemoryBytes: number;
 
-    public constructor(patchId: PatchId, patchMeshes: PatchMesh[]) {
+    public constructor(patchMeshes: PatchMesh[]) {
         this.gpuResources = { patchMeshes };
 
         let trianglesCount = 0;
         let gpuMemoryBytes = 0;
         this.container = new THREE.Group();
-        this.container.name = `Terrain patch ${patchId.asString}`;
         for (const patchMesh of patchMeshes) {
             this.container.add(patchMesh.mesh);
             trianglesCount += patchMesh.trianglesCount;
