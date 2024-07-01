@@ -1,4 +1,3 @@
-import * as THREE from '../../../../../three-usage';
 import { type IVoxelMap } from '../../../../voxelmap/i-voxel-map';
 import { type GeometryAndMaterial, type LocalMapData } from '../../patch-factory-base';
 import { PatchFactory } from '../patch-factory';
@@ -24,11 +23,7 @@ abstract class PatchFactoryGpu extends PatchFactory {
         }
     }
 
-    protected async buildGeometryAndMaterialsFromMapData(
-        _patchStart: THREE.Vector3,
-        _patchEnd: THREE.Vector3,
-        localMapData: LocalMapData
-    ): Promise<GeometryAndMaterial[]> {
+    protected async buildGeometryAndMaterialsFromMapData(localMapData: LocalMapData): Promise<GeometryAndMaterial[]> {
         if (localMapData.isEmpty) {
             return [];
         }

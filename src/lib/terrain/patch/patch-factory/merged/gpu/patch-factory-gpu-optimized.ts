@@ -6,8 +6,6 @@ import { PatchFactoryGpu } from './patch-factory-gpu';
 
 type PatchGenerationJob = {
     readonly patchId: number;
-    readonly patchStart: THREE.Vector3;
-    readonly patchEnd: THREE.Vector3;
     cpuTask: AsyncTask<LocalMapData>;
     gpuTask?: Promise<GeometryAndMaterial[]>;
     readonly resolve: (value: GeometryAndMaterial[] | PromiseLike<GeometryAndMaterial[]>) => void;
@@ -31,8 +29,6 @@ class PatchFactoryGpuOptimized extends PatchFactoryGpu {
 
             this.pendingJobs.push({
                 patchId,
-                patchStart: patchStart.clone(),
-                patchEnd: patchEnd.clone(),
                 cpuTask: new AsyncTask<LocalMapData>(async () => {
                     // logger.diagnostic(`CPU ${patchId} start`);
                     const result = await this.buildLocalMapData(patchStart, patchEnd);
@@ -60,11 +56,7 @@ class PatchFactoryGpuOptimized extends PatchFactoryGpu {
                 if (!currentJob.gpuTask) {
                     const localMapData = currentJob.cpuTask.getResultSync();
 
-                    currentJob.gpuTask = this.buildGeometryAndMaterialsFromMapData(
-                        currentJob.patchStart,
-                        currentJob.patchEnd,
-                        localMapData
-                    );
+                    currentJob.gpuTask = this.buildGeometryAndMaterialsFromMapData(localMapData);
 
                     currentJob.gpuTask.then(result => {
                         this.pendingJobs.shift();

@@ -18,15 +18,11 @@ type LocalMapCache = LocalMapData & {
 class PatchFactoryCpu extends PatchFactory {
     protected async buildGeometryAndMaterials(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
         const localMapData = await this.buildLocalMapData(patchStart, patchEnd);
-        return this.buildGeometryAndMaterialsFromMapData(patchStart, patchEnd, localMapData);
+        return this.buildGeometryAndMaterialsFromMapData(localMapData);
     }
 
-    protected async buildGeometryAndMaterialsFromMapData(
-        patchStart: THREE.Vector3,
-        patchEnd: THREE.Vector3,
-        localMapData: LocalMapData
-    ): Promise<GeometryAndMaterial[]> {
-        const patchSize = patchEnd.clone().sub(patchStart);
+    protected async buildGeometryAndMaterialsFromMapData(localMapData: LocalMapData): Promise<GeometryAndMaterial[]> {
+        const patchSize = localMapData.size.clone().subScalar(2);
         const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
 
         const maxFacesPerVoxel = 6;

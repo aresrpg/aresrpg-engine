@@ -16,7 +16,7 @@ class PatchFactoryGpuSequential extends PatchFactoryGpu {
             }
 
             const localMapData = await this.buildLocalMapData(patchStart, patchEnd);
-            return await this.buildGeometryAndMaterialsFromMapData(patchStart, patchEnd, localMapData);
+            return await this.buildGeometryAndMaterialsFromMapData(localMapData);
         });
     }
 }
