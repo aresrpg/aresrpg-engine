@@ -1,7 +1,7 @@
+import * as THREE from '../../../../../three-usage';
 import { PackedUintFactory, type PackedUintFragment } from '../uint-packing';
-import * as THREE from '../../../../three-usage';
 
-type PatchSize = {
+type VoxelsChunkSize = {
     xz: number;
     y: number;
 };
@@ -18,10 +18,10 @@ class VertexData1Encoder {
     public readonly ao: PackedUintFragment;
     public readonly edgeRoundness: PackedUintFragment;
 
-    public constructor(patchSize: PatchSize) {
-        this.voxelX = this.packedUintFactory.encodePart(patchSize.xz);
-        this.voxelY = this.packedUintFactory.encodePart(patchSize.y);
-        this.voxelZ = this.packedUintFactory.encodePart(patchSize.xz);
+    public constructor(maxVoxelsChunkSize: VoxelsChunkSize) {
+        this.voxelX = this.packedUintFactory.encodePart(maxVoxelsChunkSize.xz);
+        this.voxelY = this.packedUintFactory.encodePart(maxVoxelsChunkSize.y);
+        this.voxelZ = this.packedUintFactory.encodePart(maxVoxelsChunkSize.xz);
         this.localX = this.packedUintFactory.encodePart(2);
         this.localY = this.packedUintFactory.encodePart(2);
         this.localZ = this.packedUintFactory.encodePart(2);
@@ -60,4 +60,4 @@ class VertexData1Encoder {
     }
 }
 
-export { VertexData1Encoder, type PatchSize };
+export { VertexData1Encoder, type VoxelsChunkSize };

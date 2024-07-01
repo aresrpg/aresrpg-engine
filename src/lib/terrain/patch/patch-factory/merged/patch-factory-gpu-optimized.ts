@@ -1,8 +1,8 @@
-import { AsyncTask } from '../../../../../helpers/async-task';
-import * as THREE from '../../../../../three-usage';
-import { type GeometryAndMaterial, type LocalMapData } from '../../patch-factory-base';
-
-import { PatchFactoryGpu } from './patch-factory-gpu';
+import { AsyncTask } from '../../../../helpers/async-task';
+import * as THREE from '../../../../three-usage';
+import { type IVoxelMap, type VoxelsChunkSize } from '../../../terrain';
+import { VoxelsRenderableFactoryGpu } from '../../../voxelmap/voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
+import { PatchFactoryBase, type GeometryAndMaterial, type LocalMapData } from '../patch-factory-base';
 
 type PatchGenerationJob = {
     readonly patchId: number;
@@ -11,10 +11,15 @@ type PatchGenerationJob = {
     readonly resolve: (value: GeometryAndMaterial[] | PromiseLike<GeometryAndMaterial[]>) => void;
 };
 
-class PatchFactoryGpuOptimized extends PatchFactoryGpu {
+class PatchFactoryGpuOptimized extends PatchFactoryBase {
     private nextPatchId = 0;
 
     private readonly pendingJobs: PatchGenerationJob[] = [];
+
+    public constructor(map: IVoxelMap, patchSize: VoxelsChunkSize) {
+        const voxelsRenderableFactory = new VoxelsRenderableFactoryGpu(map.voxelMaterialsList, patchSize);
+        super(map, voxelsRenderableFactory);
+    }
 
     protected buildGeometryAndMaterials(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
         const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
@@ -56,7 +61,7 @@ class PatchFactoryGpuOptimized extends PatchFactoryGpu {
                 if (!currentJob.gpuTask) {
                     const localMapData = currentJob.cpuTask.getResultSync();
 
-                    currentJob.gpuTask = this.buildGeometryAndMaterialsFromMapData(localMapData);
+                    currentJob.gpuTask = this.voxelsRenderableFactory.buildGeometryAndMaterials(localMapData);
 
                     currentJob.gpuTask.then(result => {
                         this.pendingJobs.shift();
