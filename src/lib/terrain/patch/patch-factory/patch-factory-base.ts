@@ -98,8 +98,7 @@ abstract class PatchFactoryBase {
         const boundingSphere = new THREE.Sphere();
         boundingBox.getBoundingSphere(boundingSphere);
 
-        return new Patch(
-            patchId,
+        const patch = new Patch(
             geometryAndMaterialsList.map(geometryAndMaterial => {
                 const { geometry, trianglesCount, gpuMemoryBytes } = geometryAndMaterial;
                 geometry.boundingBox = boundingBox.clone();
@@ -124,6 +123,8 @@ abstract class PatchFactoryBase {
                 return { mesh, materials, trianglesCount, gpuMemoryBytes };
             })
         );
+        patch.container.name = `Terrain patch ${patchId.asString}`;
+        return patch;
     }
 
     protected abstract buildGeometryAndMaterials(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]>;
