@@ -6,12 +6,12 @@ import * as THREE from '../three-usage';
 
 import { AsyncPatch } from './async-patch';
 import { HeightmapViewer, type HeightmapStatistics } from './heightmap/heightmap-viewer';
-import { IHeightmap } from './heightmap/i-heightmap';
+import { type IHeightmap } from './heightmap/i-heightmap';
 import { type IVoxelMap } from './voxelmap/i-voxelmap';
 import { PatchFactoryCpu } from './voxelmap/patch/patch-factory/merged/patch-factory-cpu';
 import { PatchFactoryGpuOptimized } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-optimized';
 import { PatchFactoryGpuSequential } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-sequential';
-import { PatchFactoryBase } from './voxelmap/patch/patch-factory/patch-factory-base';
+import { type PatchFactoryBase } from './voxelmap/patch/patch-factory/patch-factory-base';
 import { PatchId } from './voxelmap/patch/patch-id';
 import { EVoxelsDisplayMode } from './voxelmap/voxelsRenderable/voxels-renderable';
 import { type VoxelsChunkSize } from './voxelmap/voxelsRenderable/voxelsRenderableFactory/merged/vertex-data1-encoder';

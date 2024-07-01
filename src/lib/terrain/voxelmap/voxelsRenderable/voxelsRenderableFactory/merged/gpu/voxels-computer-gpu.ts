@@ -4,11 +4,11 @@ import { logger } from '../../../../../../helpers/logger';
 import { PromiseThrottler } from '../../../../../../helpers/promise-throttler';
 import { vec3ToString } from '../../../../../../helpers/string';
 import { getGpuDevice } from '../../../../../../helpers/webgpu/webgpu-device';
-import * as THREE from '../../../../../../three-usage';
+import type * as THREE from '../../../../../../three-usage';
 import * as Cube from '../../cube';
 import { type VoxelsChunkData } from '../../voxels-renderable-factory-base';
-import { VertexData1Encoder } from '../vertex-data1-encoder';
-import { VertexData2Encoder } from '../vertex-data2-encoder';
+import { type VertexData1Encoder } from '../vertex-data1-encoder';
+import { type VertexData2Encoder } from '../vertex-data2-encoder';
 
 type FaceBuffer = {
     readonly storageBuffer: GPUBuffer;

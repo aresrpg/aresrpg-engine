@@ -1,14 +1,14 @@
 import { processAsap } from '../../../../helpers/async-sync';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
-import type { IVoxelMap } from '../../i-voxelmap';
-import type { VoxelsMaterials } from '../../voxelsRenderable/voxels-material';
-import { VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
+import { type IVoxelMap } from '../../i-voxelmap';
+import { type VoxelsMaterials } from '../../voxelsRenderable/voxels-material';
+import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
 import {
-    VoxelsRenderableFactoryBase,
     type VoxelsChunkData,
+    type VoxelsRenderableFactoryBase,
 } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
-import { PatchId } from '../patch-id';
+import { type PatchId } from '../patch-id';
 
 type GeometryAndMaterial = {
     readonly id: string;

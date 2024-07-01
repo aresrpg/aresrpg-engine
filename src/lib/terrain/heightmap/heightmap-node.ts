@@ -6,7 +6,7 @@ import * as THREE from '../../three-usage';
 
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapNodeMesh } from './heightmap-node-mesh';
-import type { IHeightmap, IHeightmapCoords } from './i-heightmap';
+import { type IHeightmap, type IHeightmapCoords } from './i-heightmap';
 
 type Children = {
     readonly mm: HeightmapNode;

@@ -1,4 +1,4 @@
-import * as THREE from '../../../../../three-usage';
+import type * as THREE from '../../../../../three-usage';
 import { type IVoxelMap, type VoxelsChunkSize } from '../../../../terrain';
 import { VoxelsRenderableFactoryCpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/cpu/voxels-renderable-factory-cpu';
 import { PatchFactoryBase, type GeometryAndMaterial } from '../patch-factory-base';
