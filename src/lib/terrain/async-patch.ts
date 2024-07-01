@@ -1,7 +1,7 @@
 import * as THREE from '../three-usage';
 
+import { PatchId } from './voxelmap/patch/patch-id';
 import { VoxelsRenderable } from './voxelmap/voxelsRenderable/voxels-renderable';
-import { PatchId } from './patch/patch-id';
 
 class AsyncPatch {
     private data:

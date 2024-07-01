@@ -1,12 +1,12 @@
-import { vec3ToString } from '../../../helpers/string';
-import * as THREE from '../../../three-usage';
-import type { IVoxelMap } from '../../voxelmap/i-voxel-map';
-import type { VoxelsMaterials } from '../../voxelmap/voxelsRenderable/voxels-material';
-import { VoxelsRenderable } from '../../voxelmap/voxelsRenderable/voxels-renderable';
+import { vec3ToString } from '../../../../helpers/string';
+import * as THREE from '../../../../three-usage';
+import type { IVoxelMap } from '../../i-voxel-map';
+import type { VoxelsMaterials } from '../../voxelsRenderable/voxels-material';
+import { VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
 import {
     VoxelsRenderableFactoryBase,
     type VoxelsChunkData,
-} from '../../voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
+} from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 import { PatchId } from '../patch-id';
 
 type GeometryAndMaterial = {

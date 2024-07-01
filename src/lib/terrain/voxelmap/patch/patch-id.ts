@@ -1,5 +1,5 @@
-import { vec3ToString } from '../../helpers/string';
-import * as THREE from '../../three-usage';
+import { vec3ToString } from '../../../helpers/string';
+import * as THREE from '../../../three-usage';
 
 class PatchId {
     public readonly x: number;

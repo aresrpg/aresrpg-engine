@@ -7,12 +7,12 @@ import * as THREE from '../three-usage';
 import { AsyncPatch } from './async-patch';
 import { HeightmapViewer } from './heightmap/heightmap-viewer';
 import { IHeightmap } from './heightmap/i-heightmap';
-import { PatchFactoryCpu } from './patch/patch-factory/merged/patch-factory-cpu';
-import { PatchFactoryGpuOptimized } from './patch/patch-factory/merged/patch-factory-gpu-optimized';
-import { PatchFactoryGpuSequential } from './patch/patch-factory/merged/patch-factory-gpu-sequential';
-import { PatchFactoryBase } from './patch/patch-factory/patch-factory-base';
-import { PatchId } from './patch/patch-id';
 import { type IVoxelMap } from './voxelmap/i-voxel-map';
+import { PatchFactoryCpu } from './voxelmap/patch/patch-factory/merged/patch-factory-cpu';
+import { PatchFactoryGpuOptimized } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-optimized';
+import { PatchFactoryGpuSequential } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-sequential';
+import { PatchFactoryBase } from './voxelmap/patch/patch-factory/patch-factory-base';
+import { PatchId } from './voxelmap/patch/patch-id';
 import { EVoxelsDisplayMode } from './voxelmap/voxelsRenderable/voxels-renderable';
 import { type VoxelsChunkSize } from './voxelmap/voxelsRenderable/voxelsRenderableFactory/merged/vertex-data1-encoder';
 
