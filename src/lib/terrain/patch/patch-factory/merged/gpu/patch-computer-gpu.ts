@@ -1,8 +1,9 @@
 /// <reference types="@webgpu/types" />
 
-import * as THREE from '../../../../../three-usage';
 import { logger } from '../../../../../helpers/logger';
+import { PromiseThrottler } from '../../../../../helpers/promise-throttler';
 import { getGpuDevice } from '../../../../../helpers/webgpu/webgpu-device';
+import * as THREE from '../../../../../three-usage';
 import * as Cube from '../../cube';
 import { type LocalMapCache } from '../../patch-factory-base';
 import { VertexData1Encoder } from '../vertex-data1-encoder';
@@ -34,6 +35,8 @@ class PatchComputerGpu {
     private readonly buffer: FaceBuffer;
 
     private readonly workgroupSize = 256;
+
+    private readonly promiseThrottler = new PromiseThrottler(1);
 
     private constructor(
         device: GPUDevice,
@@ -216,43 +219,45 @@ class PatchComputerGpu {
     }
 
     public async computeBuffer(localMapCache: LocalMapCache): Promise<ComputationOutputs> {
-        this.device.queue.writeBuffer(
-            this.localCacheBuffer,
-            0,
-            new Int32Array([localMapCache.size.x, localMapCache.size.y, localMapCache.size.z])
-        );
-        this.device.queue.writeBuffer(this.localCacheBuffer, Int32Array.BYTES_PER_ELEMENT * 3, localMapCache.data);
+        return this.promiseThrottler.run(async () => {
+            this.device.queue.writeBuffer(
+                this.localCacheBuffer,
+                0,
+                new Int32Array([localMapCache.size.x, localMapCache.size.y, localMapCache.size.z])
+            );
+            this.device.queue.writeBuffer(this.localCacheBuffer, Int32Array.BYTES_PER_ELEMENT * 3, localMapCache.data);
 
-        const patchSize = localMapCache.size.clone().subScalar(2);
-        const totalPatchCells = patchSize.x * patchSize.y * patchSize.z;
+            const patchSize = localMapCache.size.clone().subScalar(2);
+            const totalPatchCells = patchSize.x * patchSize.y * patchSize.z;
 
-        const commandEncoder = this.device.createCommandEncoder();
-        const computePass = commandEncoder.beginComputePass();
-        computePass.setPipeline(this.computePipeline);
-        computePass.setBindGroup(0, this.computePipelineBindgroup);
-        computePass.dispatchWorkgroups(Math.ceil(totalPatchCells / this.workgroupSize));
-        computePass.end();
+            const commandEncoder = this.device.createCommandEncoder();
+            const computePass = commandEncoder.beginComputePass();
+            computePass.setPipeline(this.computePipeline);
+            computePass.setBindGroup(0, this.computePipelineBindgroup);
+            computePass.dispatchWorkgroups(Math.ceil(totalPatchCells / this.workgroupSize));
+            computePass.end();
 
-        commandEncoder.copyBufferToBuffer(this.buffer.storageBuffer, 0, this.buffer.readableBuffer, 0, this.buffer.readableBuffer.size);
+            commandEncoder.copyBufferToBuffer(this.buffer.storageBuffer, 0, this.buffer.readableBuffer, 0, this.buffer.readableBuffer.size);
 
-        this.device.queue.submit([commandEncoder.finish()]);
+            this.device.queue.submit([commandEncoder.finish()]);
 
-        await Promise.all([this.device.queue.onSubmittedWorkDone(), this.buffer.readableBuffer.mapAsync(GPUMapMode.READ)]);
+            await Promise.all([this.device.queue.onSubmittedWorkDone(), this.buffer.readableBuffer.mapAsync(GPUMapMode.READ)]);
 
-        const cpuBuffer = new Uint32Array(this.buffer.readableBuffer.getMappedRange());
+            const cpuBuffer = new Uint32Array(this.buffer.readableBuffer.getMappedRange());
 
-        const verticesCount = cpuBuffer[0];
-        if (typeof verticesCount === 'undefined') {
-            throw new Error();
-        }
+            const verticesCount = cpuBuffer[0];
+            if (typeof verticesCount === 'undefined') {
+                throw new Error();
+            }
 
-        const uint32PerVertex = 2;
-        const verticesDataBuffer = cpuBuffer.subarray(1, 1 + uint32PerVertex * verticesCount);
-        const finalBuffer = new Uint32Array(verticesDataBuffer.length);
-        finalBuffer.set(verticesDataBuffer);
-        this.buffer.readableBuffer.unmap();
+            const uint32PerVertex = 2;
+            const verticesDataBuffer = cpuBuffer.subarray(1, 1 + uint32PerVertex * verticesCount);
+            const finalBuffer = new Uint32Array(verticesDataBuffer.length);
+            finalBuffer.set(verticesDataBuffer);
+            this.buffer.readableBuffer.unmap();
 
-        return finalBuffer;
+            return finalBuffer;
+        });
     }
 
     public dispose(): void {
