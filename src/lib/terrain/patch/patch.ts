@@ -18,7 +18,7 @@ class Patch {
             receive: true,
         },
         voxels: {
-            displayMode: EDisplayMode.TEXTURES,
+            displayMode: EDisplayMode.TEXTURED,
             noiseStrength: 0.05,
         },
         smoothEdges: {

@@ -50,7 +50,7 @@ class Terrain {
         },
         voxels: {
             faces: {
-                displayMode: EDisplayMode.TEXTURES,
+                displayMode: EDisplayMode.TEXTURED,
                 noiseStrength: 0.025,
             },
             smoothEdges: {

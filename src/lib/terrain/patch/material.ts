@@ -1,7 +1,7 @@
 import * as THREE from '../../three-usage';
 
 enum EDisplayMode {
-    TEXTURES,
+    TEXTURED,
     NORMALS,
     GREY,
 }

@@ -176,7 +176,7 @@ void main() {
     vec3 normal = normalMatrix * modelFaceNormal;`,
                 '#include <map_fragment>': `
     diffuseColor.rgb = vec3(0.75);
-    if (uDisplayMode == ${EDisplayMode.TEXTURES}u) {
+    if (uDisplayMode == ${EDisplayMode.TEXTURED}u) {
         uint voxelMaterialId = ${PatchFactory.vertexData2Encoder.voxelMaterialId.glslDecode('vData2')};
         ivec2 texelCoords = ivec2(voxelMaterialId % ${this.texture.image.width}u, voxelMaterialId / ${this.texture.image.width}u);
         diffuseColor.rgb = texelFetch(uTexture, texelCoords, 0).rgb;
