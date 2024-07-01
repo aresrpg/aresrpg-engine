@@ -16,8 +16,8 @@ type Children = {
 };
 
 type GeometryData = {
-    readonly positions: ReadonlyArray<number>;
-    readonly colors: ReadonlyArray<number>;
+    readonly positions: Float32Array;
+    readonly colors: Float32Array;
     readonly indices: number[];
 };
 
@@ -52,6 +52,16 @@ interface IHeightmapRoot {
     getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
 }
 
+type ProcessedHeightmapSamples = {
+    readonly altitudes: ReadonlyArray<number>;
+    readonly colorsBuffer: Float32Array;
+};
+
+type NodeGeometryTemplate = {
+    readonly positionsBuffer: Float32Array;
+    readonly heightmapSamples: SyncOrPromise<ProcessedHeightmapSamples>;
+};
+
 class HeightmapNode {
     public readonly container: THREE.Object3D;
 
@@ -65,6 +75,8 @@ class HeightmapNode {
     private readonly sampler: IHeightmap;
     private readonly root: IHeightmapRoot;
     private readonly id: HeightmapNodeId;
+
+    private template: NodeGeometryTemplate | null = null;
 
     public constructor(sampler: IHeightmap, id: HeightmapNodeId, root: IHeightmapRoot) {
         this.sampler = sampler;
@@ -299,195 +311,165 @@ class HeightmapNode {
         const quadsCount = voxelsCount / voxelRatio;
         const scaling = levelScaling * voxelRatio;
 
-        const geometryData: number[] = [];
-        const indexData: number[] = [];
+        let template = this.template;
+        if (!template) {
+            const geometryData: number[] = [];
+            for (let i = 0; i <= quadsCount; i += 0.5) {
+                // top edge
+                geometryData.push(i * scaling, 0, quadsCount * scaling);
+            }
+            for (let i = quadsCount - 0.5; i >= 0; i -= 0.5) {
+                // right edge
+                geometryData.push(quadsCount * scaling, 0, i * scaling);
+            }
+            for (let i = quadsCount - 0.5; i >= 0; i -= 0.5) {
+                // bottom edge
+                geometryData.push(i * scaling, 0, 0);
+            }
+            for (let i = 0.5; i < quadsCount; i += 0.5) {
+                // left edge
+                geometryData.push(0, 0, i * scaling);
+            }
+            for (let iZ = 1; iZ <= quadsCount - 1; iZ++) {
+                for (let iX = 1; iX <= quadsCount - 1; iX++) {
+                    geometryData.push(iX * scaling, 0, iZ * scaling);
+                }
+            }
 
-        const buildInnerIndex = (x: number, y: number) => y + x * (quadsCount - 1);
+            const sampleCoords: IHeightmapCoords[] = [];
+            for (let i = 0; i < geometryData.length; i += 3) {
+                sampleCoords.push({
+                    x: geometryData[i]! + this.id.box.min.x,
+                    z: geometryData[i + 2]! + this.id.box.min.y,
+                });
+            }
+
+            const samplingResults = this.sampler.sampleHeightmap(sampleCoords);
+            const processedSamples = processAsap(samplingResults, samples => {
+                const altitudes: number[] = [];
+                const colors: number[] = [];
+                for (const sample of samples) {
+                    altitudes.push(sample.altitude);
+                    colors.push(sample.color.r, sample.color.g, sample.color.b);
+                }
+
+                return {
+                    altitudes,
+                    colorsBuffer: new Float32Array(colors),
+                };
+            });
+
+            template = {
+                heightmapSamples: processedSamples,
+                positionsBuffer: new Float32Array(geometryData),
+            };
+            this.template = template;
+        }
+
+        const buildInnerIndex = (x: number, y: number) => 4 * 2 * quadsCount + x + y * (quadsCount - 1);
+
+        const indexData: number[] = [];
+        for (let iX = 0; iX < quadsCount - 2; iX++) {
+            for (let iY = 0; iY < quadsCount - 2; iY++) {
+                const mm = buildInnerIndex(iX + 0, iY + 0);
+                const mp = buildInnerIndex(iX + 0, iY + 1);
+                const pm = buildInnerIndex(iX + 1, iY + 0);
+                const pp = buildInnerIndex(iX + 1, iY + 1);
+                indexData.push(mm, pp, pm, mm, mp, pp);
+            }
+        }
 
         const limitDrop = -20;
+        const marginSize = 2;
 
-        // eslint-disable-next-line no-lone-blocks
-        {
-            // inner part
-            for (let iX = 1; iX < quadsCount; iX++) {
-                for (let iY = 1; iY < quadsCount; iY++) {
-                    geometryData.push(scaling * iX, 0, scaling * iY);
-                }
-            }
+        const positionsBuffer = new Float32Array(template.positionsBuffer);
 
-            for (let iX = 0; iX < quadsCount - 2; iX++) {
-                for (let iY = 0; iY < quadsCount - 2; iY++) {
-                    const mm = buildInnerIndex(iX + 0, iY + 0);
-                    const mp = buildInnerIndex(iX + 0, iY + 1);
-                    const pm = buildInnerIndex(iX + 1, iY + 0);
-                    const pp = buildInnerIndex(iX + 1, iY + 1);
-                    indexData.push(mm, pp, pm, mm, mp, pp);
-                }
-            }
-        }
+        const buildEdge = (
+            edgeType: EEdgeType,
+            edgeIndexFrom: number,
+            innerIndexFrom: number,
+            innerIndexStep: number,
+            invert: boolean,
+            margin: THREE.Vector2Like
+        ) => {
+            if (edgeType === EEdgeType.TESSELATED) {
+                for (let iEdge = 0; iEdge < 2 * quadsCount; iEdge += 2) {
+                    const iEdgeIndex = edgeIndexFrom + iEdge;
+                    const e1 = iEdgeIndex;
+                    const e2 = iEdgeIndex + 1;
+                    const e3 = (iEdgeIndex + 2) % (8 * quadsCount);
 
-        // eslint-disable-next-line no-lone-blocks
-        {
-            // outer part
-            const mmCornerIndex = geometryData.length / 3;
-            geometryData.push(
-                0,
-                limitDrop *
-                    +(edgesType.down === EEdgeType.LIMIT || edgesType.left === EEdgeType.LIMIT || edgesType.downLeft === ECornerType.LIMIT),
-                0
-            );
-
-            const mpCornerIndex = geometryData.length / 3;
-            geometryData.push(
-                0,
-                limitDrop *
-                    +(edgesType.up === EEdgeType.LIMIT || edgesType.left === EEdgeType.LIMIT || edgesType.upLeft === ECornerType.LIMIT),
-                scaling * quadsCount
-            );
-
-            const pmCornerIndex = geometryData.length / 3;
-            geometryData.push(
-                scaling * quadsCount,
-                limitDrop *
-                    +(
-                        edgesType.down === EEdgeType.LIMIT ||
-                        edgesType.right === EEdgeType.LIMIT ||
-                        edgesType.downRight === ECornerType.LIMIT
-                    ),
-                0
-            );
-
-            const ppCornerIndex = geometryData.length / 3;
-            geometryData.push(
-                scaling * quadsCount,
-                limitDrop *
-                    +(edgesType.up === EEdgeType.LIMIT || edgesType.right === EEdgeType.LIMIT || edgesType.upRight === ECornerType.LIMIT),
-                scaling * quadsCount
-            );
-
-            const buildEdge = (
-                edgeType: EEdgeType,
-                invertEdgeIfSimple: boolean,
-                cornerIndex1: number,
-                cornerIndex2: number,
-                innerFrom: THREE.Vector2Like,
-                innerTo: THREE.Vector2Like,
-                margin: THREE.Vector2Like
-            ) => {
-                const innerIndices: number[] = [buildInnerIndex(innerFrom.x, innerFrom.y)];
-                {
-                    const innerStepsCount = quadsCount - 2;
-                    const innerStep = { x: (innerTo.x - innerFrom.x) / innerStepsCount, y: (innerTo.y - innerFrom.y) / innerStepsCount };
-                    for (let i = 1; i <= innerStepsCount - 1; i++) {
-                        innerIndices.push(buildInnerIndex(innerFrom.x + i * innerStep.x, innerFrom.y + i * innerStep.y));
-                    }
-                    innerIndices.push(buildInnerIndex(innerTo.x, innerTo.y));
-                }
-
-                const outerIndices: number[] = [];
-                {
-                    const outerFrom = { x: geometryData[3 * cornerIndex1]!, y: geometryData[3 * cornerIndex1 + 2]! };
-                    const outerTo = { x: geometryData[3 * cornerIndex2]!, y: geometryData[3 * cornerIndex2 + 2]! };
-
-                    const outerStepsCount = edgeType === EEdgeType.TESSELATED ? 2 * quadsCount : quadsCount;
-
-                    const dX = edgeType === EEdgeType.LIMIT ? 2 * margin.x : 0;
-                    const dY = edgeType === EEdgeType.LIMIT ? limitDrop : 0;
-                    const dZ = edgeType === EEdgeType.LIMIT ? 2 * margin.y : 0;
-
-                    outerIndices.push(cornerIndex1);
-                    const outerStep = { x: (outerTo.x - outerFrom.x) / outerStepsCount, y: (outerTo.y - outerFrom.y) / outerStepsCount };
-                    for (let i = 1; i <= outerStepsCount - 1; i++) {
-                        outerIndices.push(geometryData.length / 3);
-                        geometryData.push(outerFrom.x + i * outerStep.x + dX, dY, outerFrom.y + i * outerStep.y + dZ);
-                    }
-                    outerIndices.push(cornerIndex2);
-                }
-
-                if (edgeType === EEdgeType.TESSELATED) {
-                    indexData.push(outerIndices[0]!, innerIndices[0]!, outerIndices[1]!);
-                    for (let i = 0; i < innerIndices.length; i++) {
-                        indexData.push(outerIndices[1 + 2 * i]!, innerIndices[i]!, outerIndices[2 + 2 * i]!);
-                        if (i < innerIndices.length - 1) {
-                            indexData.push(innerIndices[i]!, innerIndices[i + 1]!, outerIndices[3 + 2 * i]!);
-                        }
-                        indexData.push(outerIndices[2 + 2 * i]!, innerIndices[i]!, outerIndices[3 + 2 * i]!);
-                    }
-                    indexData.push(
-                        outerIndices[outerIndices.length - 2]!,
-                        innerIndices[innerIndices.length - 1]!,
-                        outerIndices[outerIndices.length - 1]!
-                    );
-                } else {
-                    if (invertEdgeIfSimple) {
-                        innerIndices.reverse();
-                        outerIndices.reverse();
-
-                        indexData.push(outerIndices[1]!, innerIndices[0]!, outerIndices[0]!);
-                        for (let i = 0; i < innerIndices.length - 1; i++) {
-                            indexData.push(innerIndices[i + 1]!, innerIndices[i]!, outerIndices[i + 1]!);
-                            indexData.push(innerIndices[i + 1]!, outerIndices[i + 1]!, outerIndices[i + 2]!);
-                        }
-                        indexData.push(
-                            outerIndices[outerIndices.length - 1]!,
-                            innerIndices[innerIndices.length - 1]!,
-                            outerIndices[outerIndices.length - 2]!
-                        );
+                    if (iEdge === 0 || iEdge === 2 * quadsCount - 2) {
+                        const i1 = iEdge === 0 ? innerIndexFrom : innerIndexFrom + (quadsCount - 2) * innerIndexStep;
+                        indexData.push(e1, e2, i1, e2, e3, i1);
                     } else {
-                        indexData.push(outerIndices[0]!, innerIndices[0]!, outerIndices[1]!);
-                        for (let i = 0; i < innerIndices.length - 1; i++) {
-                            indexData.push(innerIndices[i]!, innerIndices[i + 1]!, outerIndices[i + 1]!);
-                            indexData.push(innerIndices[i + 1]!, outerIndices[i + 2]!, outerIndices[i + 1]!);
-                        }
-                        indexData.push(
-                            outerIndices[outerIndices.length - 2]!,
-                            innerIndices[innerIndices.length - 1]!,
-                            outerIndices[outerIndices.length - 1]!
-                        );
+                        const i1 = innerIndexFrom + (iEdge / 2 - 1) * innerIndexStep;
+                        const i2 = i1 + innerIndexStep;
+                        indexData.push(i1, e1, e2, i1, e2, i2, e2, e3, i2);
                     }
                 }
-            };
+            } else {
+                for (let iEdge = 0; iEdge < 2 * quadsCount; iEdge += 2) {
+                    const iEdgeIndex = edgeIndexFrom + iEdge;
+                    const e1 = iEdgeIndex;
+                    const e2 = (iEdgeIndex + 2) % (8 * quadsCount);
 
-            buildEdge(edgesType.down, false, mmCornerIndex, pmCornerIndex, { x: 0, y: 0 }, { x: quadsCount - 2, y: 0 }, { x: 0, y: -1 });
-            buildEdge(
-                edgesType.right,
-                true,
-                pmCornerIndex,
-                ppCornerIndex,
-                { x: quadsCount - 2, y: 0 },
-                { x: quadsCount - 2, y: quadsCount - 2 },
-                { x: 1, y: 0 }
-            );
-            buildEdge(
-                edgesType.up,
-                false,
-                ppCornerIndex,
-                mpCornerIndex,
-                { x: quadsCount - 2, y: quadsCount - 2 },
-                { x: 0, y: quadsCount - 2 },
-                { x: 0, y: 1 }
-            );
-            buildEdge(edgesType.left, true, mpCornerIndex, mmCornerIndex, { x: 0, y: quadsCount - 2 }, { x: 0, y: 0 }, { x: -1, y: 0 });
-        }
+                    if (iEdge === 0 || iEdge === 2 * quadsCount - 2) {
+                        const i1 = iEdge === 0 ? innerIndexFrom : innerIndexFrom + (quadsCount - 2) * innerIndexStep;
+                        indexData.push(e1, e2, i1);
+                    } else {
+                        const i1 = innerIndexFrom + (iEdge / 2) * innerIndexStep;
+                        const i2 = i1 - innerIndexStep;
 
-        const sampleCoords: IHeightmapCoords[] = [];
-        for (let i = 0; i < geometryData.length; i += 3) {
-            sampleCoords.push({
-                x: geometryData[i]! + this.id.box.min.x,
-                z: geometryData[i + 2]! + this.id.box.min.y,
-            });
-        }
-
-        const samplingResult = this.sampler.sampleHeightmap(sampleCoords);
-        return processAsap(samplingResult, samples => {
-            const colorData: number[] = [];
-            for (let i = 0; i < samples.length; i++) {
-                const sample = samples[i]!;
-                geometryData[3 * i + 1]! += sample.altitude;
-                colorData.push(sample.color.r, sample.color.g, sample.color.b);
+                        if (invert) {
+                            indexData.push(i2, e1, e2, e2, i1, i2);
+                        } else {
+                            indexData.push(e1, e2, i1, e1, i1, i2);
+                        }
+                    }
+                }
             }
 
-            return { positions: geometryData, indices: indexData, colors: colorData };
+            if (edgeType === EEdgeType.LIMIT) {
+                for (let iEdge = 0; iEdge <= 2 * quadsCount; iEdge++) {
+                    const iEdgeIndex = (edgeIndexFrom + iEdge) % (8 * quadsCount);
+                    positionsBuffer[3 * iEdgeIndex + 0]! += marginSize * margin.x;
+                    positionsBuffer[3 * iEdgeIndex + 1]! = limitDrop;
+                    positionsBuffer[3 * iEdgeIndex + 0]! += marginSize * margin.y;
+                }
+            }
+        };
+
+        const mpIndex = 0 * (2 * quadsCount);
+        const ppIndex = 1 * (2 * quadsCount);
+        const pmIndex = 2 * (2 * quadsCount);
+        const mmIndex = 3 * (2 * quadsCount);
+
+        buildEdge(edgesType.up, mpIndex, buildInnerIndex(0, quadsCount - 2), 1, true, { x: 0, y: 1 });
+        buildEdge(edgesType.right, ppIndex, buildInnerIndex(quadsCount - 2, quadsCount - 2), -(quadsCount - 1), false, { x: 1, y: 0 });
+        buildEdge(edgesType.down, pmIndex, buildInnerIndex(quadsCount - 2, 0), -1, true, { x: 0, y: -1 });
+        buildEdge(edgesType.left, mmIndex, buildInnerIndex(0, 0), quadsCount - 1, false, { x: -1, y: 0 });
+
+        if (edgesType.upLeft === ECornerType.LIMIT) {
+            positionsBuffer[3 * mpIndex + 1]! = limitDrop;
+        }
+        if (edgesType.upRight === ECornerType.LIMIT) {
+            positionsBuffer[3 * ppIndex + 1]! = limitDrop;
+        }
+        if (edgesType.downRight === ECornerType.LIMIT) {
+            positionsBuffer[3 * pmIndex + 1]! = limitDrop;
+        }
+        if (edgesType.downLeft === ECornerType.LIMIT) {
+            positionsBuffer[3 * mmIndex + 1]! = limitDrop;
+        }
+
+        return processAsap(template.heightmapSamples, samples => {
+            for (let i = 0; i < samples.altitudes.length; i++) {
+                const sampleAltitude = samples.altitudes[i]!;
+                positionsBuffer[3 * i + 1]! += sampleAltitude;
+            }
+
+            return { positions: positionsBuffer, indices: indexData, colors: samples.colorsBuffer };
         });
     }
 
