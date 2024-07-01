@@ -1,4 +1,6 @@
+import * as THREE from '../../../../../three-usage';
 import { type IVoxelMap } from '../../../../i-voxel-map';
+import { type GeometryAndMaterial, type LocalMapData } from '../../patch-factory-base';
 import { PatchFactory } from '../patch-factory';
 import { type PatchSize } from '../vertex-data1-encoder';
 
@@ -22,7 +24,21 @@ abstract class PatchFactoryGpu extends PatchFactory {
         }
     }
 
-    protected async getPatchComputerGpu(): Promise<PatchComputerGpu> {
+    protected async buildGeometryAndMaterialsFromMapData(
+        _patchStart: THREE.Vector3,
+        _patchEnd: THREE.Vector3,
+        localMapData: LocalMapData
+    ): Promise<GeometryAndMaterial[]> {
+        if (localMapData.isEmpty) {
+            return [];
+        }
+
+        const patchComputerGpu = await this.getPatchComputerGpu();
+        const buffer = await patchComputerGpu.computeBuffer(localMapData);
+        return this.assembleGeometryAndMaterials(buffer);
+    }
+
+    private async getPatchComputerGpu(): Promise<PatchComputerGpu> {
         const patchComputerGpu = await this.patchComputerGpuPromise;
         if (!patchComputerGpu) {
             throw new Error('Could not get WebGPU patch computer');
