@@ -49,7 +49,7 @@ interface IVoxelMap {
      * @param from Lower limit (inclusive) for the voxels coordinates
      * @param to Upper limit (exclusive) for the voxels coordinates
      */
-    getLocalMapData(from: Vector3Like, to: Vector3Like): Promise<ILocalMapData>;
+    getLocalMapData(from: Vector3Like, to: Vector3Like): ILocalMapData | Promise<ILocalMapData>;
 }
 
 export type { ILocalMapData, IVoxelMap, IVoxelMaterial };

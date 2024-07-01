@@ -1,3 +1,4 @@
+import { processAsap } from '../../../../helpers/async-sync';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
 import type { IVoxelMap } from '../../i-voxel-map';
@@ -97,15 +98,18 @@ abstract class PatchFactoryBase {
         const cacheEnd = patchEnd.clone().addScalar(1);
         const cacheSize = new THREE.Vector3().subVectors(cacheEnd, cacheStart);
 
-        const localMapData = await this.map.getLocalMapData(cacheStart, cacheEnd);
+        const queriedLocalMapData = this.map.getLocalMapData(cacheStart, cacheEnd);
+        return processAsap(queriedLocalMapData, localMapData => {
+            const expectedCacheItemsCount = cacheSize.x * cacheSize.y * cacheSize.z;
+            if (localMapData.data.length !== expectedCacheItemsCount) {
+                throw new Error(
+                    `Invalid cache length. Should be ${expectedCacheItemsCount} items but is ${localMapData.data.length} items`
+                );
+            }
 
-        const expectedCacheItemsCount = cacheSize.x * cacheSize.y * cacheSize.z;
-        if (localMapData.data.length !== expectedCacheItemsCount) {
-            throw new Error(`Invalid cache length. Should be ${expectedCacheItemsCount} items but is ${localMapData.data.length} items`);
-        }
-
-        return Object.assign(localMapData, {
-            size: cacheSize,
+            return Object.assign(localMapData, {
+                size: cacheSize,
+            });
         });
     }
 
