@@ -1,4 +1,4 @@
-import { type IVoxelMaterial } from '../../../../i-voxel-map';
+import { type IVoxelMaterial } from '../../../../i-voxelmap';
 import { type GeometryAndMaterial, type VoxelsChunkData } from '../../voxels-renderable-factory-base';
 import { type VoxelsChunkSize } from '../vertex-data1-encoder';
 import { VoxelsRenderableFactory } from '../voxels-renderable-factory';
