@@ -16,7 +16,7 @@ type LocalMapCache = LocalMapData & {
 };
 
 class PatchFactoryCpu extends PatchFactory {
-    protected async computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
+    protected async buildGeometryAndMaterials(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
         const iterator = await this.iterateOnVisibleFaces(patchStart, patchEnd);
 
         const patchSize = patchEnd.clone().sub(patchStart);

@@ -78,7 +78,7 @@ abstract class PatchFactoryBase {
             throw new Error(`Patch is too big ${patchSizeAsString} (max is ${maxPatchSizeAsString})`);
         }
 
-        const geometryAndMaterialsList = await this.computePatchData(patchStart, patchEnd);
+        const geometryAndMaterialsList = await this.buildGeometryAndMaterials(patchStart, patchEnd);
         return this.assemblePatch(patchId, patchStart, patchEnd, geometryAndMaterialsList);
     }
 
@@ -132,7 +132,7 @@ abstract class PatchFactoryBase {
         );
     }
 
-    protected abstract computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]>;
+    protected abstract buildGeometryAndMaterials(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]>;
 
     protected abstract disposeInternal(): void;
 
