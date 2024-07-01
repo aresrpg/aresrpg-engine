@@ -16,7 +16,7 @@ class PatchFactoryGpuOptimized extends PatchFactoryGpu {
 
     private readonly pendingJobs: PatchGenerationJob[] = [];
 
-    protected computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
+    protected buildGeometryAndMaterials(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
         const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
         const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
         if (voxelsCountPerPatch <= 0) {
