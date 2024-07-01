@@ -17,8 +17,15 @@ type LocalMapCache = LocalMapData & {
 
 class PatchFactoryCpu extends PatchFactory {
     protected async buildGeometryAndMaterials(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
-        const iterator = await this.iterateOnVisibleFaces(patchStart, patchEnd);
+        const localMapData = await this.buildLocalMapData(patchStart, patchEnd);
+        return this.buildGeometryAndMaterialsFromMapData(patchStart, patchEnd, localMapData);
+    }
 
+    protected async buildGeometryAndMaterialsFromMapData(
+        patchStart: THREE.Vector3,
+        patchEnd: THREE.Vector3,
+        localMapData: LocalMapData
+    ): Promise<GeometryAndMaterial[]> {
         const patchSize = patchEnd.clone().sub(patchStart);
         const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
 
@@ -34,7 +41,8 @@ class PatchFactoryCpu extends PatchFactory {
 
         let faceId = 0;
         const faceVerticesData = new Uint32Array(uint32PerVertex * 4);
-        for (const faceData of iterator()) {
+        const localMapCache = this.buildLocalMapCache(localMapData);
+        for (const faceData of this.iterateOnVisibleFacesWithCache(localMapCache)) {
             const faceNoiseId = faceId++ % PatchFactory.vertexData2Encoder.faceNoiseId.maxValue;
 
             faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
@@ -64,9 +72,7 @@ class PatchFactoryCpu extends PatchFactory {
         return this.assembleGeometryAndMaterials(buffer);
     }
 
-    private async buildLocalMapCache(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<LocalMapCache> {
-        const localMapData = await this.buildLocalMapData(patchStart, patchEnd);
-
+    private buildLocalMapCache(localMapData: LocalMapData): LocalMapCache {
         const indexFactor = { x: 1, y: localMapData.size.x, z: localMapData.size.x * localMapData.size.y };
 
         const buildIndexUnsafe = (position: THREE.Vector3) => {
@@ -86,17 +92,6 @@ class PatchFactoryCpu extends PatchFactory {
         return Object.assign(localMapData, {
             neighbourExists,
         });
-    }
-
-    private async iterateOnVisibleFaces(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<() => Generator<FaceData>> {
-        const that = this;
-
-        const localMapCache = await this.buildLocalMapCache(patchStart, patchEnd);
-        return function* () {
-            for (const a of that.iterateOnVisibleFacesWithCache(localMapCache)) {
-                yield a;
-            }
-        };
     }
 
     private *iterateOnVisibleFacesWithCache(localMapCache: LocalMapCache): Generator<FaceData> {
