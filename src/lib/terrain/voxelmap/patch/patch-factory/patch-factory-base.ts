@@ -54,12 +54,32 @@ abstract class PatchFactoryBase {
 
         const geometryAndMaterialsList = await this.buildGeometryAndMaterials(patchStart, patchEnd);
         const voxelsRenderable = this.voxelsRenderableFactory.assembleVoxelsRenderable(patchSize, geometryAndMaterialsList);
+        return this.finalizePatch(voxelsRenderable, patchId, patchStart);
+    }
 
-        if (voxelsRenderable) {
-            voxelsRenderable.container.name = `Terrain patch ${patchId.asString}`;
-            voxelsRenderable.container.position.set(patchStart.x, patchStart.y, patchStart.z);
+    public async buildPatchFromVoxelsChunk(
+        patchId: PatchId,
+        patchStart: THREE.Vector3,
+        patchEnd: THREE.Vector3,
+        voxelsChunkData: VoxelsChunkData
+    ): Promise<VoxelsRenderable | null> {
+        patchStart = patchStart.clone();
+        patchEnd = patchEnd.clone();
+
+        const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
+        if (patchSize.x > this.maxPatchSize.x || patchSize.y > this.maxPatchSize.y || patchSize.z > this.maxPatchSize.z) {
+            throw new Error(`Patch is too big ${vec3ToString(patchSize)} (max is ${vec3ToString(this.maxPatchSize)})`);
         }
-        return voxelsRenderable;
+
+        const expectedChunkSize = patchSize.clone().addScalar(2);
+        if (!voxelsChunkData.size.equals(expectedChunkSize)) {
+            throw new Error(
+                `Voxels chunk is not coherent with patch size: expected ${vec3ToString(expectedChunkSize)} but received ${vec3ToString(voxelsChunkData.size)}.`
+            );
+        }
+
+        const voxelsRenderable = await this.voxelsRenderableFactory.buildVoxelsRenderable(voxelsChunkData);
+        return this.finalizePatch(voxelsRenderable, patchId, patchStart);
     }
 
     public async buildVoxelsRenderable(voxelsChunkData: VoxelsChunkData): Promise<VoxelsRenderable | null> {
@@ -87,6 +107,18 @@ abstract class PatchFactoryBase {
         return Object.assign(localMapData, {
             size: cacheSize,
         });
+    }
+
+    private finalizePatch(
+        voxelsRenderable: VoxelsRenderable | null,
+        patchId: PatchId,
+        patchStart: THREE.Vector3Like
+    ): VoxelsRenderable | null {
+        if (voxelsRenderable) {
+            voxelsRenderable.container.name = `Terrain patch ${patchId.asString}`;
+            voxelsRenderable.container.position.set(patchStart.x, patchStart.y, patchStart.z);
+        }
+        return voxelsRenderable;
     }
 }
 
