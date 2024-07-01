@@ -1,4 +1,4 @@
-import type { Vector3Like } from '../three-usage';
+import type { Vector3Like } from '../../three-usage';
 
 /**
  * A color stored in RGB format. Each component should be normalized.

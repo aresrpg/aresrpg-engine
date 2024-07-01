@@ -1,5 +1,5 @@
 import * as THREE from '../../../../../three-usage';
-import { type IVoxelMap } from '../../../../i-voxel-map';
+import { type IVoxelMap } from '../../../../voxelmap/i-voxel-map';
 import { type GeometryAndMaterial, type LocalMapData } from '../../patch-factory-base';
 import { PatchFactory } from '../patch-factory';
 import { type PatchSize } from '../vertex-data1-encoder';
