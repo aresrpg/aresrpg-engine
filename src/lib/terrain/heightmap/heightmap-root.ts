@@ -8,7 +8,7 @@ import { type IHeightmap } from './i-heightmap';
 class HeightmapRoot {
     public readonly container: THREE.Object3D;
 
-    public readonly material = new THREE.MeshPhongMaterial({ vertexColors: true });
+    public readonly material = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 0 });
 
     public readonly smallestLevelSizeInVoxels: number;
 
