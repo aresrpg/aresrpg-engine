@@ -1,6 +1,7 @@
 import { DisposableMap } from '../helpers/disposable-map';
 import { logger } from '../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../helpers/meshes-statistics';
+import { vec3ToString } from '../helpers/string';
 import * as THREE from '../three-usage';
 
 import { AsyncPatch } from './async-patch';
@@ -113,7 +114,7 @@ class Terrain {
         }
 
         this.patchSize = this.patchFactory.maxPatchSize.clone();
-        logger.info(`Using max patch size ${this.patchSize.x}x${this.patchSize.y}x${this.patchSize.z}.`);
+        logger.info(`Using max patch size ${vec3ToString(this.patchSize)}.`);
 
         this.container = new THREE.Group();
         this.container.name = 'Terrain container';

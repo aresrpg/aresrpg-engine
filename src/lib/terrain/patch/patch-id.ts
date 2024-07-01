@@ -1,3 +1,4 @@
+import { vec3ToString } from '../../helpers/string';
 import * as THREE from '../../three-usage';
 
 class PatchId {
@@ -12,7 +13,7 @@ class PatchId {
         this.y = id.y;
         this.z = id.z;
 
-        this.asString = `${this.x}_${this.y}_${this.z}`;
+        this.asString = vec3ToString(this, '_');
     }
 }
 

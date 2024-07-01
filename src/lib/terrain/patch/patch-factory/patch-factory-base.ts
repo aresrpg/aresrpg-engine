@@ -1,4 +1,5 @@
 import { nextPowerOfTwo } from '../../../helpers/math';
+import { vec3ToString } from '../../../helpers/string';
 import * as THREE from '../../../three-usage';
 import type { IVoxelMap, IVoxelMaterial } from '../../i-voxel-map';
 import type { PatchMaterialUniforms, PatchMaterials } from '../material';
@@ -73,9 +74,7 @@ abstract class PatchFactoryBase {
 
         const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
         if (patchSize.x > this.maxPatchSize.x || patchSize.y > this.maxPatchSize.y || patchSize.z > this.maxPatchSize.z) {
-            const patchSizeAsString = `${patchSize.x}x${patchSize.y}x${patchSize.z}`;
-            const maxPatchSizeAsString = `${this.maxPatchSize.x}x${this.maxPatchSize.y}x${this.maxPatchSize.z}`;
-            throw new Error(`Patch is too big ${patchSizeAsString} (max is ${maxPatchSizeAsString})`);
+            throw new Error(`Patch is too big ${vec3ToString(patchSize)} (max is ${vec3ToString(this.maxPatchSize)})`);
         }
 
         const geometryAndMaterialsList = await this.buildGeometryAndMaterials(patchStart, patchEnd);
