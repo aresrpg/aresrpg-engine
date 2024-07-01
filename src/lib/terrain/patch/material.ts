@@ -1,10 +1,5 @@
 import * as THREE from '../../three-usage';
 
-enum EMaterial {
-    ROCK = 0,
-    GRASS = 1,
-}
-
 enum EDisplayMode {
     TEXTURES,
     NORMALS,
@@ -33,4 +28,4 @@ type PatchMaterials = {
     readonly shadowMaterial: THREE.Material;
 };
 
-export { EDisplayMode, EMaterial, type PatchMaterial, type PatchMaterials, type PatchMaterialUniforms };
+export { EDisplayMode, type PatchMaterial, type PatchMaterialUniforms, type PatchMaterials };
