@@ -27,11 +27,20 @@ enum EEdgeType {
     LIMIT = 2,
 }
 
+enum ECornerType {
+    SIMPLE = 0,
+    LIMIT = 1,
+}
+
 type EdgesType = {
     readonly up: EEdgeType;
     readonly down: EEdgeType;
     readonly left: EEdgeType;
     readonly right: EEdgeType;
+    readonly upLeft: ECornerType;
+    readonly upRight: ECornerType;
+    readonly downLeft: ECornerType;
+    readonly downRight: ECornerType;
     readonly code: number;
 };
 
@@ -295,6 +304,8 @@ class HeightmapNode {
 
         const buildInnerIndex = (x: number, y: number) => y + x * (quadsCount - 1);
 
+        const limitDrop = -20;
+
         // eslint-disable-next-line no-lone-blocks
         {
             // inner part
@@ -319,16 +330,40 @@ class HeightmapNode {
         {
             // outer part
             const mmCornerIndex = geometryData.length / 3;
-            geometryData.push(0, 0, 0);
+            geometryData.push(
+                0,
+                limitDrop *
+                    +(edgesType.down === EEdgeType.LIMIT || edgesType.left === EEdgeType.LIMIT || edgesType.downLeft === ECornerType.LIMIT),
+                0
+            );
 
             const mpCornerIndex = geometryData.length / 3;
-            geometryData.push(0, 0, scaling * quadsCount);
+            geometryData.push(
+                0,
+                limitDrop *
+                    +(edgesType.up === EEdgeType.LIMIT || edgesType.left === EEdgeType.LIMIT || edgesType.upLeft === ECornerType.LIMIT),
+                scaling * quadsCount
+            );
 
             const pmCornerIndex = geometryData.length / 3;
-            geometryData.push(scaling * quadsCount, 0, 0);
+            geometryData.push(
+                scaling * quadsCount,
+                limitDrop *
+                    +(
+                        edgesType.down === EEdgeType.LIMIT ||
+                        edgesType.right === EEdgeType.LIMIT ||
+                        edgesType.downRight === ECornerType.LIMIT
+                    ),
+                0
+            );
 
             const ppCornerIndex = geometryData.length / 3;
-            geometryData.push(scaling * quadsCount, 0, scaling * quadsCount);
+            geometryData.push(
+                scaling * quadsCount,
+                limitDrop *
+                    +(edgesType.up === EEdgeType.LIMIT || edgesType.right === EEdgeType.LIMIT || edgesType.upRight === ECornerType.LIMIT),
+                scaling * quadsCount
+            );
 
             const buildEdge = (
                 edgeType: EEdgeType,
@@ -357,7 +392,7 @@ class HeightmapNode {
                     const outerStepsCount = edgeType === EEdgeType.TESSELATED ? 2 * quadsCount : quadsCount;
 
                     const dX = edgeType === EEdgeType.LIMIT ? 2 * margin.x : 0;
-                    const dY = edgeType === EEdgeType.LIMIT ? -1 : 0;
+                    const dY = edgeType === EEdgeType.LIMIT ? limitDrop : 0;
                     const dZ = edgeType === EEdgeType.LIMIT ? 2 * margin.y : 0;
 
                     outerIndices.push(cornerIndex1);
@@ -457,13 +492,17 @@ class HeightmapNode {
     }
 
     private buildEdgesType(): EdgesType {
-        const getEdge = (dX: number, dY: number) => {
+        const getNeighbour = (dX: number, dY: number) => {
             const neighbourId = new HeightmapNodeId(
                 this.id.level,
                 { x: this.id.coordsInLevel.x + dX, y: this.id.coordsInLevel.y + dY },
                 this.root
             );
-            const neighbour = this.root.getSubNode(neighbourId);
+            return this.root.getSubNode(neighbourId);
+        };
+
+        const getEdge = (dX: number, dY: number) => {
+            const neighbour = getNeighbour(dX, dY);
             if (neighbour) {
                 if (neighbour.isSubdivided) {
                     return EEdgeType.TESSELATED;
@@ -476,13 +515,27 @@ class HeightmapNode {
             return EEdgeType.SIMPLE;
         };
 
+        const getCorner = (dX: number, dY: number) => {
+            const neighbour = getNeighbour(dX, dY);
+            if (neighbour && !neighbour.visible) {
+                return ECornerType.LIMIT;
+            }
+            return ECornerType.SIMPLE;
+        };
+
         const up = getEdge(0, +1);
         const down = getEdge(0, -1);
         const left = getEdge(-1, 0);
         const right = getEdge(+1, 0);
 
-        const code = +up + (+down << 2) + (+left << 4) + (+right << 6);
-        return { up, down, left, right, code };
+        const upLeft = getCorner(-1, +1);
+        const upRight = getCorner(+1, +1);
+        const downLeft = getCorner(-1, -1);
+        const downRight = getCorner(+1, -1);
+
+        const code =
+            +up + (+down << 2) + (+left << 4) + (+right << 6) + (+upLeft << 8) + (+upRight << 10) + (+downLeft << 12) + (+downRight << 14);
+        return { up, down, left, right, upLeft, upRight, downLeft, downRight, code };
     }
 }
 
