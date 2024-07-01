@@ -5,6 +5,8 @@ import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapRoot } from './heightmap-root';
 import { type IHeightmap } from './i-heightmap';
 
+type HeightmapStatistics = MeshesStatistics;
+
 class HeightmapViewer {
     public readonly container: THREE.Object3D;
 
@@ -79,4 +81,4 @@ class HeightmapViewer {
     }
 }
 
-export { HeightmapViewer };
+export { HeightmapViewer, type HeightmapStatistics };
