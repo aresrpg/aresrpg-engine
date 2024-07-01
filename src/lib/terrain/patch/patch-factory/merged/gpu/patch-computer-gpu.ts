@@ -5,7 +5,7 @@ import { PromiseThrottler } from '../../../../../helpers/promise-throttler';
 import { getGpuDevice } from '../../../../../helpers/webgpu/webgpu-device';
 import * as THREE from '../../../../../three-usage';
 import * as Cube from '../../cube';
-import { type LocalMapCache } from '../../patch-factory-base';
+import { type LocalMapData } from '../../patch-factory-base';
 import { VertexData1Encoder } from '../vertex-data1-encoder';
 import { VertexData2Encoder } from '../vertex-data2-encoder';
 
@@ -47,7 +47,7 @@ class PatchComputerGpu {
         this.device = device;
 
         const code = `
-        struct LocalMapCacheBuffer {
+        struct LocalMapDataBuffer {
             size: vec3i,
             data: array<u32>,
         };
@@ -55,7 +55,7 @@ class PatchComputerGpu {
             verticesCount: atomic<u32>,
             verticesData: array<u32>,
         };
-        @group(0) @binding(0) var<storage,read> localMapCacheData: LocalMapCacheBuffer;
+        @group(0) @binding(0) var<storage,read> localMapDataBBuffer: LocalMapDataBuffer;
         @group(0) @binding(1) var<storage,read_write> verticesBuffer: VerticesBuffer;
         struct ComputeIn {
             @builtin(global_invocation_id) globalInvocationId : vec3u,
@@ -63,7 +63,7 @@ class PatchComputerGpu {
         
         fn sampleLocalCache(index: i32) -> u32 {
             let actualIndex = index / 2;
-            let data = localMapCacheData.data[actualIndex];
+            let data = localMapDataBBuffer.data[actualIndex];
             if (index % 2 == 0) {
                 return data & ${(1 << 16) - 1};
             } else {
@@ -71,7 +71,7 @@ class PatchComputerGpu {
             }
         }
         fn buildCacheIndex(coords: vec3i) -> i32 {
-            return coords.x + localMapCacheData.size.x * (coords.y + localMapCacheData.size.y * coords.z);
+            return coords.x + localMapDataBBuffer.size.x * (coords.y + localMapDataBBuffer.size.y * coords.z);
         }
         fn doesNeighbourExist(voxelCacheIndex: i32, neighbourRelativePosition: vec3i) -> bool {
             let neighbourCacheIndex = voxelCacheIndex + buildCacheIndex(neighbourRelativePosition);
@@ -97,7 +97,7 @@ class PatchComputerGpu {
             storageBarrier();
             let patchIndex: u32 = globalInvocationId;
         
-            let patchSize: vec3u = vec3u(localMapCacheData.size) - 2u;
+            let patchSize: vec3u = vec3u(localMapDataBBuffer.size) - 2u;
         
             let voxelLocalPosition = vec3u(
                 patchIndex % patchSize.x,
@@ -218,16 +218,16 @@ class PatchComputerGpu {
         });
     }
 
-    public async computeBuffer(localMapCache: LocalMapCache): Promise<ComputationOutputs> {
+    public async computeBuffer(localMapData: LocalMapData): Promise<ComputationOutputs> {
         return this.promiseThrottler.run(async () => {
             this.device.queue.writeBuffer(
                 this.localCacheBuffer,
                 0,
-                new Int32Array([localMapCache.size.x, localMapCache.size.y, localMapCache.size.z])
+                new Int32Array([localMapData.size.x, localMapData.size.y, localMapData.size.z])
             );
-            this.device.queue.writeBuffer(this.localCacheBuffer, Int32Array.BYTES_PER_ELEMENT * 3, localMapCache.data);
+            this.device.queue.writeBuffer(this.localCacheBuffer, Int32Array.BYTES_PER_ELEMENT * 3, localMapData.data);
 
-            const patchSize = localMapCache.size.clone().subScalar(2);
+            const patchSize = localMapData.size.clone().subScalar(2);
             const totalPatchCells = patchSize.x * patchSize.y * patchSize.z;
 
             const commandEncoder = this.device.createCommandEncoder();

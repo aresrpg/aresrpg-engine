@@ -1,14 +1,12 @@
-import * as THREE from '../../../../../three-usage';
-import { type IVoxelMap } from '../../../../i-voxel-map';
-import { EPatchComputingMode, type GeometryAndMaterial, type LocalMapCache } from '../../patch-factory-base';
 import { AsyncTask } from '../../../../../helpers/async-task';
-import { type PatchSize } from '../vertex-data1-encoder';
+import * as THREE from '../../../../../three-usage';
+import { type GeometryAndMaterial, type LocalMapData } from '../../patch-factory-base';
 
 import { PatchFactoryGpu } from './patch-factory-gpu';
 
 type PatchGenerationJob = {
     readonly patchId: number;
-    cpuTask: AsyncTask<LocalMapCache>;
+    cpuTask: AsyncTask<LocalMapData>;
     gpuTask?: Promise<GeometryAndMaterial[]>;
     readonly resolve: (value: GeometryAndMaterial[] | PromiseLike<GeometryAndMaterial[]>) => void;
 };
@@ -17,10 +15,6 @@ class PatchFactoryGpuOptimized extends PatchFactoryGpu {
     private nextPatchId = 0;
 
     private readonly pendingJobs: PatchGenerationJob[] = [];
-
-    public constructor(map: IVoxelMap, patchSize: PatchSize) {
-        super(map, EPatchComputingMode.GPU_OPTIMIZED, patchSize);
-    }
 
     protected computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
         const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
@@ -35,9 +29,9 @@ class PatchFactoryGpuOptimized extends PatchFactoryGpu {
 
             this.pendingJobs.push({
                 patchId,
-                cpuTask: new AsyncTask<LocalMapCache>(async () => {
+                cpuTask: new AsyncTask<LocalMapData>(async () => {
                     // logger.diagnostic(`CPU ${patchId} start`);
-                    const result = await this.buildLocalMapCache(patchStart, patchEnd);
+                    const result = await this.buildLocalMapData(patchStart, patchEnd);
                     // logger.diagnostic(`CPU ${patchId} end`);
                     return result;
                 }),
@@ -60,15 +54,15 @@ class PatchFactoryGpuOptimized extends PatchFactoryGpu {
                 currentJob.cpuTask.awaitResult().then(runNextTask);
             } else if (currentJob.cpuTask.isFinished) {
                 if (!currentJob.gpuTask) {
-                    const localMapCache = currentJob.cpuTask.getResultSync();
+                    const localMapData = currentJob.cpuTask.getResultSync();
 
-                    if (localMapCache.isEmpty) {
+                    if (localMapData.isEmpty) {
                         currentJob.gpuTask = Promise.resolve([]);
                     } else {
                         currentJob.gpuTask = (async () => {
                             // logger.diagnostic(`GPU ${currentJob.patchId} start`);
                             const patchComputerGpu = await this.getPatchComputerGpu();
-                            const gpuTaskOutput = await patchComputerGpu.computeBuffer(localMapCache);
+                            const gpuTaskOutput = await patchComputerGpu.computeBuffer(localMapData);
                             // logger.diagnostic(`GPU ${currentJob.patchId} end`);
 
                             return this.assembleGeometryAndMaterials(gpuTaskOutput);

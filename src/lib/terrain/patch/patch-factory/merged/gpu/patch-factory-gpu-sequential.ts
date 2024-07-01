@@ -1,17 +1,11 @@
 import { PromiseThrottler } from '../../../../../helpers/promise-throttler';
-import { type IVoxelMap } from '../../../../i-voxel-map';
-import { EPatchComputingMode, type GeometryAndMaterial } from '../../patch-factory-base';
 import * as THREE from '../../../../../three-usage';
-import { type PatchSize } from '../vertex-data1-encoder';
+import { type GeometryAndMaterial } from '../../patch-factory-base';
 
 import { PatchFactoryGpu } from './patch-factory-gpu';
 
 class PatchFactoryGpuSequential extends PatchFactoryGpu {
     private readonly gpuSequentialLimiter = new PromiseThrottler(1);
-
-    public constructor(map: IVoxelMap, patchSize: PatchSize) {
-        super(map, EPatchComputingMode.GPU_SEQUENTIAL, patchSize);
-    }
 
     protected computePatchData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
         return this.gpuSequentialLimiter.run(async () => {
@@ -21,13 +15,13 @@ class PatchFactoryGpuSequential extends PatchFactoryGpu {
                 return [];
             }
 
-            const localMapCache = await this.buildLocalMapCache(patchStart, patchEnd);
-            if (localMapCache.isEmpty) {
+            const localMapData = await this.buildLocalMapData(patchStart, patchEnd);
+            if (localMapData.isEmpty) {
                 return [];
             }
 
             const patchComputerGpu = await this.getPatchComputerGpu();
-            const buffer = await patchComputerGpu.computeBuffer(localMapCache);
+            const buffer = await patchComputerGpu.computeBuffer(localMapData);
             return this.assembleGeometryAndMaterials(buffer);
         });
     }
