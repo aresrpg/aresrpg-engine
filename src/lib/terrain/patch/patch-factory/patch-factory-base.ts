@@ -101,6 +101,21 @@ abstract class PatchFactoryBase {
         }
 
         const geometryAndMaterialsList = await this.computePatchData(patchStart, patchEnd);
+        return this.assemblePatch(patchId, patchStart, patchEnd, geometryAndMaterialsList);
+    }
+
+    public dispose(): void {
+        this.disposeInternal();
+        this.texture.dispose();
+        this.noiseTexture.dispose();
+    }
+
+    private assemblePatch(
+        patchId: PatchId,
+        patchStart: THREE.Vector3,
+        patchEnd: THREE.Vector3,
+        geometryAndMaterialsList: GeometryAndMaterial[]
+    ): Patch | null {
         if (geometryAndMaterialsList.length === 0) {
             return null;
         }
@@ -137,12 +152,6 @@ abstract class PatchFactoryBase {
                 return { mesh, materials, trianglesCount, gpuMemoryBytes };
             })
         );
-    }
-
-    public dispose(): void {
-        this.disposeInternal();
-        this.texture.dispose();
-        this.noiseTexture.dispose();
     }
 
     protected async iterateOnVisibleFaces(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<() => Generator<FaceData>> {
