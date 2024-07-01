@@ -1,7 +1,7 @@
-import { AsyncTask } from '../../../../helpers/async-task';
-import * as THREE from '../../../../three-usage';
-import { type IVoxelMap, type VoxelsChunkSize } from '../../../terrain';
-import { VoxelsRenderableFactoryGpu } from '../../../voxelmap/voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
+import { AsyncTask } from '../../../../../helpers/async-task';
+import * as THREE from '../../../../../three-usage';
+import { type IVoxelMap, type VoxelsChunkSize } from '../../../../terrain';
+import { VoxelsRenderableFactoryGpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
 import { PatchFactoryBase, type GeometryAndMaterial, type LocalMapData } from '../patch-factory-base';
 
 type PatchGenerationJob = {

@@ -1,7 +1,7 @@
-import { PromiseThrottler } from '../../../../helpers/promise-throttler';
-import * as THREE from '../../../../three-usage';
-import { type IVoxelMap, type VoxelsChunkSize } from '../../../terrain';
-import { VoxelsRenderableFactoryGpu } from '../../../voxelmap/voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
+import { PromiseThrottler } from '../../../../../helpers/promise-throttler';
+import * as THREE from '../../../../../three-usage';
+import { type IVoxelMap, type VoxelsChunkSize } from '../../../../terrain';
+import { VoxelsRenderableFactoryGpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
 import { PatchFactoryBase, type GeometryAndMaterial } from '../patch-factory-base';
 
 class PatchFactoryGpuSequential extends PatchFactoryBase {
