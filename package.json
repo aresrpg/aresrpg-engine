@@ -1,6 +1,6 @@
 {
   "name": "@aresrpg/aresrpg-engine",
-  "version": "1.6.3",
+  "version": "2.0.0",
   "main": "dist/index.js",
   "files": [
     "dist"
@@ -22,9 +22,9 @@
     "three": "^0.165.0"
   },
   "devDependencies": {
-    "@types/three": "^0.165.0",
-    "@typescript-eslint/eslint-plugin": "^7.14.1",
-    "@typescript-eslint/parser": "^7.14.1",
+    "@types/three": "^0.166.0",
+    "@typescript-eslint/eslint-plugin": "^7.15.0",
+    "@typescript-eslint/parser": "^7.15.0",
     "@webgpu/types": "^0.1.43",
     "alea": "^1.0.1",
     "eslint": "^8.57.0",
@@ -32,14 +32,14 @@
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.29.1",
     "http-server": "^14.1.1",
-    "husky": "^9.0.11",
+    "husky": "^4.3.8",
     "lint-staged": "^15.2.7",
     "prettier": "^3.3.2",
     "shx": "^0.3.4",
     "simplex-noise": "^4.0.1",
-    "three": "^0.165.0",
+    "three": "^0.166.1",
     "ts-loader": "^9.5.1",
-    "typescript": "^5.5.2",
+    "typescript": "^5.5.3",
     "webpack": "^5.92.1",
     "webpack-cli": "^5.1.4"
   },
