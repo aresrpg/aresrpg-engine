@@ -56,7 +56,9 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
 in uint ${VoxelsRenderableFactory.data1AttributeName};
 in uint ${VoxelsRenderableFactory.data2AttributeName};
 
+#if defined(VOXELS_ROUNDED) || defined(VOXELS_NOISE)
 out vec2 vUv;
+#endif // VOXELS_ROUNDED || VOXELS_NOISE
 
 #ifdef VOXELS_ROUNDED
 out vec2 vEdgeRoundness;
@@ -87,6 +89,7 @@ void main() {`,
     vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
     vec3 transformed = modelPosition;
     
+#if defined(VOXELS_ROUNDED) || defined(VOXELS_NOISE)
     const vec2 uvs[] = vec2[](
             vec2(0,0),
             vec2(0,1),
@@ -94,6 +97,7 @@ void main() {`,
             vec2(1,1)
         );
     vUv = uvs[vertexId];
+#endif // VOXELS_ROUNDED || VOXELS_NOISE
 
 #ifdef VOXELS_ROUNDED
     const vec2 edgeRoundness[] = vec2[](
@@ -111,6 +115,7 @@ void main() {`,
                     VoxelsRenderableFactory.data1AttributeName
                 )}) / ${this.vertexData1Encoder.ao.maxValue.toFixed(1)};
 #endif // VOXELS_AO
+
     vData2 = ${VoxelsRenderableFactory.data2AttributeName};
         `,
                 '#include <beginnormal_vertex>': `
@@ -145,7 +150,9 @@ uniform uint uDisplayMode;
 
 uniform mat3 normalMatrix; // from three.js
 
+#if defined(VOXELS_ROUNDED) || defined(VOXELS_NOISE)
 in vec2 vUv;
+#endif // VOXELS_ROUNDED || VOXELS_NOISE
 
 #ifdef VOXELS_ROUNDED
 in vec2 vEdgeRoundness;
