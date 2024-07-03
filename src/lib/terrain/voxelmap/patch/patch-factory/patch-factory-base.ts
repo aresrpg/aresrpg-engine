@@ -112,8 +112,9 @@ abstract class PatchFactoryBase {
         patchStart: THREE.Vector3Like
     ): VoxelsRenderable | null {
         if (voxelsRenderable) {
-            voxelsRenderable.container.name = `Terrain patch ${patchId.asString}`;
+            voxelsRenderable.container.name = `Voxels patch ${patchId.asString}`;
             voxelsRenderable.container.position.set(patchStart.x, patchStart.y, patchStart.z);
+            voxelsRenderable.container.updateWorldMatrix(true, true);
         }
         return voxelsRenderable;
     }
