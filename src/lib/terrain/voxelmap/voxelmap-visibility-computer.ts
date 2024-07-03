@@ -14,10 +14,10 @@ class VoxelmapVisibilityComputer {
 
     private requestedPatches: Record<string, RequestedPatch> = {};
 
-    public constructor(chunkSize: THREE.Vector3Like, minAltitude: number, maxAltitude: number) {
+    public constructor(chunkSize: THREE.Vector3Like, minPatchIdY: number, maxPatchIdY: number) {
         this.chunkSize = new THREE.Vector3().copy(chunkSize);
-        this.minPatchIdY = Math.floor(minAltitude / this.chunkSize.y);
-        this.maxPatchIdY = Math.floor(maxAltitude / this.chunkSize.y);
+        this.minPatchIdY = minPatchIdY;
+        this.maxPatchIdY = maxPatchIdY;
     }
 
     public reset(): void {
