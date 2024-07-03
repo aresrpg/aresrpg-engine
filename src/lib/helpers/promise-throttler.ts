@@ -3,6 +3,7 @@ type PromiseBuilder<T> = () => Promise<T>;
 type PendingRun<T> = {
     readonly promiseBuilder: PromiseBuilder<T>;
     readonly resolve: (value: T | PromiseLike<T>) => void;
+    readonly onCancel: VoidFunction | undefined;
 };
 
 class PromiseThrottler {
@@ -18,7 +19,7 @@ class PromiseThrottler {
         this.maxConcurrentPromises = maxConcurrentPromises;
     }
 
-    public async run<T>(func: PromiseBuilder<T>): Promise<T> {
+    public async run<T>(func: PromiseBuilder<T>, onCancel?: VoidFunction): Promise<T> {
         if (this.runningPromisesCount < this.maxConcurrentPromises) {
             return this.startRun(func);
         } else {
@@ -26,6 +27,7 @@ class PromiseThrottler {
                 const pendingRun: PendingRun<T> = {
                     promiseBuilder: func,
                     resolve,
+                    onCancel,
                 };
                 this.pendingRuns.push(pendingRun as PendingRun<unknown>);
             });
@@ -33,6 +35,11 @@ class PromiseThrottler {
     }
 
     public cancelAll(): void {
+        for (const pendingRun of this.pendingRuns) {
+            if (pendingRun.onCancel) {
+                pendingRun.onCancel();
+            }
+        }
         this.pendingRuns = [];
     }
 
