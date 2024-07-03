@@ -44,6 +44,7 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
         material.defines = material.defines || {};
         material.defines["VOXELS_AO"] = 1;
         material.defines["VOXELS_NOISE"] = 1;
+        material.defines["VOXELS_ROUNDED"] = 1;
         material.onBeforeCompile = parameters => {
             parameters.uniforms = {
                 ...parameters.uniforms,
@@ -56,8 +57,13 @@ in uint ${VoxelsRenderableFactory.data1AttributeName};
 in uint ${VoxelsRenderableFactory.data2AttributeName};
 
 out vec2 vUv;
+
+#ifdef VOXELS_ROUNDED
 out vec2 vEdgeRoundness;
+#endif // VOXELS_ROUNDED
+
 flat out uint vData2;
+
 #ifdef VOXELS_AO
 out float vAo;
 #endif // VOXELS_AO
@@ -89,6 +95,7 @@ void main() {`,
         );
     vUv = uvs[vertexId];
 
+#ifdef VOXELS_ROUNDED
     const vec2 edgeRoundness[] = vec2[](
         vec2(0,0),
         vec2(1,0),
@@ -97,11 +104,12 @@ void main() {`,
     );
     uint edgeRoundnessId = ${this.vertexData1Encoder.edgeRoundness.glslDecode(VoxelsRenderableFactory.data1AttributeName)};
     vEdgeRoundness = edgeRoundness[edgeRoundnessId];
+#endif // VOXELS_ROUNDED
 
 #ifdef VOXELS_AO
     vAo = float(${this.vertexData1Encoder.ao.glslDecode(
-        VoxelsRenderableFactory.data1AttributeName
-    )}) / ${this.vertexData1Encoder.ao.maxValue.toFixed(1)};
+                    VoxelsRenderableFactory.data1AttributeName
+                )}) / ${this.vertexData1Encoder.ao.maxValue.toFixed(1)};
 #endif // VOXELS_AO
     vData2 = ${VoxelsRenderableFactory.data2AttributeName};
         `,
@@ -128,14 +136,21 @@ uniform float uAoStrength;
 uniform float uAoSpread;
 #endif // VOXELS_AO
 
+#ifdef VOXELS_ROUNDED
 uniform float uSmoothEdgeRadius;
 uniform uint uSmoothEdgeMethod;
+#endif // VOXELS_ROUNDED
+
 uniform uint uDisplayMode;
 
 uniform mat3 normalMatrix; // from three.js
 
 in vec2 vUv;
+
+#ifdef VOXELS_ROUNDED
 in vec2 vEdgeRoundness;
+#endif // VOXELS_ROUNDED
+
 flat in uint vData2;
 
 #ifdef VOXELS_AO
@@ -147,33 +162,34 @@ vec3 computeModelNormal() {
         ${Cube.normalsById.map(value => `vec3(${vec3ToString(value, ', ')})`).join(',\n')}
     );
 
-    vec3 modelFaceNormal = modelNormalsById[${VoxelsRenderableFactory.vertexData2Encoder.normalId.glslDecode('vData2')}];
-    if (uSmoothEdgeRadius <= 0.0) {
-        return modelFaceNormal;
+    vec3 modelNormal = modelNormalsById[${VoxelsRenderableFactory.vertexData2Encoder.normalId.glslDecode('vData2')}];
+#ifdef VOXELS_ROUNDED
+    if (uSmoothEdgeRadius > 0.0) {
+        vec3 localNormal;
+
+        vec2 edgeRoundness = step(${VoxelsRenderableFactory.maxSmoothEdgeRadius.toFixed(2)}, vEdgeRoundness);
+        if (uSmoothEdgeMethod == 0u) {
+            vec2 margin = mix(vec2(0), vec2(uSmoothEdgeRadius), edgeRoundness);
+            vec3 roundnessCenter = vec3(clamp(vUv, margin, 1.0 - margin), -uSmoothEdgeRadius);
+            localNormal = normalize(vec3(vUv, 0) - roundnessCenter);
+        } else if (uSmoothEdgeMethod == 1u) {
+            vec2 symetricUv = clamp(vUv - 0.5, -0.5,  0.5);
+            vec2 distanceFromMargin = edgeRoundness * sign(symetricUv) * max(abs(symetricUv) - (0.5 - uSmoothEdgeRadius), 0.0) / uSmoothEdgeRadius;
+            localNormal = normalize(vec3(distanceFromMargin, 1));
+        } else if (uSmoothEdgeMethod == 2u) {
+            vec2 symetricUv = clamp(vUv - 0.5, -0.5,  0.5);
+            vec2 distanceFromMargin = edgeRoundness * sign(symetricUv) * max(abs(symetricUv) - (0.5 - uSmoothEdgeRadius), 0.0) / uSmoothEdgeRadius;
+            distanceFromMargin = sign(distanceFromMargin) * distanceFromMargin * distanceFromMargin;
+            localNormal = normalize(vec3(distanceFromMargin, 1));
+        }
+
+        vec3 uvRight = modelNormalsById[${VoxelsRenderableFactory.vertexData2Encoder.uvRightId.glslDecode('vData2')}];
+        vec3 uvUp = cross(modelNormal, uvRight);
+
+        modelNormal = localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * modelNormal;
     }
+#endif // VOXELS_ROUNDED
 
-    vec3 localNormal;
-
-    vec2 edgeRoundness = step(${VoxelsRenderableFactory.maxSmoothEdgeRadius.toFixed(2)}, vEdgeRoundness);
-    if (uSmoothEdgeMethod == 0u) {
-        vec2 margin = mix(vec2(0), vec2(uSmoothEdgeRadius), edgeRoundness);
-        vec3 roundnessCenter = vec3(clamp(vUv, margin, 1.0 - margin), -uSmoothEdgeRadius);
-        localNormal = normalize(vec3(vUv, 0) - roundnessCenter);
-    } else if (uSmoothEdgeMethod == 1u) {
-        vec2 symetricUv = clamp(vUv - 0.5, -0.5,  0.5);
-        vec2 distanceFromMargin = edgeRoundness * sign(symetricUv) * max(abs(symetricUv) - (0.5 - uSmoothEdgeRadius), 0.0) / uSmoothEdgeRadius;
-        localNormal = normalize(vec3(distanceFromMargin, 1));
-    } else if (uSmoothEdgeMethod == 2u) {
-        vec2 symetricUv = clamp(vUv - 0.5, -0.5,  0.5);
-        vec2 distanceFromMargin = edgeRoundness * sign(symetricUv) * max(abs(symetricUv) - (0.5 - uSmoothEdgeRadius), 0.0) / uSmoothEdgeRadius;
-        distanceFromMargin = sign(distanceFromMargin) * distanceFromMargin * distanceFromMargin;
-        localNormal = normalize(vec3(distanceFromMargin, 1));
-    }
-
-    vec3 uvRight = modelNormalsById[${VoxelsRenderableFactory.vertexData2Encoder.uvRightId.glslDecode('vData2')}];
-    vec3 uvUp = cross(modelFaceNormal, uvRight);
-
-    vec3 modelNormal = localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * modelFaceNormal;
     return modelNormal;
 }
 
@@ -188,10 +204,10 @@ float computeNoise() {
 #endif // VOXELS_NOISE
 
 void main() {
-    vec3 modelFaceNormal = computeModelNormal();
+    vec3 modelNormal = computeModelNormal();
 `,
                 '#include <normal_fragment_begin>': `
-    vec3 normal = normalMatrix * modelFaceNormal;`,
+    vec3 normal = normalMatrix * modelNormal;`,
                 '#include <map_fragment>': `
     diffuseColor.rgb = vec3(0.75);
     if (uDisplayMode == ${EVoxelsDisplayMode.TEXTURED}u) {
@@ -199,7 +215,7 @@ void main() {
         ivec2 texelCoords = ivec2(voxelMaterialId % ${this.texture.image.width}u, voxelMaterialId / ${this.texture.image.width}u);
         diffuseColor.rgb = texelFetch(uTexture, texelCoords, 0).rgb;
     } else if (uDisplayMode == ${EVoxelsDisplayMode.NORMALS}u) {
-        diffuseColor.rgb = 0.5 + 0.5 * modelFaceNormal;
+        diffuseColor.rgb = 0.5 + 0.5 * modelNormal;
     }
 
 #ifdef VOXELS_NOISE
