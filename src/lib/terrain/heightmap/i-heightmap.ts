@@ -21,6 +21,9 @@ interface IHeightmapSample {
  * Interface for a class storing a 2D heightmap (Y-up).
  */
 interface IHeightmap {
+    readonly minAltitude: number;
+    readonly maxAltitude: number;
+
     /**
      * Samples points on the heightmap, synchronously or asynchronously.
      * @returns A list (or promise of list) of one sample per input coords, in the same order as the input coords.

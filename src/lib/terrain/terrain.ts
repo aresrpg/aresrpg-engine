@@ -13,6 +13,7 @@ import { PatchFactoryGpuOptimized } from './voxelmap/patch/patch-factory/merged/
 import { PatchFactoryGpuSequential } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-sequential';
 import { type PatchFactoryBase } from './voxelmap/patch/patch-factory/patch-factory-base';
 import { PatchId } from './voxelmap/patch/patch-id';
+import { VoxelmapVisibilityComputer } from './voxelmap/voxelmap-visibility-computer';
 import { EVoxelsDisplayMode } from './voxelmap/voxelsRenderable/voxels-renderable';
 import { type VoxelsChunkSize } from './voxelmap/voxelsRenderable/voxelsRenderableFactory/merged/vertex-data1-encoder';
 
@@ -65,10 +66,6 @@ class Terrain {
                 strength: 0.4,
                 spread: 0.85,
             },
-            map: {
-                minAltitude: -1,
-                maxAltitude: 256,
-            },
         },
         lod: {
             enabled: true,
@@ -76,6 +73,7 @@ class Terrain {
         },
     };
 
+    private readonly patchesVisibilityComputer: VoxelmapVisibilityComputer;
     private readonly patchesContainer: THREE.Group;
     private readonly heightmapContainer: THREE.Group;
 
@@ -93,8 +91,8 @@ class Terrain {
      *
      * @param map The map that will be rendered.
      */
-    public constructor(map: IVoxelMap & IHeightmap, options?: TerrainOptions) {
-        let computingMode = EPatchComputingMode.GPU_OPTIMIZED;
+    public constructor(map: IVoxelMap & IHeightmap, options: TerrainOptions) {
+        let computingMode = EPatchComputingMode.GPU_SEQUENTIAL;
         let patchSize = { xz: 64, y: 64 };
         if (options) {
             if (typeof options.computingMode !== 'undefined') {
@@ -129,31 +127,25 @@ class Terrain {
         this.heightmapContainer.name = `Heightmap patches container`;
         this.heightmapViewer = new HeightmapViewer(map, patchSize.xz);
         this.heightmapContainer.add(this.heightmapViewer.container);
+
+        this.patchesVisibilityComputer = new VoxelmapVisibilityComputer(this.patchSize, map.minAltitude, map.maxAltitude);
     }
 
     /**
      * Makes the portion of the map within a box visible.
      */
     public async showMapPortion(box: THREE.Box3): Promise<void> {
-        const voxelFrom = box.min;
-        const voxelTo = box.max;
-        const patchIdFrom = voxelFrom.divide(this.patchSize).floor();
-        const patchIdTo = voxelTo.divide(this.patchSize).ceil();
+        this.patchesVisibilityComputer.reset();
+        this.patchesVisibilityComputer.showMapPortion(box);
+        const requestedPatches = this.patchesVisibilityComputer.getRequestedPatches();
 
-        const promises: Promise<void>[] = [];
-
-        const patchId = new THREE.Vector3();
         const patchStart = new THREE.Vector3();
-        for (patchId.x = patchIdFrom.x; patchId.x < patchIdTo.x; patchId.x++) {
-            for (patchId.y = patchIdFrom.y; patchId.y < patchIdTo.y; patchId.y++) {
-                for (patchId.z = patchIdFrom.z; patchId.z < patchIdTo.z; patchId.z++) {
-                    patchStart.multiplyVectors(patchId, this.patchSize);
-                    const patch = this.getPatch(patchStart);
-                    patch.visible = true;
-                    promises.push(patch.ready());
-                }
-            }
-        }
+        const promises = requestedPatches.map(requestedPatch => {
+            patchStart.multiplyVectors(requestedPatch.id, this.patchSize);
+            const patch = this.getPatch(patchStart);
+            patch.visible = true;
+            return patch.ready();
+        });
 
         await Promise.all(promises);
     }
@@ -163,54 +155,15 @@ class Terrain {
      * @param position The position around which the map will be made visible.
      * @param radius The visibility radius, in voxels.
      */
-    public async showMapAroundPosition(position: THREE.Vector3, radius: number): Promise<void> {
-        const voxelFrom = new THREE.Vector3().copy(position).subScalar(radius);
-        const voxelTo = new THREE.Vector3().copy(position).addScalar(radius);
-        const patchIdFrom = voxelFrom.divide(this.patchSize).floor();
-        const patchIdCenter = new THREE.Vector3().copy(position).divide(this.patchSize).floor();
-        const patchIdTo = voxelTo.divide(this.patchSize).ceil();
+    public async showMapAroundPosition(position: THREE.Vector3Like, radius: number): Promise<void> {
+        this.patchesVisibilityComputer.reset();
+        this.patchesVisibilityComputer.showMapAroundPosition(position, radius);
+        const requestedPatches = this.patchesVisibilityComputer.getRequestedPatches();
 
-        for (const patch of this.patchesStore.allItems) {
-            patch.visible = false;
-        }
-
-        const visibilitySphere = new THREE.Sphere(new THREE.Vector3(position.x, 0, position.z), radius);
-
-        type WantedPatch = {
-            readonly patchId: THREE.Vector3;
-            readonly patchStart: THREE.Vector3;
-            readonly distance: number;
-        };
-        const wantedPatchesList: WantedPatch[] = [];
-
-        const patchId = new THREE.Vector3();
-        for (patchId.x = patchIdFrom.x; patchId.x < patchIdTo.x; patchId.x++) {
-            for (patchId.z = patchIdFrom.z; patchId.z < patchIdTo.z; patchId.z++) {
-                patchId.y = 0;
-
-                let patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
-
-                const boundingBox = new THREE.Box3(patchStart, patchStart.clone().add(this.patchSize));
-                if (visibilitySphere.intersectsBox(boundingBox)) {
-                    for (patchId.y = this.minPatchIdY; patchId.y < this.maxPatchIdY; patchId.y++) {
-                        patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
-                        wantedPatchesList.push({
-                            patchId: patchId.clone(),
-                            patchStart,
-                            distance: Math.max(
-                                Math.abs(patchId.x - patchIdCenter.x),
-                                Math.abs(patchId.y - patchIdCenter.y),
-                                Math.abs(patchId.z - patchIdCenter.z)
-                            ),
-                        });
-                    }
-                }
-            }
-        }
-
-        wantedPatchesList.sort((patchA: WantedPatch, patchB: WantedPatch) => patchA.distance - patchB.distance);
-        const promises = wantedPatchesList.map(wantedPatch => {
-            const patch = this.getPatch(wantedPatch.patchStart);
+        const patchStart = new THREE.Vector3();
+        const promises = requestedPatches.map(requestedPatch => {
+            patchStart.multiplyVectors(requestedPatch.id, this.patchSize);
+            const patch = this.getPatch(patchStart);
             patch.visible = true;
             return patch.ready();
         });
@@ -359,11 +312,11 @@ class Terrain {
     }
 
     private get minPatchIdY(): number {
-        return Math.floor(this.parameters.voxels.map.minAltitude / this.patchFactory.maxPatchSize.y);
+        return this.patchesVisibilityComputer.minPatchIdY;
     }
 
     private get maxPatchIdY(): number {
-        return Math.ceil(this.parameters.voxels.map.maxAltitude / this.patchFactory.maxPatchSize.y);
+        return this.patchesVisibilityComputer.maxPatchIdY;
     }
 
     private garbageCollectPatches(): void {

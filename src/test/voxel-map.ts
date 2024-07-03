@@ -42,6 +42,9 @@ class VoxelMap implements IVoxelMap, IHeightmap {
     public readonly size: THREE.Vector3;
     public readonly voxelMaterialsList = Object.values(voxelMaterials);
 
+    public readonly minAltitude: number = -1;
+    public readonly maxAltitude: number;
+
     private readonly noise2D: NoiseFunction2D;
     private readonly voxels: ReadonlyArray<StoredVoxel>;
     private readonly coordsShift: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
@@ -49,6 +52,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
     public constructor(width: number, height: number, scaleXZ: number, altitude: number, seed: string) {
         this.size = new THREE.Vector3(width, altitude, height);
         this.scaleXZ = scaleXZ;
+        this.maxAltitude = altitude + 1;
 
         const prng = alea(seed);
         this.noise2D = createNoise2D(prng);
