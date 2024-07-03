@@ -59,20 +59,21 @@ abstract class VoxelsRenderableFactoryBase {
     }
 
     public async buildVoxelsRenderable(voxelsChunkData: VoxelsChunkData): Promise<VoxelsRenderable | null> {
+        const innerChunkSize = voxelsChunkData.size.clone().subScalar(2);
         if (
-            voxelsChunkData.size.x > this.maxVoxelsChunkSize.x ||
-            voxelsChunkData.size.y > this.maxVoxelsChunkSize.y ||
-            voxelsChunkData.size.z > this.maxVoxelsChunkSize.z
+            innerChunkSize.x > this.maxVoxelsChunkSize.x ||
+            innerChunkSize.y > this.maxVoxelsChunkSize.y ||
+            innerChunkSize.z > this.maxVoxelsChunkSize.z
         ) {
-            throw new Error(
-                `Voxels chunk is too big ${vec3ToString(voxelsChunkData.size)} (max is ${vec3ToString(this.maxVoxelsChunkSize)})`
-            );
+            throw new Error(`Voxels chunk is too big ${vec3ToString(innerChunkSize)} (max is ${vec3ToString(this.maxVoxelsChunkSize)})`);
+        }
+
+        if (voxelsChunkData.isEmpty) {
+            return null;
         }
 
         const geometryAndMaterialsList = await this.buildGeometryAndMaterials(voxelsChunkData);
-
-        const voxelsRenderableSize = voxelsChunkData.size.clone().subScalar(2);
-        return this.assembleVoxelsRenderable(voxelsRenderableSize, geometryAndMaterialsList);
+        return this.assembleVoxelsRenderable(innerChunkSize, geometryAndMaterialsList);
     }
 
     public dispose(): void {

@@ -17,6 +17,9 @@ type VoxelsChunkCache = VoxelsChunkData & {
 
 class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
     public async buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkData): Promise<GeometryAndMaterial[]> {
+        if (voxelsChunkData.isEmpty) {
+            return [];
+        }
         const buffer = this.buildBuffer(voxelsChunkData);
         return this.assembleGeometryAndMaterials(buffer);
     }

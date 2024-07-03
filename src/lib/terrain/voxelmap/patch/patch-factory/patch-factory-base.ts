@@ -2,21 +2,12 @@ import { processAsap } from '../../../../helpers/async-sync';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
 import { type IVoxelMap } from '../../i-voxelmap';
-import { type VoxelsMaterials } from '../../voxelsRenderable/voxels-material';
 import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
 import {
     type VoxelsChunkData,
     type VoxelsRenderableFactoryBase,
 } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 import { type PatchId } from '../patch-id';
-
-type GeometryAndMaterial = {
-    readonly id: string;
-    readonly geometry: THREE.BufferGeometry;
-    readonly materials: VoxelsMaterials;
-    readonly trianglesCount: number;
-    readonly gpuMemoryBytes: number;
-};
 
 type VertexData = {
     readonly localPosition: THREE.Vector3;
@@ -34,7 +25,7 @@ type LocalMapData = {
 abstract class PatchFactoryBase {
     public readonly maxPatchSize: THREE.Vector3;
 
-    protected readonly map: IVoxelMap;
+    private readonly map: IVoxelMap;
 
     protected readonly voxelsRenderableFactory: VoxelsRenderableFactoryBase;
 
@@ -53,8 +44,7 @@ abstract class PatchFactoryBase {
             throw new Error(`Patch is too big ${vec3ToString(patchSize)} (max is ${vec3ToString(this.maxPatchSize)})`);
         }
 
-        const geometryAndMaterialsList = await this.buildGeometryAndMaterials(patchStart, patchEnd);
-        const voxelsRenderable = this.voxelsRenderableFactory.assembleVoxelsRenderable(patchSize, geometryAndMaterialsList);
+        const voxelsRenderable = await this.queryMapAndBuildVoxelsRenderable(patchStart, patchEnd);
         return this.finalizePatch(voxelsRenderable, patchId, patchStart);
     }
 
@@ -91,7 +81,10 @@ abstract class PatchFactoryBase {
         this.voxelsRenderableFactory.dispose();
     }
 
-    protected abstract buildGeometryAndMaterials(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]>;
+    protected abstract queryMapAndBuildVoxelsRenderable(
+        patchStart: THREE.Vector3,
+        patchEnd: THREE.Vector3
+    ): Promise<VoxelsRenderable | null>;
 
     protected async buildLocalMapData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<LocalMapData> {
         const cacheStart = patchStart.clone().subScalar(1);
@@ -126,4 +119,4 @@ abstract class PatchFactoryBase {
     }
 }
 
-export { PatchFactoryBase, type GeometryAndMaterial, type LocalMapData, type VertexData };
+export { PatchFactoryBase, type LocalMapData, type VertexData };
