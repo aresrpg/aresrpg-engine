@@ -41,6 +41,8 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
         const material = phongMaterial as unknown as VoxelsMaterialTemp;
         material.userData.uniforms = this.uniformsTemplate;
         material.customProgramCacheKey = () => `voxels-factory-merged`;
+        material.defines = material.defines || {};
+        material.defines["VOXELS_AO"] = 1;
         material.onBeforeCompile = parameters => {
             parameters.uniforms = {
                 ...parameters.uniforms,
@@ -55,7 +57,9 @@ in uint ${VoxelsRenderableFactory.data2AttributeName};
 out vec2 vUv;
 out vec2 vEdgeRoundness;
 flat out uint vData2;
+#ifdef VOXELS_AO
 out float vAo;
+#endif // VOXELS_AO
 
 void main() {`,
                 '#include <begin_vertex>': `
@@ -93,10 +97,11 @@ void main() {`,
     uint edgeRoundnessId = ${this.vertexData1Encoder.edgeRoundness.glslDecode(VoxelsRenderableFactory.data1AttributeName)};
     vEdgeRoundness = edgeRoundness[edgeRoundnessId];
 
+#ifdef VOXELS_AO
     vAo = float(${this.vertexData1Encoder.ao.glslDecode(
         VoxelsRenderableFactory.data1AttributeName
     )}) / ${this.vertexData1Encoder.ao.maxValue.toFixed(1)};
-
+#endif // VOXELS_AO
     vData2 = ${VoxelsRenderableFactory.data2AttributeName};
         `,
                 '#include <beginnormal_vertex>': `
@@ -113,8 +118,12 @@ void main() {`,
 uniform sampler2D uTexture;
 uniform sampler2D uNoiseTexture;
 uniform float uNoiseStrength;
+
+#ifdef VOXELS_AO
 uniform float uAoStrength;
 uniform float uAoSpread;
+#endif // VOXELS_AO
+
 uniform float uSmoothEdgeRadius;
 uniform uint uSmoothEdgeMethod;
 uniform uint uDisplayMode;
@@ -124,7 +133,10 @@ uniform mat3 normalMatrix; // from three.js
 in vec2 vUv;
 in vec2 vEdgeRoundness;
 flat in uint vData2;
+
+#ifdef VOXELS_AO
 in float vAo;
+#endif // VOXELS_AO
 
 vec3 computeModelNormal() {
     const vec3 modelNormalsById[] = vec3[](
@@ -185,8 +197,10 @@ void main() {
     }
     diffuseColor.rgb += computeNoise();
     
+#ifdef VOXELS_AO
     float ao = (1.0 - uAoStrength) + uAoStrength * (smoothstep(0.0, uAoSpread, 1.0 - vAo));
     diffuseColor.rgb *= ao;
+#endif // VOXELS_AO
     `,
             });
         };
