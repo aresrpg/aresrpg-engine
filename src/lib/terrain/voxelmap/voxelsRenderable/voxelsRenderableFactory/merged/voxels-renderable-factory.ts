@@ -36,15 +36,18 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
             return result;
         }
 
+        const cstVoxelAo = 'VOXELS_AO';
+        const cstVoxelNoise = 'VOXELS_NOISE';
+        const cstVoxelRounded = 'VOXELS_ROUNDED';
         const phongMaterial = new THREE.MeshPhongMaterial();
         phongMaterial.shininess = 0;
         const material = phongMaterial as unknown as VoxelsMaterialTemp;
         material.userData.uniforms = this.uniformsTemplate;
         material.customProgramCacheKey = () => `voxels-factory-merged`;
         material.defines = material.defines || {};
-        material.defines["VOXELS_AO"] = 1;
-        material.defines["VOXELS_NOISE"] = 1;
-        material.defines["VOXELS_ROUNDED"] = 1;
+        material.defines[cstVoxelAo] = 1;
+        material.defines[cstVoxelNoise] = 1;
+        material.defines[cstVoxelRounded] = 1;
         material.onBeforeCompile = parameters => {
             parameters.uniforms = {
                 ...parameters.uniforms,
@@ -56,19 +59,19 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
 in uint ${VoxelsRenderableFactory.data1AttributeName};
 in uint ${VoxelsRenderableFactory.data2AttributeName};
 
-#if defined(VOXELS_ROUNDED) || defined(VOXELS_NOISE)
+#if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise})
 out vec2 vUv;
-#endif // VOXELS_ROUNDED || VOXELS_NOISE
+#endif // ${cstVoxelRounded} || ${cstVoxelNoise}
 
-#ifdef VOXELS_ROUNDED
+#ifdef ${cstVoxelRounded}
 out vec2 vEdgeRoundness;
-#endif // VOXELS_ROUNDED
+#endif // ${cstVoxelRounded}
 
 flat out uint vData2;
 
-#ifdef VOXELS_AO
+#ifdef ${cstVoxelAo}
 out float vAo;
-#endif // VOXELS_AO
+#endif // ${cstVoxelAo}
 
 void main() {`,
                 '#include <begin_vertex>': `
@@ -89,7 +92,7 @@ void main() {`,
     vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
     vec3 transformed = modelPosition;
     
-#if defined(VOXELS_ROUNDED) || defined(VOXELS_NOISE)
+#if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise})
     const vec2 uvs[] = vec2[](
             vec2(0,0),
             vec2(0,1),
@@ -97,9 +100,9 @@ void main() {`,
             vec2(1,1)
         );
     vUv = uvs[vertexId];
-#endif // VOXELS_ROUNDED || VOXELS_NOISE
+#endif // ${cstVoxelRounded} || ${cstVoxelNoise}
 
-#ifdef VOXELS_ROUNDED
+#ifdef ${cstVoxelRounded}
     const vec2 edgeRoundness[] = vec2[](
         vec2(0,0),
         vec2(1,0),
@@ -108,13 +111,13 @@ void main() {`,
     );
     uint edgeRoundnessId = ${this.vertexData1Encoder.edgeRoundness.glslDecode(VoxelsRenderableFactory.data1AttributeName)};
     vEdgeRoundness = edgeRoundness[edgeRoundnessId];
-#endif // VOXELS_ROUNDED
+#endif // ${cstVoxelRounded}
 
-#ifdef VOXELS_AO
+#ifdef ${cstVoxelAo}
     vAo = float(${this.vertexData1Encoder.ao.glslDecode(
-                    VoxelsRenderableFactory.data1AttributeName
-                )}) / ${this.vertexData1Encoder.ao.maxValue.toFixed(1)};
-#endif // VOXELS_AO
+        VoxelsRenderableFactory.data1AttributeName
+    )}) / ${this.vertexData1Encoder.ao.maxValue.toFixed(1)};
+#endif // ${cstVoxelAo}
 
     vData2 = ${VoxelsRenderableFactory.data2AttributeName};
         `,
@@ -131,38 +134,38 @@ void main() {`,
                 'void main() {': `
 uniform sampler2D uTexture;
 
-#ifdef VOXELS_NOISE
+#ifdef ${cstVoxelNoise}
 uniform sampler2D uNoiseTexture;
 uniform float uNoiseStrength;
-#endif // VOXELS_NOISE
+#endif // ${cstVoxelNoise}
 
-#ifdef VOXELS_AO
+#ifdef ${cstVoxelAo}
 uniform float uAoStrength;
 uniform float uAoSpread;
-#endif // VOXELS_AO
+#endif // ${cstVoxelAo}
 
-#ifdef VOXELS_ROUNDED
+#ifdef ${cstVoxelRounded}
 uniform float uSmoothEdgeRadius;
 uniform uint uSmoothEdgeMethod;
-#endif // VOXELS_ROUNDED
+#endif // ${cstVoxelRounded}
 
 uniform uint uDisplayMode;
 
 uniform mat3 normalMatrix; // from three.js
 
-#if defined(VOXELS_ROUNDED) || defined(VOXELS_NOISE)
+#if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise})
 in vec2 vUv;
-#endif // VOXELS_ROUNDED || VOXELS_NOISE
+#endif // ${cstVoxelRounded} || ${cstVoxelNoise}
 
-#ifdef VOXELS_ROUNDED
+#ifdef ${cstVoxelRounded}
 in vec2 vEdgeRoundness;
-#endif // VOXELS_ROUNDED
+#endif // ${cstVoxelRounded}
 
 flat in uint vData2;
 
-#ifdef VOXELS_AO
+#ifdef ${cstVoxelAo}
 in float vAo;
-#endif // VOXELS_AO
+#endif // ${cstVoxelAo}
 
 vec3 computeModelNormal() {
     const vec3 modelNormalsById[] = vec3[](
@@ -170,7 +173,7 @@ vec3 computeModelNormal() {
     );
 
     vec3 modelNormal = modelNormalsById[${VoxelsRenderableFactory.vertexData2Encoder.normalId.glslDecode('vData2')}];
-#ifdef VOXELS_ROUNDED
+#ifdef ${cstVoxelRounded}
     if (uSmoothEdgeRadius > 0.0) {
         vec2 edgeRoundness = step(${VoxelsRenderableFactory.maxSmoothEdgeRadius.toFixed(2)}, vEdgeRoundness);
         vec2 margin = mix(vec2(0), vec2(uSmoothEdgeRadius), edgeRoundness);
@@ -182,12 +185,12 @@ vec3 computeModelNormal() {
 
         modelNormal = localNormal.x * uvRight + localNormal.y * uvUp + localNormal.z * modelNormal;
     }
-#endif // VOXELS_ROUNDED
+#endif // ${cstVoxelRounded}
 
     return modelNormal;
 }
 
-#ifdef VOXELS_NOISE
+#ifdef ${cstVoxelNoise}
 float computeNoise() {
     int noiseId = int(${VoxelsRenderableFactory.vertexData2Encoder.faceNoiseId.glslDecode('vData2')});
     ivec2 texelCoords = clamp(ivec2(vUv * ${this.noiseResolution.toFixed(1)}), ivec2(0), ivec2(${this.noiseResolution - 1}));
@@ -195,7 +198,7 @@ float computeNoise() {
     float noise = texelFetch(uNoiseTexture, texelCoords, 0).r - 0.5;
     return uNoiseStrength * noise;
 }
-#endif // VOXELS_NOISE
+#endif // ${cstVoxelNoise}
 
 void main() {
     vec3 modelNormal = computeModelNormal();
@@ -212,14 +215,14 @@ void main() {
         diffuseColor.rgb = 0.5 + 0.5 * modelNormal;
     }
 
-#ifdef VOXELS_NOISE
+#ifdef ${cstVoxelNoise}
     diffuseColor.rgb += computeNoise();
-#endif // VOXELS_NOISE
+#endif // ${cstVoxelNoise}
 
-#ifdef VOXELS_AO
+#ifdef ${cstVoxelAo}
     float ao = (1.0 - uAoStrength) + uAoStrength * (smoothstep(0.0, uAoSpread, 1.0 - vAo));
     diffuseColor.rgb *= ao;
-#endif // VOXELS_AO
+#endif // ${cstVoxelAo}
     `,
             });
         };
