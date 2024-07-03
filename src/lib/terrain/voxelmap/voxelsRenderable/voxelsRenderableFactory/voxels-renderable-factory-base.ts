@@ -53,7 +53,6 @@ abstract class VoxelsRenderableFactoryBase {
             uAoStrength: { value: 0 },
             uAoSpread: { value: 0 },
             uSmoothEdgeRadius: { value: 0 },
-            uSmoothEdgeMethod: { value: 0 },
         };
         this.uniformsTemplate.uTexture.value = this.texture;
     }

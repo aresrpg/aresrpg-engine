@@ -172,23 +172,10 @@ vec3 computeModelNormal() {
     vec3 modelNormal = modelNormalsById[${VoxelsRenderableFactory.vertexData2Encoder.normalId.glslDecode('vData2')}];
 #ifdef VOXELS_ROUNDED
     if (uSmoothEdgeRadius > 0.0) {
-        vec3 localNormal;
-
         vec2 edgeRoundness = step(${VoxelsRenderableFactory.maxSmoothEdgeRadius.toFixed(2)}, vEdgeRoundness);
-        if (uSmoothEdgeMethod == 0u) {
-            vec2 margin = mix(vec2(0), vec2(uSmoothEdgeRadius), edgeRoundness);
-            vec3 roundnessCenter = vec3(clamp(vUv, margin, 1.0 - margin), -uSmoothEdgeRadius);
-            localNormal = normalize(vec3(vUv, 0) - roundnessCenter);
-        } else if (uSmoothEdgeMethod == 1u) {
-            vec2 symetricUv = clamp(vUv - 0.5, -0.5,  0.5);
-            vec2 distanceFromMargin = edgeRoundness * sign(symetricUv) * max(abs(symetricUv) - (0.5 - uSmoothEdgeRadius), 0.0) / uSmoothEdgeRadius;
-            localNormal = normalize(vec3(distanceFromMargin, 1));
-        } else if (uSmoothEdgeMethod == 2u) {
-            vec2 symetricUv = clamp(vUv - 0.5, -0.5,  0.5);
-            vec2 distanceFromMargin = edgeRoundness * sign(symetricUv) * max(abs(symetricUv) - (0.5 - uSmoothEdgeRadius), 0.0) / uSmoothEdgeRadius;
-            distanceFromMargin = sign(distanceFromMargin) * distanceFromMargin * distanceFromMargin;
-            localNormal = normalize(vec3(distanceFromMargin, 1));
-        }
+        vec2 margin = mix(vec2(0), vec2(uSmoothEdgeRadius), edgeRoundness);
+        vec3 roundnessCenter = vec3(clamp(vUv, margin, 1.0 - margin), -uSmoothEdgeRadius);
+        vec3 localNormal = normalize(vec3(vUv, 0) - roundnessCenter);
 
         vec3 uvRight = modelNormalsById[${VoxelsRenderableFactory.vertexData2Encoder.uvRightId.glslDecode('vData2')}];
         vec3 uvUp = cross(modelNormal, uvRight);
