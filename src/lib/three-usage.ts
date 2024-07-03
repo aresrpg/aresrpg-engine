@@ -5,7 +5,10 @@ export {
     Color,
     DataTexture,
     Float32BufferAttribute,
+    Frustum,
     Group,
+    InterleavedBuffer,
+    InterleavedBufferAttribute,
     Mesh,
     MeshPhongMaterial,
     ShaderMaterial,
@@ -19,6 +22,4 @@ export {
     type TypedArray,
     type Vector2Like,
     type Vector3Like,
-    InterleavedBuffer,
-    InterleavedBufferAttribute,
 } from 'three';

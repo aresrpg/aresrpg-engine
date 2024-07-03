@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from '../../three-usage';
 
 import { PatchId } from './patch/patch-id';
 
@@ -42,7 +42,7 @@ class VoxelmapVisibilityComputer {
         }
     }
 
-    public showMapAroundPosition(position: THREE.Vector3Like, radius: number): void {
+    public showMapAroundPosition(position: THREE.Vector3Like, radius: number, frustum?: THREE.Frustum): void {
         position = new THREE.Vector3().copy(position);
         const voxelFrom = new THREE.Vector3().copy(position).subScalar(radius);
         const voxelTo = new THREE.Vector3().copy(position).addScalar(radius);
@@ -73,7 +73,10 @@ class VoxelmapVisibilityComputer {
                         const secondaryPriority = 1 - Math.min(1, distanceY / 1000);
 
                         const patchId = new PatchId(iPatchId);
-                        const priority = 10 * basePriority + secondaryPriority;
+                        const distancePriority = 10 * basePriority + secondaryPriority;
+                        const closenessPriority = distanceXZ < 100 ? 20 : 0;
+                        const visibilityPriority = frustum?.intersectsBox(boundingBox) ? 10 : 0;
+                        const priority = distancePriority + closenessPriority + visibilityPriority;
                         this.addPriority(patchId, priority);
                     }
                 }
