@@ -43,16 +43,24 @@ class VoxelsRenderable {
     public constructor(patchMeshes: PatchMesh[]) {
         this.gpuResources = { patchMeshes };
 
-        let trianglesCount = 0;
-        let gpuMemoryBytes = 0;
-        this.container = new THREE.Group();
-        for (const patchMesh of patchMeshes) {
-            this.container.add(patchMesh.mesh);
-            trianglesCount += patchMesh.trianglesCount;
-            gpuMemoryBytes += patchMesh.gpuMemoryBytes;
+        if (patchMeshes.length === 1) {
+            const patchMesh = patchMeshes[0]!;
+            this.container = patchMesh.mesh;
+            this.trianglesCount = patchMesh.trianglesCount;
+            this.gpuMemoryBytes = patchMesh.gpuMemoryBytes;
+        } else {
+            let trianglesCount = 0;
+            let gpuMemoryBytes = 0;
+
+            this.container = new THREE.Group();
+            for (const patchMesh of patchMeshes) {
+                this.container.add(patchMesh.mesh);
+                trianglesCount += patchMesh.trianglesCount;
+                gpuMemoryBytes += patchMesh.gpuMemoryBytes;
+            }
+            this.trianglesCount = trianglesCount;
+            this.gpuMemoryBytes = gpuMemoryBytes;
         }
-        this.trianglesCount = trianglesCount;
-        this.gpuMemoryBytes = gpuMemoryBytes;
     }
 
     public updateUniforms(): void {
