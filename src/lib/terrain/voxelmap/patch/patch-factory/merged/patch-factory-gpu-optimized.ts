@@ -1,14 +1,16 @@
 import { AsyncTask } from '../../../../../helpers/async-task';
 import * as THREE from '../../../../../three-usage';
 import { type IVoxelMap, type VoxelsChunkSize } from '../../../../terrain';
+import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryGpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
-import { PatchFactoryBase, type GeometryAndMaterial, type LocalMapData } from '../patch-factory-base';
+import { type GeometryAndMaterial } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
+import { PatchFactoryBase, type LocalMapData } from '../patch-factory-base';
 
 type PatchGenerationJob = {
     readonly patchId: number;
     cpuTask: AsyncTask<LocalMapData>;
     gpuTask?: Promise<GeometryAndMaterial[]>;
-    readonly resolve: (value: GeometryAndMaterial[] | PromiseLike<GeometryAndMaterial[]>) => void;
+    readonly resolve: (value: GeometryAndMaterial[]) => void;
 };
 
 class PatchFactoryGpuOptimized extends PatchFactoryBase {
@@ -21,16 +23,24 @@ class PatchFactoryGpuOptimized extends PatchFactoryBase {
         super(map, voxelsRenderableFactory);
     }
 
-    protected buildGeometryAndMaterials(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<GeometryAndMaterial[]> {
+    protected override queryMapAndBuildVoxelsRenderable(
+        patchStart: THREE.Vector3,
+        patchEnd: THREE.Vector3
+    ): Promise<VoxelsRenderable | null> {
         const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
         const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
         if (voxelsCountPerPatch <= 0) {
-            return Promise.resolve([]);
+            return Promise.resolve(null);
         }
 
-        return new Promise<GeometryAndMaterial[]>(resolve => {
+        return new Promise<VoxelsRenderable | null>(resolve => {
             const patchId = this.nextPatchId++;
             // logger.diagnostic(`Asking for patch ${patchId}`);
+
+            const onGeometryAndMaterialsListComputed = (geometryAndMaterialsList: GeometryAndMaterial[]) => {
+                const voxelsRenderable = this.voxelsRenderableFactory.assembleVoxelsRenderable(patchSize, geometryAndMaterialsList);
+                resolve(voxelsRenderable);
+            };
 
             this.pendingJobs.push({
                 patchId,
@@ -40,7 +50,7 @@ class PatchFactoryGpuOptimized extends PatchFactoryBase {
                     // logger.diagnostic(`CPU ${patchId} end`);
                     return result;
                 }),
-                resolve,
+                resolve: onGeometryAndMaterialsListComputed,
             });
 
             this.runNextTask();
