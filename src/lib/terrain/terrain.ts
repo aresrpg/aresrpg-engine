@@ -91,7 +91,7 @@ class Terrain {
      *
      * @param map The map that will be rendered.
      */
-    public constructor(map: IVoxelMap & IHeightmap, options: TerrainOptions) {
+    public constructor(map: IVoxelMap & IHeightmap, options?: TerrainOptions) {
         let computingMode = EPatchComputingMode.GPU_SEQUENTIAL;
         let patchSize = { xz: 64, y: 64 };
         if (options) {

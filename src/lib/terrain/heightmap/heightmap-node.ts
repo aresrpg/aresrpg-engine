@@ -300,6 +300,7 @@ class HeightmapNode {
             mesh.castShadow = true;
             const firstVoxelPosition = this.id.box.min;
             mesh.position.set(firstVoxelPosition.x, 0, firstVoxelPosition.y);
+            mesh.updateWorldMatrix(false, false);
             return mesh;
         });
     }
