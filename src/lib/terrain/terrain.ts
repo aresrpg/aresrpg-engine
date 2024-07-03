@@ -157,13 +157,13 @@ class Terrain {
      * @param position The position around which the map will be made visible.
      * @param radius The visibility radius, in voxels.
      */
-    public async showMapAroundPosition(position: THREE.Vector3Like, radius: number): Promise<void> {
+    public async showMapAroundPosition(position: THREE.Vector3Like, radius: number, frustum?: THREE.Frustum): Promise<void> {
         for (const patch of this.patchesStore.allItems) {
             patch.visible = false;
         }
 
         this.patchesVisibilityComputer.reset();
-        this.patchesVisibilityComputer.showMapAroundPosition(position, radius);
+        this.patchesVisibilityComputer.showMapAroundPosition(position, radius, frustum);
         const requestedPatches = this.patchesVisibilityComputer.getRequestedPatches();
 
         const patchStart = new THREE.Vector3();

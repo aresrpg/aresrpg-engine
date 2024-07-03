@@ -7,7 +7,7 @@ import { ELogLevel, Terrain, setVerbosity } from '../lib/index';
 
 import { VoxelMap } from './voxel-map';
 
-setVerbosity(ELogLevel.DIAGNOSTIC);
+setVerbosity(ELogLevel.WARN);
 
 const stats = new Stats();
 document.body.appendChild(stats.dom);
@@ -31,15 +31,16 @@ const scene = new THREE.Scene();
 scene.name = 'Scene';
 scene.matrixAutoUpdate = false;
 
-const voxelMap = new VoxelMap(1024, 1024, 200, 64, 'fixed_seed');
+const voxelMap = new VoxelMap(2048, 2048, 200, 64, 'fixed_seed');
 const terrain = new Terrain(voxelMap, {
     patchSize: { xz: 128, y: 64 },
 });
+terrain.parameters.lod.enabled = false;
 scene.add(terrain.container);
 
 scene.add(new THREE.AxesHelper(500));
 
-camera.position.set(-50, 100, 50);
+camera.position.set(-200, 400, 200);
 const cameraControl = new OrbitControls(camera, renderer.domElement);
 cameraControl.target.set(0, 0, 0);
 
@@ -51,12 +52,12 @@ const player = new THREE.Mesh(new THREE.SphereGeometry(2), new THREE.MeshBasicMa
 playerContainer.add(player);
 scene.add(playerContainer);
 
-const showWholeMap = true;
+const showWholeMap = false;
 if (showWholeMap) {
-    const size = 250;
+    const size = 1000;
     terrain.showMapPortion(new THREE.Box3(new THREE.Vector3(-size, -size, -size), new THREE.Vector3(size, size, size)));
 } else {
-    const playerViewRadius = 250;
+    const playerViewRadius = 1000;
     const playerViewSphere = new THREE.Mesh(
         new THREE.SphereGeometry(playerViewRadius, 16, 16),
         new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true })
@@ -70,7 +71,16 @@ if (showWholeMap) {
     scene.add(playerControls);
 
     setInterval(() => {
-        terrain.showMapAroundPosition(playerContainer.position, playerViewRadius);
+        const tempCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 5000);
+        tempCamera.position.set(0, 0, 0);
+        tempCamera.lookAt(new THREE.Vector3(10, 0, 0));
+        tempCamera.updateMatrix();
+        tempCamera.updateMatrixWorld();
+
+        const frustum = new THREE.Frustum();
+        frustum.setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(tempCamera.projectionMatrix, tempCamera.matrixWorldInverse));
+
+        terrain.showMapAroundPosition(playerContainer.position, playerViewRadius, frustum);
     }, 200);
 }
 
