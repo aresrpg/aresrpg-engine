@@ -19,7 +19,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "three": "^0.166.0"
+    "three": ">=0.166.0"
   },
   "devDependencies": {
     "@types/three": "^0.166.0",
