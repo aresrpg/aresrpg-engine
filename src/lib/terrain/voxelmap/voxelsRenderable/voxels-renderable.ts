@@ -64,7 +64,6 @@ class VoxelsRenderable {
                 uniforms.uAoStrength.value = +this.parameters.ao.enabled * this.parameters.ao.strength;
                 uniforms.uAoSpread.value = this.parameters.ao.spread;
                 uniforms.uSmoothEdgeRadius.value = +this.parameters.smoothEdges.enabled * this.parameters.smoothEdges.radius;
-                uniforms.uSmoothEdgeMethod.value = this.parameters.smoothEdges.quality;
                 uniforms.uDisplayMode.value = this.parameters.voxels.displayMode;
 
                 uniforms.uNoiseStrength.value = this.parameters.voxels.noiseStrength;
