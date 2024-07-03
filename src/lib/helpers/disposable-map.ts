@@ -1,3 +1,5 @@
+import { CachedItem } from './cached-item';
+
 interface IDisposable {
     dispose(): void;
 }
@@ -6,10 +8,12 @@ type Key = string | number;
 
 class DisposableMap<T extends IDisposable> {
     private store: Record<Key, T> = {};
+    private readonly itemsList = new CachedItem<T[]>(() => Object.values(this.store));
 
     public setItem(id: Key, item: T): void {
         this.deleteItem(id);
         this.store[id] = item;
+        this.itemsList.invalidate();
     }
 
     public getItem(id: Key): T | null {
@@ -21,17 +25,18 @@ class DisposableMap<T extends IDisposable> {
         if (typeof item !== 'undefined') {
             item.dispose();
             delete this.store[id];
+            this.itemsList.invalidate();
             return true;
         }
         return false;
     }
 
-    public get allItems(): T[] {
-        return Object.values(this.store);
+    public get allItems(): ReadonlyArray<T> {
+        return this.itemsList.value;
     }
 
     public get itemsCount(): number {
-        return Object.keys(this.store).length;
+        return this.allItems.length;
     }
 
     public clear(): void {
@@ -39,6 +44,7 @@ class DisposableMap<T extends IDisposable> {
             item.dispose();
         }
         this.store = {};
+        this.itemsList.invalidate();
     }
 }
 
