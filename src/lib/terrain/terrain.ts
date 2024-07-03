@@ -156,6 +156,10 @@ class Terrain {
      * @param radius The visibility radius, in voxels.
      */
     public async showMapAroundPosition(position: THREE.Vector3Like, radius: number): Promise<void> {
+        for (const patch of this.patchesStore.allItems) {
+            patch.visible = false;
+        }
+
         this.patchesVisibilityComputer.reset();
         this.patchesVisibilityComputer.showMapAroundPosition(position, radius);
         const requestedPatches = this.patchesVisibilityComputer.getRequestedPatches();
