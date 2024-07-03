@@ -26,6 +26,7 @@ class HeightmapNodeMesh {
 
         if (this.mesh) {
             parent.add(this.mesh);
+            this.mesh.updateWorldMatrix(true, true);
         }
     }
 

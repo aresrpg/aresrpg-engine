@@ -28,6 +28,8 @@ window.addEventListener('resize', udpateRendererSize);
 udpateRendererSize();
 
 const scene = new THREE.Scene();
+scene.name = 'Scene';
+scene.matrixAutoUpdate = false;
 
 const voxelMap = new VoxelMap(1024, 1024, 200, 64, 'fixed_seed');
 const terrain = new Terrain(voxelMap, {
@@ -41,7 +43,6 @@ camera.position.set(-50, 100, 50);
 const cameraControl = new OrbitControls(camera, renderer.domElement);
 cameraControl.target.set(0, 0, 0);
 
-const playerViewRadius = 250;
 const playerContainer = new THREE.Group();
 playerContainer.position.x = 0;
 playerContainer.position.y = voxelMap.size.y + 1;
@@ -55,6 +56,7 @@ if (showWholeMap) {
     const size = 250;
     terrain.showMapPortion(new THREE.Box3(new THREE.Vector3(-size, -size, -size), new THREE.Vector3(size, size, size)));
 } else {
+    const playerViewRadius = 250;
     const playerViewSphere = new THREE.Mesh(
         new THREE.SphereGeometry(playerViewRadius, 16, 16),
         new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true })

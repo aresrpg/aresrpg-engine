@@ -118,6 +118,8 @@ class Terrain {
 
         this.container = new THREE.Group();
         this.container.name = 'Terrain container';
+        this.container.matrixAutoUpdate = false; // do not always update world matrix in updateMatrixWorld()
+        this.container.matrixWorldAutoUpdate = false; // tell the parent to not always call updateMatrixWorld()
 
         this.patchesContainer = new THREE.Group();
         this.patchesContainer.name = 'Voxel patches container';
