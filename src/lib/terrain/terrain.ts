@@ -5,8 +5,9 @@ import { vec3ToString } from '../helpers/string';
 import * as THREE from '../three-usage';
 
 import { AsyncPatch } from './async-patch';
-import { HeightmapViewer, type HeightmapStatistics } from './heightmap/heightmap-viewer';
+import { type HeightmapStatistics } from './heightmap/heightmap-viewer';
 import { type IHeightmap } from './heightmap/i-heightmap';
+import { type PatchRenderable, TerrainBase } from './terrain-base';
 import { type IVoxelMap } from './voxelmap/i-voxelmap';
 import { PatchFactoryCpu } from './voxelmap/patch/patch-factory/merged/patch-factory-cpu';
 import { PatchFactoryGpuOptimized } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-optimized';
@@ -14,7 +15,6 @@ import { PatchFactoryGpuSequential } from './voxelmap/patch/patch-factory/merged
 import { type PatchFactoryBase } from './voxelmap/patch/patch-factory/patch-factory-base';
 import { PatchId } from './voxelmap/patch/patch-id';
 import { VoxelmapVisibilityComputer } from './voxelmap/voxelmap-visibility-computer';
-import { EVoxelsDisplayMode } from './voxelmap/voxelsRenderable/voxels-renderable';
 import { type VoxelsChunkSize } from './voxelmap/voxelsRenderable/voxelsRenderableFactory/merged/vertex-data1-encoder';
 
 type TerrainOptions = {
@@ -40,52 +40,14 @@ enum EPatchComputingMode {
 /**
  * Class that takes an IVoxelMap and makes a renderable three.js object of it.
  */
-class Terrain {
-    /**
-     * The three.js object containing the renderable map.
-     */
-    public readonly container: THREE.Object3D;
-
-    public readonly parameters = {
-        shadows: {
-            cast: true,
-            receive: true,
-        },
-        voxels: {
-            faces: {
-                displayMode: EVoxelsDisplayMode.TEXTURED,
-                noiseStrength: 0.025,
-            },
-            smoothEdges: {
-                enabled: true,
-                radius: 0.1,
-                quality: 2,
-            },
-            ao: {
-                enabled: true,
-                strength: 0.4,
-                spread: 0.85,
-            },
-        },
-        lod: {
-            enabled: true,
-            wireframe: false,
-        },
-    };
-
-    private readonly patchesVisibilityComputer: VoxelmapVisibilityComputer;
-    private readonly patchesContainer: THREE.Group;
-    private readonly heightmapContainer: THREE.Group;
-
+class Terrain extends TerrainBase {
     private maxPatchesInCache = 200;
 
     private readonly patchFactory: PatchFactoryBase;
-    private readonly patchSize: THREE.Vector3;
 
-    private readonly patchesStore: DisposableMap<AsyncPatch> = new DisposableMap<AsyncPatch>();
+    private readonly patchesStore = new DisposableMap<AsyncPatch>();
 
-    private readonly heightmapViewer: HeightmapViewer;
-    private heightmapViewerNeedsUpdate: boolean = true;
+    protected readonly patchesVisibilityComputer: VoxelmapVisibilityComputer;
 
     /**
      *
@@ -93,44 +55,33 @@ class Terrain {
      */
     public constructor(map: IVoxelMap & IHeightmap, options?: TerrainOptions) {
         let computingMode = EPatchComputingMode.GPU_SEQUENTIAL;
-        let patchSize = { xz: 64, y: 64 };
+        let voxelsChunksSize = { xz: 64, y: 64 };
         if (options) {
             if (typeof options.computingMode !== 'undefined') {
                 computingMode = options.computingMode;
             }
             if (typeof options.patchSize !== 'undefined') {
-                patchSize = options.patchSize;
+                voxelsChunksSize = options.patchSize;
             }
         }
 
+        let patchFactory: PatchFactoryBase;
         if (computingMode === EPatchComputingMode.CPU_CACHED) {
-            this.patchFactory = new PatchFactoryCpu(map, patchSize);
+            patchFactory = new PatchFactoryCpu(map, voxelsChunksSize);
         } else if (computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
-            this.patchFactory = new PatchFactoryGpuSequential(map, patchSize);
+            patchFactory = new PatchFactoryGpuSequential(map, voxelsChunksSize);
         } else if (computingMode === EPatchComputingMode.GPU_OPTIMIZED) {
-            this.patchFactory = new PatchFactoryGpuOptimized(map, patchSize);
+            patchFactory = new PatchFactoryGpuOptimized(map, voxelsChunksSize);
         } else {
             throw new Error(`Unsupported computing mode "${computingMode}".`);
         }
+        const patchSize = patchFactory.maxPatchSize.clone();
+        logger.info(`Using max patch size ${vec3ToString(patchSize)}.`);
 
-        this.patchSize = this.patchFactory.maxPatchSize.clone();
-        logger.info(`Using max patch size ${vec3ToString(this.patchSize)}.`);
+        super(map, voxelsChunksSize);
 
-        this.container = new THREE.Group();
-        this.container.name = 'Terrain container';
-        this.container.matrixAutoUpdate = false; // do not always update world matrix in updateMatrixWorld()
-        this.container.matrixWorldAutoUpdate = false; // tell the parent to not always call updateMatrixWorld()
-
-        this.patchesContainer = new THREE.Group();
-        this.patchesContainer.name = 'Voxel patches container';
-        this.container.add(this.patchesContainer);
-
-        this.heightmapContainer = new THREE.Group();
-        this.heightmapContainer.name = `Heightmap patches container`;
-        this.heightmapViewer = new HeightmapViewer(map, patchSize.xz);
-        this.heightmapContainer.add(this.heightmapViewer.container);
-
-        this.patchesVisibilityComputer = new VoxelmapVisibilityComputer(this.patchSize, map.minAltitude, map.maxAltitude);
+        this.patchFactory = patchFactory;
+        this.patchesVisibilityComputer = new VoxelmapVisibilityComputer(patchSize, map.minAltitude, map.maxAltitude);
     }
 
     /**
@@ -179,79 +130,6 @@ class Terrain {
         this.heightmapViewerNeedsUpdate = true;
 
         await Promise.all(promises);
-    }
-
-    /**
-     * Call this method before rendering.
-     * */
-    public update(): void {
-        const voxelsSettings = this.parameters.voxels;
-        for (const asyncPatch of this.patchesStore.allItems) {
-            const patch = asyncPatch.renderable;
-            if (patch) {
-                patch.parameters.voxels.displayMode = voxelsSettings.faces.displayMode;
-                patch.parameters.voxels.noiseStrength = voxelsSettings.faces.noiseStrength;
-
-                patch.parameters.smoothEdges.enabled = voxelsSettings.smoothEdges.enabled;
-                patch.parameters.smoothEdges.radius = voxelsSettings.smoothEdges.radius;
-                patch.parameters.smoothEdges.quality = voxelsSettings.smoothEdges.quality;
-
-                patch.parameters.ao.enabled = voxelsSettings.ao.enabled;
-                patch.parameters.ao.strength = voxelsSettings.ao.strength;
-                patch.parameters.ao.spread = voxelsSettings.ao.spread;
-
-                patch.parameters.shadows = this.parameters.shadows;
-
-                patch.updateUniforms();
-            }
-        }
-
-        if (this.parameters.lod.enabled) {
-            if (!this.heightmapContainer.parent) {
-                this.container.add(this.heightmapContainer);
-            }
-
-            this.heightmapViewer.wireframe = this.parameters.lod.wireframe;
-
-            if (this.heightmapViewerNeedsUpdate) {
-                this.heightmapViewer.resetSubdivisions();
-                for (const patch of this.patchesStore.allItems) {
-                    let wholeColumnIsDisplayed = true;
-
-                    for (let iY = this.minPatchIdY; iY < this.maxPatchIdY; iY++) {
-                        const id = new PatchId({ x: patch.id.x, y: iY, z: patch.id.z });
-                        const columnNeighbour = this.patchesStore.getItem(id.asString);
-                        if (!columnNeighbour || !columnNeighbour.isReady || !columnNeighbour.visible) {
-                            wholeColumnIsDisplayed = false;
-                            break;
-                        }
-                    }
-
-                    if (wholeColumnIsDisplayed) {
-                        this.heightmapViewer.hidePatch(patch.id.x, patch.id.z);
-                    }
-                }
-                this.heightmapViewer.applyVisibility();
-                this.heightmapViewer.updateMesh();
-
-                this.heightmapViewerNeedsUpdate = false;
-            }
-        } else if (this.heightmapContainer.parent) {
-            this.container.remove(this.heightmapContainer);
-        }
-    }
-
-    /**
-     * Requests for the LOD map to be precise around a certain position
-     * @param focusPoint Coords in voxels of the point to focus
-     * @param focusDistance Radius in voxels of the area that must use max LOD quality
-     * @param maxVisibilityDistance Radius in voxel of the area that mus be visible
-     */
-    public setLod(focusPoint: THREE.Vector3Like, focusDistance: number, maxVisibilityDistance: number): void {
-        this.heightmapViewer.focusPoint = new THREE.Vector2(focusPoint.x, focusPoint.z);
-        this.heightmapViewer.focusDistance = focusDistance;
-        this.heightmapViewer.visibilityDistance = maxVisibilityDistance;
-        this.heightmapViewerNeedsUpdate = true;
     }
 
     /**
@@ -317,12 +195,26 @@ class Terrain {
         return result;
     }
 
-    private get minPatchIdY(): number {
-        return this.patchesVisibilityComputer.minPatchIdY;
+    protected override get allVisiblePatches(): PatchRenderable[] {
+        const patches: PatchRenderable[] = [];
+        for (const asyncPatch of this.patchesStore.allItems) {
+            const voxelsRenderable = asyncPatch.renderable;
+            if (voxelsRenderable) {
+                const isVisible = !!asyncPatch && asyncPatch.visible && asyncPatch.isReady;
+                if (isVisible) {
+                    patches.push({
+                        id: asyncPatch.id,
+                        voxelsRenderable,
+                    });
+                }
+            }
+        }
+        return patches;
     }
 
-    private get maxPatchIdY(): number {
-        return this.patchesVisibilityComputer.maxPatchIdY;
+    protected override isPatchAttached(patchId: PatchId): boolean {
+        const patch = this.patchesStore.getItem(patchId.asString);
+        return !!patch && patch.visible && patch.isReady;
     }
 
     private garbageCollectPatches(): void {
