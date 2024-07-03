@@ -43,6 +43,7 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
         material.customProgramCacheKey = () => `voxels-factory-merged`;
         material.defines = material.defines || {};
         material.defines["VOXELS_AO"] = 1;
+        material.defines["VOXELS_NOISE"] = 1;
         material.onBeforeCompile = parameters => {
             parameters.uniforms = {
                 ...parameters.uniforms,
@@ -116,8 +117,11 @@ void main() {`,
             parameters.fragmentShader = applyReplacements(parameters.fragmentShader, {
                 'void main() {': `
 uniform sampler2D uTexture;
+
+#ifdef VOXELS_NOISE
 uniform sampler2D uNoiseTexture;
 uniform float uNoiseStrength;
+#endif // VOXELS_NOISE
 
 #ifdef VOXELS_AO
 uniform float uAoStrength;
@@ -173,6 +177,7 @@ vec3 computeModelNormal() {
     return modelNormal;
 }
 
+#ifdef VOXELS_NOISE
 float computeNoise() {
     int noiseId = int(${VoxelsRenderableFactory.vertexData2Encoder.faceNoiseId.glslDecode('vData2')});
     ivec2 texelCoords = clamp(ivec2(vUv * ${this.noiseResolution.toFixed(1)}), ivec2(0), ivec2(${this.noiseResolution - 1}));
@@ -180,6 +185,7 @@ float computeNoise() {
     float noise = texelFetch(uNoiseTexture, texelCoords, 0).r - 0.5;
     return uNoiseStrength * noise;
 }
+#endif // VOXELS_NOISE
 
 void main() {
     vec3 modelFaceNormal = computeModelNormal();
@@ -195,8 +201,11 @@ void main() {
     } else if (uDisplayMode == ${EVoxelsDisplayMode.NORMALS}u) {
         diffuseColor.rgb = 0.5 + 0.5 * modelFaceNormal;
     }
+
+#ifdef VOXELS_NOISE
     diffuseColor.rgb += computeNoise();
-    
+#endif // VOXELS_NOISE
+
 #ifdef VOXELS_AO
     float ao = (1.0 - uAoStrength) + uAoStrength * (smoothstep(0.0, uAoSpread, 1.0 - vAo));
     diffuseColor.rgb *= ao;
