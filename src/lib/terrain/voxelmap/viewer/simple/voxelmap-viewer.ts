@@ -2,17 +2,16 @@ import { DisposableMap } from '../../../../helpers/disposable-map';
 import { PromisesQueue } from '../../../../helpers/promise-queue';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
-import { type IVoxelMaterial } from '../../i-voxelmap';
+import { type VoxelsChunkSize, type IVoxelMaterial } from '../../i-voxelmap';
 import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
 import { type PatchFactoryBase } from '../../patch/patch-factory/patch-factory-base';
-import { type PatchId } from '../../patch/patch-id';
+import { PatchId } from '../../patch/patch-id';
 import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
 import { type VoxelsChunkData } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
-import { type VoxelsChunkSize } from '../old/voxelmap-viewer-old';
-import { type ComputedPatch, type PatchRenderable, VoxelmapViewerBase } from '../voxelmap-viewer-base';
+import { VoxelmapViewerBase, type ComputedPatch, type PatchRenderable } from '../voxelmap-viewer-base';
 
 type VoxelmapViewerOptions = {
-    chunkSize?: VoxelsChunkSize;
+    patchSize?: VoxelsChunkSize;
 };
 
 type ComputationStatus = 'success' | 'skipped' | 'aborted';
@@ -49,8 +48,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         options?: VoxelmapViewerOptions
     ) {
         let voxelsChunksSize = { xz: 64, y: 64 };
-        if (options?.chunkSize) {
-            voxelsChunksSize = options.chunkSize;
+        if (options?.patchSize) {
+            voxelsChunksSize = options.patchSize;
         }
 
         super(minChunkIdY, maxChunkIdY, voxelsChunksSize);
@@ -58,17 +57,19 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         this.patchFactory = new PatchFactoryGpuSequential(voxelsMaterialsList, voxelsChunksSize);
     }
 
-    public canPatchBeEnqueued(id: PatchId): boolean {
-        const storedPatch = this.patchesStore.getItem(id.asString);
+    public doesPatchRequireVoxelsData(id: THREE.Vector3Like): boolean {
+        const patchId = new PatchId(id);
+        const storedPatch = this.patchesStore.getItem(patchId.asString);
         return !storedPatch || !storedPatch.computation;
     }
 
-    public async enqueuePatch(patchId: PatchId, voxelsChunkData: VoxelsChunkData): Promise<ComputationStatus> {
+    public async enqueuePatch(id: THREE.Vector3Like, voxelsChunkData: VoxelsChunkData): Promise<ComputationStatus> {
         const voxelsChunkInnerSize = voxelsChunkData.size.clone().subScalar(2);
         if (!voxelsChunkInnerSize.equals(this.patchSize)) {
             throw new Error(`Invalid voxels chunk size ${vec3ToString(voxelsChunkData.size)}`);
         }
 
+        const patchId = new PatchId(id);
         const storedPatch = this.getOrBuildStoredPatch(patchId);
         if (storedPatch.computation) {
             // this patch is already registered for computation
@@ -143,14 +144,15 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         this.promiseThrottler.cancelAll();
     }
 
-    public dequeuePatch(patchId: PatchId): void {
+    public dequeuePatch(id: THREE.Vector3Like): void {
+        const patchId = new PatchId(id);
         const storedPatch = this.patchesStore.getItem(patchId.asString);
         if (storedPatch?.computation?.status === 'pending') {
             storedPatch.dispose();
         }
     }
 
-    public setVisibility(visiblePatchesId: ReadonlyArray<PatchId>): void {
+    public setVisibility(visiblePatchesId: ReadonlyArray<THREE.Vector3Like>): void {
         for (const storedPatch of this.patchesStore.allItems) {
             if (storedPatch.isVisible) {
                 storedPatch.isVisible = false;
@@ -161,7 +163,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             }
         }
 
-        for (const visiblePatchId of visiblePatchesId) {
+        for (const id of visiblePatchesId) {
+            const visiblePatchId = new PatchId(id);
             const storedPatch = this.patchesStore.getItem(visiblePatchId.asString);
             if (storedPatch) {
                 if (!storedPatch.isVisible) {
@@ -187,8 +190,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         throw new Error('Not implemented');
     }
 
-    public getVoxelsChunkBox(patchId: PatchId): THREE.Box3 {
-        const voxelFrom = new THREE.Vector3().multiplyVectors(patchId, this.patchSize).subScalar(1);
+    public getPatchVoxelsBox(id: THREE.Vector3Like): THREE.Box3 {
+        const voxelFrom = new THREE.Vector3().multiplyVectors(id, this.patchSize).subScalar(1);
         const voxelTo = voxelFrom.clone().add(this.patchSize).addScalar(2);
         return new THREE.Box3(voxelFrom, voxelTo);
     }
@@ -255,4 +258,4 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     }
 }
 
-export { VoxelmapViewer, type VoxelmapViewerOptions };
+export { VoxelmapViewer, type ComputationStatus, type VoxelmapViewerOptions, type VoxelsChunkData };

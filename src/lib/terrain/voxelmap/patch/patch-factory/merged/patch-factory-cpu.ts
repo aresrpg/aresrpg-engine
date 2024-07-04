@@ -1,7 +1,6 @@
 import { PromisesQueue } from '../../../../../helpers/promise-queue';
 import type * as THREE from '../../../../../three-usage';
-import { type IVoxelMap, type IVoxelMaterial } from '../../../i-voxelmap';
-import { type VoxelsChunkSize } from '../../../types';
+import { type VoxelsChunkSize, type IVoxelMap, type IVoxelMaterial } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryCpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/cpu/voxels-renderable-factory-cpu';
 import { PatchFactoryBase } from '../patch-factory-base';

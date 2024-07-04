@@ -1,11 +1,11 @@
 import { vec3ToString } from '../../../../../helpers/string';
 import * as THREE from '../../../../../three-usage';
-import { type IVoxelMaterial } from '../../../i-voxelmap';
+import { type VoxelsChunkSize, type IVoxelMaterial } from '../../../i-voxelmap';
 import { EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterialUniforms, type VoxelsMaterials } from '../../voxels-material';
 import * as Cube from '../cube';
 import { VoxelsRenderableFactoryBase, type GeometryAndMaterial } from '../voxels-renderable-factory-base';
 
-import { VertexData1Encoder, type VoxelsChunkSize } from './vertex-data1-encoder';
+import { VertexData1Encoder } from './vertex-data1-encoder';
 import { VertexData2Encoder } from './vertex-data2-encoder';
 
 type VoxelsMaterialTemp = THREE.Material & {

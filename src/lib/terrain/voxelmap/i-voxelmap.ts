@@ -13,6 +13,11 @@ interface IVoxelMaterial {
     readonly color: Color;
 }
 
+type VoxelsChunkSize = {
+    readonly xz: number;
+    readonly y: number;
+};
+
 /** Compact object storing a portion of the map data  */
 interface ILocalMapData {
     /** Compact array storing the voxel data.
@@ -55,4 +60,4 @@ interface IVoxelMap {
     getLocalMapData(from: Vector3Like, to: Vector3Like): ILocalMapData | Promise<ILocalMapData>;
 }
 
-export type { ILocalMapData, IVoxelMap, IVoxelMaterial };
+export type { ILocalMapData, IVoxelMap, IVoxelMaterial, VoxelsChunkSize };
