@@ -5,7 +5,7 @@ import * as THREE from '../three-usage';
 
 import { type IHeightmap } from './heightmap/i-heightmap';
 import { type VoxelsChunkSize } from './terrain';
-import { TerrainBase, type PatchRenderable } from './terrain-base';
+import { TerrainBase, type ComputedPatch, type PatchRenderable } from './terrain-base';
 import { type IVoxelMaterial } from './voxelmap/i-voxelmap';
 import { PatchFactoryGpuSequential } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-sequential';
 import { type PatchFactoryBase } from './voxelmap/patch/patch-factory/patch-factory-base';
@@ -198,7 +198,20 @@ class TerrainSimple extends TerrainBase {
         return new THREE.Box3(voxelFrom, voxelTo);
     }
 
-    protected get allVisiblePatches(): PatchRenderable[] {
+    protected override get allLoadedPatches(): ComputedPatch[] {
+        const result: ComputedPatch[] = [];
+        for (const patch of this.patchesStore.allItems) {
+            if (patch.computation?.status === 'finished' && patch.computation.voxelsRenderable) {
+                result.push({
+                    isVisible: patch.isVisible,
+                    voxelsRenderable: patch.computation.voxelsRenderable,
+                });
+            }
+        }
+        return result;
+    }
+
+    protected override get allVisiblePatches(): PatchRenderable[] {
         const result: PatchRenderable[] = [];
 
         for (const storedPatch of this.patchesStore.allItems) {
