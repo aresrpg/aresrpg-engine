@@ -43,6 +43,7 @@ enum EPatchComputingMode {
 class Terrain extends TerrainBase {
     private maxPatchesInCache = 200;
 
+    private readonly map: IVoxelMap;
     private readonly patchFactory: PatchFactoryBase;
 
     private readonly patchesStore = new DisposableMap<AsyncPatch>();
@@ -64,11 +65,11 @@ class Terrain extends TerrainBase {
 
         let patchFactory: PatchFactoryBase;
         if (computingMode === EPatchComputingMode.CPU_CACHED) {
-            patchFactory = new PatchFactoryCpu(map, voxelsChunksSize);
+            patchFactory = new PatchFactoryCpu(map.voxelMaterialsList, voxelsChunksSize);
         } else if (computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
-            patchFactory = new PatchFactoryGpuSequential(map, voxelsChunksSize);
+            patchFactory = new PatchFactoryGpuSequential(map.voxelMaterialsList, voxelsChunksSize);
         } else if (computingMode === EPatchComputingMode.GPU_OPTIMIZED) {
-            patchFactory = new PatchFactoryGpuOptimized(map, voxelsChunksSize);
+            patchFactory = new PatchFactoryGpuOptimized(map.voxelMaterialsList, voxelsChunksSize);
         } else {
             throw new Error(`Unsupported computing mode "${computingMode}".`);
         }
@@ -76,6 +77,8 @@ class Terrain extends TerrainBase {
         logger.info(`Using max patch size ${vec3ToString(patchSize)}.`);
 
         super(map, voxelsChunksSize);
+
+        this.map = map;
 
         this.patchFactory = patchFactory;
         this.patchesVisibilityComputer = new VoxelmapVisibilityComputer(patchSize, map.minAltitude, map.maxAltitude);
@@ -244,7 +247,7 @@ class Terrain extends TerrainBase {
         if (!patch) {
             const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
 
-            const promise = this.patchFactory.buildPatch(patchId, patchStart, patchEnd);
+            const promise = this.patchFactory.buildPatch(patchId, patchStart, patchEnd, this.map);
             patch = new AsyncPatch(this.patchesContainer, promise, patchId);
             patch.ready().then(() => {
                 if (patch?.hasVisibleMesh) {

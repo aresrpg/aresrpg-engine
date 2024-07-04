@@ -1,6 +1,7 @@
 import { AsyncTask } from '../../../../../helpers/async-task';
 import * as THREE from '../../../../../three-usage';
-import { type IVoxelMap, type VoxelsChunkSize } from '../../../../terrain';
+import { type VoxelsChunkSize } from '../../../../terrain';
+import { type IVoxelMap, type IVoxelMaterial } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryGpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
 import { type GeometryAndMaterial } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
@@ -18,14 +19,15 @@ class PatchFactoryGpuOptimized extends PatchFactoryBase {
 
     private readonly pendingJobs: PatchGenerationJob[] = [];
 
-    public constructor(map: IVoxelMap, patchSize: VoxelsChunkSize) {
-        const voxelsRenderableFactory = new VoxelsRenderableFactoryGpu(map.voxelMaterialsList, patchSize);
-        super(map, voxelsRenderableFactory);
+    public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, patchSize: VoxelsChunkSize) {
+        const voxelsRenderableFactory = new VoxelsRenderableFactoryGpu(voxelMaterialsList, patchSize);
+        super(voxelsRenderableFactory);
     }
 
     protected override queryMapAndBuildVoxelsRenderable(
         patchStart: THREE.Vector3,
-        patchEnd: THREE.Vector3
+        patchEnd: THREE.Vector3,
+        map: IVoxelMap
     ): Promise<VoxelsRenderable | null> {
         const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
         const voxelsCountPerPatch = patchSize.x * patchSize.y * patchSize.z;
@@ -46,7 +48,7 @@ class PatchFactoryGpuOptimized extends PatchFactoryBase {
                 patchId,
                 cpuTask: new AsyncTask<LocalMapData>(async () => {
                     // logger.diagnostic(`CPU ${patchId} start`);
-                    const result = await this.buildLocalMapData(patchStart, patchEnd);
+                    const result = await PatchFactoryBase.buildLocalMapData(patchStart, patchEnd, map);
                     // logger.diagnostic(`CPU ${patchId} end`);
                     return result;
                 }),

@@ -3,8 +3,9 @@ import { PromiseThrottler } from '../helpers/promise-throttler';
 import { vec3ToString } from '../helpers/string';
 import * as THREE from '../three-usage';
 import { IHeightmap } from './heightmap/i-heightmap';
-import { IVoxelMap, VoxelsChunkSize } from './terrain';
+import { VoxelsChunkSize } from './terrain';
 import { PatchRenderable, TerrainBase } from './terrain-base';
+import { IVoxelMaterial } from './voxelmap/i-voxelmap';
 import { PatchFactoryGpuSequential } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-sequential';
 import { PatchFactoryBase } from './voxelmap/patch/patch-factory/patch-factory-base';
 import { PatchId } from './voxelmap/patch/patch-id';
@@ -45,7 +46,7 @@ class TerrainSimple extends TerrainBase {
 
     private garbageCollectionHandle: number | null;
 
-    public constructor(map: IVoxelMap & IHeightmap, options?: TerrainSimpleOptions) {
+    public constructor(map: IHeightmap, voxelsMaterialsList: ReadonlyArray<IVoxelMaterial>, options?: TerrainSimpleOptions) {
         let voxelsChunksSize = { xz: 64, y: 64 };
         if (options?.patchSize) {
             voxelsChunksSize = options.patchSize;
@@ -53,7 +54,7 @@ class TerrainSimple extends TerrainBase {
 
         super(map, voxelsChunksSize);
 
-        this.patchFactory = new PatchFactoryGpuSequential(map, voxelsChunksSize);
+        this.patchFactory = new PatchFactoryGpuSequential(voxelsMaterialsList, voxelsChunksSize);
 
         this.garbageCollectionHandle = window.setInterval(() => this.garbageCollectPatches(), 5000);
     }
