@@ -1,14 +1,29 @@
+import { createMeshesStatistics, type MeshesStatistics } from '../helpers/meshes-statistics';
 import * as THREE from '../three-usage';
 
-import { HeightmapViewer } from './heightmap/heightmap-viewer';
+import { HeightmapViewer, type HeightmapStatistics } from './heightmap/heightmap-viewer';
 import { type IHeightmap } from './heightmap/i-heightmap';
 import { type VoxelsChunkSize } from './terrain';
 import { PatchId } from './voxelmap/patch/patch-id';
 import { EVoxelsDisplayMode } from './voxelmap/voxelsRenderable/voxels-material';
 import { type VoxelsRenderable } from './voxelmap/voxelsRenderable/voxels-renderable';
 
+type VoxelMapStatistics = MeshesStatistics & {
+    patchSize: THREE.Vector3Like;
+};
+
+type TerrainStatistics = {
+    voxelmap: VoxelMapStatistics;
+    heightmap: HeightmapStatistics;
+};
+
 type PatchRenderable = {
     readonly id: PatchId;
+    readonly voxelsRenderable: VoxelsRenderable;
+};
+
+type ComputedPatch = {
+    readonly isVisible: boolean;
     readonly voxelsRenderable: VoxelsRenderable;
 };
 
@@ -138,6 +153,33 @@ abstract class TerrainBase {
         this.heightmapViewerNeedsUpdate = true;
     }
 
+    /**
+     * Computes and returns technical statistics about the terrain.
+     */
+    public getStatistics(): TerrainStatistics {
+        const result: TerrainStatistics = {
+            voxelmap: Object.assign(createMeshesStatistics(), {
+                patchSize: new THREE.Vector3().copy(this.patchSize),
+            }),
+            heightmap: this.heightmapViewer.getStatistics(),
+        };
+
+        for (const patch of this.allLoadedPatches) {
+            result.voxelmap.meshes.loadedCount++;
+            result.voxelmap.triangles.loadedCount += patch.voxelsRenderable.trianglesCount;
+
+            if (patch.isVisible) {
+                result.voxelmap.meshes.visibleCount++;
+                result.voxelmap.triangles.visibleCount += patch.voxelsRenderable.trianglesCount;
+            }
+
+            result.voxelmap.gpuMemoryBytes += patch.voxelsRenderable.gpuMemoryBytes;
+        }
+
+        return result;
+    }
+
+    protected abstract get allLoadedPatches(): ComputedPatch[];
     protected abstract get allVisiblePatches(): PatchRenderable[];
     protected abstract isPatchAttached(patchId: PatchId): boolean;
 
@@ -168,4 +210,4 @@ abstract class TerrainBase {
     }
 }
 
-export { TerrainBase, type PatchRenderable };
+export { TerrainBase, type ComputedPatch, type PatchRenderable };

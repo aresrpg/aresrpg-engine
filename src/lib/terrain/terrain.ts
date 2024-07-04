@@ -1,13 +1,11 @@
 import { DisposableMap } from '../helpers/disposable-map';
 import { logger } from '../helpers/logger';
-import { createMeshesStatistics, type MeshesStatistics } from '../helpers/meshes-statistics';
 import { vec3ToString } from '../helpers/string';
 import * as THREE from '../three-usage';
 
 import { AsyncPatch } from './async-patch';
-import { type HeightmapStatistics } from './heightmap/heightmap-viewer';
 import { type IHeightmap } from './heightmap/i-heightmap';
-import { TerrainBase, type PatchRenderable } from './terrain-base';
+import { TerrainBase, type ComputedPatch, type PatchRenderable } from './terrain-base';
 import { type IVoxelMap } from './voxelmap/i-voxelmap';
 import { PatchFactoryCpu } from './voxelmap/patch/patch-factory/merged/patch-factory-cpu';
 import { PatchFactoryGpuOptimized } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-optimized';
@@ -20,15 +18,6 @@ import { type VoxelsChunkSize } from './voxelmap/voxelsRenderable/voxelsRenderab
 type TerrainOptions = {
     computingMode?: EPatchComputingMode;
     patchSize?: VoxelsChunkSize;
-};
-
-type VoxelMapStatistics = MeshesStatistics & {
-    patchSize: THREE.Vector3Like;
-};
-
-type TerrainStatistics = {
-    voxelmap: VoxelMapStatistics;
-    heightmap: HeightmapStatistics;
 };
 
 enum EPatchComputingMode {
@@ -169,31 +158,16 @@ class Terrain extends TerrainBase {
         this.garbageCollectPatches();
     }
 
-    /**
-     * Computes and returns technical statistics about the terrain.
-     */
-    public getStatistics(): TerrainStatistics {
-        const result: TerrainStatistics = {
-            voxelmap: Object.assign(createMeshesStatistics(), {
-                patchSize: new THREE.Vector3().copy(this.patchSize),
-            }),
-            heightmap: this.heightmapViewer.getStatistics(),
-        };
-
+    protected override get allLoadedPatches(): ComputedPatch[] {
+        const result: ComputedPatch[] = [];
         for (const patch of this.patchesStore.allItems) {
             if (patch.renderable) {
-                result.voxelmap.meshes.loadedCount++;
-                result.voxelmap.triangles.loadedCount += patch.renderable.trianglesCount;
-
-                if (patch.visible) {
-                    result.voxelmap.meshes.visibleCount++;
-                    result.voxelmap.triangles.visibleCount += patch.renderable.trianglesCount;
-                }
-
-                result.voxelmap.gpuMemoryBytes += patch.renderable.gpuMemoryBytes;
+                result.push({
+                    isVisible: patch.visible,
+                    voxelsRenderable: patch.renderable,
+                });
             }
         }
-
         return result;
     }
 
