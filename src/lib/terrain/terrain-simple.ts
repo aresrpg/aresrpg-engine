@@ -3,13 +3,17 @@ import { PromiseThrottler } from '../helpers/promise-throttler';
 import { vec3ToString } from '../helpers/string';
 import * as THREE from '../three-usage';
 import { IHeightmap } from './heightmap/i-heightmap';
-import { IVoxelMap } from './terrain';
+import { IVoxelMap, VoxelsChunkSize } from './terrain';
 import { PatchRenderable, TerrainBase } from './terrain-base';
 import { PatchFactoryGpuSequential } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-sequential';
 import { PatchFactoryBase } from './voxelmap/patch/patch-factory/patch-factory-base';
 import { PatchId } from './voxelmap/patch/patch-id';
 import { VoxelsRenderable } from './voxelmap/voxelsRenderable/voxels-renderable';
 import { VoxelsChunkData } from './voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
+
+type TerrainSimpleOptions = {
+    patchSize?: VoxelsChunkSize;
+};
 
 type ComputationStatus = 'success' | 'skipped' | 'aborted';
 
@@ -22,7 +26,7 @@ type StoredPatchRenderable = {
               status: 'pending';
           }
         | {
-              status: 'started';
+              status: 'ongoing';
           }
         | {
               status: 'finished';
@@ -39,11 +43,19 @@ class TerrainSimple extends TerrainBase {
     private readonly maxInvisiblePatchesInCache = 200;
     private patchesStore = new DisposableMap<StoredPatchRenderable>();
 
-    public constructor(map: IVoxelMap & IHeightmap) {
+    private garbageCollectionHandle: number | null;
+
+    public constructor(map: IVoxelMap & IHeightmap, options?: TerrainSimpleOptions) {
         let voxelsChunksSize = { xz: 64, y: 64 };
+        if (options?.patchSize) {
+            voxelsChunksSize = options.patchSize;
+        }
+
         super(map, voxelsChunksSize);
 
         this.patchFactory = new PatchFactoryGpuSequential(map, voxelsChunksSize);
+
+        this.garbageCollectionHandle = window.setInterval(() => this.garbageCollectPatches(), 5000);
     }
 
     public async enqueuePatch(patchId: PatchId, voxelsChunkData: VoxelsChunkData): Promise<ComputationStatus> {
@@ -52,71 +64,46 @@ class TerrainSimple extends TerrainBase {
             throw new Error(`Invalid voxels chunk size ${vec3ToString(voxelsChunkData.size)}`);
         }
 
-        const storedPatch = this.patchesStore.getItem(patchId.asString);
-        if (storedPatch?.computation) {
+        const storedPatch = this.getOrBuildStoredPatch(patchId);
+        if (storedPatch.computation) {
             // this patch is already registered for computation
             return Promise.resolve('skipped');
         }
 
         return new Promise<ComputationStatus>(resolve => {
-            const onAbort = () => resolve('aborted');
+            const resolveAsAborted = () => resolve('aborted');
 
-            {
-                let storedPatch = this.patchesStore.getItem(patchId.asString);
-                if (storedPatch) {
-                    if (storedPatch.computation) {
-                        throw new Error(`Patch ${patchId.asString} is already registered for computation.`);
-                    }
-                } else {
-                    storedPatch = {
-                        id: patchId,
-                        isVisible: false,
-                        isInvisibleSince: performance.now(),
-                        computation: null,
-                        dispose: () => {},
-                    };
-                    this.patchesStore.setItem(patchId.asString, storedPatch);
-                }
+            storedPatch.computation = { status: 'pending' };
+            storedPatch.dispose = () => {
+                storedPatch.computation = null;
+                resolveAsAborted();
+            };
 
-                storedPatch.computation = {
-                    status: 'pending',
-                };
-                storedPatch.dispose = () => {
-                    storedPatch.computation = null;
-                    onAbort();
-                };
-            }
+            console.log(`Patch ${patchId.asString} is now in "pending" status.`);
 
             const startComputation = async () => {
-                {
-                    const storedPatch = this.patchesStore.getItem(patchId.asString);
-                    if (!storedPatch) {
-                        // this patch has been garbage collected before its computation started
-                        return;
-                    }
-                    if (storedPatch.computation?.status !== 'pending') {
-                        throw new Error(`Cannot compute patch ${patchId.asString} with status "${storedPatch.computation?.status}".`);
-                    }
-                    storedPatch.computation = { status: 'started' };
+                let computationStatus = storedPatch.computation?.status;
+                if (computationStatus === 'pending') {
+                    storedPatch.computation = { status: 'ongoing' };
                     storedPatch.dispose = () => {
                         throw new Error(`Patch ${patchId.asString} cannot be disposed during its computation.`);
                     };
+
+                    console.log(`Patch ${patchId.asString} is now in "started" status.`);
+                } else {
+                    if (!storedPatch.computation) {
+                        console.log(`Patch ${patchId.asString} has been aborted while in "pending" status. Don't compute.`);
+                        return;
+                    }
+                    throw new Error(`Cannot compute patch ${patchId.asString} with status "${computationStatus}".`);
                 }
 
                 const patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
                 const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
                 const voxelsRenderable = await this.patchFactory.buildPatchFromVoxelsChunk(patchId, patchStart, patchEnd, voxelsChunkData);
 
-                {
-                    const storedPatch = this.patchesStore.getItem(patchId.asString);
-                    if (!storedPatch) {
-                        // this patch has been garbage collected before its computation started
-                        throw new Error(`Cannot store unknown computed patch ${patchId.asString}.`);
-                    }
-                    const status = storedPatch.computation?.status;
-                    if (status !== 'started') {
-                        throw new Error(`Cannot store computed patch ${patchId.asString} with status "${status}".`);
-                    }
+                computationStatus = storedPatch.computation?.status;
+                if (computationStatus === 'ongoing') {
                     storedPatch.computation = {
                         status: 'finished',
                         voxelsRenderable,
@@ -130,10 +117,12 @@ class TerrainSimple extends TerrainBase {
                             voxelsRenderable.dispose();
                         }
                     };
+                } else {
+                    throw new Error(`Cannot store computed patch ${patchId.asString} with status "${computationStatus}".`);
                 }
             };
 
-            this.promiseThrottler.run(startComputation, onAbort);
+            this.promiseThrottler.run(startComputation, resolveAsAborted);
         });
     }
 
@@ -174,6 +163,10 @@ class TerrainSimple extends TerrainBase {
     }
 
     public dispose(): void {
+        if (this.garbageCollectionHandle) {
+            clearInterval(this.garbageCollectionHandle);
+            this.garbageCollectionHandle = null;
+        }
         throw new Error('Not implemented');
     }
 
@@ -194,13 +187,30 @@ class TerrainSimple extends TerrainBase {
         return !!storedPatch && storedPatch.isVisible && storedPatch.computation?.status === 'finished';
     }
 
-    private garbageCollectPatches(): void {
-        const storedPatches = this.patchesStore.allItems;
-        const invisiblePatches = storedPatches.filter(storedPatch => !storedPatch.isVisible);
-        invisiblePatches.sort((patch1, patch2) => patch1.isInvisibleSince - patch2.isInvisibleSince);
+    private getOrBuildStoredPatch(patchId: PatchId): StoredPatchRenderable {
+        let storedPatch = this.patchesStore.getItem(patchId.asString);
+        if (!storedPatch) {
+            storedPatch = {
+                id: patchId,
+                isVisible: false,
+                isInvisibleSince: performance.now(),
+                computation: null,
+                dispose: () => {},
+            };
+            this.patchesStore.setItem(patchId.asString, storedPatch);
+        }
+        return storedPatch;
+    }
 
-        while (invisiblePatches.length > this.maxInvisiblePatchesInCache) {
-            const nextPatchToDelete = invisiblePatches.shift();
+    private garbageCollectPatches(): void {
+        const storedPatchesList = this.patchesStore.allItems;
+        const elligibleStoredPatchesList = storedPatchesList.filter(storedPatch => {
+            return !storedPatch.isVisible && storedPatch.computation?.status !== 'ongoing';
+        });
+        elligibleStoredPatchesList.sort((patch1, patch2) => patch1.isInvisibleSince - patch2.isInvisibleSince);
+
+        while (elligibleStoredPatchesList.length > this.maxInvisiblePatchesInCache) {
+            const nextPatchToDelete = elligibleStoredPatchesList.shift();
             if (!nextPatchToDelete) {
                 break;
             }
