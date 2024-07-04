@@ -18,17 +18,26 @@ class HeightmapViewer {
 
     public constructor(sampler: IHeightmap, smallestLevelSizeInVoxels: number) {
         this.container = new THREE.Group();
-        this.container.name = 'Heightmap nodes container';
+        this.container.name = 'Heightmap container';
 
         this.root = new HeightmapRoot(sampler, 5, smallestLevelSizeInVoxels);
         this.container.add(this.root.container);
     }
 
-    public resetSubdivisions(): void {
+    public setHiddenPatches(patches: ReadonlyArray<{ x: number; z: number }>): void {
+        this.resetSubdivisions();
+        for (const completeChunksColumn of patches) {
+            this.hidePatch(completeChunksColumn.x, completeChunksColumn.z);
+        }
+        this.applyVisibility();
+        this.updateMesh();
+    }
+
+    private resetSubdivisions(): void {
         this.root.resetSubdivisions();
     }
 
-    public hidePatch(x: number, y: number): void {
+    private hidePatch(x: number, y: number): void {
         const patchCentralVoxel = new THREE.Vector2(x, y).addScalar(0.5).multiplyScalar(this.root.smallestLevelSizeInVoxels);
         const patchId = this.getPatchId(patchCentralVoxel);
         const node = this.root.getOrBuildSubNode(patchId);
@@ -45,7 +54,7 @@ class HeightmapViewer {
         }
     }
 
-    public applyVisibility(): void {
+    private applyVisibility(): void {
         this.root.applyVisibility(this.focusPoint, this.visibilityDistance);
 
         const centralPatchId = this.getPatchId(new THREE.Vector2().copy(this.focusPoint));
@@ -57,11 +66,11 @@ class HeightmapViewer {
         }
     }
 
-    public updateMesh(): void {
+    private updateMesh(): void {
         this.root.updateMesh();
     }
 
-    public getStatistics(): MeshesStatistics {
+    public getStatistics(): HeightmapStatistics {
         return this.root.getStatistics();
     }
 

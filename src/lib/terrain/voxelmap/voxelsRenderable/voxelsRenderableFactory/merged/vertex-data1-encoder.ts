@@ -1,10 +1,6 @@
 import type * as THREE from '../../../../../three-usage';
+import { type VoxelsChunkSize } from '../../../types';
 import { PackedUintFactory, type PackedUintFragment } from '../uint-packing';
-
-type VoxelsChunkSize = {
-    xz: number;
-    y: number;
-};
 
 class VertexData1Encoder {
     private readonly packedUintFactory = new PackedUintFactory(32);

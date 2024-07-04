@@ -38,6 +38,9 @@ interface ILocalMapData {
  * Each voxel should have integer coordinates.
  */
 interface IVoxelMap {
+    readonly minAltitude: number;
+    readonly maxAltitude: number;
+
     /**
      * @returns an array of all the possible voxel materials contained in the map.
      * Each material is then identified by its index in the array.
