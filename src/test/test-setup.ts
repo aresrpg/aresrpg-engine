@@ -48,20 +48,21 @@ abstract class TestSetup {
 
         this.setupLighting();
 
-        const playerContainer = new THREE.Group();
-        playerContainer.position.x = 0;
-        playerContainer.position.y = voxelMap.size.y + 1;
-        playerContainer.position.z = 0;
-        const player = new THREE.Mesh(new THREE.SphereGeometry(2), new THREE.MeshBasicMaterial({ color: '#FF0000' }));
-        playerContainer.add(player);
-        this.scene.add(playerContainer);
-
         const showWholeMap = false;
         if (showWholeMap) {
             const size = 1000;
             this.showMapPortion(new THREE.Box3(new THREE.Vector3(-size, -size, -size), new THREE.Vector3(size, size, size)));
         } else {
             const playerViewRadius = 1000;
+
+            const playerContainer = new THREE.Group();
+            playerContainer.position.x = 0;
+            playerContainer.position.y = voxelMap.size.y + 1;
+            playerContainer.position.z = 0;
+            const player = new THREE.Mesh(new THREE.SphereGeometry(2), new THREE.MeshBasicMaterial({ color: '#FF0000' }));
+            playerContainer.add(player);
+            this.scene.add(playerContainer);
+
             const playerViewSphere = new THREE.Mesh(
                 new THREE.SphereGeometry(playerViewRadius, 16, 16),
                 new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true })
