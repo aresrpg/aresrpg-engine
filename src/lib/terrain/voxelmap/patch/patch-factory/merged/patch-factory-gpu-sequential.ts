@@ -1,6 +1,7 @@
 import { PromiseThrottler } from '../../../../../helpers/promise-throttler';
 import * as THREE from '../../../../../three-usage';
-import { type IVoxelMap, type VoxelsChunkSize } from '../../../../terrain';
+import { type VoxelsChunkSize } from '../../../../terrain';
+import { type IVoxelMap, type IVoxelMaterial } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryGpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
 import { PatchFactoryBase } from '../patch-factory-base';
@@ -8,14 +9,15 @@ import { PatchFactoryBase } from '../patch-factory-base';
 class PatchFactoryGpuSequential extends PatchFactoryBase {
     private readonly throttler = new PromiseThrottler(1);
 
-    public constructor(map: IVoxelMap, patchSize: VoxelsChunkSize) {
-        const voxelsRenderableFactory = new VoxelsRenderableFactoryGpu(map.voxelMaterialsList, patchSize);
-        super(map, voxelsRenderableFactory);
+    public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, patchSize: VoxelsChunkSize) {
+        const voxelsRenderableFactory = new VoxelsRenderableFactoryGpu(voxelMaterialsList, patchSize);
+        super(voxelsRenderableFactory);
     }
 
     protected override queryMapAndBuildVoxelsRenderable(
         patchStart: THREE.Vector3,
-        patchEnd: THREE.Vector3
+        patchEnd: THREE.Vector3,
+        map: IVoxelMap
     ): Promise<VoxelsRenderable | null> {
         return this.throttler.run(async () => {
             const patchSize = new THREE.Vector3().subVectors(patchEnd, patchStart);
@@ -24,7 +26,7 @@ class PatchFactoryGpuSequential extends PatchFactoryBase {
                 return null;
             }
 
-            const localMapData = await this.buildLocalMapData(patchStart, patchEnd);
+            const localMapData = await PatchFactoryBase.buildLocalMapData(patchStart, patchEnd, map);
             return await this.voxelsRenderableFactory.buildVoxelsRenderable(localMapData);
         });
     }

@@ -1,6 +1,7 @@
 import { PromiseThrottler } from '../../../../../helpers/promise-throttler';
 import type * as THREE from '../../../../../three-usage';
-import { type IVoxelMap, type VoxelsChunkSize } from '../../../../terrain';
+import { type VoxelsChunkSize } from '../../../../terrain';
+import { type IVoxelMap, type IVoxelMaterial } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryCpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/cpu/voxels-renderable-factory-cpu';
 import { PatchFactoryBase } from '../patch-factory-base';
@@ -8,17 +9,18 @@ import { PatchFactoryBase } from '../patch-factory-base';
 class PatchFactoryCpu extends PatchFactoryBase {
     private readonly throttler = new PromiseThrottler(1);
 
-    public constructor(map: IVoxelMap, patchSize: VoxelsChunkSize) {
-        const voxelsRenderableFactory = new VoxelsRenderableFactoryCpu(map.voxelMaterialsList, patchSize);
-        super(map, voxelsRenderableFactory);
+    public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, patchSize: VoxelsChunkSize) {
+        const voxelsRenderableFactory = new VoxelsRenderableFactoryCpu(voxelMaterialsList, patchSize);
+        super(voxelsRenderableFactory);
     }
 
     protected override queryMapAndBuildVoxelsRenderable(
         patchStart: THREE.Vector3,
-        patchEnd: THREE.Vector3
+        patchEnd: THREE.Vector3,
+        map: IVoxelMap
     ): Promise<VoxelsRenderable | null> {
         return this.throttler.run(async () => {
-            const localMapData = await this.buildLocalMapData(patchStart, patchEnd);
+            const localMapData = await PatchFactoryBase.buildLocalMapData(patchStart, patchEnd, map);
             return await this.voxelsRenderableFactory.buildVoxelsRenderable(localMapData);
         });
     }

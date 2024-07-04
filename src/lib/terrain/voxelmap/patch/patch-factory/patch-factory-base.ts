@@ -25,17 +25,19 @@ type LocalMapData = {
 abstract class PatchFactoryBase {
     public readonly maxPatchSize: THREE.Vector3;
 
-    private readonly map: IVoxelMap;
-
     protected readonly voxelsRenderableFactory: VoxelsRenderableFactoryBase;
 
-    protected constructor(map: IVoxelMap, voxelsRenderableFactory: VoxelsRenderableFactoryBase) {
-        this.map = map;
+    protected constructor(voxelsRenderableFactory: VoxelsRenderableFactoryBase) {
         this.voxelsRenderableFactory = voxelsRenderableFactory;
         this.maxPatchSize = this.voxelsRenderableFactory.maxVoxelsChunkSize;
     }
 
-    public async buildPatch(patchId: PatchId, patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<VoxelsRenderable | null> {
+    public async buildPatch(
+        patchId: PatchId,
+        patchStart: THREE.Vector3,
+        patchEnd: THREE.Vector3,
+        map: IVoxelMap
+    ): Promise<VoxelsRenderable | null> {
         patchStart = patchStart.clone();
         patchEnd = patchEnd.clone();
 
@@ -44,7 +46,7 @@ abstract class PatchFactoryBase {
             throw new Error(`Patch is too big ${vec3ToString(patchSize)} (max is ${vec3ToString(this.maxPatchSize)})`);
         }
 
-        const voxelsRenderable = await this.queryMapAndBuildVoxelsRenderable(patchStart, patchEnd);
+        const voxelsRenderable = await this.queryMapAndBuildVoxelsRenderable(patchStart, patchEnd, map);
         return this.finalizePatch(voxelsRenderable, patchId, patchStart);
     }
 
@@ -83,15 +85,16 @@ abstract class PatchFactoryBase {
 
     protected abstract queryMapAndBuildVoxelsRenderable(
         patchStart: THREE.Vector3,
-        patchEnd: THREE.Vector3
+        patchEnd: THREE.Vector3,
+        map: IVoxelMap
     ): Promise<VoxelsRenderable | null>;
 
-    protected async buildLocalMapData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3): Promise<LocalMapData> {
+    protected static async buildLocalMapData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3, map: IVoxelMap): Promise<LocalMapData> {
         const cacheStart = patchStart.clone().subScalar(1);
         const cacheEnd = patchEnd.clone().addScalar(1);
         const cacheSize = new THREE.Vector3().subVectors(cacheEnd, cacheStart);
 
-        const queriedLocalMapData = this.map.getLocalMapData(cacheStart, cacheEnd);
+        const queriedLocalMapData = map.getLocalMapData(cacheStart, cacheEnd);
         return processAsap(queriedLocalMapData, localMapData => {
             const expectedCacheItemsCount = cacheSize.x * cacheSize.y * cacheSize.z;
             if (localMapData.data.length !== expectedCacheItemsCount) {
