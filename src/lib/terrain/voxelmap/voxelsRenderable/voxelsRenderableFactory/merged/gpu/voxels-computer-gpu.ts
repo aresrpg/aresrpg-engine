@@ -1,7 +1,7 @@
 /// <reference types="@webgpu/types" />
 
 import { logger } from '../../../../../../helpers/logger';
-import { PromiseThrottler } from '../../../../../../helpers/promise-throttler';
+import { PromisesQueue } from '../../../../../../helpers/promise-queue';
 import { vec3ToString } from '../../../../../../helpers/string';
 import { getGpuDevice } from '../../../../../../helpers/webgpu/webgpu-device';
 import type * as THREE from '../../../../../../three-usage';
@@ -37,7 +37,7 @@ class VoxelsComputerGpu {
 
     private readonly workgroupSize = 256;
 
-    private readonly promiseThrottler = new PromiseThrottler(1);
+    private readonly promiseThrottler = new PromisesQueue(1);
 
     private constructor(
         device: GPUDevice,
