@@ -6,7 +6,7 @@ import { type TerrainBase } from '../lib/terrain/terrain-base';
 
 import { type VoxelMap } from './voxel-map';
 
-abstract class TestSetup {
+abstract class TestBase {
     protected abstract readonly terrain: TerrainBase;
 
     private readonly stats: Stats;
@@ -118,7 +118,7 @@ abstract class TestSetup {
 
     public start(): void {
         if (this.started) {
-            console.warn('Cannot start a TestSetup twice');
+            console.warn('Cannot start a TestBase twice');
             return;
         }
         this.started = true;
@@ -185,4 +185,4 @@ abstract class TestSetup {
     }
 }
 
-export { TestSetup };
+export { TestBase };
