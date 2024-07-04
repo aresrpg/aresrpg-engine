@@ -2,10 +2,10 @@ import type * as THREE from 'three';
 
 import { Terrain } from '../lib';
 
-import { TestSetup } from './test-setup';
+import { TestBase } from './test-base';
 import { type VoxelMap } from './voxel-map';
 
-class TestTerrain extends TestSetup {
+class TestTerrain extends TestBase {
     protected override readonly terrain: Terrain;
 
     public constructor(voxelMap: VoxelMap) {
