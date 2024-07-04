@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { OrbitControls, TransformControls } from 'three/examples/jsm/Addons.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 import { type TerrainBase } from '../lib/terrain/terrain-base';
@@ -81,12 +82,18 @@ abstract class TestBase {
             if (testPlayerVisilibityFrustum) {
                 const fakeCamera = new THREE.PerspectiveCamera(60, 1, 1, 2000);
                 const fakeCameraHelper = new THREE.CameraHelper(fakeCamera);
-                fakeCameraHelper.setColors(new THREE.Color(0xFF0000), new THREE.Color(0xFF0000), new THREE.Color(0x0000FF), new THREE.Color(0x00FF00), new THREE.Color(0x00FF00));
+                fakeCameraHelper.setColors(
+                    new THREE.Color(0xff0000),
+                    new THREE.Color(0xff0000),
+                    new THREE.Color(0x0000ff),
+                    new THREE.Color(0x00ff00),
+                    new THREE.Color(0x00ff00)
+                );
                 this.scene.add(fakeCameraHelper);
                 playerContainer.add(fakeCamera);
 
                 const updateFrustum = () => {
-                    fakeCamera.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.0001 * performance.now());
+                    fakeCamera.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.0003 * performance.now());
                     fakeCamera.updateMatrix();
                     fakeCamera.updateMatrixWorld(true);
                     fakeCamera.updateProjectionMatrix();
@@ -109,12 +116,10 @@ abstract class TestBase {
         setInterval(() => {
             this.terrain.setLod(this.camera.position, 100, 8000);
         }, 200);
-
-        this.start();
     }
 
     protected abstract showMapPortion(box: THREE.Box3): void;
-    protected abstract showMapAroundPosition(position: THREE.Vector3Like, radius: number, frustum?: THREE.Frustum): Promise<void>;
+    protected abstract showMapAroundPosition(position: THREE.Vector3Like, radius: number, frustum?: THREE.Frustum): void;
 
     public start(): void {
         if (this.started) {

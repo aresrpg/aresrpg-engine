@@ -2,15 +2,16 @@ import { DisposableMap } from '../helpers/disposable-map';
 import { PromiseThrottler } from '../helpers/promise-throttler';
 import { vec3ToString } from '../helpers/string';
 import * as THREE from '../three-usage';
-import { IHeightmap } from './heightmap/i-heightmap';
-import { VoxelsChunkSize } from './terrain';
-import { PatchRenderable, TerrainBase } from './terrain-base';
-import { IVoxelMaterial } from './voxelmap/i-voxelmap';
+
+import { type IHeightmap } from './heightmap/i-heightmap';
+import { type VoxelsChunkSize } from './terrain';
+import { TerrainBase, type PatchRenderable } from './terrain-base';
+import { type IVoxelMaterial } from './voxelmap/i-voxelmap';
 import { PatchFactoryGpuSequential } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-sequential';
-import { PatchFactoryBase } from './voxelmap/patch/patch-factory/patch-factory-base';
-import { PatchId } from './voxelmap/patch/patch-id';
-import { VoxelsRenderable } from './voxelmap/voxelsRenderable/voxels-renderable';
-import { VoxelsChunkData } from './voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
+import { type PatchFactoryBase } from './voxelmap/patch/patch-factory/patch-factory-base';
+import { type PatchId } from './voxelmap/patch/patch-id';
+import { type VoxelsRenderable } from './voxelmap/voxelsRenderable/voxels-renderable';
+import { type VoxelsChunkData } from './voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
 type TerrainSimpleOptions = {
     patchSize?: VoxelsChunkSize;
@@ -38,7 +39,7 @@ type StoredPatchRenderable = {
 };
 
 class TerrainSimple extends TerrainBase {
-    private readonly promiseThrottler = new PromiseThrottler(3);
+    private readonly promiseThrottler = new PromiseThrottler(1);
     private readonly patchFactory: PatchFactoryBase;
 
     private readonly maxInvisiblePatchesInCache = 200;
@@ -57,6 +58,11 @@ class TerrainSimple extends TerrainBase {
         this.patchFactory = new PatchFactoryGpuSequential(voxelsMaterialsList, voxelsChunksSize);
 
         this.garbageCollectionHandle = window.setInterval(() => this.garbageCollectPatches(), 5000);
+    }
+
+    public canPatchBeEnqueued(id: PatchId): boolean {
+        const storedPatch = this.patchesStore.getItem(id.asString);
+        return !storedPatch || !storedPatch.computation;
     }
 
     public async enqueuePatch(patchId: PatchId, voxelsChunkData: VoxelsChunkData): Promise<ComputationStatus> {
@@ -80,7 +86,7 @@ class TerrainSimple extends TerrainBase {
                 resolveAsAborted();
             };
 
-            console.log(`Patch ${patchId.asString} is now in "pending" status.`);
+            // console.log(`Patch ${patchId.asString} is now in "pending" status.`);
 
             const startComputation = async () => {
                 let computationStatus = storedPatch.computation?.status;
@@ -90,7 +96,7 @@ class TerrainSimple extends TerrainBase {
                         throw new Error(`Patch ${patchId.asString} cannot be disposed during its computation.`);
                     };
 
-                    console.log(`Patch ${patchId.asString} is now in "started" status.`);
+                    // console.log(`Patch ${patchId.asString} is now in "ongoing" status.`);
                 } else {
                     if (!storedPatch.computation) {
                         console.log(`Patch ${patchId.asString} has been aborted while in "pending" status. Don't compute.`);
@@ -118,6 +124,14 @@ class TerrainSimple extends TerrainBase {
                             voxelsRenderable.dispose();
                         }
                     };
+
+                    // console.log(`Patch ${patchId.asString} is now in "finished" status.`);
+
+                    if (voxelsRenderable && storedPatch.isVisible) {
+                        this.patchesContainer.add(voxelsRenderable.container);
+                    }
+
+                    resolve('success');
                 } else {
                     throw new Error(`Cannot store computed patch ${patchId.asString} with status "${computationStatus}".`);
                 }
@@ -129,6 +143,13 @@ class TerrainSimple extends TerrainBase {
 
     public purgeQueue(): void {
         this.promiseThrottler.cancelAll();
+    }
+
+    public dequeuePatch(patchId: PatchId): void {
+        const storedPatch = this.patchesStore.getItem(patchId.asString);
+        if (storedPatch?.computation?.status === 'pending') {
+            storedPatch.dispose();
+        }
     }
 
     public setVisibility(visiblePatchesId: ReadonlyArray<PatchId>): void {
@@ -169,6 +190,12 @@ class TerrainSimple extends TerrainBase {
             this.garbageCollectionHandle = null;
         }
         throw new Error('Not implemented');
+    }
+
+    public getVoxelsChunkBox(patchId: PatchId): THREE.Box3 {
+        const voxelFrom = new THREE.Vector3().multiplyVectors(patchId, this.patchSize).subScalar(1);
+        const voxelTo = voxelFrom.clone().add(this.patchSize).addScalar(2);
+        return new THREE.Box3(voxelFrom, voxelTo);
     }
 
     protected get allVisiblePatches(): PatchRenderable[] {
