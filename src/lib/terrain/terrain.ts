@@ -30,8 +30,6 @@ enum EPatchComputingMode {
  * Class that takes an IVoxelMap and makes a renderable three.js object of it.
  */
 class Terrain extends TerrainBase {
-    private maxPatchesInCache = 200;
-
     private readonly map: IVoxelMap;
     private readonly patchFactory: PatchFactoryBase;
 
@@ -116,8 +114,6 @@ class Terrain extends TerrainBase {
             return patch.ready();
         });
 
-        this.garbageCollectPatches();
-
         this.heightmapViewerNeedsUpdate = true;
 
         await Promise.all(promises);
@@ -135,27 +131,10 @@ class Terrain extends TerrainBase {
     /**
      * Frees the GPU-related resources allocated by this instance. Call this method whenever this instance is no longer used in your app.
      */
-    public dispose(): void {
+    public override dispose(): void {
+        super.dispose();
         this.clear();
         this.patchFactory.dispose();
-    }
-
-    /**
-     * Gets the maximum size of the GPU LRU cache of invisible patches.
-     */
-    public get patchesCacheSize(): number {
-        return this.maxPatchesInCache;
-    }
-
-    /**
-     * Sets the maximum size of the GPU LRU cache of invisible patches.
-     */
-    public set patchesCacheSize(value: number) {
-        if (value <= 0) {
-            throw new Error(`Invalid patches cache size "${value}".`);
-        }
-        this.maxPatchesInCache = value;
-        this.garbageCollectPatches();
     }
 
     protected override get allLoadedPatches(): ComputedPatch[] {
@@ -193,12 +172,12 @@ class Terrain extends TerrainBase {
         return !!patch && patch.visible && patch.isReady;
     }
 
-    private garbageCollectPatches(): void {
+    protected override garbageCollectPatches(maxInvisiblePatchesInPatch: number): void {
         const patches = this.patchesStore.allItems;
         const invisiblePatches = patches.filter(patch => !patch.visible);
         invisiblePatches.sort((patch1, patch2) => patch1.invisibleSince - patch2.invisibleSince);
 
-        while (invisiblePatches.length > this.maxPatchesInCache) {
+        while (invisiblePatches.length > maxInvisiblePatchesInPatch) {
             const nextPatchToDelete = invisiblePatches.shift();
             if (!nextPatchToDelete) {
                 break;

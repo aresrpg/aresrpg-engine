@@ -42,10 +42,7 @@ class TerrainSimple extends TerrainBase {
     private readonly promiseThrottler = new PromiseThrottler(1);
     private readonly patchFactory: PatchFactoryBase;
 
-    private readonly maxInvisiblePatchesInCache = 200;
     private patchesStore = new DisposableMap<StoredPatchRenderable>();
-
-    private garbageCollectionHandle: number | null;
 
     public constructor(map: IHeightmap, voxelsMaterialsList: ReadonlyArray<IVoxelMaterial>, options?: TerrainSimpleOptions) {
         let voxelsChunksSize = { xz: 64, y: 64 };
@@ -56,8 +53,6 @@ class TerrainSimple extends TerrainBase {
         super(map, voxelsChunksSize);
 
         this.patchFactory = new PatchFactoryGpuSequential(voxelsMaterialsList, voxelsChunksSize);
-
-        this.garbageCollectionHandle = window.setInterval(() => this.garbageCollectPatches(), 5000);
     }
 
     public canPatchBeEnqueued(id: PatchId): boolean {
@@ -184,11 +179,8 @@ class TerrainSimple extends TerrainBase {
         }
     }
 
-    public dispose(): void {
-        if (this.garbageCollectionHandle) {
-            clearInterval(this.garbageCollectionHandle);
-            this.garbageCollectionHandle = null;
-        }
+    public override dispose(): void {
+        super.dispose();
         throw new Error('Not implemented');
     }
 
@@ -243,14 +235,14 @@ class TerrainSimple extends TerrainBase {
         return storedPatch;
     }
 
-    private garbageCollectPatches(): void {
+    protected override garbageCollectPatches(maxInvisiblePatchesInPatch: number): void {
         const storedPatchesList = this.patchesStore.allItems;
         const elligibleStoredPatchesList = storedPatchesList.filter(storedPatch => {
             return !storedPatch.isVisible && storedPatch.computation?.status !== 'ongoing';
         });
         elligibleStoredPatchesList.sort((patch1, patch2) => patch1.isInvisibleSince - patch2.isInvisibleSince);
 
-        while (elligibleStoredPatchesList.length > this.maxInvisiblePatchesInCache) {
+        while (elligibleStoredPatchesList.length > maxInvisiblePatchesInPatch) {
             const nextPatchToDelete = elligibleStoredPatchesList.shift();
             if (!nextPatchToDelete) {
                 break;

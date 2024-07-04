@@ -71,6 +71,9 @@ abstract class TerrainBase {
     public readonly minPatchIdY: number;
     public readonly maxPatchIdY: number;
 
+    private maxPatchesInCache = 200;
+    private garbageCollectionHandle: number | null;
+
     protected constructor(map: IHeightmap, voxelsChunksSize: VoxelsChunkSize) {
         this.patchSize = new THREE.Vector3(voxelsChunksSize.xz, voxelsChunksSize.y, voxelsChunksSize.xz);
 
@@ -90,6 +93,8 @@ abstract class TerrainBase {
         this.heightmapContainer.name = `Heightmap patches container`;
         this.heightmapViewer = new HeightmapViewer(map, voxelsChunksSize.xz);
         this.heightmapContainer.add(this.heightmapViewer.container);
+
+        this.garbageCollectionHandle = window.setInterval(() => this.garbageCollectPatches(this.maxPatchesInCache), 5000);
     }
 
     /**
@@ -179,6 +184,32 @@ abstract class TerrainBase {
         return result;
     }
 
+    /**
+     * Gets the maximum size of the GPU LRU cache of invisible patches.
+     */
+    public get patchesCacheSize(): number {
+        return this.maxPatchesInCache;
+    }
+
+    /**
+     * Sets the maximum size of the GPU LRU cache of invisible patches.
+     */
+    public set patchesCacheSize(value: number) {
+        if (value <= 0) {
+            throw new Error(`Invalid patches cache size "${value}".`);
+        }
+        this.maxPatchesInCache = value;
+        this.garbageCollectPatches(this.maxPatchesInCache);
+    }
+
+    protected dispose(): void {
+        if (this.garbageCollectionHandle) {
+            clearInterval(this.garbageCollectionHandle);
+            this.garbageCollectionHandle = null;
+        }
+    }
+
+    protected abstract garbageCollectPatches(maxInvisiblePatchesInPatch: number): void;
     protected abstract get allLoadedPatches(): ComputedPatch[];
     protected abstract get allVisiblePatches(): PatchRenderable[];
     protected abstract isPatchAttached(patchId: PatchId): boolean;
