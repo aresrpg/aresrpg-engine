@@ -75,41 +75,34 @@ abstract class TestSetup {
             playerControls.attach(playerContainer);
             this.scene.add(playerControls);
 
-            const testFakeCamera = true;
-            let fakeCameraRig: { container: THREE.Group; camera: THREE.PerspectiveCamera; helper: THREE.CameraHelper } | null = null;
-            if (testFakeCamera) {
-                const fakeCameraContainer = new THREE.Group();
+            let playerVisibilityFrustum: THREE.Frustum | undefined;
+
+            const testPlayerVisilibityFrustum = true;
+            if (testPlayerVisilibityFrustum) {
                 const fakeCamera = new THREE.PerspectiveCamera(60, 1, 1, 2000);
                 const fakeCameraHelper = new THREE.CameraHelper(fakeCamera);
-                fakeCameraContainer.add(fakeCamera);
-                fakeCameraContainer.add(fakeCameraHelper);
-                this.scene.add(fakeCameraContainer);
-                fakeCameraRig = {
-                    container: fakeCameraContainer,
-                    camera: fakeCamera,
-                    helper: fakeCameraHelper,
+                fakeCameraHelper.setColors(new THREE.Color(0xFF0000), new THREE.Color(0xFF0000), new THREE.Color(0x0000FF), new THREE.Color(0x00FF00), new THREE.Color(0x00FF00));
+                this.scene.add(fakeCameraHelper);
+                playerContainer.add(fakeCamera);
+
+                const updateFrustum = () => {
+                    fakeCamera.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.0001 * performance.now());
+                    fakeCamera.updateMatrix();
+                    fakeCamera.updateMatrixWorld(true);
+                    fakeCamera.updateProjectionMatrix();
+                    fakeCameraHelper.update();
+                    fakeCameraHelper.updateMatrixWorld(true);
+
+                    playerVisibilityFrustum = new THREE.Frustum();
+                    playerVisibilityFrustum.setFromProjectionMatrix(
+                        new THREE.Matrix4().multiplyMatrices(fakeCamera.projectionMatrix, fakeCamera.matrixWorldInverse)
+                    );
                 };
+                setInterval(updateFrustum, 100);
             }
+
             setInterval(() => {
-                let frustum: THREE.Frustum | undefined;
-
-                if (fakeCameraRig) {
-                    fakeCameraRig.container.position.set(0, 0, 0);
-                    fakeCameraRig.container.lookAt(
-                        new THREE.Vector3(10, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.0001 * performance.now())
-                    );
-                    fakeCameraRig.camera.updateMatrix();
-                    fakeCameraRig.camera.updateMatrixWorld();
-                    fakeCameraRig.camera.updateProjectionMatrix();
-                    fakeCameraRig.helper?.update();
-
-                    frustum = new THREE.Frustum();
-                    frustum.setFromProjectionMatrix(
-                        new THREE.Matrix4().multiplyMatrices(fakeCameraRig.camera.projectionMatrix, fakeCameraRig.camera.matrixWorldInverse)
-                    );
-                }
-
-                this.showMapAroundPosition(playerContainer.position, playerViewRadius, frustum);
+                this.showMapAroundPosition(playerContainer.position, playerViewRadius, playerVisibilityFrustum);
             }, 200);
         }
 
