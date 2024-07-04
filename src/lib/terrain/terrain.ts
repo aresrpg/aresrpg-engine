@@ -7,7 +7,7 @@ import * as THREE from '../three-usage';
 import { AsyncPatch } from './async-patch';
 import { type HeightmapStatistics } from './heightmap/heightmap-viewer';
 import { type IHeightmap } from './heightmap/i-heightmap';
-import { type PatchRenderable, TerrainBase } from './terrain-base';
+import { TerrainBase, type PatchRenderable } from './terrain-base';
 import { type IVoxelMap } from './voxelmap/i-voxelmap';
 import { PatchFactoryCpu } from './voxelmap/patch/patch-factory/merged/patch-factory-cpu';
 import { PatchFactoryGpuOptimized } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-optimized';
@@ -81,7 +81,9 @@ class Terrain extends TerrainBase {
         this.map = map;
 
         this.patchFactory = patchFactory;
-        this.patchesVisibilityComputer = new VoxelmapVisibilityComputer(patchSize, map.minAltitude, map.maxAltitude);
+        const minPatchIdY = Math.floor(map.minAltitude / this.patchSize.y);
+        const maxPatchIdY = Math.floor(map.maxAltitude / this.patchSize.y);
+        this.patchesVisibilityComputer = new VoxelmapVisibilityComputer(patchSize, minPatchIdY, maxPatchIdY);
     }
 
     /**
@@ -173,7 +175,7 @@ class Terrain extends TerrainBase {
     public getStatistics(): TerrainStatistics {
         const result: TerrainStatistics = {
             voxelmap: Object.assign(createMeshesStatistics(), {
-                patchSize: this.patchSize.clone(),
+                patchSize: new THREE.Vector3().copy(this.patchSize),
             }),
             heightmap: this.heightmapViewer.getStatistics(),
         };

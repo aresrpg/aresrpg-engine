@@ -48,13 +48,13 @@ abstract class TerrainBase {
     protected readonly patchesContainer: THREE.Group;
     protected readonly heightmapContainer: THREE.Group;
 
-    protected readonly patchSize: THREE.Vector3;
+    public readonly patchSize: THREE.Vector3Like;
 
     protected readonly heightmapViewer: HeightmapViewer;
     protected heightmapViewerNeedsUpdate: boolean = true;
 
-    private readonly minPatchIdY: number;
-    private readonly maxPatchIdY: number;
+    public readonly minPatchIdY: number;
+    public readonly maxPatchIdY: number;
 
     protected constructor(map: IHeightmap, voxelsChunksSize: VoxelsChunkSize) {
         this.patchSize = new THREE.Vector3(voxelsChunksSize.xz, voxelsChunksSize.y, voxelsChunksSize.xz);

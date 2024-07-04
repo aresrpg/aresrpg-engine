@@ -21,8 +21,8 @@ class TestTerrain extends TestBase {
         this.terrain.showMapPortion(box);
     }
 
-    protected override showMapAroundPosition(position: THREE.Vector3Like, radius: number, frustum?: THREE.Frustum): Promise<void> {
-        return this.terrain.showMapAroundPosition(position, radius, frustum);
+    protected override showMapAroundPosition(position: THREE.Vector3Like, radius: number, frustum?: THREE.Frustum): void {
+        this.terrain.showMapAroundPosition(position, radius, frustum);
     }
 }
 
