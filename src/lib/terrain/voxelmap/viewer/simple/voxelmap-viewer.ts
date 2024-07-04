@@ -1,20 +1,18 @@
-import { DisposableMap } from '../helpers/disposable-map';
-import { PromisesQueue } from '../helpers/promise-queue';
-import { vec3ToString } from '../helpers/string';
-import * as THREE from '../three-usage';
+import { DisposableMap } from '../../../../helpers/disposable-map';
+import { PromisesQueue } from '../../../../helpers/promise-queue';
+import { vec3ToString } from '../../../../helpers/string';
+import * as THREE from '../../../../three-usage';
+import { type IVoxelMaterial } from '../../i-voxelmap';
+import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
+import { type PatchFactoryBase } from '../../patch/patch-factory/patch-factory-base';
+import { type PatchId } from '../../patch/patch-id';
+import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
+import { type VoxelsChunkData } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
+import { type VoxelsChunkSize } from '../old/voxelmap-viewer-old';
+import { type ComputedPatch, type PatchRenderable, VoxelmapViewerBase } from '../voxelmap-viewer-base';
 
-import { type IHeightmap } from './heightmap/i-heightmap';
-import { type VoxelsChunkSize } from './terrain';
-import { TerrainBase, type ComputedPatch, type PatchRenderable } from './terrain-base';
-import { type IVoxelMaterial } from './voxelmap/i-voxelmap';
-import { PatchFactoryGpuSequential } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-sequential';
-import { type PatchFactoryBase } from './voxelmap/patch/patch-factory/patch-factory-base';
-import { type PatchId } from './voxelmap/patch/patch-id';
-import { type VoxelsRenderable } from './voxelmap/voxelsRenderable/voxels-renderable';
-import { type VoxelsChunkData } from './voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
-
-type TerrainSimpleOptions = {
-    patchSize?: VoxelsChunkSize;
+type VoxelmapViewerOptions = {
+    chunkSize?: VoxelsChunkSize;
 };
 
 type ComputationStatus = 'success' | 'skipped' | 'aborted';
@@ -38,19 +36,24 @@ type StoredPatchRenderable = {
     dispose: VoidFunction;
 };
 
-class TerrainSimple extends TerrainBase {
+class VoxelmapViewer extends VoxelmapViewerBase {
     private readonly promiseThrottler = new PromisesQueue(1);
     private readonly patchFactory: PatchFactoryBase;
 
     private patchesStore = new DisposableMap<StoredPatchRenderable>();
 
-    public constructor(map: IHeightmap, voxelsMaterialsList: ReadonlyArray<IVoxelMaterial>, options?: TerrainSimpleOptions) {
+    public constructor(
+        minChunkIdY: number,
+        maxChunkIdY: number,
+        voxelsMaterialsList: ReadonlyArray<IVoxelMaterial>,
+        options?: VoxelmapViewerOptions
+    ) {
         let voxelsChunksSize = { xz: 64, y: 64 };
-        if (options?.patchSize) {
-            voxelsChunksSize = options.patchSize;
+        if (options?.chunkSize) {
+            voxelsChunksSize = options.chunkSize;
         }
 
-        super(map, voxelsChunksSize);
+        super(minChunkIdY, maxChunkIdY, voxelsChunksSize);
 
         this.patchFactory = new PatchFactoryGpuSequential(voxelsMaterialsList, voxelsChunksSize);
     }
@@ -123,7 +126,7 @@ class TerrainSimple extends TerrainBase {
                     // console.log(`Patch ${patchId.asString} is now in "finished" status.`);
 
                     if (voxelsRenderable && storedPatch.isVisible) {
-                        this.patchesContainer.add(voxelsRenderable.container);
+                        this.container.add(voxelsRenderable.container);
                     }
 
                     resolve('success');
@@ -153,7 +156,7 @@ class TerrainSimple extends TerrainBase {
                 storedPatch.isVisible = false;
                 storedPatch.isInvisibleSince = performance.now();
                 if (storedPatch.computation?.status === 'finished' && storedPatch.computation.voxelsRenderable) {
-                    this.patchesContainer.remove(storedPatch.computation.voxelsRenderable.container);
+                    this.container.remove(storedPatch.computation.voxelsRenderable.container);
                 }
             }
         }
@@ -164,7 +167,7 @@ class TerrainSimple extends TerrainBase {
                 if (!storedPatch.isVisible) {
                     storedPatch.isVisible = true;
                     if (storedPatch.computation?.status === 'finished' && storedPatch.computation.voxelsRenderable) {
-                        this.patchesContainer.add(storedPatch.computation.voxelsRenderable.container);
+                        this.container.add(storedPatch.computation.voxelsRenderable.container);
                     }
                 }
             } else {
@@ -252,4 +255,4 @@ class TerrainSimple extends TerrainBase {
     }
 }
 
-export { TerrainSimple };
+export { VoxelmapViewer, type VoxelmapViewerOptions };

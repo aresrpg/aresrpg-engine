@@ -3,12 +3,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 
-import { type TerrainBase } from '../lib/terrain/terrain-base';
-
-import { type VoxelMap } from './voxel-map';
+import { type IHeightmap, type TerrainViewer } from '../lib';
 
 abstract class TestBase {
-    protected abstract readonly terrain: TerrainBase;
+    protected abstract readonly terrainViewer: TerrainViewer;
 
     private readonly stats: Stats;
 
@@ -19,7 +17,7 @@ abstract class TestBase {
 
     private started: boolean = false;
 
-    public constructor(voxelMap: VoxelMap) {
+    public constructor(voxelMap: IHeightmap) {
         this.stats = new Stats();
         document.body.appendChild(this.stats.dom);
 
@@ -58,7 +56,7 @@ abstract class TestBase {
 
             const playerContainer = new THREE.Group();
             playerContainer.position.x = 0;
-            playerContainer.position.y = voxelMap.size.y + 1;
+            playerContainer.position.y = voxelMap.maxAltitude + 1;
             playerContainer.position.z = 0;
             const player = new THREE.Mesh(new THREE.SphereGeometry(2), new THREE.MeshBasicMaterial({ color: '#FF0000' }));
             playerContainer.add(player);
@@ -114,7 +112,7 @@ abstract class TestBase {
         }
 
         setInterval(() => {
-            this.terrain.setLod(this.camera.position, 100, 8000);
+            this.terrainViewer.setLod(this.camera.position, 100, 8000);
         }, 200);
     }
 
@@ -132,7 +130,7 @@ abstract class TestBase {
             this.stats.update();
 
             this.cameraControl.update();
-            this.terrain.update();
+            this.terrainViewer.update();
             this.renderer.render(this.scene, this.camera);
             window.requestAnimationFrame(render);
         };

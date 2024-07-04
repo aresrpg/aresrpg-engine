@@ -1,19 +1,18 @@
-import { DisposableMap } from '../helpers/disposable-map';
-import { logger } from '../helpers/logger';
-import { vec3ToString } from '../helpers/string';
-import * as THREE from '../three-usage';
+import { DisposableMap } from '../../../../helpers/disposable-map';
+import { logger } from '../../../../helpers/logger';
+import { vec3ToString } from '../../../../helpers/string';
+import * as THREE from '../../../../three-usage';
+import { type IVoxelMap } from '../../i-voxelmap';
+import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-cpu';
+import { PatchFactoryGpuOptimized } from '../../patch/patch-factory/merged/patch-factory-gpu-optimized';
+import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
+import { type PatchFactoryBase } from '../../patch/patch-factory/patch-factory-base';
+import { PatchId } from '../../patch/patch-id';
+import { VoxelmapVisibilityComputer } from '../../voxelmap-visibility-computer';
+import { type VoxelsChunkSize } from '../../voxelsRenderable/voxelsRenderableFactory/merged/vertex-data1-encoder';
+import { type ComputedPatch, type PatchRenderable, VoxelmapViewerBase } from '../voxelmap-viewer-base';
 
 import { AsyncPatch } from './async-patch';
-import { type IHeightmap } from './heightmap/i-heightmap';
-import { TerrainBase, type ComputedPatch, type PatchRenderable } from './terrain-base';
-import { type IVoxelMap } from './voxelmap/i-voxelmap';
-import { PatchFactoryCpu } from './voxelmap/patch/patch-factory/merged/patch-factory-cpu';
-import { PatchFactoryGpuOptimized } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-optimized';
-import { PatchFactoryGpuSequential } from './voxelmap/patch/patch-factory/merged/patch-factory-gpu-sequential';
-import { type PatchFactoryBase } from './voxelmap/patch/patch-factory/patch-factory-base';
-import { PatchId } from './voxelmap/patch/patch-id';
-import { VoxelmapVisibilityComputer } from './voxelmap/voxelmap-visibility-computer';
-import { type VoxelsChunkSize } from './voxelmap/voxelsRenderable/voxelsRenderableFactory/merged/vertex-data1-encoder';
 
 type TerrainOptions = {
     computingMode?: EPatchComputingMode;
@@ -29,7 +28,7 @@ enum EPatchComputingMode {
 /**
  * Class that takes an IVoxelMap and makes a renderable three.js object of it.
  */
-class Terrain extends TerrainBase {
+class VoxelmapViewerAutonomous extends VoxelmapViewerBase {
     private readonly map: IVoxelMap;
     private readonly patchFactory: PatchFactoryBase;
 
@@ -41,7 +40,7 @@ class Terrain extends TerrainBase {
      *
      * @param map The map that will be rendered.
      */
-    public constructor(map: IVoxelMap & IHeightmap, options?: TerrainOptions) {
+    public constructor(map: IVoxelMap, options?: TerrainOptions) {
         const voxelsChunksSize = options?.patchSize || { xz: 64, y: 64 };
         let computingMode = EPatchComputingMode.GPU_SEQUENTIAL;
         if (options) {
@@ -63,13 +62,13 @@ class Terrain extends TerrainBase {
         const patchSize = patchFactory.maxPatchSize.clone();
         logger.info(`Using max patch size ${vec3ToString(patchSize)}.`);
 
-        super(map, voxelsChunksSize);
+        const minPatchIdY = Math.floor(map.minAltitude / patchSize.y);
+        const maxPatchIdY = Math.floor(map.maxAltitude / patchSize.y);
+        super(minPatchIdY, maxPatchIdY, voxelsChunksSize);
 
         this.map = map;
 
         this.patchFactory = patchFactory;
-        const minPatchIdY = Math.floor(map.minAltitude / this.patchSize.y);
-        const maxPatchIdY = Math.floor(map.maxAltitude / this.patchSize.y);
         this.patchesVisibilityComputer = new VoxelmapVisibilityComputer(patchSize, minPatchIdY, maxPatchIdY);
     }
 
@@ -114,7 +113,7 @@ class Terrain extends TerrainBase {
             return patch.ready();
         });
 
-        this.heightmapViewerNeedsUpdate = true;
+        // this.heightmapViewerNeedsUpdate = true;
 
         await Promise.all(promises);
     }
@@ -125,7 +124,7 @@ class Terrain extends TerrainBase {
      */
     public clear(): void {
         this.patchesStore.clear();
-        this.patchesContainer.clear();
+        this.container.clear();
     }
 
     /**
@@ -133,6 +132,7 @@ class Terrain extends TerrainBase {
      */
     public override dispose(): void {
         super.dispose();
+
         this.clear();
         this.patchFactory.dispose();
     }
@@ -203,10 +203,10 @@ class Terrain extends TerrainBase {
             const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
 
             const promise = this.patchFactory.buildPatch(patchId, patchStart, patchEnd, this.map);
-            patch = new AsyncPatch(this.patchesContainer, promise, patchId);
+            patch = new AsyncPatch(this.container, promise, patchId);
             patch.ready().then(() => {
                 if (patch?.hasVisibleMesh) {
-                    this.heightmapViewerNeedsUpdate = true;
+                    // this.heightmapViewerNeedsUpdate = true;
                 }
             });
             this.patchesStore.setItem(patchId.asString, patch);
@@ -221,4 +221,4 @@ class Terrain extends TerrainBase {
     }
 }
 
-export { EPatchComputingMode, Terrain, type IVoxelMap, type TerrainOptions, type VoxelsChunkSize };
+export { EPatchComputingMode, VoxelmapViewerAutonomous, type IVoxelMap, type TerrainOptions, type VoxelsChunkSize };

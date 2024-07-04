@@ -1,7 +1,7 @@
 import { AsyncTask } from '../../../../../helpers/async-task';
 import * as THREE from '../../../../../three-usage';
-import { type VoxelsChunkSize } from '../../../../terrain';
 import { type IVoxelMap, type IVoxelMaterial } from '../../../i-voxelmap';
+import { type VoxelsChunkSize } from '../../../types';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryGpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
 import { type GeometryAndMaterial } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
