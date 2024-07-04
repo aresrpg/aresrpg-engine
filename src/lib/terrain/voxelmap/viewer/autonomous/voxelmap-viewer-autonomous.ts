@@ -2,21 +2,20 @@ import { DisposableMap } from '../../../../helpers/disposable-map';
 import { logger } from '../../../../helpers/logger';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
-import { type IVoxelMap } from '../../i-voxelmap';
+import { type VoxelsChunkSize, type IVoxelMap } from '../../i-voxelmap';
 import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-cpu';
 import { PatchFactoryGpuOptimized } from '../../patch/patch-factory/merged/patch-factory-gpu-optimized';
 import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
 import { type PatchFactoryBase } from '../../patch/patch-factory/patch-factory-base';
 import { PatchId } from '../../patch/patch-id';
 import { VoxelmapVisibilityComputer } from '../../voxelmap-visibility-computer';
-import { type VoxelsChunkSize } from '../../voxelsRenderable/voxelsRenderableFactory/merged/vertex-data1-encoder';
-import { type ComputedPatch, type PatchRenderable, VoxelmapViewerBase } from '../voxelmap-viewer-base';
+import { VoxelmapViewerBase, type ComputedPatch, type PatchRenderable } from '../voxelmap-viewer-base';
 
 import { AsyncPatch } from './async-patch';
 
-type TerrainOptions = {
-    computingMode?: EPatchComputingMode;
+type VoxelmapViewerAutonomousOptions = {
     patchSize?: VoxelsChunkSize;
+    computingMode?: EPatchComputingMode;
 };
 
 enum EPatchComputingMode {
@@ -40,7 +39,7 @@ class VoxelmapViewerAutonomous extends VoxelmapViewerBase {
      *
      * @param map The map that will be rendered.
      */
-    public constructor(map: IVoxelMap, options?: TerrainOptions) {
+    public constructor(map: IVoxelMap, options?: VoxelmapViewerAutonomousOptions) {
         const voxelsChunksSize = options?.patchSize || { xz: 64, y: 64 };
         let computingMode = EPatchComputingMode.GPU_SEQUENTIAL;
         if (options) {
@@ -221,4 +220,4 @@ class VoxelmapViewerAutonomous extends VoxelmapViewerBase {
     }
 }
 
-export { EPatchComputingMode, VoxelmapViewerAutonomous, type IVoxelMap, type TerrainOptions, type VoxelsChunkSize };
+export { EPatchComputingMode, VoxelmapViewerAutonomous, type IVoxelMap, type VoxelmapViewerAutonomousOptions };

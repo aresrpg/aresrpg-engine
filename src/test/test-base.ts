@@ -18,6 +18,8 @@ abstract class TestBase {
     private started: boolean = false;
 
     public constructor(voxelMap: IHeightmap) {
+        setTimeout(() => console.log(this.scene), 5000);
+
         this.stats = new Stats();
         document.body.appendChild(this.stats.dom);
 

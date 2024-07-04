@@ -22,10 +22,10 @@ class TestTerrain extends TestBase {
         const minChunkIdY = Math.floor(map.minAltitude / chunkSize.y);
         const maxChunkIdY = Math.floor(map.maxAltitude / chunkSize.y);
 
-        this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, map.voxelMaterialsList, { chunkSize });
+        this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, map.voxelMaterialsList, { patchSize: chunkSize });
         this.terrainViewer = new TerrainViewer(map, this.voxelmapViewer);
 
-        this.terrainViewer.parameters.lod.enabled = false;
+        // this.terrainViewer.parameters.lod.enabled = false;
         this.scene.add(this.terrainViewer.container);
 
         this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(
@@ -56,11 +56,11 @@ class TestTerrain extends TestBase {
 
         this.promisesQueue.cancelAll();
         for (const patchId of patchesIdToDisplay) {
-            if (this.voxelmapViewer.canPatchBeEnqueued(patchId)) {
+            if (this.voxelmapViewer.doesPatchRequireVoxelsData(patchId)) {
                 this.promisesQueue.run(
                     async () => {
-                        if (this.voxelmapViewer.canPatchBeEnqueued(patchId)) {
-                            const voxelsChunkBox = this.voxelmapViewer.getVoxelsChunkBox(patchId);
+                        if (this.voxelmapViewer.doesPatchRequireVoxelsData(patchId)) {
+                            const voxelsChunkBox = this.voxelmapViewer.getPatchVoxelsBox(patchId);
                             const blockStart = voxelsChunkBox.min;
                             const blockEnd = voxelsChunkBox.max;
 

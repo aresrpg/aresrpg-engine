@@ -1,10 +1,9 @@
 import { createMeshesStatistics, type MeshesStatistics } from '../../../helpers/meshes-statistics';
 import * as THREE from '../../../three-usage';
+import { type VoxelsChunkSize } from '../i-voxelmap';
 import { PatchId } from '../patch/patch-id';
 import { EVoxelsDisplayMode } from '../voxelsRenderable/voxels-material';
 import { type VoxelsRenderable } from '../voxelsRenderable/voxels-renderable';
-
-import { type VoxelsChunkSize } from './old/voxelmap-viewer-old';
 
 type VoxelmapStatistics = MeshesStatistics & {
     patchSize: THREE.Vector3Like;
@@ -52,7 +51,7 @@ abstract class VoxelmapViewerBase {
     private maxPatchesInCache = 200;
     private garbageCollectionHandle: number | null;
 
-    public constructor(minChunkIdX: number, maxChunkIdY: number, chunkSize: VoxelsChunkSize) {
+    protected constructor(minChunkIdX: number, maxChunkIdY: number, chunkSize: VoxelsChunkSize) {
         this.container = new THREE.Group();
         this.container.name = 'Voxelmap container';
 
@@ -131,7 +130,7 @@ abstract class VoxelmapViewerBase {
     }
 
     /**
-     * Computes and returns technical statistics about the terrain.
+     * Computes and returns technical statistics about the voxelmap.
      */
     public getStatistics(): VoxelmapStatistics {
         const result = Object.assign(createMeshesStatistics(), {

@@ -1,5 +1,5 @@
 import type * as THREE from '../../../../../three-usage';
-import { type VoxelsChunkSize } from '../../../types';
+import { type VoxelsChunkSize } from '../../../i-voxelmap';
 import { PackedUintFactory, type PackedUintFragment } from '../uint-packing';
 
 class VertexData1Encoder {
@@ -56,4 +56,4 @@ class VertexData1Encoder {
     }
 }
 
-export { VertexData1Encoder, type VoxelsChunkSize };
+export { VertexData1Encoder };
