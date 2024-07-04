@@ -54,14 +54,11 @@ class Terrain extends TerrainBase {
      * @param map The map that will be rendered.
      */
     public constructor(map: IVoxelMap & IHeightmap, options?: TerrainOptions) {
+        const voxelsChunksSize = options?.patchSize || { xz: 64, y: 64 };
         let computingMode = EPatchComputingMode.GPU_SEQUENTIAL;
-        let voxelsChunksSize = { xz: 64, y: 64 };
         if (options) {
             if (typeof options.computingMode !== 'undefined') {
                 computingMode = options.computingMode;
-            }
-            if (typeof options.patchSize !== 'undefined') {
-                voxelsChunksSize = options.patchSize;
             }
         }
 
