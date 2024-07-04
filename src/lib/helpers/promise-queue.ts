@@ -6,7 +6,7 @@ type PendingRun<T> = {
     readonly onCancel: VoidFunction | undefined;
 };
 
-class PromiseThrottler {
+class PromisesQueue {
     private readonly maxConcurrentPromises: number;
 
     private runningPromisesCount = 0;
@@ -65,4 +65,4 @@ class PromiseThrottler {
     }
 }
 
-export { PromiseThrottler };
+export { PromisesQueue };

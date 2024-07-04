@@ -1,5 +1,5 @@
 import { DisposableMap } from '../helpers/disposable-map';
-import { PromiseThrottler } from '../helpers/promise-throttler';
+import { PromisesQueue } from '../helpers/promise-queue';
 import { vec3ToString } from '../helpers/string';
 import * as THREE from '../three-usage';
 
@@ -39,7 +39,7 @@ type StoredPatchRenderable = {
 };
 
 class TerrainSimple extends TerrainBase {
-    private readonly promiseThrottler = new PromiseThrottler(1);
+    private readonly promiseThrottler = new PromisesQueue(1);
     private readonly patchFactory: PatchFactoryBase;
 
     private patchesStore = new DisposableMap<StoredPatchRenderable>();

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { PromiseThrottler } from '../lib/helpers/promise-throttler';
+import { PromisesQueue } from '../lib/helpers/promise-queue';
 import { TerrainSimple } from '../lib/terrain/terrain-simple';
 import { VoxelmapVisibilityComputer } from '../lib/terrain/voxelmap/voxelmap-visibility-computer';
 
@@ -11,7 +11,7 @@ class TestTerrainSimple extends TestBase {
     protected override readonly terrain: TerrainSimple;
 
     private readonly voxelmapVisibilityComputer: VoxelmapVisibilityComputer;
-    private readonly promiseThrottler = new PromiseThrottler(5);
+    private readonly promisesQueue = new PromisesQueue(5);
 
     private readonly map: VoxelMap;
 
@@ -50,10 +50,10 @@ class TestTerrainSimple extends TestBase {
 
         this.terrain.setVisibility(patchesIdToDisplay);
 
-        this.promiseThrottler.cancelAll();
+        this.promisesQueue.cancelAll();
         for (const patchId of patchesIdToDisplay) {
             if (this.terrain.canPatchBeEnqueued(patchId)) {
-                this.promiseThrottler.run(
+                this.promisesQueue.run(
                     async () => {
                         if (this.terrain.canPatchBeEnqueued(patchId)) {
                             const voxelsChunkBox = this.terrain.getVoxelsChunkBox(patchId);

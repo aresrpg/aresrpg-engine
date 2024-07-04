@@ -1,4 +1,4 @@
-import { PromiseThrottler } from '../../../../../helpers/promise-throttler';
+import { PromisesQueue } from '../../../../../helpers/promise-queue';
 import type * as THREE from '../../../../../three-usage';
 import { type VoxelsChunkSize } from '../../../../terrain';
 import { type IVoxelMap, type IVoxelMaterial } from '../../../i-voxelmap';
@@ -7,7 +7,7 @@ import { VoxelsRenderableFactoryCpu } from '../../../voxelsRenderable/voxelsRend
 import { PatchFactoryBase } from '../patch-factory-base';
 
 class PatchFactoryCpu extends PatchFactoryBase {
-    private readonly throttler = new PromiseThrottler(1);
+    private readonly throttler = new PromisesQueue(1);
 
     public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, patchSize: VoxelsChunkSize) {
         const voxelsRenderableFactory = new VoxelsRenderableFactoryCpu(voxelMaterialsList, patchSize);
