@@ -7,4 +7,5 @@ setVerbosity(ELogLevel.WARN);
 
 const voxelMap = new VoxelMap(2048, 2048, 200, 64, 'fixed_seed');
 
-new TestTerrain(voxelMap);
+const testScene = new TestTerrain(voxelMap);
+testScene.start();

@@ -16,6 +16,8 @@ abstract class TestSetup {
     private readonly cameraControl: OrbitControls;
     protected readonly scene: THREE.Scene;
 
+    private started: boolean = false;
+
     public constructor(voxelMap: VoxelMap) {
         this.stats = new Stats();
         document.body.appendChild(this.stats.dom);
@@ -120,7 +122,13 @@ abstract class TestSetup {
     protected abstract showMapPortion(box: THREE.Box3): void;
     protected abstract showMapAroundPosition(position: THREE.Vector3Like, radius: number, frustum?: THREE.Frustum): Promise<void>;
 
-    private start(): void {
+    public start(): void {
+        if (this.started) {
+            console.warn('Cannot start a TestSetup twice');
+            return;
+        }
+        this.started = true;
+
         const render = () => {
             this.stats.update();
 
