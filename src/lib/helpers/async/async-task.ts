@@ -46,6 +46,10 @@ class AsyncTask<T> {
         return !!this.run;
     }
 
+    public get isRunning(): boolean {
+        return this.run?.state === 'STARTED';
+    }
+
     public get isFinished(): boolean {
         return this.run?.state === 'FINISHED';
     }
