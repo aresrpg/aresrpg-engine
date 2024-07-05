@@ -18,23 +18,27 @@ class AsyncTask<T> {
         this.starter = starter;
     }
 
-    public start(): void {
-        if (this.run) {
-            throw new Error('Task is already started.');
-        }
-
-        this.run = {
-            state: 'STARTED',
-            promise: this.starter(),
-        };
-        this.run.promise.then(result => {
-            if (this.run?.state !== 'STARTED') {
-                throw new Error('Task is in invalid state');
+    public start(): Promise<T> {
+        return new Promise<T>(resolve => {
+            if (this.run) {
+                throw new Error(`AsyncTask is already started and is in state ${this.run.state}.`);
             }
+
             this.run = {
-                state: 'FINISHED',
-                result,
+                state: 'STARTED',
+                promise: this.starter(),
             };
+
+            this.run.promise.then(result => {
+                if (this.run?.state !== 'STARTED') {
+                    throw new Error(`AsyncTask is in an invalid state (${this.run?.state}).`);
+                }
+                this.run = {
+                    state: 'FINISHED',
+                    result,
+                };
+                resolve(result);
+            });
         });
     }
 
@@ -49,15 +53,6 @@ class AsyncTask<T> {
     public getResultSync(): T {
         if (this.run?.state !== 'FINISHED') {
             throw new Error('Task is not finished.');
-        }
-        return this.run.result;
-    }
-
-    public async awaitResult(): Promise<T> {
-        if (!this.run) {
-            throw new Error('Task is not started.');
-        } else if (this.run.state === 'STARTED') {
-            return await this.run.promise;
         }
         return this.run.result;
     }

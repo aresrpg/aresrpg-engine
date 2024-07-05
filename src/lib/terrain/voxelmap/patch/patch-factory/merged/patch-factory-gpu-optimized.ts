@@ -1,6 +1,6 @@
 import { AsyncTask } from '../../../../../helpers/async/async-task';
 import * as THREE from '../../../../../three-usage';
-import { type VoxelsChunkSize, type IVoxelMap, type IVoxelMaterial } from '../../../i-voxelmap';
+import { type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryGpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
 import { type GeometryAndMaterial } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
@@ -66,8 +66,7 @@ class PatchFactoryGpuOptimized extends PatchFactoryBase {
 
         if (currentJob) {
             if (!currentJob.cpuTask.isStarted) {
-                currentJob.cpuTask.start();
-                currentJob.cpuTask.awaitResult().then(runNextTask);
+                currentJob.cpuTask.start().then(runNextTask);
             } else if (currentJob.cpuTask.isFinished) {
                 if (!currentJob.gpuTask) {
                     const localMapData = currentJob.cpuTask.getResultSync();
@@ -84,8 +83,7 @@ class PatchFactoryGpuOptimized extends PatchFactoryBase {
                 const nextJob = this.pendingJobs[1];
                 if (nextJob) {
                     if (!nextJob.cpuTask.isStarted) {
-                        nextJob.cpuTask.start();
-                        nextJob.cpuTask.awaitResult().then(runNextTask);
+                        nextJob.cpuTask.start().then(runNextTask);
                     }
                 }
             }
