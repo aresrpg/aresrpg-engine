@@ -55,7 +55,7 @@ class PromisesQueue {
         };
 
         const promise = promiseBuilder();
-        promise.then(onPromiseEnd).catch(onPromiseEnd);
+        promise.finally(onPromiseEnd);
 
         if (resolve) {
             promise.then(resolve);
