@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 import { TerrainViewer, VoxelmapViewer, type IHeightmap, type IVoxelMap } from '../lib';
-import { PromisesQueue } from '../lib/helpers/promise-queue';
+import { PromisesQueue } from '../lib/helpers/async/promises-queue';
 import { VoxelmapVisibilityComputer } from '../lib/terrain/voxelmap/voxelmap-visibility-computer';
 
 import { TestBase } from './test-base';

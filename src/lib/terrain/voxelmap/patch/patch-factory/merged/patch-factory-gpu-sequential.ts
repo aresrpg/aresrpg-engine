@@ -1,4 +1,4 @@
-import { PromisesQueue } from '../../../../../helpers/promise-queue';
+import { PromisesQueue } from '../../../../../helpers/async/promises-queue';
 import * as THREE from '../../../../../three-usage';
 import { type VoxelsChunkSize, type IVoxelMap, type IVoxelMaterial } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';

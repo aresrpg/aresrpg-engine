@@ -1,4 +1,4 @@
-import { processAsap } from '../../../../helpers/async-sync';
+import { processAsap } from '../../../../helpers/async/async-sync';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
 import { type IVoxelMap } from '../../i-voxelmap';
