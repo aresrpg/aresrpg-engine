@@ -20,7 +20,7 @@ type StoredPatchRenderable = {
     readonly id: PatchId;
     isVisible: boolean;
     isInvisibleSince: number;
-    computation:
+    computationTask:
         | {
               status: 'pending';
           }
@@ -60,7 +60,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     public doesPatchRequireVoxelsData(id: THREE.Vector3Like): boolean {
         const patchId = new PatchId(id);
         const storedPatch = this.patchesStore.getItem(patchId.asString);
-        return !storedPatch || !storedPatch.computation;
+        return !storedPatch || !storedPatch.computationTask;
     }
 
     public async enqueuePatch(id: THREE.Vector3Like, voxelsChunkData: VoxelsChunkData): Promise<ComputationStatus> {
@@ -71,7 +71,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
         const patchId = new PatchId(id);
         const storedPatch = this.getOrBuildStoredPatch(patchId);
-        if (storedPatch.computation) {
+        if (storedPatch.computationTask) {
             // this patch is already registered for computation
             return Promise.resolve('skipped');
         }
@@ -79,25 +79,25 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         return new Promise<ComputationStatus>(resolve => {
             const resolveAsAborted = () => resolve('aborted');
 
-            storedPatch.computation = { status: 'pending' };
+            storedPatch.computationTask = { status: 'pending' };
             storedPatch.dispose = () => {
-                storedPatch.computation = null;
+                storedPatch.computationTask = null;
                 resolveAsAborted();
             };
 
             // console.log(`Patch ${patchId.asString} is now in "pending" status.`);
 
             const startComputation = async () => {
-                let computationStatus = storedPatch.computation?.status;
+                let computationStatus = storedPatch.computationTask?.status;
                 if (computationStatus === 'pending') {
-                    storedPatch.computation = { status: 'ongoing' };
+                    storedPatch.computationTask = { status: 'ongoing' };
                     storedPatch.dispose = () => {
                         throw new Error(`Patch ${patchId.asString} cannot be disposed during its computation.`);
                     };
 
                     // console.log(`Patch ${patchId.asString} is now in "ongoing" status.`);
                 } else {
-                    if (!storedPatch.computation) {
+                    if (!storedPatch.computationTask) {
                         console.log(`Patch ${patchId.asString} has been aborted while in "pending" status. Don't compute.`);
                         return;
                     }
@@ -108,9 +108,9 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                 const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
                 const voxelsRenderable = await this.patchFactory.buildPatchFromVoxelsChunk(patchId, patchStart, patchEnd, voxelsChunkData);
 
-                computationStatus = storedPatch.computation?.status;
+                computationStatus = storedPatch.computationTask?.status;
                 if (computationStatus === 'ongoing') {
-                    storedPatch.computation = {
+                    storedPatch.computationTask = {
                         status: 'finished',
                         voxelsRenderable,
                     };
@@ -147,7 +147,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     public dequeuePatch(id: THREE.Vector3Like): void {
         const patchId = new PatchId(id);
         const storedPatch = this.patchesStore.getItem(patchId.asString);
-        if (storedPatch?.computation?.status === 'pending') {
+        if (storedPatch?.computationTask?.status === 'pending') {
             storedPatch.dispose();
         }
     }
@@ -157,8 +157,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             if (storedPatch.isVisible) {
                 storedPatch.isVisible = false;
                 storedPatch.isInvisibleSince = performance.now();
-                if (storedPatch.computation?.status === 'finished' && storedPatch.computation.voxelsRenderable) {
-                    this.container.remove(storedPatch.computation.voxelsRenderable.container);
+                if (storedPatch.computationTask?.status === 'finished' && storedPatch.computationTask.voxelsRenderable) {
+                    this.container.remove(storedPatch.computationTask.voxelsRenderable.container);
                 }
             }
         }
@@ -169,8 +169,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             if (storedPatch) {
                 if (!storedPatch.isVisible) {
                     storedPatch.isVisible = true;
-                    if (storedPatch.computation?.status === 'finished' && storedPatch.computation.voxelsRenderable) {
-                        this.container.add(storedPatch.computation.voxelsRenderable.container);
+                    if (storedPatch.computationTask?.status === 'finished' && storedPatch.computationTask.voxelsRenderable) {
+                        this.container.add(storedPatch.computationTask.voxelsRenderable.container);
                     }
                 }
             } else {
@@ -178,7 +178,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                     id: visiblePatchId,
                     isVisible: true,
                     isInvisibleSince: performance.now(),
-                    computation: null,
+                    computationTask: null,
                     dispose: () => {},
                 });
             }
@@ -199,10 +199,10 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     protected override get allLoadedPatches(): ComputedPatch[] {
         const result: ComputedPatch[] = [];
         for (const patch of this.patchesStore.allItems) {
-            if (patch.computation?.status === 'finished' && patch.computation.voxelsRenderable) {
+            if (patch.computationTask?.status === 'finished' && patch.computationTask.voxelsRenderable) {
                 result.push({
                     isVisible: patch.isVisible,
-                    voxelsRenderable: patch.computation.voxelsRenderable,
+                    voxelsRenderable: patch.computationTask.voxelsRenderable,
                 });
             }
         }
@@ -213,8 +213,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         const result: PatchRenderable[] = [];
 
         for (const storedPatch of this.patchesStore.allItems) {
-            if (storedPatch.isVisible && storedPatch.computation?.status === 'finished' && storedPatch.computation.voxelsRenderable) {
-                result.push({ id: storedPatch.id, voxelsRenderable: storedPatch.computation.voxelsRenderable });
+            if (storedPatch.isVisible && storedPatch.computationTask?.status === 'finished' && storedPatch.computationTask.voxelsRenderable) {
+                result.push({ id: storedPatch.id, voxelsRenderable: storedPatch.computationTask.voxelsRenderable });
             }
         }
 
@@ -223,13 +223,13 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
     protected override isPatchAttached(patchId: PatchId): boolean {
         const storedPatch = this.patchesStore.getItem(patchId.asString);
-        return !!storedPatch && storedPatch.isVisible && storedPatch.computation?.status === 'finished';
+        return !!storedPatch && storedPatch.isVisible && storedPatch.computationTask?.status === 'finished';
     }
 
     protected override garbageCollectPatches(maxInvisiblePatchesInPatch: number): void {
         const storedPatchesList = this.patchesStore.allItems;
         const elligibleStoredPatchesList = storedPatchesList.filter(storedPatch => {
-            return !storedPatch.isVisible && storedPatch.computation?.status !== 'ongoing';
+            return !storedPatch.isVisible && storedPatch.computationTask?.status !== 'ongoing';
         });
         elligibleStoredPatchesList.sort((patch1, patch2) => patch1.isInvisibleSince - patch2.isInvisibleSince);
 
@@ -249,7 +249,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                 id: patchId,
                 isVisible: false,
                 isInvisibleSince: performance.now(),
-                computation: null,
+                computationTask: null,
                 dispose: () => {},
             };
             this.patchesStore.setItem(patchId.asString, storedPatch);
