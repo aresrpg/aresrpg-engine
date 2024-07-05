@@ -1,4 +1,4 @@
-import { AsyncTask } from '../../../../../helpers/async-task';
+import { AsyncTask } from '../../../../../helpers/async/async-task';
 import * as THREE from '../../../../../three-usage';
 import { type VoxelsChunkSize, type IVoxelMap, type IVoxelMaterial } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';

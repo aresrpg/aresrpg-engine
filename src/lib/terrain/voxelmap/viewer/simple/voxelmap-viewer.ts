@@ -1,5 +1,5 @@
 import { DisposableMap } from '../../../../helpers/disposable-map';
-import { PromisesQueue } from '../../../../helpers/promise-queue';
+import { PromisesQueue } from '../../../../helpers/async/promises-queue';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
 import { type VoxelsChunkSize, type IVoxelMaterial } from '../../i-voxelmap';

@@ -1,4 +1,4 @@
-import { processAsap, type SyncOrPromise } from '../../helpers/async-sync';
+import { processAsap, type SyncOrPromise } from '../../helpers/async/async-sync';
 import { DisposableMap } from '../../helpers/disposable-map';
 import { logger } from '../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
