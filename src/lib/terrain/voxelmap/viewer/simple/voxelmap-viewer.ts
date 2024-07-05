@@ -226,21 +226,6 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         return !!storedPatch && storedPatch.isVisible && storedPatch.computation?.status === 'finished';
     }
 
-    private getOrBuildStoredPatch(patchId: PatchId): StoredPatchRenderable {
-        let storedPatch = this.patchesStore.getItem(patchId.asString);
-        if (!storedPatch) {
-            storedPatch = {
-                id: patchId,
-                isVisible: false,
-                isInvisibleSince: performance.now(),
-                computation: null,
-                dispose: () => {},
-            };
-            this.patchesStore.setItem(patchId.asString, storedPatch);
-        }
-        return storedPatch;
-    }
-
     protected override garbageCollectPatches(maxInvisiblePatchesInPatch: number): void {
         const storedPatchesList = this.patchesStore.allItems;
         const elligibleStoredPatchesList = storedPatchesList.filter(storedPatch => {
@@ -255,6 +240,21 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             }
             this.patchesStore.deleteItem(nextPatchToDelete.id.asString);
         }
+    }
+
+    private getOrBuildStoredPatch(patchId: PatchId): StoredPatchRenderable {
+        let storedPatch = this.patchesStore.getItem(patchId.asString);
+        if (!storedPatch) {
+            storedPatch = {
+                id: patchId,
+                isVisible: false,
+                isInvisibleSince: performance.now(),
+                computation: null,
+                dispose: () => {},
+            };
+            this.patchesStore.setItem(patchId.asString, storedPatch);
+        }
+        return storedPatch;
     }
 }
 
