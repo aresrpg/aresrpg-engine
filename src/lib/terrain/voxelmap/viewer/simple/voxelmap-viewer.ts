@@ -4,6 +4,8 @@ import { DisposableMap } from '../../../../helpers/disposable-map';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
 import { type IVoxelMaterial, type VoxelsChunkSize } from '../../i-voxelmap';
+import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-cpu';
+import { PatchFactoryCpuWorker } from '../../patch/patch-factory/merged/patch-factory-cpu-worker';
 import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
 import { type PatchFactoryBase } from '../../patch/patch-factory/patch-factory-base';
 import { PatchId } from '../../patch/patch-id';
@@ -11,8 +13,24 @@ import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable'
 import { type VoxelsChunkData } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 import { VoxelmapViewerBase, type ComputedPatch, type PatchRenderable } from '../voxelmap-viewer-base';
 
+enum EComputationMethod {
+    CPU_MONOTHREADED,
+    CPU_MULTITHREADED,
+    GPU,
+}
+
+type ComputationOptions =
+    | {
+          readonly method: EComputationMethod.CPU_MONOTHREADED | EComputationMethod.GPU;
+      }
+    | {
+          readonly method: EComputationMethod.CPU_MULTITHREADED;
+          readonly threadsCount: number;
+      };
+
 type VoxelmapViewerOptions = {
     patchSize?: VoxelsChunkSize;
+    computationOptions?: ComputationOptions;
 };
 
 type ComputationStatus = 'success' | 'skipped' | 'aborted';
@@ -26,7 +44,9 @@ type StoredPatchRenderable = {
 };
 
 class VoxelmapViewer extends VoxelmapViewerBase {
-    private readonly promiseThrottler = new PromisesQueue(1);
+    public readonly computationOptions: ComputationOptions;
+
+    private readonly promiseThrottler: PromisesQueue;
     private readonly patchFactory: PatchFactoryBase;
 
     private patchesStore = new DisposableMap<StoredPatchRenderable>();
@@ -44,7 +64,24 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
         super(minChunkIdY, maxChunkIdY, voxelsChunksSize);
 
-        this.patchFactory = new PatchFactoryGpuSequential(voxelsMaterialsList, voxelsChunksSize);
+        this.computationOptions = options?.computationOptions || {
+            method: EComputationMethod.CPU_MULTITHREADED,
+            threadsCount: 3,
+        };
+
+        let maxPatchesComputedInParallel: number;
+        if (this.computationOptions.method === EComputationMethod.CPU_MONOTHREADED) {
+            this.patchFactory = new PatchFactoryCpu(voxelsMaterialsList, voxelsChunksSize);
+            maxPatchesComputedInParallel = 1;
+        } else if (this.computationOptions.method === EComputationMethod.CPU_MULTITHREADED) {
+            this.patchFactory = new PatchFactoryCpuWorker(voxelsMaterialsList, voxelsChunksSize, this.computationOptions.threadsCount);
+            maxPatchesComputedInParallel = this.computationOptions.threadsCount;
+        } else {
+            this.patchFactory = new PatchFactoryGpuSequential(voxelsMaterialsList, voxelsChunksSize);
+            maxPatchesComputedInParallel = 1;
+        }
+
+        this.promiseThrottler = new PromisesQueue(maxPatchesComputedInParallel);
     }
 
     public doesPatchRequireVoxelsData(id: THREE.Vector3Like): boolean {
@@ -238,4 +275,11 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     }
 }
 
-export { VoxelmapViewer, type ComputationStatus, type VoxelmapViewerOptions, type VoxelsChunkData };
+export {
+    EComputationMethod,
+    VoxelmapViewer,
+    type ComputationOptions,
+    type ComputationStatus,
+    type VoxelmapViewerOptions,
+    type VoxelsChunkData,
+};
