@@ -5,7 +5,6 @@ type TaskOutput = {
 type TaskProcessor = (input: any) => TaskOutput;
 
 type WorkerDefinition = {
-    readonly name: string;
     readonly commonCode?: string;
     readonly tasks: Record<string, TaskProcessor>;
 };
@@ -48,7 +47,7 @@ class DedicatedWorker {
 
     private taskTypes: Record<string, TaskType>;
 
-    public constructor(definition: WorkerDefinition) {
+    public constructor(name: string, definition: WorkerDefinition) {
         this.taskTypes = {};
         for (const taskName of Object.keys(definition.tasks)) {
             this.taskTypes[taskName] = {
@@ -60,10 +59,10 @@ class DedicatedWorker {
         const workerCode = DedicatedWorker.buildWorkerCode(definition);
         const blob = new Blob([workerCode], { type: 'text/javascript' });
         const objectUrl = window.URL.createObjectURL(blob);
-        this.worker = new Worker(objectUrl, { name: definition.name });
+        this.worker = new Worker(objectUrl, { name });
 
         this.worker.onerror = event => {
-            throw new Error(`Unhandled error in DedicatedWorker "${definition.name}":\n${event.message}`);
+            throw new Error(`Unhandled error in DedicatedWorker "${name}":\n${event.message}`);
         };
         this.worker.onmessage = (event: MessageEvent<TaskResponseMessage>) => {
             const verb = event.data.verb;
