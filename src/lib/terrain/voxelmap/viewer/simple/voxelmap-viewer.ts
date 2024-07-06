@@ -118,7 +118,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
             const startComputation = async () => {
                 if (!storedPatch.computationTask) {
-                    console.log(`Patch ${patchId.asString} has been aborted while in "pending" status. Don't compute.`);
+                    // console.log(`Patch ${patchId.asString} has been aborted while in "pending" status. Don't compute.`);
                     return;
                 }
 
