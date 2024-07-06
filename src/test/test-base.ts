@@ -17,9 +17,9 @@ abstract class TestBase {
 
     private started: boolean = false;
 
-    public constructor(voxelMap: IHeightmap) {
-        setTimeout(() => console.log(this.scene), 5000);
+    private update: VoidFunction = () => {};
 
+    public constructor(voxelMap: IHeightmap) {
         this.stats = new Stats();
         document.body.appendChild(this.stats.dom);
 
@@ -52,7 +52,9 @@ abstract class TestBase {
         const showWholeMap = false;
         if (showWholeMap) {
             const size = 1000;
-            this.showMapPortion(new THREE.Box3(new THREE.Vector3(-size, -size, -size), new THREE.Vector3(size, size, size)));
+            setTimeout(() => {
+                this.showMapPortion(new THREE.Box3(new THREE.Vector3(-size, -size, -size), new THREE.Vector3(size, size, size)));
+            }, 0);
         } else {
             const playerViewRadius = 1000;
 
@@ -60,15 +62,15 @@ abstract class TestBase {
             playerContainer.position.x = 0;
             playerContainer.position.y = voxelMap.maxAltitude + 1;
             playerContainer.position.z = 0;
-            const player = new THREE.Mesh(new THREE.SphereGeometry(2), new THREE.MeshBasicMaterial({ color: '#FF0000' }));
-            playerContainer.add(player);
+            // const player = new THREE.Mesh(new THREE.SphereGeometry(2), new THREE.MeshBasicMaterial({ color: '#FF0000' }));
+            // playerContainer.add(player);
             this.scene.add(playerContainer);
 
-            const playerViewSphere = new THREE.Mesh(
-                new THREE.SphereGeometry(playerViewRadius, 16, 16),
-                new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true })
-            );
-            playerContainer.add(playerViewSphere);
+            // const playerViewSphere = new THREE.Mesh(
+            //     new THREE.SphereGeometry(playerViewRadius, 16, 16),
+            //     new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true })
+            // );
+            // playerContainer.add(playerViewSphere);
             const playerControls = new TransformControls(this.camera, this.renderer.domElement);
             playerControls.addEventListener('dragging-changed', event => {
                 this.cameraControl.enabled = !event.value;
@@ -92,7 +94,7 @@ abstract class TestBase {
                 this.scene.add(fakeCameraHelper);
                 playerContainer.add(fakeCamera);
 
-                const updateFrustum = () => {
+                this.update = () => {
                     fakeCamera.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.0003 * performance.now());
                     fakeCamera.updateMatrix();
                     fakeCamera.updateMatrixWorld(true);
@@ -105,7 +107,6 @@ abstract class TestBase {
                         new THREE.Matrix4().multiplyMatrices(fakeCamera.projectionMatrix, fakeCamera.matrixWorldInverse)
                     );
                 };
-                setInterval(updateFrustum, 100);
             }
 
             setInterval(() => {
@@ -131,6 +132,7 @@ abstract class TestBase {
         const render = () => {
             this.stats.update();
 
+            this.update();
             this.cameraControl.update();
             this.terrainViewer.update();
             this.renderer.render(this.scene, this.camera);
