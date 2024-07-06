@@ -215,6 +215,10 @@ void main() {
         diffuseColor.rgb = 0.5 + 0.5 * modelNormal;
     }
 
+    vec2 fromCenter = abs(vUv - 0.5);
+    vec2 isEdge = step(vec2(.49), fromCenter);
+    diffuseColor.rgb -= 0.1 * max(isEdge.x, isEdge.y);
+
 #ifdef ${cstVoxelNoise}
     diffuseColor.rgb += computeNoise();
 #endif // ${cstVoxelNoise}
