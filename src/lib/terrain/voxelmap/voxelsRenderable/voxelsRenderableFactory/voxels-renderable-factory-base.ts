@@ -76,7 +76,6 @@ abstract class VoxelsRenderableFactoryBase {
     }
 
     public dispose(): void {
-        this.disposeInternal();
         this.texture.dispose();
         this.noiseTexture.dispose();
     }
@@ -118,8 +117,6 @@ abstract class VoxelsRenderableFactoryBase {
     }
 
     public abstract buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkData): Promise<GeometryAndMaterial[]>;
-
-    protected abstract disposeInternal(): void;
 
     private static buildMaterialsTexture(
         voxelMaterials: ReadonlyArray<IVoxelMaterial>,

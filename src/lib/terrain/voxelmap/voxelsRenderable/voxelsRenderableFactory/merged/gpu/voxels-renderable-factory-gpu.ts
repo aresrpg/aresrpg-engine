@@ -17,13 +17,9 @@ class VoxelsRenderableFactoryGpu extends VoxelsRenderableFactory {
         );
     }
 
-    protected override async disposeInternal(): Promise<void> {
-        await super.disposeInternal();
-
-        const computer = await this.voxelsComputerGpuPromise;
-        if (computer) {
-            computer.dispose();
-        }
+    public override dispose(): void {
+        super.dispose();
+        this.voxelsComputerGpuPromise?.then(computer => computer.dispose());
     }
 
     public async buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkData): Promise<GeometryAndMaterial[]> {

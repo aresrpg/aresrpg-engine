@@ -302,7 +302,8 @@ void main() {
         this.materialsTemplates = this.buildVoxelsMaterials();
     }
 
-    protected async disposeInternal(): Promise<void> {
+    public override dispose(): void {
+        super.dispose();
         this.materialsTemplates.material.dispose();
         this.materialsTemplates.shadowMaterial.dispose();
     }
