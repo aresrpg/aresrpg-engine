@@ -3,6 +3,7 @@ type PackedUintFragment = {
     encode(value: number): number;
     wgslEncode(varname: string): string;
     glslDecode(varname: string): string;
+    serialize(): string;
 };
 
 class PackedUintFactory {
@@ -22,21 +23,31 @@ class PackedUintFactory {
         }
         const maxValue = (1 << bitsCount) - 1;
 
-        return {
+        const result = {
             maxValue,
-            encode: (value: number) => {
-                if (value < 0 || value > maxValue) {
+            shift,
+            encode(value: number) {
+                if (value < 0 || value > this.maxValue) {
                     throw new Error('Out of range');
                 }
-                return value << shift;
+                return value << this.shift;
             },
-            wgslEncode: (varname: string) => {
-                return `(${varname} << ${shift}u)`;
+            wgslEncode(varname: string) {
+                return `(${varname} << ${this.shift}u)`;
             },
-            glslDecode: (varname: string) => {
-                return `((${varname} >> ${shift}u) & ${maxValue}u)`;
+            glslDecode(varname: string) {
+                return `((${varname} >> ${this.shift}u) & ${this.maxValue}u)`;
+            },
+            serialize() {
+                return `{
+            maxValue: ${result.maxValue},
+            shift: ${result.shift},
+            ${result.encode},
+        }`;
             },
         };
+
+        return result;
     }
 
     public getNextAvailableBit(): number {

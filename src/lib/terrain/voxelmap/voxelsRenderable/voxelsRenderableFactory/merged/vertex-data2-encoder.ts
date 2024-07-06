@@ -25,6 +25,16 @@ class VertexData2Encoder {
         return `(${this.voxelMaterialId.wgslEncode(voxelMaterialIdVarname)} + ${this.faceNoiseId.wgslEncode(faceNoiseIdVarname)}
         + ${this.normalId.wgslEncode(normalIdVarname)} + ${this.uvRightId.wgslEncode(uvRightIdVarname)})`;
     }
+
+    public serialize(): string {
+        return `{
+        voxelMaterialId: ${this.voxelMaterialId.serialize()},
+        faceNoiseId: ${this.faceNoiseId.serialize()},
+        normalId: ${this.normalId.serialize()},
+        uvRightId: ${this.uvRightId.serialize()},
+        ${this.encode.toString()},
+    }`;
+    }
 }
 
 export { VertexData2Encoder };

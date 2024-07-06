@@ -54,6 +54,21 @@ class VertexData1Encoder {
         return `(${this.localX.wgslEncode(localPosVarname + '.x')} + ${this.localY.wgslEncode(localPosVarname + '.y')} + ${this.localZ.wgslEncode(localPosVarname + '.z')} +
             ${this.ao.wgslEncode(aoVarname)} + ${this.edgeRoundness.wgslEncode(`(${edgeRoundessX} + (${edgeRoundnessY} << 1u))`)})`;
     }
+
+    public serialize(): string {
+        return `{
+        voxelX: ${this.voxelX.serialize()},
+        voxelY: ${this.voxelY.serialize()},
+        voxelZ: ${this.voxelZ.serialize()},
+        localX: ${this.localX.serialize()},
+        localY: ${this.localY.serialize()},
+        localZ: ${this.localZ.serialize()},
+        faceId: ${this.faceId.serialize()},
+        ao: ${this.ao.serialize()},
+        edgeRoundness: ${this.edgeRoundness.serialize()},
+        ${this.encode.toString()},
+    }`;
+    }
 }
 
 export { VertexData1Encoder };
