@@ -58,7 +58,6 @@ class DedicatedWorker {
         }
 
         const workerCode = DedicatedWorker.buildWorkerCode(definition);
-        console.log(workerCode);
         const blob = new Blob([workerCode], { type: 'text/javascript' });
         const objectUrl = window.URL.createObjectURL(blob);
         this.worker = new Worker(objectUrl, { name: definition.name });
