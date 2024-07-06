@@ -21,7 +21,6 @@ class VoxelsRenderableFactoryCpuWorker extends VoxelsRenderableFactoryCpu {
             let factory: VoxelsRenderableFactoryCpu['serializableFactory'];
 
             const workerDefinition: WorkerDefinition = {
-                name: 'voxels-renderable-cpu-worker',
                 commonCode: `const factory = ${this.serialize()};`,
                 tasks: {
                     buildBuffer: (voxelsChunkData: VoxelsChunkData) => {
@@ -34,7 +33,7 @@ class VoxelsRenderableFactoryCpuWorker extends VoxelsRenderableFactoryCpu {
                 },
             };
 
-            this.workersPool = new DedicatedWorkersPool(this.workersPoolSize, workerDefinition);
+            this.workersPool = new DedicatedWorkersPool('voxels-renderable-cpu-worker', this.workersPoolSize, workerDefinition);
         }
 
         return this.workersPool.submitTask('buildBuffer', voxelsChunkData);

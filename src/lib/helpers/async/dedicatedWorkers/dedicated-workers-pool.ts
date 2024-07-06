@@ -9,12 +9,12 @@ class DedicatedWorkersPool {
     private readonly name: string;
     public readonly pooledWorkers: PooledDedicatedWorker[] = [];
 
-    public constructor(poolSize: number, workerDefinition: WorkerDefinition) {
-        this.name = workerDefinition.name;
+    public constructor(name: string, poolSize: number, workerDefinition: WorkerDefinition) {
+        this.name = name;
 
         for (let i = 0; i < poolSize; i++) {
             this.pooledWorkers.push({
-                dedicatedWorker: new DedicatedWorker(workerDefinition),
+                dedicatedWorker: new DedicatedWorker(`${name} (${i})`, workerDefinition),
                 pendingPromisesCount: 0,
             });
         }
