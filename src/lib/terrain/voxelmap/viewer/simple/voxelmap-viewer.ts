@@ -45,6 +45,7 @@ type StoredPatchRenderable = {
 
 class VoxelmapViewer extends VoxelmapViewerBase {
     public readonly computationOptions: ComputationOptions;
+    public readonly maxPatchesComputedInParallel: number;
 
     private readonly promiseThrottler: PromisesQueue;
     private readonly patchFactory: PatchFactoryBase;
@@ -69,19 +70,18 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             threadsCount: 3,
         };
 
-        let maxPatchesComputedInParallel: number;
         if (this.computationOptions.method === EComputationMethod.CPU_MONOTHREADED) {
             this.patchFactory = new PatchFactoryCpu(voxelsMaterialsList, voxelsChunksSize);
-            maxPatchesComputedInParallel = 1;
+            this.maxPatchesComputedInParallel = 1;
         } else if (this.computationOptions.method === EComputationMethod.CPU_MULTITHREADED) {
             this.patchFactory = new PatchFactoryCpuWorker(voxelsMaterialsList, voxelsChunksSize, this.computationOptions.threadsCount);
-            maxPatchesComputedInParallel = this.computationOptions.threadsCount;
+            this.maxPatchesComputedInParallel = this.computationOptions.threadsCount;
         } else {
             this.patchFactory = new PatchFactoryGpuSequential(voxelsMaterialsList, voxelsChunksSize);
-            maxPatchesComputedInParallel = 1;
+            this.maxPatchesComputedInParallel = 1;
         }
 
-        this.promiseThrottler = new PromisesQueue(maxPatchesComputedInParallel);
+        this.promiseThrottler = new PromisesQueue(this.maxPatchesComputedInParallel);
     }
 
     public doesPatchRequireVoxelsData(id: THREE.Vector3Like): boolean {
