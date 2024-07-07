@@ -1,3 +1,4 @@
+export { PromisesQueue } from './helpers/async/promises-queue';
 export { ELogLevel, setVerbosity } from './helpers/logger';
 export type { IHeightmap, IHeightmapCoords, IHeightmapSample } from './terrain/heightmap/i-heightmap';
 export { TerrainViewer } from './terrain/terrain-viewer';
@@ -7,7 +8,9 @@ export {
     type VoxelmapViewerAutonomousOptions,
 } from './terrain/voxelmap/viewer/autonomous/voxelmap-viewer-autonomous';
 export {
+    EComputationMethod,
     VoxelmapViewer,
+    type ComputationOptions,
     type ComputationStatus,
     type VoxelmapViewerOptions,
     type VoxelsChunkData,
