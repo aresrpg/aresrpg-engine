@@ -1,7 +1,6 @@
 import type * as THREE from 'three';
 
-import { TerrainViewer, type IHeightmap, type IVoxelMap } from '../lib';
-import { VoxelmapViewerAutonomous } from '../lib/terrain/voxelmap/viewer/autonomous/voxelmap-viewer-autonomous';
+import { TerrainViewer, VoxelmapViewerAutonomous, type IHeightmap, type IVoxelMap } from '../lib';
 
 import { TestBase } from './test-base';
 

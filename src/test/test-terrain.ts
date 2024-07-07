@@ -1,9 +1,14 @@
 import * as THREE from 'three';
 
-import { TerrainViewer, VoxelmapViewer, type IHeightmap, type IVoxelMap } from '../lib';
-import { PromisesQueue } from '../lib/helpers/async/promises-queue';
-import { VoxelmapVisibilityComputer } from '../lib/terrain/voxelmap/voxelmap-visibility-computer';
-import { EComputationMethod } from '../lib/terrain/voxelmap/viewer/simple/voxelmap-viewer';
+import {
+    EComputationMethod,
+    PromisesQueue,
+    TerrainViewer,
+    VoxelmapViewer,
+    VoxelmapVisibilityComputer,
+    type IHeightmap,
+    type IVoxelMap,
+} from '../lib';
 
 import { TestBase } from './test-base';
 
@@ -12,7 +17,7 @@ class TestTerrain extends TestBase {
 
     private readonly voxelmapViewer: VoxelmapViewer;
     private readonly voxelmapVisibilityComputer: VoxelmapVisibilityComputer;
-    private readonly promisesQueue:PromisesQueue;
+    private readonly promisesQueue: PromisesQueue;
 
     private readonly map: IVoxelMap;
 
