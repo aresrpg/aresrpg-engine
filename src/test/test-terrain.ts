@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { TerrainViewer, VoxelmapViewer, type IHeightmap, type IVoxelMap } from '../lib';
 import { PromisesQueue } from '../lib/helpers/async/promises-queue';
 import { VoxelmapVisibilityComputer } from '../lib/terrain/voxelmap/voxelmap-visibility-computer';
+import { EComputationMethod } from '../lib/terrain/voxelmap/viewer/simple/voxelmap-viewer';
 
 import { TestBase } from './test-base';
 
@@ -11,7 +12,7 @@ class TestTerrain extends TestBase {
 
     private readonly voxelmapViewer: VoxelmapViewer;
     private readonly voxelmapVisibilityComputer: VoxelmapVisibilityComputer;
-    private readonly promisesQueue = new PromisesQueue(5);
+    private readonly promisesQueue:PromisesQueue;
 
     private readonly map: IVoxelMap;
 
@@ -22,10 +23,15 @@ class TestTerrain extends TestBase {
         const minChunkIdY = Math.floor(map.minAltitude / chunkSize.y);
         const maxChunkIdY = Math.floor(map.maxAltitude / chunkSize.y);
 
-        this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, map.voxelMaterialsList, { patchSize: chunkSize });
+        this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, map.voxelMaterialsList, {
+            patchSize: chunkSize,
+            computationOptions: {
+                method: EComputationMethod.CPU_MULTITHREADED,
+                threadsCount: 4,
+            },
+        });
         this.terrainViewer = new TerrainViewer(map, this.voxelmapViewer);
-
-        // this.terrainViewer.parameters.lod.enabled = false;
+        this.terrainViewer.parameters.lod.enabled = false;
         this.scene.add(this.terrainViewer.container);
 
         this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(
@@ -35,6 +41,8 @@ class TestTerrain extends TestBase {
         );
 
         this.map = map;
+
+        this.promisesQueue = new PromisesQueue(this.voxelmapViewer.maxPatchesComputedInParallel + 5);
     }
 
     protected override showMapPortion(box: THREE.Box3): void {
