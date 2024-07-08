@@ -39,7 +39,7 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
         const cstVoxelAo = 'VOXELS_AO';
         const cstVoxelNoise = 'VOXELS_NOISE';
         const cstVoxelRounded = 'VOXELS_ROUNDED';
-        const cstVoxelGrid = "VOXELS_GRID";
+        const cstVoxelGrid = 'VOXELS_GRID';
 
         const phongMaterial = new THREE.MeshPhongMaterial();
         phongMaterial.shininess = 0;
