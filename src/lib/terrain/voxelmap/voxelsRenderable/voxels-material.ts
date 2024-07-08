@@ -14,6 +14,8 @@ type VoxelsMaterialUniforms = {
     readonly uAoStrength: { value: number };
     readonly uAoSpread: { value: number };
     readonly uSmoothEdgeRadius: { value: number };
+    readonly uGridThickness: { value: number };
+    readonly uGridColor: { value: THREE.Vector3 };
 };
 
 type VoxelsMaterial = THREE.Material & {
