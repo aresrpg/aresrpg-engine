@@ -54,7 +54,7 @@ abstract class VoxelsRenderableFactoryBase {
             uAoSpread: { value: 0 },
             uSmoothEdgeRadius: { value: 0 },
             uGridThickness: { value: 0.02 },
-            uGridColor: { value: new THREE.Vector3(-0.2, -0.2, -0.2)},
+            uGridColor: { value: new THREE.Vector3(-0.2, -0.2, -0.2) },
         };
         this.uniformsTemplate.uTexture.value = this.texture;
     }
