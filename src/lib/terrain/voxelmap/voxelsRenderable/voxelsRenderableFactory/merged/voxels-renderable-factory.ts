@@ -39,6 +39,8 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
         const cstVoxelAo = 'VOXELS_AO';
         const cstVoxelNoise = 'VOXELS_NOISE';
         const cstVoxelRounded = 'VOXELS_ROUNDED';
+        const cstVoxelGrid = "VOXELS_GRID";
+
         const phongMaterial = new THREE.MeshPhongMaterial();
         phongMaterial.shininess = 0;
         const material = phongMaterial as unknown as VoxelsMaterialTemp;
@@ -48,6 +50,7 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
         material.defines[cstVoxelAo] = 1;
         material.defines[cstVoxelNoise] = 1;
         material.defines[cstVoxelRounded] = 1;
+        // material.defines[cstVoxelGrid] = 1;
         material.onBeforeCompile = parameters => {
             parameters.uniforms = {
                 ...parameters.uniforms,
@@ -59,9 +62,9 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
 in uint ${VoxelsRenderableFactory.data1AttributeName};
 in uint ${VoxelsRenderableFactory.data2AttributeName};
 
-#if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise})
+#if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise}) || defined(${cstVoxelGrid})
 out vec2 vUv;
-#endif // ${cstVoxelRounded} || ${cstVoxelNoise}
+#endif // ${cstVoxelRounded} || ${cstVoxelNoise} || ${cstVoxelGrid}
 
 #ifdef ${cstVoxelRounded}
 out vec2 vEdgeRoundness;
@@ -92,7 +95,7 @@ void main() {`,
     vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
     vec3 transformed = modelPosition;
     
-#if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise})
+#if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise}) || defined(${cstVoxelGrid})
     const vec2 uvs[] = vec2[](
             vec2(0,0),
             vec2(0,1),
@@ -100,7 +103,7 @@ void main() {`,
             vec2(1,1)
         );
     vUv = uvs[vertexId];
-#endif // ${cstVoxelRounded} || ${cstVoxelNoise}
+#endif // ${cstVoxelRounded} || ${cstVoxelNoise} || ${cstVoxelGrid}
 
 #ifdef ${cstVoxelRounded}
     const vec2 edgeRoundness[] = vec2[](
@@ -149,13 +152,18 @@ uniform float uSmoothEdgeRadius;
 uniform uint uSmoothEdgeMethod;
 #endif // ${cstVoxelRounded}
 
+#ifdef ${cstVoxelGrid}
+uniform vec3 uGridColor;
+uniform float uGridThickness;
+#endif // ${cstVoxelGrid}
+
 uniform uint uDisplayMode;
 
 uniform mat3 normalMatrix; // from three.js
 
-#if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise})
+#if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise}) || defined(${cstVoxelGrid})
 in vec2 vUv;
-#endif // ${cstVoxelRounded} || ${cstVoxelNoise}
+#endif // ${cstVoxelRounded} || ${cstVoxelNoise} || ${cstVoxelGrid}
 
 #ifdef ${cstVoxelRounded}
 in vec2 vEdgeRoundness;
@@ -215,9 +223,11 @@ void main() {
         diffuseColor.rgb = 0.5 + 0.5 * modelNormal;
     }
 
+#ifdef ${cstVoxelGrid}
     vec2 fromCenter = abs(vUv - 0.5);
-    vec2 isEdge = step(vec2(.49), fromCenter);
-    diffuseColor.rgb -= 0.1 * max(isEdge.x, isEdge.y);
+    vec2 isEdge = step(vec2(0.5 - uGridThickness), fromCenter);
+    diffuseColor.rgb += uGridColor * max(isEdge.x, isEdge.y);
+#endif // ${cstVoxelGrid}
 
 #ifdef ${cstVoxelNoise}
     diffuseColor.rgb += computeNoise();
