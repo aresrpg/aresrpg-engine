@@ -16,16 +16,6 @@ class VertexData2Encoder {
         );
     }
 
-    public wgslEncodeVoxelData(
-        voxelMaterialIdVarname: string,
-        faceNoiseIdVarname: string,
-        normalIdVarname: string,
-        uvRightIdVarname: string
-    ): string {
-        return `(${this.voxelMaterialId.wgslEncode(voxelMaterialIdVarname)} + ${this.faceNoiseId.wgslEncode(faceNoiseIdVarname)}
-        + ${this.normalId.wgslEncode(normalIdVarname)} + ${this.uvRightId.wgslEncode(uvRightIdVarname)})`;
-    }
-
     public serialize(): string {
         return `{
         voxelMaterialId: ${this.voxelMaterialId.serialize()},
