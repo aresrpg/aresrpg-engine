@@ -8,6 +8,7 @@ type FaceData = {
     readonly voxelMaterialId: number;
     readonly faceType: Cube.FaceType;
     readonly faceId: number;
+    readonly faceNoiseId: number;
     readonly verticesData: [VertexData, VertexData, VertexData, VertexData];
 };
 
@@ -43,11 +44,34 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                 buffer: new Uint32Array(bufferLength),
                 verticesCount: 0,
             };
+            const faceVerticesData = new Uint32Array(uint32PerVertex * 4);
+
+            const registerFace = (faceData: FaceData) => {
+                faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
+                    faceVerticesData[2 * faceVertexIndex + 0] = this.vertexData1Encoder.encode(
+                        faceData.voxelLocalPosition,
+                        faceVertexData.localPosition,
+                        faceData.faceId,
+                        faceVertexData.ao,
+                        [faceVertexData.roundnessX, faceVertexData.roundnessY]
+                    );
+                    faceVerticesData[2 * faceVertexIndex + 1] = this.vertexData2Encoder.encode(
+                        faceData.voxelMaterialId,
+                        faceData.faceNoiseId,
+                        this.cube.faces[faceData.faceType].normal.id,
+                        this.cube.faces[faceData.faceType].uvRight.id
+                    );
+                });
+
+                for (const index of this.cube.faceIndices) {
+                    const vertexIndex = uint32PerVertex * bufferData.verticesCount++;
+                    bufferData.buffer[vertexIndex] = faceVerticesData[2 * index + 0]!;
+                    bufferData.buffer[vertexIndex + 1] = faceVerticesData[2 * index + 1]!;
+                }
+            };
 
             let faceId = 0;
-            const faceVerticesData = new Uint32Array(uint32PerVertex * 4);
             const voxelsChunkCache = this.buildLocalMapCache(voxelsChunkData);
-
             const localPosition = { x: 0, y: 0, z: 0 };
             for (localPosition.z = 1; localPosition.z < voxelsChunkCache.size.z - 1; localPosition.z++) {
                 for (localPosition.y = 1; localPosition.y < voxelsChunkCache.size.y - 1; localPosition.y++) {
@@ -75,6 +99,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                                 voxelMaterialId,
                                 faceType: face.type,
                                 faceId: face.id,
+                                faceNoiseId: faceId++ % this.vertexData2Encoder.faceNoiseId.maxValue,
                                 verticesData: face.vertices.map((faceVertex: Cube.FaceVertex): VertexData => {
                                     let ao = 0;
                                     const [a, b, c] = faceVertex.shadowingNeighbourVoxels.map(neighbourVoxel =>
@@ -104,29 +129,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                                 }) as [VertexData, VertexData, VertexData, VertexData],
                             };
 
-                            const faceNoiseId = faceId++ % this.vertexData2Encoder.faceNoiseId.maxValue;
-
-                            faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
-                                faceVerticesData[2 * faceVertexIndex + 0] = this.vertexData1Encoder.encode(
-                                    faceData.voxelLocalPosition,
-                                    faceVertexData.localPosition,
-                                    faceData.faceId,
-                                    faceVertexData.ao,
-                                    [faceVertexData.roundnessX, faceVertexData.roundnessY]
-                                );
-                                faceVerticesData[2 * faceVertexIndex + 1] = this.vertexData2Encoder.encode(
-                                    faceData.voxelMaterialId,
-                                    faceNoiseId,
-                                    this.cube.faces[faceData.faceType].normal.id,
-                                    this.cube.faces[faceData.faceType].uvRight.id
-                                );
-                            });
-
-                            for (const index of this.cube.faceIndices) {
-                                const vertexIndex = uint32PerVertex * bufferData.verticesCount++;
-                                bufferData.buffer[vertexIndex] = faceVerticesData[2 * index + 0]!;
-                                bufferData.buffer[vertexIndex + 1] = faceVerticesData[2 * index + 1]!;
-                            }
+                            registerFace(faceData);
                         }
                     }
                 }
