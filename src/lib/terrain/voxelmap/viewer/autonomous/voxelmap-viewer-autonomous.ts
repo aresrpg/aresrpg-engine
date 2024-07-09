@@ -2,10 +2,8 @@ import { DisposableMap } from '../../../../helpers/disposable-map';
 import { logger } from '../../../../helpers/logger';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
-import { type VoxelsChunkSize, type IVoxelMap } from '../../i-voxelmap';
-import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-cpu';
-import { PatchFactoryGpuOptimized } from '../../patch/patch-factory/merged/patch-factory-gpu-optimized';
-import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
+import { type IVoxelMap, type VoxelsChunkSize } from '../../i-voxelmap';
+import * as FactoriesMerged from '../../patch/patch-factory/merged/factories';
 import { type PatchFactoryBase } from '../../patch/patch-factory/patch-factory-base';
 import { PatchId } from '../../patch/patch-id';
 import { VoxelmapVisibilityComputer } from '../../voxelmap-visibility-computer';
@@ -50,11 +48,11 @@ class VoxelmapViewerAutonomous extends VoxelmapViewerBase {
 
         let patchFactory: PatchFactoryBase;
         if (computingMode === EPatchComputingMode.CPU_CACHED) {
-            patchFactory = new PatchFactoryCpu(map.voxelMaterialsList, voxelsChunksSize);
+            patchFactory = new FactoriesMerged.PatchFactoryCpu(map.voxelMaterialsList, voxelsChunksSize);
         } else if (computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
-            patchFactory = new PatchFactoryGpuSequential(map.voxelMaterialsList, voxelsChunksSize);
+            patchFactory = new FactoriesMerged.PatchFactoryGpuSequential(map.voxelMaterialsList, voxelsChunksSize);
         } else if (computingMode === EPatchComputingMode.GPU_OPTIMIZED) {
-            patchFactory = new PatchFactoryGpuOptimized(map.voxelMaterialsList, voxelsChunksSize);
+            patchFactory = new FactoriesMerged.PatchFactoryGpuOptimized(map.voxelMaterialsList, voxelsChunksSize);
         } else {
             throw new Error(`Unsupported computing mode "${computingMode}".`);
         }

@@ -4,9 +4,7 @@ import { DisposableMap } from '../../../../helpers/disposable-map';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
 import { type IVoxelMaterial, type VoxelsChunkSize } from '../../i-voxelmap';
-import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-cpu';
-import { PatchFactoryCpuWorker } from '../../patch/patch-factory/merged/patch-factory-cpu-worker';
-import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
+import * as FactoriesMerged from '../../patch/patch-factory/merged/factories';
 import { type PatchFactoryBase } from '../../patch/patch-factory/patch-factory-base';
 import { PatchId } from '../../patch/patch-id';
 import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
@@ -71,13 +69,17 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         };
 
         if (this.computationOptions.method === EComputationMethod.CPU_MONOTHREADED) {
-            this.patchFactory = new PatchFactoryCpu(voxelsMaterialsList, voxelsChunksSize);
+            this.patchFactory = new FactoriesMerged.PatchFactoryCpu(voxelsMaterialsList, voxelsChunksSize);
             this.maxPatchesComputedInParallel = 1;
         } else if (this.computationOptions.method === EComputationMethod.CPU_MULTITHREADED) {
-            this.patchFactory = new PatchFactoryCpuWorker(voxelsMaterialsList, voxelsChunksSize, this.computationOptions.threadsCount);
+            this.patchFactory = new FactoriesMerged.PatchFactoryCpuWorker(
+                voxelsMaterialsList,
+                voxelsChunksSize,
+                this.computationOptions.threadsCount
+            );
             this.maxPatchesComputedInParallel = this.computationOptions.threadsCount;
         } else {
-            this.patchFactory = new PatchFactoryGpuSequential(voxelsMaterialsList, voxelsChunksSize);
+            this.patchFactory = new FactoriesMerged.PatchFactoryGpuSequential(voxelsMaterialsList, voxelsChunksSize);
             this.maxPatchesComputedInParallel = 1;
         }
 
