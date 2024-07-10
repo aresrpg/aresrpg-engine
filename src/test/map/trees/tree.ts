@@ -1,6 +1,7 @@
-import * as THREE from "three";
-import { IHeightmapSample, VoxelsChunkData } from "../../../lib";
-import { EVoxelType, voxelMaterials } from "../materials";
+import * as THREE from 'three';
+
+import { type IHeightmapSample, type VoxelsChunkData } from '../../../lib';
+import { EVoxelType, voxelMaterials } from '../materials';
 
 class Tree {
     public readonly radiusXZ: number;
@@ -15,11 +16,7 @@ class Tree {
         this.radiusXZ = 4;
         const trunkHeight = 6;
 
-        const size = new THREE.Vector3(
-            1 + 2 * this.radiusXZ,
-            trunkHeight + 2 * this.radiusXZ + 1,
-            1 + 2 * this.radiusXZ
-        );
+        const size = new THREE.Vector3(1 + 2 * this.radiusXZ, trunkHeight + 2 * this.radiusXZ + 1, 1 + 2 * this.radiusXZ);
         this.voxels = {
             size,
             isEmpty: false,
@@ -30,7 +27,7 @@ class Tree {
 
         // fill voxels
         for (let iY = 0; iY <= trunkHeight; iY++) {
-            const index = this.buildIndex({ x: this.radiusXZ, y: iY, z: this.radiusXZ })
+            const index = this.buildIndex({ x: this.radiusXZ, y: iY, z: this.radiusXZ });
             this.voxels.data[index] = EVoxelType.TREE_TRUNK + 1;
         }
         const canopeeCenter = new THREE.Vector3(this.radiusXZ, trunkHeight + this.radiusXZ, this.radiusXZ);
@@ -73,13 +70,13 @@ class Tree {
     public getVoxel(position: THREE.Vector3Like): EVoxelType | null {
         const index = this.buildIndex(position);
         const voxel = this.voxels.data[index];
-        if (typeof voxel === "undefined") {
+        if (typeof voxel === 'undefined') {
             throw new Error();
         }
         if (voxel === 0) {
             return null;
         }
-        return voxel - 1 as EVoxelType;
+        return (voxel - 1) as EVoxelType;
     }
 
     public getHeightmapSample(position: THREE.Vector2Like): IHeightmapSample | null {
@@ -90,7 +87,7 @@ class Tree {
         }
         const index = x + z * this.size.x;
         const sample = this.fromAbove[index];
-        if (typeof sample === "undefined") {
+        if (typeof sample === 'undefined') {
             throw new Error();
         }
         return sample;
@@ -104,7 +101,4 @@ class Tree {
     }
 }
 
-export {
-    Tree
-};
-
+export { Tree };

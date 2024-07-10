@@ -2,17 +2,24 @@ import alea from 'alea';
 import { type NoiseFunction2D, createNoise2D } from 'simplex-noise';
 import * as THREE from 'three';
 
-import {
-    type IHeightmap,
-    type IHeightmapCoords,
-    type IHeightmapSample,
-    type ILocalMapData,
-    type IVoxelMap
-} from '../../lib/index';
+import { safeModulo } from '../../lib/helpers/math';
+import { type IHeightmap, type IHeightmapCoords, type IHeightmapSample, type ILocalMapData, type IVoxelMap } from '../../lib/index';
+
 import { EVoxelType, voxelMaterials } from './materials';
 import { TreeRepartition } from './trees/repartition';
 import { Tree } from './trees/tree';
 
+type TreesTextureSample = {
+    readonly heightmapSample: IHeightmapSample;
+    readonly treeRootTextureCoords: THREE.Vector2Like;
+    readonly treeProbability: number;
+};
+
+type TreesTexture = {
+    readonly data: Array<TreesTextureSample | null>;
+    readonly size: number;
+    buildIndex(x: number, y: number): number;
+};
 
 class VoxelMapCacheless implements IVoxelMap, IHeightmap {
     public readonly scaleXZ: number;
@@ -27,8 +34,9 @@ class VoxelMapCacheless implements IVoxelMap, IHeightmap {
 
     private readonly tree = new Tree();
     private readonly treesDensityNoise: NoiseFunction2D;
-    private readonly treesDensityFrequency = 0.002
-    private readonly treesRepartition = new TreeRepartition(200, 2 * this.tree.radiusXZ);
+    private readonly treesDensityFrequency = 0.002;
+    private readonly treesRepartition = new TreeRepartition(150, 2 * this.tree.radiusXZ);
+    private readonly treesTexture: TreesTexture;
 
     private thresholdWater: number;
     private thresholdSand: number;
@@ -52,6 +60,53 @@ class VoxelMapCacheless implements IVoxelMap, IHeightmap {
         const centerMap = true;
         if (centerMap) {
             this.coordsShift = new THREE.Vector3(2048, altitude, 2048).multiplyScalar(-0.5).floor();
+        }
+
+        this.treesTexture = {
+            data: [],
+            size: this.treesRepartition.size,
+            buildIndex(x: number, y: number): number {
+                return x + y * this.size;
+            },
+        };
+        for (let i = 0; i < this.treesTexture.size * this.treesTexture.size; i++) {
+            this.treesTexture.data.push(null);
+        }
+        const treeSearchFrom = { x: -this.tree.radiusXZ, y: -this.tree.radiusXZ };
+        const treeSearchTo = { x: this.treesTexture.size + this.tree.radiusXZ, y: this.treesTexture.size + this.tree.radiusXZ };
+        for (const tree of this.treesRepartition.getAllTrees(treeSearchFrom, treeSearchTo)) {
+            const treeRootTexturePos = {
+                x: tree.position.x + this.tree.offset.x,
+                y: tree.position.y + this.tree.offset.z,
+            };
+            const treeLocalPos = { x: 0, y: 0 };
+            for (treeLocalPos.y = 0; treeLocalPos.y < this.tree.size.z; treeLocalPos.y++) {
+                for (treeLocalPos.x = 0; treeLocalPos.x < this.tree.size.x; treeLocalPos.x++) {
+                    const treeTexturePos = {
+                        x: treeRootTexturePos.x + treeLocalPos.x,
+                        y: treeRootTexturePos.y + treeLocalPos.y,
+                    };
+                    if (
+                        treeTexturePos.x >= 0 &&
+                        treeTexturePos.y >= 0 &&
+                        treeTexturePos.x < this.treesTexture.size &&
+                        treeTexturePos.y < this.treesTexture.size
+                    ) {
+                        const sample = this.tree.getHeightmapSample(treeLocalPos);
+                        if (sample) {
+                            const index = this.treesTexture.buildIndex(treeTexturePos.x, treeTexturePos.y);
+                            if (this.treesTexture.data[index]) {
+                                throw new Error('Trees cannot overlap');
+                            }
+                            this.treesTexture.data[index] = {
+                                heightmapSample: sample,
+                                treeRootTextureCoords: treeTexturePos,
+                                treeProbability: tree.probability,
+                            };
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -140,23 +195,36 @@ class VoxelMapCacheless implements IVoxelMap, IHeightmap {
         const result = coords.map(coords => {
             let sample = this.sampleHeightmapBaseTerrain(coords.x, coords.z);
 
-            for (let treeWorldPosition of this.getAllTreesForBlock({ x: coords.x, y: coords.z }, { x: coords.x, y: coords.z })) {
-                const treeWorldBasePos = {
-                    x: treeWorldPosition.x + this.tree.offset.x,
-                    y: treeWorldPosition.y + this.tree.offset.y,
-                    z: treeWorldPosition.z + this.tree.offset.z,
-                };
-                const treeLocalPosition = {
-                    x: coords.x - treeWorldBasePos.x,
-                    y: coords.z - treeWorldBasePos.z,
-                };
+            const voxelsWorldCoords = {
+                x: Math.floor(coords.x),
+                z: Math.floor(coords.z),
+            };
+            const voxelTextureCoords = {
+                x: safeModulo(voxelsWorldCoords.x, this.treesTexture.size),
+                z: safeModulo(voxelsWorldCoords.z, this.treesTexture.size),
+            };
+            const textureBaseCoords = {
+                x: this.treesTexture.size * Math.floor(voxelsWorldCoords.x / this.treesTexture.size),
+                z: this.treesTexture.size * Math.floor(voxelsWorldCoords.z / this.treesTexture.size),
+            };
 
-                const treeSample = this.tree.getHeightmapSample(treeLocalPosition);
-                if (treeSample) {
-                    const treeSampleAltitude = treeWorldBasePos.y + treeSample.altitude;
-                    if (sample.altitude < treeSampleAltitude) {
+            const treesTextureSample = this.treesTexture.data[this.treesTexture.buildIndex(voxelTextureCoords.x, voxelTextureCoords.z)];
+            if (typeof treesTextureSample === 'undefined') {
+                throw new Error();
+            }
+            if (treesTextureSample) {
+                const treeRootWorldCoords = {
+                    x: textureBaseCoords.x + treesTextureSample.treeRootTextureCoords.x,
+                    y: 0,
+                    z: textureBaseCoords.z + treesTextureSample.treeRootTextureCoords.y,
+                };
+                treeRootWorldCoords.y = this.sampleHeightmapBaseTerrain(treeRootWorldCoords.x, treeRootWorldCoords.z).altitude;
+
+                const treeSampleAltitude = treeRootWorldCoords.y + treesTextureSample.heightmapSample.altitude;
+                if (sample.altitude < treeSampleAltitude) {
+                    if (this.isThereATree(treeRootWorldCoords, treesTextureSample.treeProbability)) {
                         sample = {
-                            color: treeSample.color,
+                            color: treesTextureSample.heightmapSample.color,
                             altitude: treeSampleAltitude,
                         };
                     }
@@ -207,37 +275,44 @@ class VoxelMapCacheless implements IVoxelMap, IHeightmap {
         }
     }
 
-    private *getAllTreesForBlock(blockStart: THREE.Vector2Like, blockEnd: THREE.Vector2Like): Generator<THREE.Vector3Like> {
-        // then, add trees
+    private getAllTreesForBlock(blockStart: THREE.Vector2Like, blockEnd: THREE.Vector2Like): THREE.Vector3Like[] {
+        const result: THREE.Vector3Like[] = [];
+
         const treeSearchFrom = { x: blockStart.x - this.tree.radiusXZ, y: blockStart.y - this.tree.radiusXZ };
         const treeSearchTo = { x: blockEnd.x + this.tree.radiusXZ, y: blockEnd.y + this.tree.radiusXZ };
         for (const tree of this.treesRepartition.getAllTrees(treeSearchFrom, treeSearchTo)) {
             const worldPos = { x: tree.position.x, y: 0, z: tree.position.y };
-
             const sample = this.sampleHeightmapBaseTerrain(worldPos.x, worldPos.z);
-            let localTreeDensity = 0.5 + 0.5 * this.treesDensityNoise(worldPos.x * this.treesDensityFrequency, worldPos.z * this.treesDensityFrequency);
-            if (sample.altitude < this.thresholdWater) {
-                localTreeDensity -= 1;
-            } else if (sample.altitude < this.thresholdSand) {
-                const distanceToWater = (sample.altitude - this.thresholdWater) / (this.thresholdSand - this.thresholdWater);
-                if (distanceToWater < 0.1) {
-                    localTreeDensity += 0.25;
-                } else {
-                    localTreeDensity -= Math.pow(1 - distanceToWater, 0.5);
-                }
-            } else if (sample.altitude < this.thresholdGrass) {
-                localTreeDensity -= 0;
-            } else if (sample.altitude < this.thresholdRock) {
-                localTreeDensity -= 0.75;
-            } else {
-                localTreeDensity -= 1;
-            }
+            worldPos.y = sample.altitude;
 
-            if (tree.probability > 1 - localTreeDensity) {
-                worldPos.y = sample.altitude;
-                yield worldPos;
+            if (this.isThereATree(worldPos, tree.probability)) {
+                result.push(worldPos);
             }
         }
+
+        return result;
+    }
+
+    private isThereATree(worldPos: THREE.Vector3Like, treeProbability: number): boolean {
+        let localTreeDensity =
+            0.5 + 0.5 * this.treesDensityNoise(worldPos.x * this.treesDensityFrequency, worldPos.z * this.treesDensityFrequency);
+        if (worldPos.y < this.thresholdWater) {
+            localTreeDensity -= 1;
+        } else if (worldPos.y < this.thresholdSand) {
+            const distanceToWater = (worldPos.y - this.thresholdWater) / (this.thresholdSand - this.thresholdWater);
+            if (distanceToWater < 0.1) {
+                localTreeDensity += 0.25;
+            } else {
+                localTreeDensity -= Math.pow(1 - distanceToWater, 0.5);
+            }
+        } else if (worldPos.y < this.thresholdGrass) {
+            localTreeDensity -= 0;
+        } else if (worldPos.y < this.thresholdRock) {
+            localTreeDensity -= 0.75;
+        } else {
+            localTreeDensity -= 1;
+        }
+        return treeProbability > 1 - localTreeDensity;
     }
 }
 
