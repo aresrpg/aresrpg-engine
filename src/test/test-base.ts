@@ -17,7 +17,7 @@ abstract class TestBase {
 
     private started: boolean = false;
 
-    private update: VoidFunction = () => {};
+    private update: VoidFunction = () => { };
 
     public constructor(voxelMap: IHeightmap) {
         this.stats = new Stats();
@@ -53,7 +53,10 @@ abstract class TestBase {
         if (showWholeMap) {
             const size = 1000;
             setTimeout(() => {
-                this.showMapPortion(new THREE.Box3(new THREE.Vector3(-size, -size, -size), new THREE.Vector3(size, size, size)));
+                this.showMapPortion(new THREE.Box3(
+                    new THREE.Vector3(-size, voxelMap.minAltitude - 1, -size),
+                    new THREE.Vector3(size, voxelMap.maxAltitude, size))
+                );
             }, 0);
         } else {
             const playerViewRadius = 1000;
@@ -115,7 +118,7 @@ abstract class TestBase {
         }
 
         setInterval(() => {
-            this.terrainViewer.setLod(this.camera.position, 100, 8000);
+            this.terrainViewer.setLod(this.camera.position, 100, 6000);
         }, 200);
     }
 
