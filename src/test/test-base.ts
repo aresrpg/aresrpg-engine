@@ -17,7 +17,7 @@ abstract class TestBase {
 
     private started: boolean = false;
 
-    private update: VoidFunction = () => { };
+    private update: VoidFunction = () => {};
 
     public constructor(voxelMap: IHeightmap) {
         this.stats = new Stats();
@@ -51,15 +51,17 @@ abstract class TestBase {
 
         const showWholeMap = false;
         if (showWholeMap) {
-            const size = 1000;
+            const size = 300;
             setTimeout(() => {
-                this.showMapPortion(new THREE.Box3(
-                    new THREE.Vector3(-size, voxelMap.minAltitude - 1, -size),
-                    new THREE.Vector3(size, voxelMap.maxAltitude, size))
+                this.showMapPortion(
+                    new THREE.Box3(
+                        new THREE.Vector3(-size, voxelMap.minAltitude - 1, -size),
+                        new THREE.Vector3(size, voxelMap.maxAltitude, size)
+                    )
                 );
             }, 0);
         } else {
-            const playerViewRadius = 1000;
+            const playerViewRadius = 500;
 
             const playerContainer = new THREE.Group();
             playerContainer.position.x = 0;

@@ -1,5 +1,6 @@
-import * as THREE from "three";
-import { type IVoxelMaterial } from "../../lib";
+import * as THREE from 'three';
+
+import { type IVoxelMaterial } from '../../lib';
 
 enum EVoxelType {
     ROCK,
@@ -21,7 +22,4 @@ const voxelMaterials: Record<EVoxelType, IVoxelMaterial> = [
     { color: new THREE.Color('#007A00') },
 ];
 
-export {
-    EVoxelType,
-    voxelMaterials
-};
+export { EVoxelType, voxelMaterials };

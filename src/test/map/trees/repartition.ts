@@ -8,7 +8,7 @@ type TreePosition = {
 };
 
 class TreeRepartition {
-    private readonly size: number;
+    public readonly size: number;
     private readonly data: Uint8Array;
 
     public constructor(patternSize: number, minSpacing: number) {
@@ -17,7 +17,7 @@ class TreeRepartition {
 
         const itemSurface = minSpacing * minSpacing;
 
-        const treesCount = this.data.length / itemSurface * 2000;
+        const treesCount = (this.data.length / itemSurface) * 1000;
         for (let i = 0; i < treesCount; i++) {
             const x = Math.floor(this.size * Math.random());
             const z = Math.floor(this.size * Math.random());
@@ -32,7 +32,7 @@ class TreeRepartition {
                 for (let iNX = neighbourXFrom; iNX < neighbourXTo && !isTooClose; iNX++) {
                     const index = this.buildIndex(safeModulo(iNX, this.size), safeModulo(iNZ, this.size));
                     const neighbour = this.data[index];
-                    if (typeof neighbour === "undefined") {
+                    if (typeof neighbour === 'undefined') {
                         throw new Error();
                     }
                     if (neighbour > 0) {
@@ -74,7 +74,7 @@ class TreeRepartition {
 
         const index = this.buildIndex(x, z);
         const value = this.data[index];
-        if (typeof value === "undefined") {
+        if (typeof value === 'undefined') {
             throw new Error();
         }
         return value / 256;
@@ -85,6 +85,4 @@ class TreeRepartition {
     }
 }
 
-
 export { TreeRepartition, type TreePosition };
-
