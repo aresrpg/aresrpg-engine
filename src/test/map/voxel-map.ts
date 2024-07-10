@@ -7,30 +7,14 @@ import {
     type IHeightmapCoords,
     type IHeightmapSample,
     type ILocalMapData,
-    type IVoxelMap,
-    type IVoxelMaterial,
-} from '../lib/index';
-
-enum EVoxelType {
-    ROCK,
-    GRASS,
-    SNOW,
-    WATER,
-    SAND,
-}
+    type IVoxelMap
+} from '../../lib/index';
+import { EVoxelType, voxelMaterials } from './materials';
 
 interface IVoxel {
     readonly position: THREE.Vector3Like;
     readonly materialId: number;
 }
-
-const voxelMaterials: Record<EVoxelType, IVoxelMaterial> = [
-    { color: new THREE.Color('#ABABAB') },
-    { color: new THREE.Color('#00B920') },
-    { color: new THREE.Color('#E5E5E5') },
-    { color: new THREE.Color('#0055E2') },
-    { color: new THREE.Color('#DCBE28') },
-];
 
 type StoredVoxel = {
     readonly y: number;
