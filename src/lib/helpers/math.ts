@@ -15,4 +15,8 @@ function nextPowerOfTwo(x: number): number {
     throw new Error();
 }
 
-export { nextPowerOfTwo };
+function safeModulo(n: number, m: number): number {
+    return ((n % m) + m) % m;
+}
+
+export { nextPowerOfTwo, safeModulo };
