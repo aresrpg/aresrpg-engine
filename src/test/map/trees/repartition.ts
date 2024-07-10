@@ -1,4 +1,6 @@
-import * as THREE from "three";
+import type * as THREE from 'three';
+
+import { safeModulo } from '../../../lib/helpers/math';
 
 type TreePosition = {
     position: THREE.Vector2Like;
@@ -28,7 +30,7 @@ class TreeRepartition {
             let isTooClose = false;
             for (let iNZ = neighbourZFrom; iNZ < neighbourZTo && !isTooClose; iNZ++) {
                 for (let iNX = neighbourXFrom; iNX < neighbourXTo && !isTooClose; iNX++) {
-                    const index = this.buildIndex(this.safeModulo(iNX, this.size), this.safeModulo(iNZ, this.size));
+                    const index = this.buildIndex(safeModulo(iNX, this.size), safeModulo(iNZ, this.size));
                     const neighbour = this.data[index];
                     if (typeof neighbour === "undefined") {
                         throw new Error();
@@ -67,8 +69,8 @@ class TreeRepartition {
     }
 
     private getTreeProbability(x: number, z: number): number {
-        x = this.safeModulo(x, this.size);
-        z = this.safeModulo(z, this.size);
+        x = safeModulo(x, this.size);
+        z = safeModulo(z, this.size);
 
         const index = this.buildIndex(x, z);
         const value = this.data[index];
@@ -80,10 +82,6 @@ class TreeRepartition {
 
     private buildIndex(x: number, z: number): number {
         return x + this.size * z;
-    }
-
-    private safeModulo(n: number, m: number): number {
-        return ((n % m) + m) % m;
     }
 }
 
