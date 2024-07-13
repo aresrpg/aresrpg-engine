@@ -7,6 +7,7 @@ import * as THREE from '../../three-usage';
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapNodeMesh } from './heightmap-node-mesh';
 import { type IHeightmap, type IHeightmapCoords } from './i-heightmap';
+import { Geometry } from "./geometry";
 
 type Children = {
     readonly mm: HeightmapNode;
@@ -294,11 +295,16 @@ class HeightmapNode {
             }
             this.selfGpuMemoryBytes += geometry.getIndex()!.array.byteLength;
 
+            const levelScaling = 1 << this.id.level;
+            const voxelRatio = 2;
+            const scaling = levelScaling * voxelRatio;
+
             const mesh = new THREE.Mesh(geometry, this.root.material);
             mesh.name = `Heightmap node mesh ${this.id.asString()}`;
             mesh.receiveShadow = true;
             mesh.castShadow = true;
             const firstVoxelPosition = this.id.box.min;
+            mesh.scale.set(scaling, 1, scaling);
             mesh.position.set(firstVoxelPosition.x, 0, firstVoxelPosition.y);
             mesh.updateWorldMatrix(false, false);
             return mesh;
@@ -314,34 +320,14 @@ class HeightmapNode {
 
         let template = this.template;
         if (!template) {
-            const geometryData: number[] = [];
-            for (let i = 0; i <= quadsCount; i += 0.5) {
-                // top edge
-                geometryData.push(i * scaling, 0, quadsCount * scaling);
-            }
-            for (let i = quadsCount - 0.5; i >= 0; i -= 0.5) {
-                // right edge
-                geometryData.push(quadsCount * scaling, 0, i * scaling);
-            }
-            for (let i = quadsCount - 0.5; i >= 0; i -= 0.5) {
-                // bottom edge
-                geometryData.push(i * scaling, 0, 0);
-            }
-            for (let i = 0.5; i < quadsCount; i += 0.5) {
-                // left edge
-                geometryData.push(0, 0, i * scaling);
-            }
-            for (let iZ = 1; iZ <= quadsCount - 1; iZ++) {
-                for (let iX = 1; iX <= quadsCount - 1; iX++) {
-                    geometryData.push(iX * scaling, 0, iZ * scaling);
-                }
-            }
-
+            const geometry = new Geometry(quadsCount);
+            const positionsBuffer = geometry.clonePositionsBuffer();
+    
             const sampleCoords: IHeightmapCoords[] = [];
-            for (let i = 0; i < geometryData.length; i += 3) {
+            for (let i = 0; i < positionsBuffer.length; i += 3) {
                 sampleCoords.push({
-                    x: geometryData[i]! + this.id.box.min.x,
-                    z: geometryData[i + 2]! + this.id.box.min.y,
+                    x: positionsBuffer[i]! * scaling + this.id.box.min.x,
+                    z: positionsBuffer[i + 2]! * scaling + this.id.box.min.y,
                 });
             }
 
@@ -362,7 +348,7 @@ class HeightmapNode {
 
             template = {
                 heightmapSamples: processedSamples,
-                positionsBuffer: new Float32Array(geometryData),
+                positionsBuffer,
             };
             this.template = template;
         }
