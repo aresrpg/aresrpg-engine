@@ -125,6 +125,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                 const voxelsRenderable = await storedPatch.computationTask.start();
                 if (voxelsRenderable && storedPatch.isVisible) {
                     this.container.add(voxelsRenderable.container);
+                    this.notifyChange();
                 }
 
                 storedPatch.dispose = () => {
@@ -132,6 +133,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                         const container = voxelsRenderable.container;
                         if (container.parent) {
                             container.parent.remove(container);
+                            this.notifyChange();
                         }
                         voxelsRenderable.dispose();
                     }
@@ -189,6 +191,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                 });
             }
         }
+
+        this.notifyChange();
     }
 
     public override dispose(): void {

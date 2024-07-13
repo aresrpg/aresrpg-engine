@@ -48,6 +48,8 @@ abstract class VoxelmapViewerBase {
     public readonly chunkSize: VoxelsChunkSize;
     public readonly patchSize: THREE.Vector3Like;
 
+    public readonly onChange: VoidFunction[] = [];
+
     private maxPatchesInCache = 200;
     private garbageCollectionHandle: number | null;
 
@@ -150,6 +152,12 @@ abstract class VoxelmapViewerBase {
         }
 
         return result;
+    }
+
+    protected notifyChange(): void {
+        for (const callback of this.onChange) {
+            callback();
+        }
     }
 
     protected dispose(): void {

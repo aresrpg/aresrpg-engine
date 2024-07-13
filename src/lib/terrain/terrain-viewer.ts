@@ -41,6 +41,10 @@ class TerrainViewer {
 
         this.heightmapViewer = new HeightmapViewer(map, voxelmapViewer.chunkSize.xz);
         this.container.add(this.heightmapViewer.container);
+
+        this.voxelmapViewer.onChange.push(() => {
+            this.heightmapViewerNeedsUpdate = true;
+        });
     }
 
     /**
