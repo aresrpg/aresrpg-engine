@@ -109,10 +109,10 @@ class VoxelmapViewerAutonomous extends VoxelmapViewerBase {
             patchStart.multiplyVectors(requestedPatch.id, this.patchSize);
             const patch = this.getPatch(patchStart);
             patch.visible = true;
-            return patch.ready();
+            const patchReadyPromise = patch.ready();
+            patchReadyPromise.then(() => this.notifyChange());
+            return patchReadyPromise;
         });
-
-        // this.heightmapViewerNeedsUpdate = true;
 
         await Promise.all(promises);
     }
@@ -124,6 +124,7 @@ class VoxelmapViewerAutonomous extends VoxelmapViewerBase {
     public clear(): void {
         this.patchesStore.clear();
         this.container.clear();
+        this.notifyChange();
     }
 
     /**
@@ -183,6 +184,8 @@ class VoxelmapViewerAutonomous extends VoxelmapViewerBase {
             }
             this.disposePatch(nextPatchToDelete.id.asString);
         }
+
+        this.notifyChange();
     }
 
     private disposePatch(patchId: string): void {
