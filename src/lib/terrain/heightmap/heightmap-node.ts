@@ -4,10 +4,10 @@ import { logger } from '../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../three-usage';
 
+import { EEdgeTesselation, Geometry } from './geometry';
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapNodeMesh } from './heightmap-node-mesh';
 import { type IHeightmap, type IHeightmapCoords } from './i-heightmap';
-import { Geometry } from "./geometry";
 
 type Children = {
     readonly mm: HeightmapNode;
@@ -319,10 +319,10 @@ class HeightmapNode {
         const scaling = levelScaling * voxelRatio;
 
         let template = this.template;
+        const geometry = new Geometry(quadsCount);
         if (!template) {
-            const geometry = new Geometry(quadsCount);
             const positionsBuffer = geometry.clonePositionsBuffer();
-    
+
             const sampleCoords: IHeightmapCoords[] = [];
             for (let i = 0; i < positionsBuffer.length; i += 3) {
                 sampleCoords.push({
@@ -353,102 +353,41 @@ class HeightmapNode {
             this.template = template;
         }
 
-        const buildInnerIndex = (x: number, y: number) => 4 * 2 * quadsCount + x + y * (quadsCount - 1);
+        const positionsBuffer = new Float32Array(template.positionsBuffer);
 
-        const indexData: number[] = [];
-        for (let iX = 0; iX < quadsCount - 2; iX++) {
-            for (let iY = 0; iY < quadsCount - 2; iY++) {
-                const mm = buildInnerIndex(iX + 0, iY + 0);
-                const mp = buildInnerIndex(iX + 0, iY + 1);
-                const pm = buildInnerIndex(iX + 1, iY + 0);
-                const pp = buildInnerIndex(iX + 1, iY + 1);
-                indexData.push(mm, pp, pm, mm, mp, pp);
-            }
-        }
+        const indices = geometry.getIndices({
+            up: edgesType.up === EEdgeType.TESSELATED ? EEdgeTesselation.TESSELATED : EEdgeTesselation.SIMPLE,
+            down: edgesType.down === EEdgeType.TESSELATED ? EEdgeTesselation.TESSELATED : EEdgeTesselation.SIMPLE,
+            left: edgesType.left === EEdgeType.TESSELATED ? EEdgeTesselation.TESSELATED : EEdgeTesselation.SIMPLE,
+            right: edgesType.right === EEdgeType.TESSELATED ? EEdgeTesselation.TESSELATED : EEdgeTesselation.SIMPLE,
+        });
 
         const limitDrop = -20;
         const marginSize = 2;
 
-        const positionsBuffer = new Float32Array(template.positionsBuffer);
-
-        const buildEdge = (
-            edgeType: EEdgeType,
-            edgeIndexFrom: number,
-            innerIndexFrom: number,
-            innerIndexStep: number,
-            invert: boolean,
-            margin: THREE.Vector2Like
-        ) => {
-            if (edgeType === EEdgeType.TESSELATED) {
-                for (let iEdge = 0; iEdge < 2 * quadsCount; iEdge += 2) {
-                    const iEdgeIndex = edgeIndexFrom + iEdge;
-                    const e1 = iEdgeIndex;
-                    const e2 = iEdgeIndex + 1;
-                    const e3 = (iEdgeIndex + 2) % (8 * quadsCount);
-
-                    if (iEdge === 0 || iEdge === 2 * quadsCount - 2) {
-                        const i1 = iEdge === 0 ? innerIndexFrom : innerIndexFrom + (quadsCount - 2) * innerIndexStep;
-                        indexData.push(e1, e2, i1, e2, e3, i1);
-                    } else {
-                        const i1 = innerIndexFrom + (iEdge / 2 - 1) * innerIndexStep;
-                        const i2 = i1 + innerIndexStep;
-                        indexData.push(i1, e1, e2, i1, e2, i2, e2, e3, i2);
-                    }
-                }
-            } else {
-                for (let iEdge = 0; iEdge < 2 * quadsCount; iEdge += 2) {
-                    const iEdgeIndex = edgeIndexFrom + iEdge;
-                    const e1 = iEdgeIndex;
-                    const e2 = (iEdgeIndex + 2) % (8 * quadsCount);
-
-                    if (iEdge === 0 || iEdge === 2 * quadsCount - 2) {
-                        const i1 = iEdge === 0 ? innerIndexFrom : innerIndexFrom + (quadsCount - 2) * innerIndexStep;
-                        indexData.push(e1, e2, i1);
-                    } else {
-                        const i1 = innerIndexFrom + (iEdge / 2) * innerIndexStep;
-                        const i2 = i1 - innerIndexStep;
-
-                        if (invert) {
-                            indexData.push(i2, e1, e2, e2, i1, i2);
-                        } else {
-                            indexData.push(e1, e2, i1, e1, i1, i2);
-                        }
-                    }
-                }
+        const applyCornerLimit = (cornerType: ECornerType, cornerIndex: number) => {
+            if (cornerType === ECornerType.LIMIT) {
+                positionsBuffer[3 * cornerIndex + 1]! = limitDrop;
             }
+        };
+        applyCornerLimit(edgesType.upLeft, indices.corners.upLeft);
+        applyCornerLimit(edgesType.upRight, indices.corners.upRight);
+        applyCornerLimit(edgesType.downRight, indices.corners.downRight);
+        applyCornerLimit(edgesType.downLeft, indices.corners.downLeft);
 
+        const applyEdgeLimit = (edgeType: EEdgeType, edgeIndices: ReadonlyArray<number>, margin: THREE.Vector2Like) => {
             if (edgeType === EEdgeType.LIMIT) {
-                for (let iEdge = 0; iEdge <= 2 * quadsCount; iEdge++) {
-                    const iEdgeIndex = (edgeIndexFrom + iEdge) % (8 * quadsCount);
-                    positionsBuffer[3 * iEdgeIndex + 0]! += marginSize * margin.x;
-                    positionsBuffer[3 * iEdgeIndex + 1]! = limitDrop;
-                    positionsBuffer[3 * iEdgeIndex + 0]! += marginSize * margin.y;
+                for (const index of edgeIndices) {
+                    positionsBuffer[3 * index + 0]! += marginSize * margin.x;
+                    positionsBuffer[3 * index + 1]! = limitDrop;
+                    positionsBuffer[3 * index + 0]! += marginSize * margin.y;
                 }
             }
         };
-
-        const mpIndex = 0 * (2 * quadsCount);
-        const ppIndex = 1 * (2 * quadsCount);
-        const pmIndex = 2 * (2 * quadsCount);
-        const mmIndex = 3 * (2 * quadsCount);
-
-        buildEdge(edgesType.up, mpIndex, buildInnerIndex(0, quadsCount - 2), 1, true, { x: 0, y: 1 });
-        buildEdge(edgesType.right, ppIndex, buildInnerIndex(quadsCount - 2, quadsCount - 2), -(quadsCount - 1), false, { x: 1, y: 0 });
-        buildEdge(edgesType.down, pmIndex, buildInnerIndex(quadsCount - 2, 0), -1, true, { x: 0, y: -1 });
-        buildEdge(edgesType.left, mmIndex, buildInnerIndex(0, 0), quadsCount - 1, false, { x: -1, y: 0 });
-
-        if (edgesType.upLeft === ECornerType.LIMIT) {
-            positionsBuffer[3 * mpIndex + 1]! = limitDrop;
-        }
-        if (edgesType.upRight === ECornerType.LIMIT) {
-            positionsBuffer[3 * ppIndex + 1]! = limitDrop;
-        }
-        if (edgesType.downRight === ECornerType.LIMIT) {
-            positionsBuffer[3 * pmIndex + 1]! = limitDrop;
-        }
-        if (edgesType.downLeft === ECornerType.LIMIT) {
-            positionsBuffer[3 * mmIndex + 1]! = limitDrop;
-        }
+        applyEdgeLimit(edgesType.up, indices.edges.up, { x: 0, y: 1 });
+        applyEdgeLimit(edgesType.down, indices.edges.down, { x: 0, y: -1 });
+        applyEdgeLimit(edgesType.right, indices.edges.right, { x: 1, y: 0 });
+        applyEdgeLimit(edgesType.left, indices.edges.left, { x: -1, y: 0 });
 
         return processAsap(template.heightmapSamples, samples => {
             for (let i = 0; i < samples.altitudes.length; i++) {
@@ -456,7 +395,7 @@ class HeightmapNode {
                 positionsBuffer[3 * i + 1]! += sampleAltitude;
             }
 
-            return { positions: positionsBuffer, indices: indexData, colors: samples.colorsBuffer };
+            return { positions: positionsBuffer, indices: indices.buffer, colors: samples.colorsBuffer };
         });
     }
 
