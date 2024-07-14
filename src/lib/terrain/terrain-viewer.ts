@@ -1,7 +1,7 @@
+import { vec3ToString } from '../helpers/string';
 import * as THREE from '../three-usage';
 
-import { HeightmapViewer, type HeightmapStatistics } from './heightmap/heightmap-viewer';
-import { type IHeightmap } from './heightmap/i-heightmap';
+import { type HeightmapViewer, type HeightmapStatistics } from './heightmap/heightmap-viewer';
 import { type VoxelmapStatistics, type VoxelmapViewerBase } from './voxelmap/viewer/voxelmap-viewer-base';
 
 type TerrainStatistics = {
@@ -30,16 +30,22 @@ class TerrainViewer {
     protected readonly heightmapViewer: HeightmapViewer;
     protected heightmapViewerNeedsUpdate: boolean = true;
 
-    public constructor(map: IHeightmap, voxelmapViewer: VoxelmapViewerBase) {
+    public constructor(heightmapViewer: HeightmapViewer, voxelmapViewer: VoxelmapViewerBase) {
         this.container = new THREE.Group();
         this.container.name = 'Terrain container';
         this.container.matrixAutoUpdate = false; // do not always update world matrix in updateMatrixWorld()
         this.container.matrixWorldAutoUpdate = false; // tell the parent to not always call updateMatrixWorld()
 
+        if (voxelmapViewer.chunkSize.xz !== heightmapViewer.basePatchSize) {
+            throw new Error(
+                `Heightmap viewer and voxelmap viewer don't have the same patch size (${heightmapViewer.basePatchSize} and ${voxelmapViewer.chunkSize.xz}).`
+            );
+        }
+
         this.voxelmapViewer = voxelmapViewer;
         this.container.add(this.voxelmapViewer.container);
 
-        this.heightmapViewer = new HeightmapViewer(map, voxelmapViewer.chunkSize.xz);
+        this.heightmapViewer = heightmapViewer;
         this.container.add(this.heightmapViewer.container);
 
         this.voxelmapViewer.onChange.push(() => {

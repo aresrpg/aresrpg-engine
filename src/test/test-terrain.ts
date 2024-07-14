@@ -9,6 +9,7 @@ import {
     type IHeightmap,
     type IVoxelMap,
 } from '../lib';
+import { HeightmapViewer } from '../lib/terrain/heightmap/heightmap-viewer';
 
 import { TestBase } from './test-base';
 
@@ -35,8 +36,16 @@ class TestTerrain extends TestBase {
                 threadsCount: 4,
             },
         });
-        this.terrainViewer = new TerrainViewer(map, this.voxelmapViewer);
-        this.terrainViewer.parameters.lod.enabled = false;
+
+        const heightmapViewer = new HeightmapViewer(map, {
+            basePatchSize: chunkSize.xz,
+            maxLevel: 5,
+            voxelRatio: 4,
+        });
+
+        this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
+        // this.terrainViewer.parameters.lod.enabled = false;
+        this.terrainViewer.parameters.lod.wireframe = true;
         this.scene.add(this.terrainViewer.container);
 
         this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(
