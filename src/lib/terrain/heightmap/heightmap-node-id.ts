@@ -2,7 +2,7 @@ import { vec2ToString } from '../../helpers/string';
 import * as THREE from '../../three-usage';
 
 interface IRoot {
-    readonly smallestLevelSizeInVoxels: number;
+    readonly basePatchSize: number;
 }
 
 class HeightmapNodeId {
@@ -47,11 +47,11 @@ class HeightmapNodeId {
     }
 
     public getLevelSizeInVoxels(level: number): number {
-        return HeightmapNodeId.getLevelSizeInVoxels(this.root.smallestLevelSizeInVoxels, level);
+        return HeightmapNodeId.getLevelSizeInVoxels(this.root.basePatchSize, level);
     }
 
-    public static getLevelSizeInVoxels(smallestLevelSizeInVoxels: number, level: number): number {
-        return (1 << level) * smallestLevelSizeInVoxels;
+    public static getLevelSizeInVoxels(basePatchSize: number, level: number): number {
+        return (1 << level) * basePatchSize;
     }
 }
 

@@ -46,7 +46,8 @@ type EdgesType = {
 };
 
 interface IHeightmapRoot {
-    readonly smallestLevelSizeInVoxels: number;
+    readonly basePatchSize: number;
+    readonly voxelRatio: number;
     readonly material: THREE.Material;
 
     getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
@@ -296,8 +297,7 @@ class HeightmapNode {
             this.selfGpuMemoryBytes += geometry.getIndex()!.array.byteLength;
 
             const levelScaling = 1 << this.id.level;
-            const voxelRatio = 2;
-            const scaling = levelScaling * voxelRatio;
+            const scaling = levelScaling * this.root.voxelRatio;
 
             const mesh = new THREE.Mesh(geometry, this.root.material);
             mesh.name = `Heightmap node mesh ${this.id.asString()}`;
@@ -313,10 +313,9 @@ class HeightmapNode {
 
     private buildGeometryData(edgesType: EdgesType): SyncOrPromise<GeometryData> {
         const levelScaling = 1 << this.id.level;
-        const voxelRatio = 2;
-        const voxelsCount = this.root.smallestLevelSizeInVoxels;
-        const quadsCount = voxelsCount / voxelRatio;
-        const scaling = levelScaling * voxelRatio;
+        const voxelsCount = this.root.basePatchSize;
+        const quadsCount = voxelsCount / this.root.voxelRatio;
+        const scaling = levelScaling * this.root.voxelRatio;
 
         let template = this.template;
         const geometry = new Geometry(quadsCount);

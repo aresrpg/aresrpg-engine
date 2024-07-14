@@ -5,12 +5,19 @@ import { HeightmapNode } from './heightmap-node';
 import { HeightmapNodeId } from './heightmap-node-id';
 import { type IHeightmap } from './i-heightmap';
 
+type HeightmapRootOptions = {
+    readonly basePatchSize: number;
+    readonly voxelRatio: number;
+    readonly maxLevel: number;
+};
+
 class HeightmapRoot {
     public readonly container: THREE.Object3D;
 
     public readonly material = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 0 });
 
-    public readonly smallestLevelSizeInVoxels: number;
+    public readonly basePatchSize: number;
+    public readonly voxelRatio: number;
 
     private readonly sampler: IHeightmap;
     private readonly maxLevel: number;
@@ -21,14 +28,15 @@ class HeightmapRoot {
     private readonly garbageCollectInterval = 10000;
     private lastGarbageCollectTimestamp = performance.now();
 
-    public constructor(sampler: IHeightmap, maxLevel: number, smallestLevelSizeInVoxels: number) {
+    public constructor(sampler: IHeightmap, options: HeightmapRootOptions) {
         this.container = new THREE.Group();
 
-        this.smallestLevelSizeInVoxels = smallestLevelSizeInVoxels;
+        this.basePatchSize = options.basePatchSize;
+        this.voxelRatio = options.voxelRatio;
 
         this.sampler = sampler;
-        this.maxLevel = maxLevel;
-        this.maxLevelSizeInVoxels = HeightmapNodeId.getLevelSizeInVoxels(this.smallestLevelSizeInVoxels, this.maxLevel);
+        this.maxLevel = options.maxLevel;
+        this.maxLevelSizeInVoxels = HeightmapNodeId.getLevelSizeInVoxels(this.basePatchSize, this.maxLevel);
     }
 
     public getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {
@@ -144,4 +152,4 @@ class HeightmapRoot {
     }
 }
 
-export { HeightmapRoot };
+export { HeightmapRoot, type HeightmapRootOptions };

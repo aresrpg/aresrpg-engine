@@ -2,13 +2,17 @@ import { type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../three-usage';
 
 import { HeightmapNodeId } from './heightmap-node-id';
-import { HeightmapRoot } from './heightmap-root';
+import { HeightmapRoot, type HeightmapRootOptions } from './heightmap-root';
 import { type IHeightmap } from './i-heightmap';
 
 type HeightmapStatistics = MeshesStatistics;
 
+type HeightmapViewerOptions = HeightmapRootOptions;
+
 class HeightmapViewer {
     public readonly container: THREE.Object3D;
+
+    public readonly basePatchSize: number;
 
     public focusPoint: THREE.Vector2Like = { x: 0, y: 0 };
     public focusDistance: number = 50;
@@ -16,11 +20,13 @@ class HeightmapViewer {
 
     private readonly root: HeightmapRoot;
 
-    public constructor(sampler: IHeightmap, smallestLevelSizeInVoxels: number) {
+    public constructor(sampler: IHeightmap, options: HeightmapViewerOptions) {
         this.container = new THREE.Group();
         this.container.name = 'Heightmap container';
 
-        this.root = new HeightmapRoot(sampler, 5, smallestLevelSizeInVoxels);
+        this.basePatchSize = options.basePatchSize;
+
+        this.root = new HeightmapRoot(sampler, options);
         this.container.add(this.root.container);
     }
 
@@ -38,7 +44,7 @@ class HeightmapViewer {
     }
 
     private hidePatch(x: number, y: number): void {
-        const patchCentralVoxel = new THREE.Vector2(x, y).addScalar(0.5).multiplyScalar(this.root.smallestLevelSizeInVoxels);
+        const patchCentralVoxel = new THREE.Vector2(x, y).addScalar(0.5).multiplyScalar(this.root.basePatchSize);
         const patchId = this.getPatchId(patchCentralVoxel);
         const node = this.root.getOrBuildSubNode(patchId);
         if (node) {
@@ -58,7 +64,7 @@ class HeightmapViewer {
         this.root.applyVisibility(this.focusPoint, this.visibilityDistance);
 
         const centralPatchId = this.getPatchId(new THREE.Vector2().copy(this.focusPoint));
-        const delta = Math.ceil(this.focusDistance / this.root.smallestLevelSizeInVoxels);
+        const delta = Math.ceil(this.focusDistance / this.root.basePatchSize);
         for (let dX = -delta; dX <= delta; dX++) {
             for (let dY = -delta; dY <= delta; dY++) {
                 this.root.getOrBuildSubNode(centralPatchId.getNeighbour(dX, dY));
@@ -85,7 +91,7 @@ class HeightmapViewer {
     }
 
     private getPatchId(voxel: THREE.Vector2): HeightmapNodeId {
-        const patchCoords = voxel.divideScalar(this.root.smallestLevelSizeInVoxels).floor();
+        const patchCoords = voxel.divideScalar(this.root.basePatchSize).floor();
         return new HeightmapNodeId(0, patchCoords, this.root);
     }
 }
