@@ -4,7 +4,7 @@ import { logger } from '../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../three-usage';
 
-import { EEdgeTesselation, type Geometry } from './geometry';
+import { EEdgeTesselation, type HeightmapNodeGeometry } from './heightmap-node-geometry';
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapNodeMesh } from './heightmap-node-mesh';
 import { type IHeightmap, type IHeightmapCoords } from './i-heightmap';
@@ -49,7 +49,7 @@ interface IHeightmapRoot {
     readonly basePatchSize: number;
     readonly voxelRatio: number;
     readonly material: THREE.Material;
-    readonly geometry: Geometry;
+    readonly nodeGeometry: HeightmapNodeGeometry;
 
     getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
     getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
@@ -318,7 +318,7 @@ class HeightmapNode {
 
         let template = this.template;
         if (!template) {
-            const positionsBuffer = this.root.geometry.clonePositionsBuffer();
+            const positionsBuffer = this.root.nodeGeometry.clonePositionsBuffer();
 
             const sampleCoords: IHeightmapCoords[] = [];
             for (let i = 0; i < positionsBuffer.length; i += 3) {
@@ -352,7 +352,7 @@ class HeightmapNode {
 
         const positionsBuffer = new Float32Array(template.positionsBuffer);
 
-        const indices = this.root.geometry.getIndices({
+        const indices = this.root.nodeGeometry.getIndices({
             up: edgesType.up === EEdgeType.TESSELATED ? EEdgeTesselation.TESSELATED : EEdgeTesselation.SIMPLE,
             down: edgesType.down === EEdgeType.TESSELATED ? EEdgeTesselation.TESSELATED : EEdgeTesselation.SIMPLE,
             left: edgesType.left === EEdgeType.TESSELATED ? EEdgeTesselation.TESSELATED : EEdgeTesselation.SIMPLE,
