@@ -40,7 +40,7 @@ class TestTerrain extends TestBase {
         const heightmapViewer = new HeightmapViewer(map, {
             basePatchSize: chunkSize.xz,
             maxLevel: 5,
-            voxelRatio: 4,
+            voxelRatio: 2,
         });
 
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
