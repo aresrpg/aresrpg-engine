@@ -26,7 +26,7 @@ type Indices = {
     };
 };
 
-class Geometry {
+class HeightmapNodeGeometry {
     private readonly quadsCount: number;
     private readonly positionsBuffer: Float32Array;
     private readonly indexBuffers: Record<string, Indices> = {};
@@ -174,4 +174,4 @@ class Geometry {
     }
 }
 
-export { EEdgeTesselation, Geometry, type EdgesTesselation, type Indices };
+export { EEdgeTesselation, HeightmapNodeGeometry, type EdgesTesselation, type Indices };
