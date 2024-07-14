@@ -1,4 +1,3 @@
-import { vec3ToString } from '../helpers/string';
 import * as THREE from '../three-usage';
 
 import { type HeightmapViewer, type HeightmapStatistics } from './heightmap/heightmap-viewer';

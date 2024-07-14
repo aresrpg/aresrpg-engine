@@ -1,6 +1,7 @@
 import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../three-usage';
 
+import { Geometry } from './geometry';
 import { HeightmapNode } from './heightmap-node';
 import { HeightmapNodeId } from './heightmap-node-id';
 import { type IHeightmap } from './i-heightmap';
@@ -18,6 +19,7 @@ class HeightmapRoot {
 
     public readonly basePatchSize: number;
     public readonly voxelRatio: number;
+    public readonly geometry: Geometry;
 
     private readonly sampler: IHeightmap;
     private readonly maxLevel: number;
@@ -33,6 +35,7 @@ class HeightmapRoot {
 
         this.basePatchSize = options.basePatchSize;
         this.voxelRatio = options.voxelRatio;
+        this.geometry = new Geometry(this.basePatchSize / this.voxelRatio);
 
         this.sampler = sampler;
         this.maxLevel = options.maxLevel;
