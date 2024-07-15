@@ -4,7 +4,7 @@ import { logger } from '../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../three-usage';
 
-import { EEdgeTesselation, type HeightmapNodeGeometry } from './heightmap-node-geometry';
+import { EEdgeResolution, type HeightmapNodeGeometry } from './heightmap-node-geometry';
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapNodeMesh } from './heightmap-node-mesh';
 import { type IHeightmap, type IHeightmapCoords } from './i-heightmap';
@@ -24,7 +24,7 @@ type GeometryData = {
 
 enum EEdgeType {
     SIMPLE = 0,
-    TESSELATED = 1,
+    DECIMATED = 1,
     LIMIT = 2,
 }
 
@@ -353,10 +353,10 @@ class HeightmapNode {
         const positionsBuffer = new Float32Array(template.positionsBuffer);
 
         const indices = this.root.nodeGeometry.getIndices({
-            up: edgesType.up === EEdgeType.TESSELATED ? EEdgeTesselation.TESSELATED : EEdgeTesselation.SIMPLE,
-            down: edgesType.down === EEdgeType.TESSELATED ? EEdgeTesselation.TESSELATED : EEdgeTesselation.SIMPLE,
-            left: edgesType.left === EEdgeType.TESSELATED ? EEdgeTesselation.TESSELATED : EEdgeTesselation.SIMPLE,
-            right: edgesType.right === EEdgeType.TESSELATED ? EEdgeTesselation.TESSELATED : EEdgeTesselation.SIMPLE,
+            up: edgesType.up === EEdgeType.DECIMATED ? EEdgeResolution.DECIMATED : EEdgeResolution.SIMPLE,
+            down: edgesType.down === EEdgeType.DECIMATED ? EEdgeResolution.DECIMATED : EEdgeResolution.SIMPLE,
+            left: edgesType.left === EEdgeType.DECIMATED ? EEdgeResolution.DECIMATED : EEdgeResolution.SIMPLE,
+            right: edgesType.right === EEdgeType.DECIMATED ? EEdgeResolution.DECIMATED : EEdgeResolution.SIMPLE,
         });
 
         const limitDrop = -20;
@@ -409,15 +409,12 @@ class HeightmapNode {
         const getEdge = (dX: number, dY: number) => {
             const neighbour = getNeighbour(dX, dY);
             if (neighbour) {
-                if (neighbour.isSubdivided) {
-                    return EEdgeType.TESSELATED;
-                }
-
                 if (!neighbour.visible) {
                     return EEdgeType.LIMIT;
                 }
+                return EEdgeType.SIMPLE;
             }
-            return EEdgeType.SIMPLE;
+            return EEdgeType.DECIMATED;
         };
 
         const getCorner = (dX: number, dY: number) => {
