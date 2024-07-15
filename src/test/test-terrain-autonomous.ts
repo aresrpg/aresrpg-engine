@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
 
 import { TerrainViewer, VoxelmapViewerAutonomous, type IHeightmap, type IVoxelMap } from '../lib';
+import { HeightmapViewer } from '../lib/terrain/heightmap/heightmap-viewer';
 
 import { TestBase } from './test-base';
 
@@ -13,7 +14,14 @@ class TestTerrainAutonomous extends TestBase {
         super(map);
 
         this.voxelmapViewer = new VoxelmapViewerAutonomous(map);
-        this.terrainViewer = new TerrainViewer(map, this.voxelmapViewer);
+
+        const heightmapViewer = new HeightmapViewer(map, {
+            basePatchSize: this.voxelmapViewer.chunkSize.xz,
+            maxLevel: 5,
+            voxelRatio: 2,
+        });
+
+        this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
         this.scene.add(this.terrainViewer.container);
     }
 
