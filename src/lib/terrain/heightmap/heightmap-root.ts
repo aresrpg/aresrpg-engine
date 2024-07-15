@@ -18,7 +18,6 @@ class HeightmapRoot {
     public readonly material = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 0 });
 
     public readonly basePatchSize: number;
-    public readonly voxelRatio: number;
     public readonly nodeGeometry: HeightmapNodeGeometry;
 
     private readonly sampler: IHeightmap;
@@ -34,8 +33,7 @@ class HeightmapRoot {
         this.container = new THREE.Group();
 
         this.basePatchSize = options.basePatchSize;
-        this.voxelRatio = options.voxelRatio;
-        this.nodeGeometry = new HeightmapNodeGeometry(this.basePatchSize / this.voxelRatio);
+        this.nodeGeometry = new HeightmapNodeGeometry(this.basePatchSize, options.voxelRatio);
 
         this.sampler = sampler;
         this.maxLevel = options.maxLevel;

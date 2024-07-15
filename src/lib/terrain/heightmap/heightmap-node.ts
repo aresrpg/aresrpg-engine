@@ -47,7 +47,6 @@ type EdgesType = {
 
 interface IHeightmapRoot {
     readonly basePatchSize: number;
-    readonly voxelRatio: number;
     readonly material: THREE.Material;
     readonly nodeGeometry: HeightmapNodeGeometry;
 
@@ -297,15 +296,11 @@ class HeightmapNode {
             }
             this.selfGpuMemoryBytes += geometry.getIndex()!.array.byteLength;
 
-            const levelScaling = 1 << this.id.level;
-            const scaling = levelScaling * this.root.voxelRatio;
-
             const mesh = new THREE.Mesh(geometry, this.root.material);
             mesh.name = `Heightmap node mesh ${this.id.asString()}`;
             mesh.receiveShadow = true;
             mesh.castShadow = true;
             const firstVoxelPosition = this.id.box.min;
-            mesh.scale.set(scaling, 1, scaling);
             mesh.position.set(firstVoxelPosition.x, 0, firstVoxelPosition.y);
             mesh.updateWorldMatrix(false, false);
             return mesh;
@@ -313,8 +308,7 @@ class HeightmapNode {
     }
 
     private buildGeometryData(edgesType: EdgesType): SyncOrPromise<GeometryData> {
-        const levelScaling = 1 << this.id.level;
-        const scaling = levelScaling * this.root.voxelRatio;
+        const scaling = this.root.nodeGeometry.baseScaling << this.id.level;
 
         let template = this.template;
         if (!template) {
@@ -322,9 +316,12 @@ class HeightmapNode {
 
             const sampleCoords: IHeightmapCoords[] = [];
             for (let i = 0; i < positionsBuffer.length; i += 3) {
+                positionsBuffer[i]! *= scaling;
+                positionsBuffer[i + 2]! *= scaling;
+
                 sampleCoords.push({
-                    x: positionsBuffer[i]! * scaling + this.id.box.min.x,
-                    z: positionsBuffer[i + 2]! * scaling + this.id.box.min.y,
+                    x: positionsBuffer[i]! + this.id.box.min.x,
+                    z: positionsBuffer[i + 2]! + this.id.box.min.y,
                 });
             }
 
