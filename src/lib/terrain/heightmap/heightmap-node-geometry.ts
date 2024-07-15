@@ -35,24 +35,8 @@ class HeightmapNodeGeometry {
         this.quadsCount = quadsCount;
 
         const positions: number[] = [];
-        for (let i = 0; i <= quadsCount; i++) {
-            // top edge
-            positions.push(i, 0, quadsCount);
-        }
-        for (let i = quadsCount - 1; i >= 0; i--) {
-            // right edge
-            positions.push(quadsCount, 0, i);
-        }
-        for (let i = quadsCount - 1; i >= 0; i--) {
-            // bottom edge
-            positions.push(i, 0, 0);
-        }
-        for (let i = 1; i < quadsCount; i++) {
-            // left edge
-            positions.push(0, 0, i);
-        }
-        for (let iZ = 1; iZ <= quadsCount - 1; iZ++) {
-            for (let iX = 1; iX <= quadsCount - 1; iX++) {
+        for (let iZ = quadsCount; iZ >= 0; iZ--) {
+            for (let iX = 0; iX <= quadsCount; iX++) {
                 positions.push(iX, 0, iZ);
             }
         }
@@ -69,7 +53,7 @@ class HeightmapNodeGeometry {
         if (!result) {
             const indexData: number[] = [];
 
-            const buildInnerIndex = (x: number, y: number) => 4 * this.quadsCount + x + y * (this.quadsCount - 1);
+            const buildInnerIndex = (x: number, y: number) => x + 1 + (this.quadsCount - 2 - y + 1) * (this.quadsCount + 1);
             for (let iX = 0; iX < this.quadsCount - 2; iX++) {
                 for (let iY = 0; iY < this.quadsCount - 2; iY++) {
                     const mm = buildInnerIndex(iX + 0, iY + 0);
@@ -83,15 +67,22 @@ class HeightmapNodeGeometry {
             const buildEdge = (
                 edgeResolution: EEdgeResolution,
                 edgeIndexFrom: number,
+                edgeIndexStep: number,
                 innerIndexFrom: number,
                 innerIndexStep: number,
                 invert: boolean
             ) => {
+                const edgeIndices: number[] = [];
+                for (let iEdge = 0; iEdge <= this.quadsCount; iEdge++) {
+                    const iEdgeIndex = edgeIndexFrom + iEdge * edgeIndexStep; // % (4 * this.quadsCount);
+                    edgeIndices.push(iEdgeIndex);
+                }
+
                 if (edgeResolution === EEdgeResolution.DECIMATED) {
-                    for (let iEdge = 0; iEdge < this.quadsCount; iEdge += 2) {
-                        const iEdgeIndex = edgeIndexFrom + iEdge;
+                    for (let iEdge = 0; iEdge < edgeIndices.length - 2; iEdge += 2) {
+                        const iEdgeIndex = edgeIndexFrom + iEdge * edgeIndexStep;
                         const e1 = iEdgeIndex;
-                        const e2 = (iEdgeIndex + 2) % (4 * this.quadsCount);
+                        const e2 = iEdgeIndex + 2 * edgeIndexStep;
 
                         if (iEdge === 0) {
                             const i1 = innerIndexFrom;
@@ -105,10 +96,10 @@ class HeightmapNodeGeometry {
                         }
                     }
                 } else {
-                    for (let iEdge = 0; iEdge < this.quadsCount; iEdge++) {
-                        const iEdgeIndex = edgeIndexFrom + iEdge;
-                        const e1 = iEdgeIndex;
-                        const e2 = (iEdgeIndex + 1) % (4 * this.quadsCount);
+                    for (let iEdge = 0; iEdge < edgeIndices.length - 1; iEdge++) {
+                        const edgeIndex = edgeIndices[iEdge]!;
+                        const e1 = edgeIndex;
+                        const e2 = edgeIndex + edgeIndexStep;
 
                         if (iEdge === 0) {
                             const i1 = innerIndexFrom;
@@ -117,41 +108,44 @@ class HeightmapNodeGeometry {
                             const i1 = innerIndexFrom + (this.quadsCount - 2) * innerIndexStep;
                             indexData.push(e1, e2, i1);
                         } else {
-                            const i1 = innerIndexFrom + iEdge * innerIndexStep;
-                            const i2 = i1 - innerIndexStep;
+                            const i1 = innerIndexFrom + (iEdge - 1) * innerIndexStep;
+                            const i2 = i1 + innerIndexStep;
 
                             if (invert) {
-                                indexData.push(i2, e1, e2, e2, i1, i2);
+                                indexData.push(i1, e1, e2, e2, i2, i1);
                             } else {
-                                indexData.push(e1, e2, i1, e1, i1, i2);
+                                indexData.push(i2, i1, e1, e1, e2, i2);
                             }
                         }
                     }
                 }
 
-                const edgeIndices: number[] = [];
-                for (let iEdge = 0; iEdge <= this.quadsCount; iEdge++) {
-                    const iEdgeIndex = (edgeIndexFrom + iEdge) % (4 * this.quadsCount);
-                    edgeIndices.push(iEdgeIndex);
-                }
                 return edgeIndices;
             };
 
-            const mpIndex = 0 * this.quadsCount;
-            const ppIndex = 1 * this.quadsCount;
-            const pmIndex = 2 * this.quadsCount;
-            const mmIndex = 3 * this.quadsCount;
+            const mpIndex = 0;
+            const ppIndex = this.quadsCount;
+            const pmIndex = (this.quadsCount + 1) * (this.quadsCount + 1) - 1;
+            const mmIndex = pmIndex - this.quadsCount;
 
-            const up = buildEdge(edgesResolution.up, mpIndex, buildInnerIndex(0, this.quadsCount - 2), 1, true);
+            const up = buildEdge(edgesResolution.up, mpIndex, 1, buildInnerIndex(0, this.quadsCount - 2), 1, true);
             const right = buildEdge(
                 edgesResolution.right,
                 ppIndex,
+                this.quadsCount + 1,
                 buildInnerIndex(this.quadsCount - 2, this.quadsCount - 2),
-                -(this.quadsCount - 1),
+                this.quadsCount + 1,
                 false
             );
-            const down = buildEdge(edgesResolution.down, pmIndex, buildInnerIndex(this.quadsCount - 2, 0), -1, true);
-            const left = buildEdge(edgesResolution.left, mmIndex, buildInnerIndex(0, 0), this.quadsCount - 1, false);
+            const down = buildEdge(edgesResolution.down, pmIndex, -1, buildInnerIndex(this.quadsCount - 2, 0), -1, true);
+            const left = buildEdge(
+                edgesResolution.left,
+                mmIndex,
+                -(this.quadsCount + 1),
+                buildInnerIndex(0, 0),
+                -(this.quadsCount + 1),
+                false
+            );
 
             result = {
                 buffer: indexData.slice(0),
