@@ -27,16 +27,19 @@ type Indices = {
 };
 
 class HeightmapNodeGeometry {
+    public readonly baseScaling: number;
+
     private readonly quadsCount: number;
     private readonly positionsBuffer: Float32Array;
     private readonly indexBuffers: Record<string, Indices> = {};
 
-    public constructor(quadsCount: number) {
-        this.quadsCount = quadsCount;
+    public constructor(baseSize: number, step: number) {
+        this.quadsCount = baseSize / step;
+        this.baseScaling = step;
 
         const positions: number[] = [];
-        for (let iZ = quadsCount; iZ >= 0; iZ--) {
-            for (let iX = 0; iX <= quadsCount; iX++) {
+        for (let iZ = this.quadsCount; iZ >= 0; iZ--) {
+            for (let iX = 0; iX <= this.quadsCount; iX++) {
                 positions.push(iX, 0, iZ);
             }
         }
