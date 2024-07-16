@@ -140,25 +140,29 @@ class DedicatedWorker {
     }
 
     private static buildWorkerCode(definition: WorkerDefinition): string {
-        // just for typings
-        let taskProcessors: Record<string, TaskProcessor>;
+        // Convert the task processors to stringified functions
+        const taskProcessorsString = Object.entries(definition.tasks)
+            .map(([taskName, taskProcessor]) => {
+                return `"${taskName}": ${taskProcessor.toString()}`;
+            })
+            .join(',\n');
 
-        const onWorkerMessage = (event: MessageEvent<TaskRequestMessage>) => {
+        const onWorkerMessage = `
+        const onWorkerMessage = (event) => {
             const eventData = event.data;
             const taskName = eventData.taskName;
             const taskInput = eventData.taskInput;
             const taskId = eventData.taskId;
 
-            const postResponse = (response: TaskResponseMessage, transferablesList?: Transferable[]) => {
-                const transfer = transferablesList || [];
-                self.postMessage(response, { transfer });
+            const postResponse = (response, transferablesList = []) => {
+                self.postMessage(response, { transfer: transferablesList });
             };
 
             const taskProcessor = taskProcessors[taskName];
             if (typeof taskProcessor === 'undefined') {
                 postResponse({
                     verb: 'task_unknown',
-                    reason: `Unknown task "${taskName}"`,
+                    reason: \`Unknown task "\${taskName}"\`,
                 });
                 return;
             }
@@ -179,21 +183,22 @@ class DedicatedWorker {
                     verb: 'task_response_ko',
                     taskName,
                     taskId,
-                    reason: `Exception "${error}"`,
+                    reason: \`Exception "\${error}"\`,
                 });
             }
         };
+        `;
 
         return `
 ${definition.commonCode || ''}
 
 const taskProcessors = {
-    ${Object.entries(definition.tasks)
-        .map(([taskName, taskProcessor]) => `${taskName}: ${taskProcessor},`)
-        .join('\n\t')}
+    ${taskProcessorsString}
 };
 
-self.onmessage = ${onWorkerMessage.toString()};
+${onWorkerMessage}
+
+self.onmessage = onWorkerMessage;
 `;
     }
 }
