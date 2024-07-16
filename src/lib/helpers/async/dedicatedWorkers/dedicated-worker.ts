@@ -141,7 +141,7 @@ class DedicatedWorker {
 
     private static buildWorkerCode(definition: WorkerDefinition): string {
         // just for typings
-        let taskProcessors: Record<string, TaskProcessor>;
+        let t: Record<string, TaskProcessor>;
 
         const onWorkerMessage = (event: MessageEvent<TaskRequestMessage>) => {
             const eventData = event.data;
@@ -154,7 +154,7 @@ class DedicatedWorker {
                 self.postMessage(response, { transfer });
             };
 
-            const taskProcessor = taskProcessors[taskName];
+            const taskProcessor = t[taskName];
             if (typeof taskProcessor === 'undefined') {
                 postResponse({
                     verb: 'task_unknown',
@@ -187,7 +187,7 @@ class DedicatedWorker {
         return `
 ${definition.commonCode || ''}
 
-const taskProcessors = {
+const t = {
     ${Object.entries(definition.tasks)
         .map(([taskName, taskProcessor]) => `${taskName}: ${taskProcessor},`)
         .join('\n\t')}
