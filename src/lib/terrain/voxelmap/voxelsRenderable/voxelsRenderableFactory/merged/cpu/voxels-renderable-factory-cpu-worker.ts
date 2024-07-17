@@ -17,14 +17,13 @@ class VoxelsRenderableFactoryCpuWorker extends VoxelsRenderableFactoryCpu {
 
     protected override buildBuffer(voxelsChunkData: VoxelsChunkData): Promise<Uint32Array> {
         if (!this.workersPool) {
-            // just for typing
-            let factory: VoxelsRenderableFactoryCpu['serializableFactory'];
-
             const workerDefinition: WorkerDefinition = {
                 commonCode: `const factory = ${this.serialize()};`,
                 tasks: {
                     buildBuffer: (voxelsChunkData: VoxelsChunkData) => {
-                        const buffer = factory.buildBuffer(voxelsChunkData);
+                        // eslint-disable-next-line no-eval
+                        const factory2 = eval('factory') as VoxelsRenderableFactoryCpu['serializableFactory'];
+                        const buffer = factory2.buildBuffer(voxelsChunkData);
                         return {
                             taskResult: buffer,
                             taskResultTransferablesList: [buffer.buffer],
