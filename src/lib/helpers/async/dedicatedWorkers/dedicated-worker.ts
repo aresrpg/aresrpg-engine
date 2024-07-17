@@ -140,9 +140,6 @@ class DedicatedWorker {
     }
 
     private static buildWorkerCode(definition: WorkerDefinition): string {
-        // just for typings
-        let taskProcessors: Record<string, TaskProcessor>;
-
         const onWorkerMessage = (event: MessageEvent<TaskRequestMessage>) => {
             const eventData = event.data;
             const taskName = eventData.taskName;
@@ -154,7 +151,9 @@ class DedicatedWorker {
                 self.postMessage(response, { transfer });
             };
 
-            const taskProcessor = taskProcessors[taskName];
+            // eslint-disable-next-line no-eval
+            const taskProcessorsList = eval('taskProcessors') as Record<string, TaskProcessor>;
+            const taskProcessor = taskProcessorsList[taskName];
             if (typeof taskProcessor === 'undefined') {
                 postResponse({
                     verb: 'task_unknown',
