@@ -31,6 +31,11 @@ class VoxelsRenderable {
             strength: 0.4,
             spread: 0.85,
         },
+        grid: {
+            enabled: false,
+            thickness: 0.02,
+            color: new THREE.Vector3(-0.05, -0.05, -0.05),
+        },
     };
 
     private gpuResources: {
@@ -75,6 +80,10 @@ class VoxelsRenderable {
                 uniforms.uDisplayMode.value = this.parameters.voxels.displayMode;
 
                 uniforms.uNoiseStrength.value = this.parameters.voxels.noiseStrength;
+
+                uniforms.uGridThickness.value = +this.parameters.grid.enabled * this.parameters.grid.thickness;
+                uniforms.uGridColor.value = this.parameters.grid.color;
+
                 material.needsUpdate = true;
 
                 patchMesh.mesh.receiveShadow = this.parameters.shadows.receive;

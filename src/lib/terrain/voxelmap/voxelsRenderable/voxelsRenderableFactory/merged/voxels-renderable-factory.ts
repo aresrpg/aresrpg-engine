@@ -50,7 +50,7 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
         material.defines[cstVoxelAo] = 1;
         material.defines[cstVoxelNoise] = 1;
         material.defines[cstVoxelRounded] = 1;
-        // material.defines[cstVoxelGrid] = 1;
+        material.defines[cstVoxelGrid] = 1;
         material.onBeforeCompile = parameters => {
             parameters.uniforms = {
                 ...parameters.uniforms,
@@ -224,9 +224,11 @@ void main() {
     }
 
 #ifdef ${cstVoxelGrid}
-    vec2 fromCenter = abs(vUv - 0.5);
-    vec2 isEdge = step(vec2(0.5 - uGridThickness), fromCenter);
-    diffuseColor.rgb += uGridColor * max(isEdge.x, isEdge.y);
+    if (uGridThickness > 0.0) {
+        vec2 fromCenter = abs(vUv - 0.5);
+        vec2 isEdge = step(vec2(0.5 - uGridThickness), fromCenter);
+        diffuseColor.rgb += uGridColor * max(isEdge.x, isEdge.y);
+    }
 #endif // ${cstVoxelGrid}
 
 #ifdef ${cstVoxelNoise}
