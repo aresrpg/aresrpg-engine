@@ -66,6 +66,8 @@ class VoxelsRenderable {
             this.trianglesCount = trianglesCount;
             this.gpuMemoryBytes = gpuMemoryBytes;
         }
+
+        this.updateUniforms();
     }
 
     public updateUniforms(): void {
