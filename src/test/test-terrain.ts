@@ -11,7 +11,7 @@ import {
 } from '../lib';
 import { HeightmapViewer } from '../lib/terrain/heightmap/heightmap-viewer';
 
-import { TestBase } from './test-base';
+import { type ITerrainMap, TestBase } from './test-base';
 
 class TestTerrain extends TestBase {
     protected override readonly terrainViewer: TerrainViewer;
@@ -22,7 +22,7 @@ class TestTerrain extends TestBase {
 
     private readonly map: IVoxelMap;
 
-    public constructor(map: IVoxelMap & IHeightmap) {
+    public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
         super(map);
 
         const chunkSize = { xz: 128, y: 64 };

@@ -164,10 +164,11 @@ class VoxelMapCacheless implements IVoxelMap, IHeightmap {
         for (worldPos.z = blockStart.z; worldPos.z < blockEnd.z; worldPos.z++) {
             for (worldPos.x = blockStart.x; worldPos.x < blockEnd.x; worldPos.x++) {
                 const sample = this.sampleHeightmapBaseTerrain(worldPos.x, worldPos.z);
-                if (blockStart.y <= sample.altitude && sample.altitude < blockEnd.y) {
-                    worldPos.y = sample.altitude;
-                    const voxelType = this.altitudeToVoxelType(sample.altitude);
-                    localPos.subVectors(worldPos, blockStart);
+                const voxelType = this.altitudeToVoxelType(sample.altitude);
+                localPos.subVectors(worldPos, blockStart);
+                const fromY = blockStart.y - blockStart.y;
+                const toY = Math.min(blockEnd.y, sample.altitude + 1) - blockStart.y;
+                for (localPos.y = fromY; localPos.y < toY; localPos.y++) {
                     setVoxel(localPos, voxelType);
                 }
             }
@@ -246,12 +247,19 @@ class VoxelMapCacheless implements IVoxelMap, IHeightmap {
         }
     }
 
-    private sampleHeightmapBaseTerrain(x: number, z: number): IHeightmapSample {
+    public sampleHeightmapBaseTerrain(x: number, z: number): IHeightmapSample {
         x -= this.coordsShift.x;
         z -= this.coordsShift.z;
 
         const noise = this.noise2D(x / this.scaleXZ, z / this.scaleXZ);
-        const altitude = Math.floor((0.5 + 0.5 * noise) * this.scaleY);
+        let altitude = (0.5 + 0.5 * noise) * this.scaleY;
+        if (altitude >= this.thresholdGrass) {
+            const margin = this.maxAltitude - 1 - this.thresholdGrass;
+            const distanceToRock = altitude - this.thresholdGrass;
+            const relativeDistance = distanceToRock / margin;
+            altitude = this.thresholdGrass + Math.pow(relativeDistance, 0.25) * margin;
+        }
+        altitude = Math.floor(altitude);
 
         const voxelType = this.altitudeToVoxelType(altitude);
         const material = this.voxelMaterialsList[voxelType]!;
@@ -307,8 +315,6 @@ class VoxelMapCacheless implements IVoxelMap, IHeightmap {
             }
         } else if (worldPos.y < this.thresholdGrass) {
             localTreeDensity -= 0;
-        } else if (worldPos.y < this.thresholdRock) {
-            localTreeDensity -= 0.75;
         } else {
             localTreeDensity -= 1;
         }

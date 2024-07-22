@@ -3,14 +3,14 @@ import type * as THREE from 'three';
 import { TerrainViewer, VoxelmapViewerAutonomous, type IHeightmap, type IVoxelMap } from '../lib';
 import { HeightmapViewer } from '../lib/terrain/heightmap/heightmap-viewer';
 
-import { TestBase } from './test-base';
+import { type ITerrainMap, TestBase } from './test-base';
 
 class TestTerrainAutonomous extends TestBase {
     protected override readonly terrainViewer: TerrainViewer;
 
     private readonly voxelmapViewer: VoxelmapViewerAutonomous;
 
-    public constructor(map: IVoxelMap & IHeightmap) {
+    public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
         super(map);
 
         this.voxelmapViewer = new VoxelmapViewerAutonomous(map);

@@ -15,6 +15,9 @@ type VoxelsMaterialTemp = THREE.Material & {
 };
 
 abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
+    private static instancesCount: number = 0;
+    private readonly instanceId: number = 0;
+
     private static readonly data1AttributeName = 'aData';
     private static readonly data2AttributeName = 'aData2';
 
@@ -45,7 +48,7 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
         phongMaterial.shininess = 0;
         const material = phongMaterial as unknown as VoxelsMaterialTemp;
         material.userData.uniforms = this.uniformsTemplate;
-        material.customProgramCacheKey = () => `voxels-factory-merged`;
+        material.customProgramCacheKey = () => `voxels-factory-merged_${this.instanceId}`;
         material.defines = material.defines || {};
         material.defines[cstVoxelAo] = 1;
         material.defines[cstVoxelNoise] = 1;
@@ -316,6 +319,8 @@ void main() {
         );
 
         this.materialsTemplates = this.buildVoxelsMaterials();
+
+        this.instanceId = VoxelsRenderableFactory.instancesCount++;
     }
 
     public override dispose(): void {
