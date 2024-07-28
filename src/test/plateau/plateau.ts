@@ -14,7 +14,7 @@ type PlateauSquare = {
 };
 
 type PlateauSquareExtended = PlateauSquare & {
-    readonly realY: number;
+    readonly floorY: number;
     readonly generation: number;
 };
 
@@ -41,39 +41,34 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
             plateauSquares.push({
                 type: EPlateauSquareType.HOLE,
                 materialId: 0,
-                realY: -1,
+                floorY: NaN,
                 generation: currentGeneration,
             });
         }
     }
-    const tryGetIndex = (relativePos: { x: number; z: number }) => {
+    const tryGetIndex = (relativePos: { readonly x: number; readonly z: number }) => {
         const plateauCoords = { x: relativePos.x + plateauHalfSize, z: relativePos.z + plateauHalfSize };
         if (plateauCoords.x < 0 || plateauCoords.z < 0 || plateauCoords.x >= plateauSize.x || plateauCoords.z >= plateauSize.y) {
             return null;
         }
         return plateauCoords.x + plateauCoords.z * plateauSize.x;
     };
-    const getIndex = (relativePos: { x: number; z: number }) => {
+    const getIndex = (relativePos: { readonly x: number; readonly z: number }) => {
         const index = tryGetIndex(relativePos);
         if (index === null) {
             throw new Error();
         }
         return index;
     };
-    const setPlateauSquare = (relativePos: { x: number; z: number }, square: PlateauSquareExtended) => {
+    const setPlateauSquare = (relativePos: { readonly x: number; readonly z: number }, square: PlateauSquareExtended) => {
         const index = getIndex(relativePos);
-        plateauSquares[index] = {
-            type: square.type,
-            materialId: square.materialId,
-            realY: square.realY,
-            generation: square.generation,
-        };
+        plateauSquares[index] = { ...square };
     };
-    const getPlateauSquare = (relativePos: { x: number; z: number }) => {
+    const getPlateauSquare = (relativePos: { readonly x: number; readonly z: number }) => {
         const index = getIndex(relativePos);
         return plateauSquares[index]!;
     };
-    const tryGetPlateauSquare = (relativePos: { x: number; z: number }) => {
+    const tryGetPlateauSquare = (relativePos: { readonly x: number; readonly z: number }) => {
         const index = tryGetIndex(relativePos);
         if (index === null) {
             return null;
@@ -121,10 +116,81 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
         }
         setPlateauSquare(
             { x: 0, z: 0 },
-            { type: EPlateauSquareType.FLAT, materialId: originSample - 1, realY: originWorldCoords.y - 1, generation: currentGeneration }
+            { type: EPlateauSquareType.FLAT, materialId: originSample - 1, generation: currentGeneration, floorY: originWorldCoords.y - 1 }
         );
     }
-    const originY = getPlateauSquare({ x: 0, z: 0 })!.realY;
+    const originY = getPlateauSquare({ x: 0, z: 0 })!.floorY;
+
+    const computePlateauSquare = (relativePos: { readonly x: number; readonly z: number }): PlateauSquareExtended | null => {
+        const square = getPlateauSquare(relativePos);
+        if (square.type !== EPlateauSquareType.HOLE) {
+            // this square has been computed already
+            return null;
+        }
+
+        // if this square has not been computed yet
+        const xm = tryGetPlateauSquare({ x: relativePos.x - 1, z: relativePos.z });
+        const xp = tryGetPlateauSquare({ x: relativePos.x + 1, z: relativePos.z });
+        const zm = tryGetPlateauSquare({ x: relativePos.x, z: relativePos.z - 1 });
+        const zp = tryGetPlateauSquare({ x: relativePos.x, z: relativePos.z + 1 });
+
+        const worldPos = { x: 0, y: 0, z: 0 };
+        worldPos.x = relativePos.x + originWorld.x;
+        worldPos.z = relativePos.z + originWorld.z;
+
+        for (const neighbour of [xm, xp, zm, zp]) {
+            if (neighbour?.type === EPlateauSquareType.FLAT && neighbour.generation === currentGeneration - 1) {
+                worldPos.y = neighbour.floorY;
+                const generation = currentGeneration;
+                const sampleY = sampleData(worldPos);
+
+                if (sampleY > 0) {
+                    let lastSample = sampleY;
+                    for (let deltaY = 1; deltaY < maxDeltaY; deltaY++) {
+                        const sample = sampleData({ x: worldPos.x, y: worldPos.y + deltaY, z: worldPos.z });
+                        if (sample === 0) {
+                            return {
+                                type: EPlateauSquareType.FLAT,
+                                materialId: lastSample - 1,
+                                floorY: worldPos.y + deltaY - 1,
+                                generation,
+                            };
+                        } else {
+                            lastSample = sample;
+                        }
+                    }
+
+                    return {
+                        type: EPlateauSquareType.OBSTACLE,
+                        materialId: sampleY - 1,
+                        floorY: worldPos.y,
+                        generation,
+                    };
+                } else {
+                    for (let deltaY = -1; deltaY > -maxDeltaY; deltaY--) {
+                        const sample = sampleData({ x: worldPos.x, y: worldPos.y + deltaY, z: worldPos.z });
+                        if (sample > 0) {
+                            return {
+                                type: EPlateauSquareType.FLAT,
+                                materialId: sample - 1,
+                                floorY: worldPos.y + deltaY,
+                                generation,
+                            };
+                        }
+                    }
+
+                    return {
+                        type: EPlateauSquareType.HOLE,
+                        materialId: 0,
+                        floorY: NaN,
+                        generation,
+                    };
+                }
+            }
+        }
+
+        return null;
+    };
 
     let somethingChanged = false;
     do {
@@ -132,115 +198,22 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
         currentGeneration++;
 
         const relativePos = { x: 0, z: 0 };
-        const worldPos = { x: 0, y: 0, z: 0 };
         for (relativePos.z = -plateauHalfSize; relativePos.z <= plateauHalfSize; relativePos.z++) {
             for (relativePos.x = -plateauHalfSize; relativePos.x <= plateauHalfSize; relativePos.x++) {
                 if (Math.sqrt(relativePos.x * relativePos.x + relativePos.z * relativePos.z) >= plateauHalfSize - 1) {
                     continue;
                 }
 
-                const square = getPlateauSquare(relativePos);
-                if (square.type === EPlateauSquareType.HOLE) {
-                    // if this square has not been computed yet
-                    const xm = tryGetPlateauSquare({ x: relativePos.x - 1, z: relativePos.z });
-                    const xp = tryGetPlateauSquare({ x: relativePos.x + 1, z: relativePos.z });
-                    const zm = tryGetPlateauSquare({ x: relativePos.x, z: relativePos.z - 1 });
-                    const zp = tryGetPlateauSquare({ x: relativePos.x, z: relativePos.z + 1 });
-
-                    worldPos.x = relativePos.x + originWorld.x;
-                    worldPos.z = relativePos.z + originWorld.z;
-
-                    for (const neighbour of [xm, xp, zm, zp]) {
-                        if (neighbour?.type === EPlateauSquareType.FLAT && neighbour.generation === currentGeneration - 1) {
-                            worldPos.y = originY;
-                            const generation = currentGeneration;
-                            const sampleY = sampleData(worldPos);
-
-                            let deltaY = 0;
-                            if (sampleY > 0) {
-                                let foundAir = false;
-                                let lastSample = sampleY;
-                                for (deltaY = 1; deltaY < maxDeltaY; deltaY++) {
-                                    const sample = sampleData({ x: worldPos.x, y: worldPos.y + deltaY, z: worldPos.z });
-                                    if (sample === 0) {
-                                        setPlateauSquare(relativePos, {
-                                            type: EPlateauSquareType.FLAT,
-                                            materialId: lastSample - 1,
-                                            realY: worldPos.y,
-                                            generation,
-                                        });
-                                        somethingChanged = true;
-                                        foundAir = true;
-                                        break;
-                                    } else {
-                                        lastSample = sample;
-                                    }
-                                }
-
-                                if (!foundAir) {
-                                    setPlateauSquare(relativePos, {
-                                        type: EPlateauSquareType.OBSTACLE,
-                                        materialId: lastSample - 1,
-                                        realY: worldPos.y,
-                                        generation,
-                                    });
-                                    somethingChanged = true;
-                                }
-                            } else {
-                                let foundSoil = false;
-                                for (deltaY = -1; deltaY > -maxDeltaY; deltaY--) {
-                                    const sample = sampleData({ x: worldPos.x, y: worldPos.y + deltaY, z: worldPos.z });
-                                    if (sample > 0) {
-                                        setPlateauSquare(relativePos, {
-                                            type: EPlateauSquareType.FLAT,
-                                            materialId: sample - 1,
-                                            realY: worldPos.y,
-                                            generation,
-                                        });
-                                        somethingChanged = true;
-                                        foundSoil = true;
-                                        break;
-                                    }
-                                }
-
-                                if (!foundSoil) {
-                                    setPlateauSquare(relativePos, {
-                                        type: EPlateauSquareType.HOLE,
-                                        materialId: 0,
-                                        realY: worldPos.y,
-                                        generation,
-                                    });
-                                    somethingChanged = true;
-                                }
-                            }
-
-                            // worldPos.y = neighbour.realY;
-                            // const generation = currentGeneration;
-                            // const sampleY = sampleData(worldPos);
-
-                            // if (sampleY > 0) {
-                            //     const sampleYp = sampleData({ x: worldPos.x, y: worldPos.y + 1, z: worldPos.z });
-                            //     if (sampleYp === 0) {
-                            //         setPlateauSquare(relativePos, { type: EPlateauSquareType.FLAT, materialId: sampleYp - 1, realY: worldPos.y, generation});
-                            //         somethingChanged = true;
-                            //     } else {
-                            //         const sampleYpp = sampleData({ x: worldPos.x, y: worldPos.y + 2, z: worldPos.z });
-                            //         if (sampleYpp === 0) {
-                            //             setPlateauSquare(relativePos, { type: EPlateauSquareType.FLAT, materialId: sampleYp - 1, realY: worldPos.y, generation});
-                            //             somethingChanged = true;
-                            //         } else {
-                            //             setPlateauSquare(relativePos, { type: EPlateauSquareType.OBSTACLE, materialId: sampleYp - 1, realY: worldPos.y + 1, generation});
-                            //             somethingChanged = true;
-                            //         }
-                            //     }
-                            // }
-                        }
-                    }
+                const square = computePlateauSquare(relativePos);
+                if (square && !isNaN(square.floorY) && Math.abs(square.floorY - originY) < maxDeltaY) {
+                    somethingChanged = true;
+                    setPlateauSquare(relativePos, square);
                 }
             }
         }
     } while (somethingChanged);
 
+    const minY = plateauSquares.reduce((y: number, square: PlateauSquareExtended) => {
     return {
         size: plateauSize,
         squares: plateauSquares,
