@@ -3,11 +3,15 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 
-import { type IHeightmap, type IHeightmapSample, type TerrainViewer, type IVoxelMap, type VoxelsChunkData } from '../lib';
-import { type VoxelsRenderable } from '../lib/terrain/voxelmap/voxelsRenderable/voxels-renderable';
-import { VoxelsRenderableFactoryCpuWorker } from '../lib/terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/merged/cpu/voxels-renderable-factory-cpu-worker';
-
-import { computePlateau, EPlateauSquareType } from './plateau/plateau';
+import {
+    computePlateau,
+    PlateauRenderableFactory,
+    type IHeightmap,
+    type IHeightmapSample,
+    type IVoxelMap,
+    type PlateauRenderable,
+    type TerrainViewer,
+} from '../lib';
 
 interface ITerrainMap {
     sampleHeightmapBaseTerrain(x: number, z: number): IHeightmapSample;
@@ -210,16 +214,13 @@ abstract class TestBase {
     }
 
     private setupPlateau(voxelMap: IVoxelMap & ITerrainMap): void {
-        const maxPlateauSize = 128;
-        const factory = new VoxelsRenderableFactoryCpuWorker({
+        const factory = new PlateauRenderableFactory({
             voxelMaterialsList: voxelMap.voxelMaterialsList,
-            maxVoxelsChunkSize: { xz: maxPlateauSize, y: 16 },
-            workersPoolSize: 1,
         });
 
         const plateauContainer = new THREE.Group();
         this.scene.add(plateauContainer);
-        let plateauRenderable: VoxelsRenderable | null = null;
+        let plateauRenderable: PlateauRenderable | null = null;
 
         let lastPlateauRequestId = -1;
         const requestPlateau = async (origin: THREE.Vector3Like) => {
@@ -227,49 +228,7 @@ abstract class TestBase {
             const requestId = lastPlateauRequestId;
 
             const plateau = await computePlateau(voxelMap, origin);
-            const plateauThickness = 1;
-
-            const chunkSize = new THREE.Vector3(plateau.size.x + 2, 1 + plateauThickness + 1 + 1, plateau.size.y + 2);
-            let chunkIsEmpty = true;
-            const chunkData = new Uint16Array(chunkSize.x * chunkSize.y * chunkSize.z);
-            for (let iChunkZ = 0; iChunkZ < chunkSize.z; iChunkZ++) {
-                for (let iChunkX = 0; iChunkX < chunkSize.x; iChunkX++) {
-                    const plateauX = iChunkX - 1;
-                    const plateauZ = iChunkZ - 1;
-                    if (plateauX < 0 || plateauZ < 0 || plateauX >= plateau.size.x || plateauZ >= plateau.size.y) {
-                        continue;
-                    }
-
-                    const plateauSquare = plateau.squares[plateauX + plateauZ * plateau.size.x];
-                    if (!plateauSquare) {
-                        throw new Error();
-                    }
-
-                    const fromPlateauY = 0;
-                    let toPlateauY = -1;
-                    if (plateauSquare.type === EPlateauSquareType.FLAT) {
-                        toPlateauY = plateauThickness;
-                    } else if (plateauSquare.type === EPlateauSquareType.OBSTACLE) {
-                        toPlateauY = plateauThickness + 1;
-                    }
-                    const fromChunkY = fromPlateauY + 1;
-                    const toChunkY = toPlateauY + 1;
-
-                    for (let iChunkY = fromChunkY; iChunkY < toChunkY; iChunkY++) {
-                        const index = iChunkX + iChunkY * chunkSize.x + iChunkZ * (chunkSize.x * chunkSize.y);
-                        chunkData[index] = plateauSquare.materialId + 1;
-                        chunkIsEmpty = false;
-                    }
-                }
-            }
-
-            const chunk: VoxelsChunkData = {
-                size: chunkSize,
-                isEmpty: chunkIsEmpty,
-                data: chunkData,
-            };
-
-            const renderable = await factory.buildVoxelsRenderable(chunk);
+            const renderable = await factory.buildPlateauRenderable(plateau);
 
             if (lastPlateauRequestId !== requestId) {
                 return; // another request was launched in the meantime
@@ -282,7 +241,6 @@ abstract class TestBase {
             }
             plateauRenderable = renderable;
             if (plateauRenderable) {
-                plateauRenderable.container.position.set(plateau.origin.x, plateau.origin.y - plateauThickness, plateau.origin.z);
                 plateauContainer.add(plateauRenderable.container);
             }
         };
