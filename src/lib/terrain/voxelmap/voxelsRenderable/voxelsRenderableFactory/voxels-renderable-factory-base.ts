@@ -31,6 +31,13 @@ type VoxelsChunkData = {
 type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly voxelTypeEncoder: PackedUintFragment;
+    readonly noiseIdEncoder: PackedUintFragment;
+    readonly noise?:
+        | undefined
+        | {
+              readonly resolution: number;
+              readonly textureBuilder?: () => THREE.DataTexture;
+          };
 };
 
 abstract class VoxelsRenderableFactoryBase {
@@ -39,16 +46,41 @@ abstract class VoxelsRenderableFactoryBase {
     public abstract readonly maxVoxelsChunkSize: THREE.Vector3;
 
     protected readonly texture: THREE.DataTexture;
-    private readonly noiseTexture: THREE.Texture;
+    private readonly noiseTexture: THREE.DataTexture;
 
-    protected readonly noiseResolution = 5;
-    private readonly noiseTypes = 16;
+    protected readonly noiseResolution: number = 5;
+    private readonly noiseTypesCount: number = 16;
 
     protected readonly uniformsTemplate: VoxelsMaterialUniforms;
 
     protected constructor(params: Parameters) {
+        if (typeof params.noise !== 'undefined') {
+            this.noiseResolution = params.noise.resolution;
+        }
+        if (this.noiseResolution <= 0) {
+            throw new Error(`Noise resolution must be positive (is "${this.noiseResolution}").`);
+        }
+
+        let textureBuilder = () => VoxelsRenderableFactoryBase.buildNoiseTexture(this.noiseResolution, this.noiseTypesCount);
+        if (params?.noise?.textureBuilder) {
+            textureBuilder = params.noise.textureBuilder;
+        }
+        this.noiseTexture = textureBuilder();
+        this.noiseTexture.needsUpdate = true;
+        const noiseTextureSize = this.noiseTexture.image;
+        if (noiseTextureSize.height !== this.noiseResolution) {
+            throw new Error(`Noise texture should have a height of "${this.noiseResolution}" (has "${noiseTextureSize.height}").`);
+        }
+        const noiseTypesCount = noiseTextureSize.width / noiseTextureSize.height;
+        if (!Number.isInteger(noiseTypesCount) || noiseTypesCount <= 0) {
+            throw new Error(`Noise texture should have  width multiple of "${this.noiseResolution}" (has "${noiseTextureSize.width}").`);
+        }
+        if (noiseTypesCount > params.noiseIdEncoder.maxValue + 1) {
+            throw new Error(`Cannot have more than "${params.noiseIdEncoder.maxValue + 1}" noises (has "${noiseTypesCount}").`);
+        }
+        this.noiseTypesCount = noiseTypesCount;
+
         this.texture = VoxelsRenderableFactoryBase.buildMaterialsTexture(params.voxelMaterialsList, params.voxelTypeEncoder);
-        this.noiseTexture = VoxelsRenderableFactoryBase.buildNoiseTexture(this.noiseResolution, this.noiseTypes);
 
         this.uniformsTemplate = {
             uDisplayMode: { value: 0 },
@@ -152,7 +184,7 @@ abstract class VoxelsRenderableFactoryBase {
         return texture;
     }
 
-    private static buildNoiseTexture(resolution: number, typesCount: number): THREE.Texture {
+    private static buildNoiseTexture(resolution: number, typesCount: number): THREE.DataTexture {
         const textureWidth = resolution * typesCount;
         const textureHeight = resolution;
         const textureData = new Uint8Array(4 * textureWidth * textureHeight);
@@ -160,10 +192,8 @@ abstract class VoxelsRenderableFactoryBase {
         for (let i = 0; i < textureData.length; i++) {
             textureData[i] = 256 * Math.random();
         }
-        const texture = new THREE.DataTexture(textureData, textureWidth, textureHeight);
-        texture.needsUpdate = true;
-        return texture;
+        return new THREE.DataTexture(textureData, textureWidth, textureHeight);
     }
 }
 
-export { VoxelsRenderableFactoryBase, type GeometryAndMaterial, type VertexData, type VoxelsChunkData, type Parameters };
+export { VoxelsRenderableFactoryBase, type GeometryAndMaterial, type Parameters, type VertexData, type VoxelsChunkData };

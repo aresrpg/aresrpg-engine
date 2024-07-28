@@ -9,16 +9,22 @@ type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly maxVoxelsChunkSize: VoxelsChunkSize;
     readonly workersPoolSize: number;
+    readonly isCheckerboardMode?: boolean;
 };
 
 class VoxelsRenderableFactoryCpuWorker extends VoxelsRenderableFactoryCpu {
     public readonly workersPoolSize: number;
+    protected get workersPoolName(): string {
+        return 'voxels-renderable-cpu-worker';
+    }
+
     private workersPool: DedicatedWorkersPool | null = null;
 
     public constructor(params: Parameters) {
         super({
             voxelMaterialsList: params.voxelMaterialsList,
             maxVoxelsChunkSize: params.maxVoxelsChunkSize,
+            isCheckerboardMode: params.isCheckerboardMode,
         });
 
         this.workersPoolSize = params.workersPoolSize;
@@ -41,7 +47,7 @@ class VoxelsRenderableFactoryCpuWorker extends VoxelsRenderableFactoryCpu {
                 },
             };
 
-            this.workersPool = new DedicatedWorkersPool('voxels-renderable-cpu-worker', this.workersPoolSize, workerDefinition);
+            this.workersPool = new DedicatedWorkersPool(this.workersPoolName, this.workersPoolSize, workerDefinition);
         }
 
         return this.workersPool.submitTask('buildBuffer', voxelsChunkData);

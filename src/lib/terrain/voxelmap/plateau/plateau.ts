@@ -1,6 +1,5 @@
-import * as THREE from 'three';
-
-import { type IVoxelMap } from '../../lib';
+import * as THREE from '../../../three-usage';
+import { type IVoxelMap } from '../i-voxelmap';
 
 enum EPlateauSquareType {
     FLAT,
@@ -13,18 +12,24 @@ type PlateauSquare = {
     readonly materialId: number;
 };
 
+type Plateau = {
+    readonly size: THREE.Vector2Like;
+    readonly squares: ReadonlyArray<PlateauSquare>;
+    readonly origin: THREE.Vector3Like;
+};
+
 type PlateauSquareExtended = PlateauSquare & {
     readonly floorY: number;
     readonly generation: number;
 };
 
-type Plateau = {
+type PlateauExtended = {
     readonly size: THREE.Vector2Like;
-    readonly squares: PlateauSquareExtended[];
+    readonly squares: ReadonlyArray<PlateauSquareExtended>;
     readonly origin: THREE.Vector3Like;
 };
 
-async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): Promise<Plateau> {
+async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): Promise<PlateauExtended> {
     originWorld = {
         x: Math.floor(originWorld.x),
         y: Math.floor(originWorld.y),

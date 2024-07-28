@@ -1,4 +1,5 @@
-import type * as THREE from '../../../../../../three-usage';
+import * as THREE from '../../../../../../three-usage';
+import { type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
 import { type GeometryAndMaterial, type VertexData, type VoxelsChunkData } from '../../voxels-renderable-factory-base';
 import { VoxelsRenderableFactory } from '../voxels-renderable-factory';
@@ -15,6 +16,12 @@ type VoxelsChunkCache = VoxelsChunkData & {
     neighbourExists(voxelIndex: number, neighbourRelativePosition: THREE.Vector3): boolean;
 };
 
+type Parameters = {
+    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly maxVoxelsChunkSize: VoxelsChunkSize;
+    readonly isCheckerboardMode?: boolean | undefined;
+};
+
 class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
     private readonly serializableFactory = {
         cube: {
@@ -24,6 +31,8 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
 
         vertexData1Encoder: this.vertexData1Encoder,
         vertexData2Encoder: VoxelsRenderableFactory.vertexData2Encoder,
+
+        isCheckerboard: false,
 
         buildBuffer(voxelsChunkData: VoxelsChunkData): Uint32Array {
             const innerChunkSize = {
@@ -43,11 +52,12 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                 verticesCount: 0,
             };
 
-            let faceId = 0;
             const faceVerticesData = new Uint32Array(uint32PerVertex * 4);
             const voxelsChunkCache = this.buildLocalMapCache(voxelsChunkData);
             for (const faceData of this.iterateOnVisibleFacesWithCache(voxelsChunkCache)) {
-                const faceNoiseId = faceId++ % this.vertexData2Encoder.faceNoiseId.maxValue;
+                const faceNoiseId = this.isCheckerboard
+                    ? (faceData.voxelLocalPosition.x + faceData.voxelLocalPosition.y + faceData.voxelLocalPosition.z) % 2
+                    : Math.floor(Math.random() * this.vertexData2Encoder.faceNoiseId.maxValue);
 
                 faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
                     faceVerticesData[2 * faceVertexIndex + 0] = this.vertexData1Encoder.encode(
@@ -174,6 +184,23 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
         },
     };
 
+    public constructor(params: Parameters) {
+        const noise = params.isCheckerboardMode
+            ? {
+                  resolution: 1,
+                  textureBuilder: () => new THREE.DataTexture(new Uint8Array([0, 0, 0, 0, 255, 255, 255, 255]), 2, 1),
+              }
+            : undefined;
+
+        super({
+            voxelMaterialsList: params.voxelMaterialsList,
+            maxVoxelsChunkSize: params.maxVoxelsChunkSize,
+            noise,
+        });
+
+        this.serializableFactory.isCheckerboard = !!params.isCheckerboardMode;
+    }
+
     public async buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkData): Promise<GeometryAndMaterial[]> {
         if (voxelsChunkData.isEmpty) {
             return [];
@@ -191,6 +218,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
     cube: ${JSON.stringify(this.serializableFactory.cube)},
     vertexData1Encoder: ${this.serializableFactory.vertexData1Encoder.serialize()},
     vertexData2Encoder: ${this.serializableFactory.vertexData2Encoder.serialize()},
+    isCheckerboard: ${this.serializableFactory.isCheckerboard},
     ${this.serializableFactory.buildBuffer},
     ${this.serializableFactory.buildLocalMapCache},
     ${this.serializableFactory.iterateOnVisibleFacesWithCache},

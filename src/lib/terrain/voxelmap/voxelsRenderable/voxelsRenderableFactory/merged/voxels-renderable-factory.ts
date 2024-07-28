@@ -1,6 +1,6 @@
 import { vec3ToString } from '../../../../../helpers/string';
 import * as THREE from '../../../../../three-usage';
-import { type VoxelsChunkSize, type IVoxelMaterial } from '../../../i-voxelmap';
+import { type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterialUniforms, type VoxelsMaterials } from '../../voxels-material';
 import * as Cube from '../cube';
 import { VoxelsRenderableFactoryBase, type GeometryAndMaterial } from '../voxels-renderable-factory-base';
@@ -17,6 +17,12 @@ type VoxelsMaterialTemp = THREE.Material & {
 type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly maxVoxelsChunkSize: VoxelsChunkSize;
+    readonly noise?:
+        | {
+              readonly resolution: number;
+              readonly textureBuilder?: () => THREE.DataTexture;
+          }
+        | undefined;
 };
 
 abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
@@ -317,6 +323,8 @@ void main() {
         super({
             voxelMaterialsList: params.voxelMaterialsList,
             voxelTypeEncoder: VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId,
+            noiseIdEncoder: VoxelsRenderableFactory.vertexData2Encoder.faceNoiseId,
+            noise: params.noise,
         });
 
         this.vertexData1Encoder = new VertexData1Encoder(params.maxVoxelsChunkSize);
@@ -363,4 +371,4 @@ void main() {
     }
 }
 
-export { VoxelsRenderableFactory, type VoxelsMaterials, type Parameters };
+export { VoxelsRenderableFactory, type Parameters, type VoxelsMaterials };
