@@ -10,7 +10,11 @@ class PatchFactoryCpuWorker extends PatchFactoryBase {
     private readonly throttler: PromisesQueue;
 
     public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, patchSize: VoxelsChunkSize, workersPoolSize: number) {
-        const voxelsRenderableFactory = new VoxelsRenderableFactoryCpuWorker(voxelMaterialsList, patchSize, workersPoolSize);
+        const voxelsRenderableFactory = new VoxelsRenderableFactoryCpuWorker({
+            voxelMaterialsList,
+            maxVoxelsChunkSize: patchSize,
+            workersPoolSize,
+        });
         super(voxelsRenderableFactory);
 
         this.throttler = new PromisesQueue(voxelsRenderableFactory.workersPoolSize);

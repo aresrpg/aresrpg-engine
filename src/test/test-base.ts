@@ -25,7 +25,7 @@ abstract class TestBase {
 
     private started: boolean = false;
 
-    private update: VoidFunction = () => { };
+    private update: VoidFunction = () => {};
 
     public constructor(voxelMap: IHeightmap & IVoxelMap & ITerrainMap) {
         this.stats = new Stats();
@@ -211,7 +211,11 @@ abstract class TestBase {
 
     private setupPlateau(voxelMap: IVoxelMap & ITerrainMap): void {
         const maxPlateauSize = 128;
-        const factory = new VoxelsRenderableFactoryCpuWorker(voxelMap.voxelMaterialsList, { xz: maxPlateauSize, y: 16 }, 1);
+        const factory = new VoxelsRenderableFactoryCpuWorker({
+            voxelMaterialsList: voxelMap.voxelMaterialsList,
+            maxVoxelsChunkSize: { xz: maxPlateauSize, y: 16 },
+            workersPoolSize: 1,
+        });
 
         const plateauContainer = new THREE.Group();
         this.scene.add(plateauContainer);

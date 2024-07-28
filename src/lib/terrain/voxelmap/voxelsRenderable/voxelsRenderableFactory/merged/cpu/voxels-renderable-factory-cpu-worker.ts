@@ -1,18 +1,27 @@
-import { type VoxelsChunkData } from '../../voxels-renderable-factory-base';
+import { type WorkerDefinition } from '../../../../../../helpers/async/dedicatedWorkers/dedicated-worker';
 import { DedicatedWorkersPool } from '../../../../../../helpers/async/dedicatedWorkers/dedicated-workers-pool';
 import { type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
-import { type WorkerDefinition } from '../../../../../../helpers/async/dedicatedWorkers/dedicated-worker';
+import { type VoxelsChunkData } from '../../voxels-renderable-factory-base';
 
 import { VoxelsRenderableFactoryCpu } from './voxels-renderable-factory-cpu';
+
+type Parameters = {
+    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly maxVoxelsChunkSize: VoxelsChunkSize;
+    readonly workersPoolSize: number;
+};
 
 class VoxelsRenderableFactoryCpuWorker extends VoxelsRenderableFactoryCpu {
     public readonly workersPoolSize: number;
     private workersPool: DedicatedWorkersPool | null = null;
 
-    public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, maxVoxelsChunkSize: VoxelsChunkSize, workerPoolSize: number) {
-        super(voxelMaterialsList, maxVoxelsChunkSize);
+    public constructor(params: Parameters) {
+        super({
+            voxelMaterialsList: params.voxelMaterialsList,
+            maxVoxelsChunkSize: params.maxVoxelsChunkSize,
+        });
 
-        this.workersPoolSize = workerPoolSize;
+        this.workersPoolSize = params.workersPoolSize;
     }
 
     protected override buildBuffer(voxelsChunkData: VoxelsChunkData): Promise<Uint32Array> {
@@ -47,4 +56,4 @@ class VoxelsRenderableFactoryCpuWorker extends VoxelsRenderableFactoryCpu {
     }
 }
 
-export { VoxelsRenderableFactoryCpuWorker };
+export { VoxelsRenderableFactoryCpuWorker, type Parameters };

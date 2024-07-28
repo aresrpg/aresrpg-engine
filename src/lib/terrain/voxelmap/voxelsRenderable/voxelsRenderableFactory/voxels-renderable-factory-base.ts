@@ -28,6 +28,11 @@ type VoxelsChunkData = {
     readonly isEmpty: boolean;
 };
 
+type Parameters = {
+    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly voxelTypeEncoder: PackedUintFragment;
+};
+
 abstract class VoxelsRenderableFactoryBase {
     public static readonly maxSmoothEdgeRadius = 0.3;
 
@@ -37,12 +42,12 @@ abstract class VoxelsRenderableFactoryBase {
     private readonly noiseTexture: THREE.Texture;
 
     protected readonly noiseResolution = 5;
-    protected readonly noiseTypes = 16;
+    private readonly noiseTypes = 16;
 
     protected readonly uniformsTemplate: VoxelsMaterialUniforms;
 
-    protected constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, voxelTypeEncoder: PackedUintFragment) {
-        this.texture = VoxelsRenderableFactoryBase.buildMaterialsTexture(voxelMaterialsList, voxelTypeEncoder);
+    protected constructor(params: Parameters) {
+        this.texture = VoxelsRenderableFactoryBase.buildMaterialsTexture(params.voxelMaterialsList, params.voxelTypeEncoder);
         this.noiseTexture = VoxelsRenderableFactoryBase.buildNoiseTexture(this.noiseResolution, this.noiseTypes);
 
         this.uniformsTemplate = {
@@ -161,4 +166,4 @@ abstract class VoxelsRenderableFactoryBase {
     }
 }
 
-export { VoxelsRenderableFactoryBase, type GeometryAndMaterial, type VertexData, type VoxelsChunkData };
+export { VoxelsRenderableFactoryBase, type GeometryAndMaterial, type VertexData, type VoxelsChunkData, type Parameters };
