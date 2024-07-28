@@ -19,7 +19,10 @@ class PatchFactoryGpuOptimized extends PatchFactoryBase {
     private readonly pendingJobs: PatchGenerationJob[] = [];
 
     public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, patchSize: VoxelsChunkSize) {
-        const voxelsRenderableFactory = new VoxelsRenderableFactoryGpu(voxelMaterialsList, patchSize);
+        const voxelsRenderableFactory = new VoxelsRenderableFactoryGpu({
+            voxelMaterialsList,
+            voxelsChunkSize: patchSize,
+        });
         super(voxelsRenderableFactory);
     }
 

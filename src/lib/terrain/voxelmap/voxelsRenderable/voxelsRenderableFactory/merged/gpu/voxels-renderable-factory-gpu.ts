@@ -1,14 +1,22 @@
-import { type VoxelsChunkSize, type IVoxelMaterial } from '../../../../i-voxelmap';
+import { type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
 import { type GeometryAndMaterial, type VoxelsChunkData } from '../../voxels-renderable-factory-base';
 import { VoxelsRenderableFactory } from '../voxels-renderable-factory';
 
 import { VoxelsComputerGpu } from './voxels-computer-gpu';
 
+type Parameters = {
+    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly voxelsChunkSize: VoxelsChunkSize;
+};
+
 class VoxelsRenderableFactoryGpu extends VoxelsRenderableFactory {
     private readonly voxelsComputerGpuPromise: Promise<VoxelsComputerGpu> | null = null;
 
-    public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, voxelsChunkSize: VoxelsChunkSize) {
-        super(voxelMaterialsList, voxelsChunkSize);
+    public constructor(params: Parameters) {
+        super({
+            voxelMaterialsList: params.voxelMaterialsList,
+            maxVoxelsChunkSize: params.voxelsChunkSize,
+        });
         const localCacheSize = this.maxVoxelsChunkSize.clone().addScalar(2);
         this.voxelsComputerGpuPromise = VoxelsComputerGpu.create(
             localCacheSize,
@@ -41,4 +49,4 @@ class VoxelsRenderableFactoryGpu extends VoxelsRenderableFactory {
     }
 }
 
-export { VoxelsRenderableFactoryGpu };
+export { VoxelsRenderableFactoryGpu, type Parameters };

@@ -1,6 +1,6 @@
 import { PromisesQueue } from '../../../../../helpers/async/promises-queue';
 import type * as THREE from '../../../../../three-usage';
-import { type VoxelsChunkSize, type IVoxelMap, type IVoxelMaterial } from '../../../i-voxelmap';
+import { type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryCpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/cpu/voxels-renderable-factory-cpu';
 import { PatchFactoryBase } from '../patch-factory-base';
@@ -9,7 +9,10 @@ class PatchFactoryCpu extends PatchFactoryBase {
     private readonly throttler = new PromisesQueue(1);
 
     public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, patchSize: VoxelsChunkSize) {
-        const voxelsRenderableFactory = new VoxelsRenderableFactoryCpu(voxelMaterialsList, patchSize);
+        const voxelsRenderableFactory = new VoxelsRenderableFactoryCpu({
+            voxelMaterialsList,
+            maxVoxelsChunkSize: patchSize,
+        });
         super(voxelsRenderableFactory);
     }
 

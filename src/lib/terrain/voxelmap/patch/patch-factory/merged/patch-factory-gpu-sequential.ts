@@ -9,7 +9,10 @@ class PatchFactoryGpuSequential extends PatchFactoryBase {
     private readonly throttler = new PromisesQueue(1);
 
     public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, patchSize: VoxelsChunkSize) {
-        const voxelsRenderableFactory = new VoxelsRenderableFactoryGpu(voxelMaterialsList, patchSize);
+        const voxelsRenderableFactory = new VoxelsRenderableFactoryGpu({
+            voxelMaterialsList,
+            voxelsChunkSize: patchSize,
+        });
         super(voxelsRenderableFactory);
     }
 

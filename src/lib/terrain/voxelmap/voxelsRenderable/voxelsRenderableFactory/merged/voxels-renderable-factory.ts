@@ -14,6 +14,11 @@ type VoxelsMaterialTemp = THREE.Material & {
     };
 };
 
+type Parameters = {
+    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly maxVoxelsChunkSize: VoxelsChunkSize;
+};
+
 abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
     private static instancesCount: number = 0;
     private readonly instanceId: number = 0;
@@ -308,10 +313,13 @@ void main() {
         return { material, shadowMaterial };
     }
 
-    public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, maxVoxelsChunkSize: VoxelsChunkSize) {
-        super(voxelMaterialsList, VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId);
+    public constructor(params: Parameters) {
+        super({
+            voxelMaterialsList: params.voxelMaterialsList,
+            voxelTypeEncoder: VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId,
+        });
 
-        this.vertexData1Encoder = new VertexData1Encoder(maxVoxelsChunkSize);
+        this.vertexData1Encoder = new VertexData1Encoder(params.maxVoxelsChunkSize);
         this.maxVoxelsChunkSize = new THREE.Vector3(
             this.vertexData1Encoder.voxelX.maxValue + 1,
             this.vertexData1Encoder.voxelY.maxValue + 1,
@@ -355,4 +363,4 @@ void main() {
     }
 }
 
-export { VoxelsRenderableFactory, type VoxelsMaterials };
+export { VoxelsRenderableFactory, type VoxelsMaterials, type Parameters };
