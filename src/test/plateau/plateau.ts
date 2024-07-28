@@ -214,10 +214,23 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
     } while (somethingChanged);
 
     const minY = plateauSquares.reduce((y: number, square: PlateauSquareExtended) => {
+        if (!isNaN(square.floorY)) {
+            return Math.min(y, square.floorY);
+        }
+        return y;
+    }, originY);
+    const plateauYShift = minY - originY - 1;
+
+    const plateauOrigin = new THREE.Vector3(
+        originWorld.x - plateauHalfSize,
+        originWorld.y + plateauYShift,
+        originWorld.z - plateauHalfSize
+    );
+
     return {
         size: plateauSize,
         squares: plateauSquares,
-        origin: new THREE.Vector3().copy(originWorld).add({ x: -plateauHalfSize, y: 16, z: -plateauHalfSize }),
+        origin: plateauOrigin,
     };
 }
 

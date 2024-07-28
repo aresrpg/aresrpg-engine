@@ -25,7 +25,7 @@ abstract class TestBase {
 
     private started: boolean = false;
 
-    private update: VoidFunction = () => {};
+    private update: VoidFunction = () => { };
 
     public constructor(voxelMap: IHeightmap & IVoxelMap & ITerrainMap) {
         this.stats = new Stats();
@@ -223,8 +223,9 @@ abstract class TestBase {
             const requestId = lastPlateauRequestId;
 
             const plateau = await computePlateau(voxelMap, origin);
+            const plateauThickness = 1;
 
-            const chunkSize = new THREE.Vector3(plateau.size.x + 2, 8, plateau.size.y + 2);
+            const chunkSize = new THREE.Vector3(plateau.size.x + 2, 1 + plateauThickness + 1 + 1, plateau.size.y + 2);
             let chunkIsEmpty = true;
             const chunkData = new Uint16Array(chunkSize.x * chunkSize.y * chunkSize.z);
             for (let iChunkZ = 0; iChunkZ < chunkSize.z; iChunkZ++) {
@@ -239,15 +240,18 @@ abstract class TestBase {
                     if (!plateauSquare) {
                         throw new Error();
                     }
-                    const fromChunkY = 1;
-                    let toChunkY = 0;
-                    if (plateauSquare.type === EPlateauSquareType.FLAT) {
-                        toChunkY = chunkSize.y - 3;
-                    } else if (plateauSquare.type === EPlateauSquareType.OBSTACLE) {
-                        toChunkY = chunkSize.y - 2;
-                    }
 
-                    for (let iChunkY = fromChunkY + 1; iChunkY < toChunkY; iChunkY++) {
+                    const fromPlateauY = 0;
+                    let toPlateauY = -1;
+                    if (plateauSquare.type === EPlateauSquareType.FLAT) {
+                        toPlateauY = plateauThickness;
+                    } else if (plateauSquare.type === EPlateauSquareType.OBSTACLE) {
+                        toPlateauY = plateauThickness + 1;
+                    }
+                    const fromChunkY = fromPlateauY + 1;
+                    const toChunkY = toPlateauY + 1;
+
+                    for (let iChunkY = fromChunkY; iChunkY < toChunkY; iChunkY++) {
                         const index = iChunkX + iChunkY * chunkSize.x + iChunkZ * (chunkSize.x * chunkSize.y);
                         chunkData[index] = plateauSquare.materialId + 1;
                         chunkIsEmpty = false;
@@ -274,7 +278,7 @@ abstract class TestBase {
             }
             plateauRenderable = renderable;
             if (plateauRenderable) {
-                plateauRenderable.container.position.set(plateau.origin.x, plateau.origin.y, plateau.origin.z);
+                plateauRenderable.container.position.set(plateau.origin.x, plateau.origin.y - plateauThickness, plateau.origin.z);
                 plateauContainer.add(plateauRenderable.container);
             }
         };
