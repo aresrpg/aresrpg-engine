@@ -145,6 +145,7 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
                 const sampleY = sampleData(worldPos);
 
                 if (sampleY > 0) {
+                    let firstSample: number | null = null;
                     let lastSample = sampleY;
                     for (let deltaY = 1; deltaY < maxDeltaY; deltaY++) {
                         const sample = sampleData({ x: worldPos.x, y: worldPos.y + deltaY, z: worldPos.z });
@@ -156,13 +157,18 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
                                 generation,
                             };
                         } else {
+                            firstSample = firstSample ?? sample;
                             lastSample = sample;
                         }
                     }
 
+                    if (!firstSample) {
+                        throw new Error();
+                    }
+
                     return {
                         type: EPlateauSquareType.OBSTACLE,
-                        materialId: sampleY - 1,
+                        materialId: firstSample - 1,
                         floorY: worldPos.y,
                         generation,
                     };
