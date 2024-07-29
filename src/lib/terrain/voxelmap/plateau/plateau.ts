@@ -12,6 +12,8 @@ type PlateauSquare = {
     readonly materialId: number;
 };
 
+type ColumnId = { readonly x: number, readonly z: number };
+
 type Plateau = {
     readonly size: THREE.Vector2Like;
     readonly squares: ReadonlyArray<PlateauSquare>;
@@ -51,29 +53,29 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
             });
         }
     }
-    const tryGetIndex = (relativePos: { readonly x: number; readonly z: number }) => {
+    const tryGetIndex = (relativePos: ColumnId) => {
         const plateauCoords = { x: relativePos.x + plateauHalfSize, z: relativePos.z + plateauHalfSize };
         if (plateauCoords.x < 0 || plateauCoords.z < 0 || plateauCoords.x >= plateauSize.x || plateauCoords.z >= plateauSize.y) {
             return null;
         }
         return plateauCoords.x + plateauCoords.z * plateauSize.x;
     };
-    const getIndex = (relativePos: { readonly x: number; readonly z: number }) => {
+    const getIndex = (relativePos: ColumnId) => {
         const index = tryGetIndex(relativePos);
         if (index === null) {
             throw new Error();
         }
         return index;
     };
-    const setPlateauSquare = (relativePos: { readonly x: number; readonly z: number }, square: PlateauSquareExtended) => {
+    const setPlateauSquare = (relativePos: ColumnId, square: PlateauSquareExtended) => {
         const index = getIndex(relativePos);
         plateauSquares[index] = { ...square };
     };
-    const getPlateauSquare = (relativePos: { readonly x: number; readonly z: number }) => {
+    const getPlateauSquare = (relativePos: ColumnId) => {
         const index = getIndex(relativePos);
         return plateauSquares[index]!;
     };
-    const tryGetPlateauSquare = (relativePos: { readonly x: number; readonly z: number }) => {
+    const tryGetPlateauSquare = (relativePos: ColumnId) => {
         const index = tryGetIndex(relativePos);
         if (index === null) {
             return null;
@@ -126,7 +128,7 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
     }
     const originY = getPlateauSquare({ x: 0, z: 0 })!.floorY;
 
-    const computePlateauSquare = (relativePos: { readonly x: number; readonly z: number }): PlateauSquareExtended | null => {
+    const computePlateauSquare = (relativePos: ColumnId): PlateauSquareExtended | null => {
         const square = getPlateauSquare(relativePos);
         if (square.type !== EPlateauSquareType.HOLE) {
             // this square has been computed already
