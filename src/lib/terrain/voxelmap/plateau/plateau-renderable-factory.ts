@@ -71,14 +71,14 @@ class PlateauRenderableFactory extends VoxelsRenderableFactoryCpuWorker {
             throw new Error();
         }
 
-        const chunkSize = new THREE.Vector3(plateau.size.x + 2, 1 + plateauThickness + 1 + 1, plateau.size.y + 2);
+        const chunkSize = new THREE.Vector3(plateau.size.x + 2, 1 + plateauThickness + 1 + 1, plateau.size.z + 2);
         let chunkIsEmpty = true;
         const chunkData = new Uint16Array(chunkSize.x * chunkSize.y * chunkSize.z);
         for (let iChunkZ = 0; iChunkZ < chunkSize.z; iChunkZ++) {
             for (let iChunkX = 0; iChunkX < chunkSize.x; iChunkX++) {
                 const plateauX = iChunkX - 1;
                 const plateauZ = iChunkZ - 1;
-                if (plateauX < 0 || plateauZ < 0 || plateauX >= plateau.size.x || plateauZ >= plateau.size.y) {
+                if (plateauX < 0 || plateauZ < 0 || plateauX >= plateau.size.x || plateauZ >= plateau.size.z) {
                     continue;
                 }
 

@@ -15,7 +15,7 @@ type PlateauSquare = {
 type ColumnId = { readonly x: number, readonly z: number };
 
 type Plateau = {
-    readonly size: THREE.Vector2Like;
+    readonly size: { readonly x: number, readonly z: number };
     readonly squares: ReadonlyArray<PlateauSquare>;
     readonly origin: THREE.Vector3Like;
 };
@@ -35,9 +35,9 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
     let currentGeneration = 0;
     const maxDeltaY = 4;
     const plateauHalfSize = 31;
-    const plateauSize = { x: 2 * plateauHalfSize + 1, y: 2 * plateauHalfSize + 1 };
+    const plateauSize = { x: 2 * plateauHalfSize + 1, z: 2 * plateauHalfSize + 1 };
     const plateauSquares: PlateauSquareExtended[] = [];
-    for (let iY = 0; iY < plateauSize.y; iY++) {
+    for (let iZ = 0; iZ < plateauSize.z; iZ++) {
         for (let iX = 0; iX < plateauSize.x; iX++) {
             plateauSquares.push({
                 type: EPlateauSquareType.HOLE,
@@ -49,7 +49,7 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
     }
     const tryGetIndex = (relativePos: ColumnId) => {
         const plateauCoords = { x: relativePos.x + plateauHalfSize, z: relativePos.z + plateauHalfSize };
-        if (plateauCoords.x < 0 || plateauCoords.z < 0 || plateauCoords.x >= plateauSize.x || plateauCoords.z >= plateauSize.y) {
+        if (plateauCoords.x < 0 || plateauCoords.z < 0 || plateauCoords.x >= plateauSize.x || plateauCoords.z >= plateauSize.z) {
             return null;
         }
         return plateauCoords.x + plateauCoords.z * plateauSize.x;
