@@ -172,23 +172,14 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
         for (const id of visiblePatchesId) {
             const visiblePatchId = new PatchId(id);
-            const storedPatch = this.patchesStore.getItem(visiblePatchId.asString);
-            if (storedPatch) {
-                if (!storedPatch.isVisible) {
-                    storedPatch.isVisible = true;
-                    const voxelsRenderable = this.tryGetVoxelsRenderable(storedPatch);
-                    if (voxelsRenderable) {
-                        this.container.add(voxelsRenderable.container);
-                    }
+            const storedPatch = this.getOrBuildStoredPatch(visiblePatchId);
+            if (!storedPatch.isVisible) {
+                storedPatch.isVisible = true;
+                storedPatch.isInvisibleSince = -1;
+                const voxelsRenderable = this.tryGetVoxelsRenderable(storedPatch);
+                if (voxelsRenderable) {
+                    this.container.add(voxelsRenderable.container);
                 }
-            } else {
-                this.patchesStore.setItem(visiblePatchId.asString, {
-                    id: visiblePatchId,
-                    isVisible: true,
-                    isInvisibleSince: performance.now(),
-                    computationTask: null,
-                    dispose: () => {},
-                });
             }
         }
 
