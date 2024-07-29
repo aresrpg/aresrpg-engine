@@ -25,13 +25,7 @@ type PlateauSquareExtended = PlateauSquare & {
     readonly generation: number;
 };
 
-type PlateauExtended = {
-    readonly size: THREE.Vector2Like;
-    readonly squares: ReadonlyArray<PlateauSquareExtended>;
-    readonly origin: THREE.Vector3Like;
-};
-
-async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): Promise<PlateauExtended> {
+async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): Promise<Plateau> {
     originWorld = {
         x: Math.floor(originWorld.x),
         y: Math.floor(originWorld.y),
