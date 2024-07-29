@@ -161,22 +161,40 @@ class VoxelMapCacheless implements IVoxelMap, IHeightmap {
         // first, fill base terrain
         const localPos = new THREE.Vector3();
         const worldPos = { x: 0, y: 0, z: 0 };
+
+        let isFullPatch = true;
+        const samples: IHeightmapSample[] = [];
         for (worldPos.z = blockStart.z; worldPos.z < blockEnd.z; worldPos.z++) {
             for (worldPos.x = blockStart.x; worldPos.x < blockEnd.x; worldPos.x++) {
                 const sample = this.sampleHeightmapBaseTerrain(worldPos.x, worldPos.z);
-                const voxelType = this.altitudeToVoxelType(sample.altitude);
-                localPos.subVectors(worldPos, blockStart);
-                const fromY = blockStart.y - blockStart.y;
-                const toY = Math.min(blockEnd.y, sample.altitude + 1) - blockStart.y;
-                for (localPos.y = fromY; localPos.y < toY; localPos.y++) {
-                    setVoxel(localPos, voxelType);
+                samples.push(sample);
+                if (sample.altitude >= blockStart.y) {
+                    isFullPatch = false;
                 }
             }
         }
 
-        // then, add trees
-        for (const treeWorldPosition of this.getAllTreesForBlock({ x: blockStart.x, y: blockStart.z }, { x: blockEnd.x, y: blockEnd.z })) {
-            addTree(treeWorldPosition, this.tree);
+        if (!isFullPatch) {
+            for (worldPos.z = blockStart.z; worldPos.z < blockEnd.z; worldPos.z++) {
+                for (worldPos.x = blockStart.x; worldPos.x < blockEnd.x; worldPos.x++) {
+                    localPos.subVectors(worldPos, blockStart);
+                    const sample = samples[localPos.x + localPos.z * blockSize.x];
+                    const voxelType = this.altitudeToVoxelType(sample.altitude);
+                    const fromY = blockStart.y - blockStart.y;
+                    const toY = Math.min(blockEnd.y, sample.altitude + 1) - blockStart.y;
+                    for (localPos.y = fromY; localPos.y < toY; localPos.y++) {
+                        setVoxel(localPos, voxelType);
+                    }
+                }
+            }
+
+            // then, add trees
+            for (const treeWorldPosition of this.getAllTreesForBlock(
+                { x: blockStart.x, y: blockStart.z },
+                { x: blockEnd.x, y: blockEnd.z }
+            )) {
+                addTree(treeWorldPosition, this.tree);
+            }
         }
 
         const result = {
