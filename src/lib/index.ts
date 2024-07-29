@@ -6,6 +6,7 @@ export { TerrainViewer } from './terrain/terrain-viewer';
 export type { ILocalMapData, IVoxelMap, IVoxelMaterial, VoxelsChunkSize } from './terrain/voxelmap/i-voxelmap';
 export { EPlateauSquareType, computePlateau, type Plateau, type PlateauSquare } from './terrain/voxelmap/plateau/plateau';
 export { PlateauRenderableFactory, type PlateauRenderable } from './terrain/voxelmap/plateau/plateau-renderable-factory';
+export { VoxelmapWrapper } from './terrain/voxelmap/plateau/voxelmap-wrapper';
 export {
     VoxelmapViewerAutonomous,
     type VoxelmapViewerAutonomousOptions,

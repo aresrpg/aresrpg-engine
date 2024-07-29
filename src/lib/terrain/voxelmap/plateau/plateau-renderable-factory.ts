@@ -25,7 +25,7 @@ class PlateauRenderableFactory extends VoxelsRenderableFactoryCpuWorker {
         });
     }
 
-    public async buildPlateauRenderable(plateau: Plateau): Promise<PlateauRenderable | null> {
+    public async buildPlateauRenderable(plateau: Plateau): Promise<PlateauRenderable> {
         const plateauThickness = 1;
         const voxelsChunkData = this.buildPlateauVoxelsChunkData(plateau, plateauThickness);
 

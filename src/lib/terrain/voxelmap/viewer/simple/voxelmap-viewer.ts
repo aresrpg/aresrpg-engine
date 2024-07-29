@@ -1,6 +1,5 @@
 import { AsyncTask } from '../../../../helpers/async/async-task';
 import { PromisesQueue } from '../../../../helpers/async/promises-queue';
-import { DisposableMap } from '../../../../helpers/disposable-map';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../three-usage';
 import { type IVoxelMaterial, type VoxelsChunkSize } from '../../i-voxelmap';
@@ -35,13 +34,28 @@ type VoxelmapViewerOptions = {
 
 type ComputationStatus = 'success' | 'skipped' | 'aborted';
 
-type StoredPatchRenderable = {
-    readonly id: PatchId;
-    isVisible: boolean;
-    isInvisibleSince: number;
-    computationTask: AsyncTask<VoxelsRenderable | null> | null;
-    dispose: VoidFunction;
-};
+type StoredPatchRenderable =
+    | {
+          readonly id: PatchId;
+          isVisible: boolean;
+          isInvisibleSince: number;
+          readonly status: 'pending';
+      }
+    | {
+          readonly id: PatchId;
+          isVisible: boolean;
+          isInvisibleSince: number;
+          readonly status: 'in-queue';
+          readonly task: AsyncTask<VoxelsRenderable | null>;
+          cancelled: boolean;
+      }
+    | {
+          readonly id: PatchId;
+          isVisible: boolean;
+          isInvisibleSince: number;
+          readonly status: 'ready';
+          readonly renderable: VoxelsRenderable | null;
+      };
 
 class VoxelmapViewer extends VoxelmapViewerBase {
     public readonly computationOptions: ComputationOptions;
@@ -50,7 +64,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     private readonly promiseThrottler: PromisesQueue;
     private readonly patchFactory: PatchFactoryBase;
 
-    private patchesStore = new DisposableMap<StoredPatchRenderable>();
+    private patchesStore: Record<string, StoredPatchRenderable> = {};
 
     public constructor(
         minChunkIdY: number,
@@ -86,8 +100,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
     public doesPatchRequireVoxelsData(id: THREE.Vector3Like): boolean {
         const patchId = new PatchId(id);
-        const storedPatch = this.patchesStore.getItem(patchId.asString);
-        return !storedPatch || !storedPatch.computationTask;
+        const storedPatch = this.getOrBuildStoredPatch(patchId);
+        return storedPatch.status === 'pending';
     }
 
     public async enqueuePatch(id: THREE.Vector3Like, voxelsChunkData: VoxelsChunkData): Promise<ComputationStatus> {
@@ -97,52 +111,66 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         }
 
         const patchId = new PatchId(id);
-        const storedPatch = this.getOrBuildStoredPatch(patchId);
-        if (storedPatch.computationTask) {
-            // this patch is already in queue for computation
+        let storedPatch = this.getOrBuildStoredPatch(patchId);
+        if (storedPatch.status !== 'pending') {
             return Promise.resolve('skipped');
         }
 
         return new Promise<ComputationStatus>(resolve => {
             const resolveAsAborted = () => resolve('aborted');
 
-            storedPatch.computationTask = new AsyncTask<VoxelsRenderable | null>(async () => {
-                const patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
-                const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
-                return await this.patchFactory.buildPatchFromVoxelsChunk(patchId, patchStart, patchEnd, voxelsChunkData);
-            });
-            storedPatch.dispose = () => {
-                storedPatch.computationTask = null;
-                resolveAsAborted();
+            storedPatch = {
+                id: storedPatch.id,
+                isVisible: storedPatch.isVisible,
+                isInvisibleSince: storedPatch.isInvisibleSince,
+                status: 'in-queue',
+                task: new AsyncTask<VoxelsRenderable | null>(async () => {
+                    const patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
+                    const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
+                    return await this.patchFactory.buildPatchFromVoxelsChunk(patchId, patchStart, patchEnd, voxelsChunkData);
+                }),
+                cancelled: false,
             };
+            this.patchesStore[patchId.asString] = storedPatch;
 
-            const startComputation = async () => {
-                if (!storedPatch.computationTask) {
-                    // console.log(`Patch ${patchId.asString} has been aborted while in "pending" status. Don't compute.`);
+            this.promiseThrottler.run(async () => {
+                if (storedPatch.status !== 'in-queue') {
+                    throw new Error();
+                }
+                if (storedPatch.cancelled) {
+                    resolveAsAborted();
                     return;
                 }
 
-                const voxelsRenderable = await storedPatch.computationTask.start();
+                const voxelsRenderable = await storedPatch.task.start();
+
+                if (storedPatch.cancelled) {
+                    if (voxelsRenderable) {
+                        voxelsRenderable.dispose();
+                    }
+                    resolveAsAborted();
+                    return;
+                }
+
+                if (this.patchesStore[patchId.asString] !== storedPatch) {
+                    throw new Error();
+                }
+
+                this.patchesStore[patchId.asString] = {
+                    id: storedPatch.id,
+                    isVisible: storedPatch.isVisible,
+                    isInvisibleSince: storedPatch.isInvisibleSince,
+                    status: 'ready',
+                    renderable: voxelsRenderable,
+                };
+
                 if (voxelsRenderable && storedPatch.isVisible) {
                     this.container.add(voxelsRenderable.container);
                     this.notifyChange();
                 }
 
-                storedPatch.dispose = () => {
-                    if (voxelsRenderable) {
-                        const container = voxelsRenderable.container;
-                        if (container.parent) {
-                            container.parent.remove(container);
-                            this.notifyChange();
-                        }
-                        voxelsRenderable.dispose();
-                    }
-                };
-
                 resolve('success');
-            };
-
-            this.promiseThrottler.run(startComputation, resolveAsAborted);
+            }, resolveAsAborted);
         });
     }
 
@@ -152,34 +180,62 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
     public dequeuePatch(id: THREE.Vector3Like): void {
         const patchId = new PatchId(id);
-        const storedPatch = this.patchesStore.getItem(patchId.asString);
-        if (storedPatch && storedPatch.computationTask?.isStarted !== true) {
-            storedPatch.dispose();
+        const patch = this.patchesStore[patchId.asString];
+        if (patch?.status === 'in-queue') {
+            patch.cancelled = true;
+            this.patchesStore[patchId.asString] = {
+                id: patch.id,
+                isVisible: patch.isVisible,
+                isInvisibleSince: patch.isInvisibleSince,
+                status: 'pending',
+            };
+        }
+    }
+
+    public deletePatch(id: THREE.Vector3Like): void {
+        const patchId = new PatchId(id);
+        const patch = this.patchesStore[patchId.asString];
+        if (patch && patch.status !== 'pending') {
+            if (patch.status === 'in-queue') {
+                patch.cancelled = true;
+            } else if (patch.status === 'ready') {
+                if (patch.renderable) {
+                    if (patch.isVisible) {
+                        this.container.remove(patch.renderable.container);
+                    }
+                    patch.renderable.dispose();
+                }
+            }
+
+            this.patchesStore[patchId.asString] = {
+                id: patch.id,
+                isVisible: patch.isVisible,
+                isInvisibleSince: patch.isInvisibleSince,
+                status: 'pending',
+            };
         }
     }
 
     public setVisibility(visiblePatchesId: ReadonlyArray<THREE.Vector3Like>): void {
-        for (const storedPatch of this.patchesStore.allItems) {
-            if (storedPatch.isVisible) {
-                storedPatch.isVisible = false;
-                storedPatch.isInvisibleSince = performance.now();
-                const voxelsRenderable = this.tryGetVoxelsRenderable(storedPatch);
-                if (voxelsRenderable) {
-                    this.container.remove(voxelsRenderable.container);
+        for (const patch of Object.values(this.patchesStore)) {
+            if (patch.isVisible) {
+                if (patch.status === 'ready' && patch.renderable) {
+                    this.container.remove(patch.renderable.container);
                 }
+                patch.isVisible = false;
+                patch.isInvisibleSince = performance.now();
             }
         }
 
         for (const id of visiblePatchesId) {
             const visiblePatchId = new PatchId(id);
-            const storedPatch = this.getOrBuildStoredPatch(visiblePatchId);
-            if (!storedPatch.isVisible) {
-                storedPatch.isVisible = true;
-                storedPatch.isInvisibleSince = -1;
-                const voxelsRenderable = this.tryGetVoxelsRenderable(storedPatch);
-                if (voxelsRenderable) {
-                    this.container.add(voxelsRenderable.container);
+            const patch = this.getOrBuildStoredPatch(visiblePatchId);
+            if (!patch.isVisible) {
+                if (patch.status === 'ready' && patch.renderable) {
+                    this.container.add(patch.renderable.container);
                 }
+                patch.isVisible = true;
+                patch.isInvisibleSince = -1;
             }
         }
 
@@ -199,14 +255,12 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
     protected override get allLoadedPatches(): ComputedPatch[] {
         const result: ComputedPatch[] = [];
-        for (const patch of this.patchesStore.allItems) {
-            const voxelsRenderable = this.tryGetVoxelsRenderable(patch);
-            if (voxelsRenderable) {
+        for (const patch of Object.values(this.patchesStore)) {
+            if (patch.status === 'ready' && patch.renderable)
                 result.push({
                     isVisible: patch.isVisible,
-                    voxelsRenderable,
+                    voxelsRenderable: patch.renderable,
                 });
-            }
         }
         return result;
     }
@@ -214,12 +268,9 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     protected override get allVisiblePatches(): PatchRenderable[] {
         const result: PatchRenderable[] = [];
 
-        for (const storedPatch of this.patchesStore.allItems) {
-            if (storedPatch.isVisible) {
-                const voxelsRenderable = this.tryGetVoxelsRenderable(storedPatch);
-                if (voxelsRenderable) {
-                    result.push({ id: storedPatch.id, voxelsRenderable });
-                }
+        for (const storedPatch of Object.values(this.patchesStore)) {
+            if (storedPatch.status === 'ready' && storedPatch.isVisible && storedPatch.renderable) {
+                result.push({ id: storedPatch.id, voxelsRenderable: storedPatch.renderable });
             }
         }
 
@@ -227,14 +278,14 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     }
 
     protected override isPatchAttached(patchId: PatchId): boolean {
-        const storedPatch = this.patchesStore.getItem(patchId.asString);
-        return !!storedPatch && storedPatch.isVisible && storedPatch.computationTask?.isFinished === true;
+        const storedPatch = this.patchesStore[patchId.asString];
+        return storedPatch?.status === 'ready' && storedPatch.isVisible;
     }
 
     protected override garbageCollectPatches(maxInvisiblePatchesInPatch: number): void {
-        const storedPatchesList = this.patchesStore.allItems;
+        const storedPatchesList = Object.values(this.patchesStore);
         const elligibleStoredPatchesList = storedPatchesList.filter(storedPatch => {
-            return !storedPatch.isVisible && !storedPatch.computationTask?.isRunning;
+            return !storedPatch.isVisible && (storedPatch.status === 'pending' || storedPatch.status === 'ready');
         });
         elligibleStoredPatchesList.sort((patch1, patch2) => patch1.isInvisibleSince - patch2.isInvisibleSince);
 
@@ -243,30 +294,25 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             if (!nextPatchToDelete) {
                 break;
             }
-            this.patchesStore.deleteItem(nextPatchToDelete.id.asString);
+            if (nextPatchToDelete.status === 'ready') {
+                nextPatchToDelete.renderable?.dispose();
+            }
+            delete this.patchesStore[nextPatchToDelete.id.asString];
         }
     }
 
     private getOrBuildStoredPatch(patchId: PatchId): StoredPatchRenderable {
-        let storedPatch = this.patchesStore.getItem(patchId.asString);
+        let storedPatch = this.patchesStore[patchId.asString];
         if (!storedPatch) {
             storedPatch = {
                 id: patchId,
                 isVisible: false,
                 isInvisibleSince: performance.now(),
-                computationTask: null,
-                dispose: () => {},
+                status: 'pending',
             };
-            this.patchesStore.setItem(patchId.asString, storedPatch);
+            this.patchesStore[patchId.asString] = storedPatch;
         }
         return storedPatch;
-    }
-
-    private tryGetVoxelsRenderable(storedPatch: StoredPatchRenderable): VoxelsRenderable | null {
-        if (storedPatch.computationTask?.isFinished) {
-            return storedPatch.computationTask.getResultSync();
-        }
-        return null;
     }
 }
 

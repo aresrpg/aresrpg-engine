@@ -1,17 +1,23 @@
 import * as THREE from 'three';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 
 import {
+    computePlateau,
     EComputationMethod,
+    type PlateauRenderable,
+    PlateauRenderableFactory,
     PromisesQueue,
     TerrainViewer,
     VoxelmapViewer,
     VoxelmapVisibilityComputer,
     type IHeightmap,
     type IVoxelMap,
+    VoxelmapWrapper,
+    type Plateau,
 } from '../lib';
 import { HeightmapViewer } from '../lib/terrain/heightmap/heightmap-viewer';
 
-import { type ITerrainMap, TestBase } from './test-base';
+import { TestBase, type ITerrainMap } from './test-base';
 
 class TestTerrain extends TestBase {
     protected override readonly terrainViewer: TerrainViewer;
@@ -20,12 +26,17 @@ class TestTerrain extends TestBase {
     private readonly voxelmapVisibilityComputer: VoxelmapVisibilityComputer;
     private readonly promisesQueue: PromisesQueue;
 
-    private readonly map: IVoxelMap;
+    private readonly map: VoxelmapWrapper;
 
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
         super(map);
 
-        const chunkSize = { xz: 128, y: 64 };
+        const testPlateau = true;
+        if (testPlateau) {
+            this.setupPlateau(map);
+        }
+
+        const chunkSize = { xz: 64, y: 64 };
         const minChunkIdY = Math.floor(map.minAltitude / chunkSize.y);
         const maxChunkIdY = Math.floor(map.maxAltitude / chunkSize.y);
 
@@ -46,7 +57,6 @@ class TestTerrain extends TestBase {
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
         // this.terrainViewer.parameters.lod.enabled = false;
         this.terrainViewer.parameters.lod.wireframe = true;
-
         this.scene.add(this.terrainViewer.container);
 
         this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(
@@ -55,8 +65,15 @@ class TestTerrain extends TestBase {
             this.voxelmapViewer.maxChunkIdY
         );
 
-        this.map = map;
-
+        this.map = new VoxelmapWrapper(map, chunkSize, minChunkIdY, maxChunkIdY);
+        this.map.onChange.push(modifiedPatchesIdsList => {
+            if (modifiedPatchesIdsList.length > 0) {
+                this.promisesQueue.cancelAll();
+                for (const patchId of modifiedPatchesIdsList) {
+                    this.voxelmapViewer.deletePatch(patchId);
+                }
+            }
+        });
         this.promisesQueue = new PromisesQueue(this.voxelmapViewer.maxPatchesComputedInParallel + 5);
     }
 
@@ -103,6 +120,67 @@ class TestTerrain extends TestBase {
                 );
             }
         }
+    }
+
+    private setupPlateau(voxelMap: IVoxelMap & ITerrainMap): void {
+        const factory = new PlateauRenderableFactory({
+            voxelMaterialsList: voxelMap.voxelMaterialsList,
+        });
+
+        const plateauContainer = new THREE.Group();
+        this.scene.add(plateauContainer);
+        let currentPlateau: {
+            plateau: Plateau;
+            renderable: PlateauRenderable;
+        } | null = null;
+
+        let lastPlateauRequestId = -1;
+        const requestPlateau = async (origin: THREE.Vector3Like) => {
+            lastPlateauRequestId++;
+            const requestId = lastPlateauRequestId;
+
+            const plateau = await computePlateau(voxelMap, origin);
+            const renderable = await factory.buildPlateauRenderable(plateau);
+
+            if (lastPlateauRequestId !== requestId) {
+                return; // another request was launched in the meantime
+            }
+
+            plateauContainer.clear();
+            if (currentPlateau) {
+                currentPlateau.renderable.dispose();
+                this.map.unregisterPlateau(currentPlateau.plateau);
+            }
+            currentPlateau = { renderable, plateau };
+            plateauContainer.add(currentPlateau.renderable.container);
+            this.map.registerPlateau(currentPlateau.plateau);
+        };
+
+        const plateauCenterContainer = new THREE.Group();
+        const plateauCenter = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0xffffff }));
+        plateauCenter.position.set(0.5, 0.5, 0.5);
+        plateauCenterContainer.add(plateauCenter);
+
+        const updateAltitude = () => {
+            const terrainSample = voxelMap.sampleHeightmapBaseTerrain(
+                Math.floor(plateauCenterContainer.position.x),
+                Math.floor(plateauCenterContainer.position.z)
+            );
+            plateauCenterContainer.position.setY(terrainSample.altitude + 1);
+            requestPlateau(plateauCenterContainer.position.clone());
+        };
+        updateAltitude();
+
+        const plateauCenterControls = new TransformControls(this.camera, this.renderer.domElement);
+        plateauCenterControls.showY = false;
+        plateauCenterControls.addEventListener('dragging-changed', event => {
+            this.cameraControl.enabled = !event.value;
+        });
+        plateauCenterControls.addEventListener('change', updateAltitude);
+        plateauCenterControls.attach(plateauCenterContainer);
+
+        this.scene.add(plateauCenterContainer);
+        this.scene.add(plateauCenterControls);
     }
 }
 
