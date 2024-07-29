@@ -2,9 +2,9 @@ import * as THREE from '../../../three-usage';
 import { type IVoxelMap } from '../i-voxelmap';
 
 enum EPlateauSquareType {
-    FLAT,
-    HOLE,
-    OBSTACLE,
+    FLAT = 0,
+    HOLE = 1,
+    OBSTACLE = 2,
 }
 
 type PlateauSquare = {
@@ -12,18 +12,22 @@ type PlateauSquare = {
     readonly materialId: number;
 };
 
-type ColumnId = { readonly x: number, readonly z: number };
+type ColumnId = { readonly x: number; readonly z: number };
 
 type Plateau = {
-    readonly size: { readonly x: number, readonly z: number };
+    readonly id: number;
+    readonly size: { readonly x: number; readonly z: number };
     readonly squares: ReadonlyArray<PlateauSquare>;
     readonly origin: THREE.Vector3Like;
+    readonly columns: ReadonlyArray<ColumnId>;
 };
 
 type PlateauSquareExtended = PlateauSquare & {
     readonly floorY: number;
     readonly generation: number;
 };
+
+let plateauxCount = 0;
 
 async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): Promise<Plateau> {
     originWorld = {
@@ -234,10 +238,26 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
         originWorld.z - plateauHalfSize
     );
 
+    const plateauColumns: ColumnId[] = [];
+    for (let iPlateauZ = 0; iPlateauZ < plateauSize.z; iPlateauZ++) {
+        for (let iPlateauX = 0; iPlateauX < plateauSize.x; iPlateauX++) {
+            const index = iPlateauX + iPlateauZ * plateauSize.x;
+            const square = plateauSquares[index]!;
+            if (square.type !== EPlateauSquareType.HOLE) {
+                plateauColumns.push({
+                    x: iPlateauX,
+                    z: iPlateauZ,
+                });
+            }
+        }
+    }
+
     return {
+        id: plateauxCount++,
         size: plateauSize,
         squares: plateauSquares,
         origin: plateauOrigin,
+        columns: plateauColumns,
     };
 }
 

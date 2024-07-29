@@ -3,15 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 
-import {
-    computePlateau,
-    PlateauRenderableFactory,
-    type IHeightmap,
-    type IHeightmapSample,
-    type IVoxelMap,
-    type PlateauRenderable,
-    type TerrainViewer,
-} from '../lib';
+import { type IHeightmap, type IHeightmapSample, type IVoxelMap, type TerrainViewer } from '../lib';
 
 interface ITerrainMap {
     sampleHeightmapBaseTerrain(x: number, z: number): IHeightmapSample;
@@ -22,9 +14,9 @@ abstract class TestBase {
 
     private readonly stats: Stats;
 
-    private readonly renderer: THREE.WebGLRenderer;
-    private readonly camera: THREE.PerspectiveCamera;
-    private readonly cameraControl: OrbitControls;
+    protected readonly renderer: THREE.WebGLRenderer;
+    protected readonly camera: THREE.PerspectiveCamera;
+    protected readonly cameraControl: OrbitControls;
     protected readonly scene: THREE.Scene;
 
     private started: boolean = false;
@@ -73,7 +65,7 @@ abstract class TestBase {
                 );
             }, 0);
         } else {
-            const playerViewRadius = 500;
+            const playerViewRadius = 200;
 
             const playerContainer = new THREE.Group();
             playerContainer.position.x = 0;
@@ -93,7 +85,7 @@ abstract class TestBase {
                 this.cameraControl.enabled = !event.value;
             });
             playerControls.attach(playerContainer);
-            // this.scene.add(playerControls);
+            this.scene.add(playerControls);
 
             let playerVisibilityFrustum: THREE.Frustum | undefined;
 
@@ -134,11 +126,6 @@ abstract class TestBase {
         setInterval(() => {
             this.terrainViewer.setLod(this.camera.position, 100, 6000);
         }, 200);
-
-        const testPlateau = true;
-        if (testPlateau) {
-            this.setupPlateau(voxelMap);
-        }
     }
 
     protected abstract showMapPortion(box: THREE.Box3): void;
@@ -211,65 +198,6 @@ abstract class TestBase {
 
         dirLight.color = lightColor;
         dirLight.intensity = 3;
-    }
-
-    private setupPlateau(voxelMap: IVoxelMap & ITerrainMap): void {
-        const factory = new PlateauRenderableFactory({
-            voxelMaterialsList: voxelMap.voxelMaterialsList,
-        });
-
-        const plateauContainer = new THREE.Group();
-        this.scene.add(plateauContainer);
-        let plateauRenderable: PlateauRenderable | null = null;
-
-        let lastPlateauRequestId = -1;
-        const requestPlateau = async (origin: THREE.Vector3Like) => {
-            lastPlateauRequestId++;
-            const requestId = lastPlateauRequestId;
-
-            const plateau = await computePlateau(voxelMap, origin);
-            const renderable = await factory.buildPlateauRenderable(plateau);
-
-            if (lastPlateauRequestId !== requestId) {
-                return; // another request was launched in the meantime
-            }
-
-            plateauContainer.clear();
-            if (plateauRenderable) {
-                plateauRenderable.dispose();
-                plateauRenderable = null;
-            }
-            plateauRenderable = renderable;
-            if (plateauRenderable) {
-                plateauContainer.add(plateauRenderable.container);
-            }
-        };
-
-        const plateauCenterContainer = new THREE.Group();
-        const plateauCenter = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0xffffff }));
-        plateauCenter.position.set(0.5, 0.5, 0.5);
-        plateauCenterContainer.add(plateauCenter);
-
-        const updateAltitude = () => {
-            const terrainSample = voxelMap.sampleHeightmapBaseTerrain(
-                Math.floor(plateauCenterContainer.position.x),
-                Math.floor(plateauCenterContainer.position.z)
-            );
-            plateauCenterContainer.position.setY(terrainSample.altitude + 1);
-            requestPlateau(plateauCenterContainer.position.clone());
-        };
-        updateAltitude();
-
-        const plateauCenterControls = new TransformControls(this.camera, this.renderer.domElement);
-        plateauCenterControls.showY = false;
-        plateauCenterControls.addEventListener('dragging-changed', event => {
-            this.cameraControl.enabled = !event.value;
-        });
-        plateauCenterControls.addEventListener('change', updateAltitude);
-        plateauCenterControls.attach(plateauCenterContainer);
-
-        this.scene.add(plateauCenterContainer);
-        this.scene.add(plateauCenterControls);
     }
 }
 
