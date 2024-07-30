@@ -140,7 +140,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                                 localPosition.z < voxelsChunkCache.size.z - 1
                             ) {
                                 const voxelLocalPosition = { x: localPosition.x - 1, y: localPosition.y - 1, z: localPosition.z - 1 };
-                                const voxelMaterialId = this.voxelmapDataPacking.getMaterialid(cacheData);
+                                const voxelMaterialId = this.voxelmapDataPacking.getMaterialId(cacheData);
                                 const voxelIsCheckerboard = this.voxelmapDataPacking.isCheckerboard(cacheData);
 
                                 for (const face of Object.values(this.cube.faces)) {

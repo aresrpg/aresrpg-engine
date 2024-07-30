@@ -122,7 +122,7 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
             { x: 0, z: 0 },
             {
                 type: EPlateauSquareType.FLAT,
-                materialId: voxelmapDataPacking.getMaterialid(originSample),
+                materialId: voxelmapDataPacking.getMaterialId(originSample),
                 generation: currentGeneration,
                 floorY: originWorldCoords.y - 1,
             }
@@ -161,7 +161,7 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
                         if (voxelmapDataPacking.isEmpty(sample)) {
                             return {
                                 type: EPlateauSquareType.FLAT,
-                                materialId: voxelmapDataPacking.getMaterialid(lastSample),
+                                materialId: voxelmapDataPacking.getMaterialId(lastSample),
                                 floorY: worldPos.y + deltaY - 1,
                                 generation,
                             };
@@ -177,7 +177,7 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
 
                     return {
                         type: EPlateauSquareType.OBSTACLE,
-                        materialId: voxelmapDataPacking.getMaterialid(firstSample),
+                        materialId: voxelmapDataPacking.getMaterialId(firstSample),
                         floorY: worldPos.y,
                         generation,
                     };
@@ -187,7 +187,7 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
                         if (!voxelmapDataPacking.isEmpty(sample)) {
                             return {
                                 type: EPlateauSquareType.FLAT,
-                                materialId: voxelmapDataPacking.getMaterialid(sample),
+                                materialId: voxelmapDataPacking.getMaterialId(sample),
                                 floorY: worldPos.y + deltaY,
                                 generation,
                             };
