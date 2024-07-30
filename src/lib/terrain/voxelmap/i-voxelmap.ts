@@ -1,5 +1,7 @@
 import { type Vector3Like } from '../../three-usage';
 
+import { VoxelmapDataPacking } from './voxelmap-data-packing';
+
 /**
  * A color stored in RGB format. Each component should be normalized.
  */
@@ -60,4 +62,6 @@ interface IVoxelMap {
     getLocalMapData(from: Vector3Like, to: Vector3Like): ILocalMapData | Promise<ILocalMapData>;
 }
 
-export type { ILocalMapData, IVoxelMap, IVoxelMaterial, VoxelsChunkSize };
+const voxelmapDataPacking = new VoxelmapDataPacking();
+
+export { type ILocalMapData, type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize, voxelmapDataPacking };

@@ -1,6 +1,6 @@
 import { processAsap } from '../../../helpers/async/async-sync';
 import * as THREE from '../../../three-usage';
-import { type ILocalMapData, type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../i-voxelmap';
+import { voxelmapDataPacking, type ILocalMapData, type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../i-voxelmap';
 import { PatchId } from '../patch/patch-id';
 
 import { type Plateau } from './plateau';
@@ -63,7 +63,7 @@ class VoxelmapWrapper implements IVoxelMap {
                         for (columnWorld.y = Math.max(hiddenColumn.fromY, blockStart.y); columnWorld.y < blockEnd.y; columnWorld.y++) {
                             const localY = columnWorld.y - blockStart.y;
                             const index = localX + localY * blockSize.x + localZ * blockSize.x * blockSize.y;
-                            localMapData.data[index]! = 0;
+                            localMapData.data[index]! = voxelmapDataPacking.encode(true, 0);
                         }
                     }
                 }

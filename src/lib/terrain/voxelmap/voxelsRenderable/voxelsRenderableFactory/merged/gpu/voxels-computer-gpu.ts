@@ -9,6 +9,7 @@ import * as Cube from '../../cube';
 import { type VoxelsChunkData } from '../../voxels-renderable-factory-base';
 import { type VertexData1Encoder } from '../vertex-data1-encoder';
 import { type VertexData2Encoder } from '../vertex-data2-encoder';
+import { voxelmapDataPacking } from '../../../../i-voxelmap';
 
 type FaceBuffer = {
     readonly storageBuffer: GPUBuffer;
@@ -77,7 +78,7 @@ class VoxelsComputerGpu {
         fn doesNeighbourExist(voxelCacheIndex: i32, neighbourRelativePosition: vec3i) -> bool {
             let neighbourCacheIndex = voxelCacheIndex + buildBufferIndex(neighbourRelativePosition);
             let neighbourData = sampleVoxelsChunk(neighbourCacheIndex);
-            return neighbourData != 0u;
+            return !${voxelmapDataPacking.wgslIsEmpty('neighbourData')};
         }
         fn encodeVoxelData1(voxelPosition: vec3u) -> u32 {
             return ${vertexData1Encoder.wgslEncodeVoxelData('voxelPosition')};
@@ -112,8 +113,8 @@ class VoxelsComputerGpu {
                 let cacheCoords = vec3i(voxelLocalPosition + 1u);
                 let cacheIndex: i32 = buildBufferIndex(cacheCoords);
                 let voxelData: u32 = sampleVoxelsChunk(cacheIndex);
-                if (voxelData != 0u) {
-                    let voxelMaterialId: u32 = voxelData - 1u;
+                if (!${voxelmapDataPacking.wgslIsEmpty('voxelData')}) {
+                    let voxelMaterialId: u32 = ${voxelmapDataPacking.wgslGetMaterialId('voxelData')};
                     let encodedVoxelPosition = ${vertexData1Encoder.wgslEncodeVoxelData('voxelLocalPosition')};
                     ${Object.values(Cube.faces)
                         .map(
