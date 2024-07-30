@@ -19,7 +19,6 @@ type Plateau = {
     readonly size: { readonly x: number; readonly z: number };
     readonly squares: ReadonlyArray<PlateauSquare>;
     readonly origin: THREE.Vector3Like;
-    readonly columns: ReadonlyArray<ColumnId>;
 };
 
 type PlateauSquareExtended = PlateauSquare & {
@@ -243,15 +242,6 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
         originWorld.z - plateauHalfSize
     );
 
-    const plateauColumns: ColumnId[] = [];
-    for (let iPlateauZ = 0; iPlateauZ < plateauSize.z; iPlateauZ++) {
-        for (let iPlateauX = 0; iPlateauX < plateauSize.x; iPlateauX++) {
-            const index = iPlateauX + iPlateauZ * plateauSize.x;
-            const square = plateauSquares[index]!;
-            if (square.type !== EPlateauSquareType.HOLE) {
-                plateauColumns.push({
-                    x: iPlateauX,
-                    z: iPlateauZ,
     return {
         id: plateauxCount++,
         size: plateauSize,

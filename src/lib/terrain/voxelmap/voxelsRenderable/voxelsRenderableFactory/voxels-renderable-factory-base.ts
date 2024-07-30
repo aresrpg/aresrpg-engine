@@ -191,6 +191,22 @@ abstract class VoxelsRenderableFactoryBase {
         for (let i = 0; i < textureData.length; i++) {
             textureData[i] = 256 * Math.random();
         }
+
+        // first two IDs are for checkerboard
+        if (typesCount < 3) {
+            throw new Error(`There should be at least 3 noise types.`);
+        }
+        for (let iY = 0; iY < resolution; iY++) {
+            for (let iNoiseId = 0; iNoiseId < 2; iNoiseId++) {
+                const value = iNoiseId * 255;
+                for (let deltaX = 0; deltaX < resolution; deltaX++) {
+                    const iX = iNoiseId * resolution + deltaX;
+                    for (let iChannel = 0; iChannel < 4; iChannel++) {
+                        textureData[4 * (iX + iY * textureWidth) + iChannel] = value;
+                    }
+                }
+            }
+        }
         return new THREE.DataTexture(textureData, textureWidth, textureHeight);
     }
 }

@@ -3,14 +3,16 @@ import * as THREE from '../../../three-usage';
 import { voxelmapDataPacking, type ILocalMapData, type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../i-voxelmap';
 import { PatchId } from '../patch/patch-id';
 
-import { type Plateau } from './plateau';
+import { EPlateauSquareType, type Plateau } from './plateau';
 
 type OnLocalMapDataChange = (modifiedPatchesIdsList: ReadonlyArray<PatchId>) => unknown;
 
 type ColumnId = { readonly x: number; readonly z: number };
 type HiddenColumn = {
     readonly id: ColumnId;
-    readonly fromY: number;
+    readonly plateauY: number;
+    readonly plateauSquareType: EPlateauSquareType.FLAT | EPlateauSquareType.OBSTACLE;
+    readonly materialId: number;
 };
 type PlateauAndPatchesIds = {
     readonly plateau: Plateau;
@@ -22,6 +24,8 @@ class VoxelmapWrapper implements IVoxelMap {
     public readonly minAltitude: number;
     public readonly maxAltitude: number;
     public readonly voxelMaterialsList: readonly IVoxelMaterial[];
+
+    public readonly includePlateau: boolean;
 
     public onChange: OnLocalMapDataChange[] = [];
 
@@ -35,7 +39,13 @@ class VoxelmapWrapper implements IVoxelMap {
     private readonly minChunkIdY: number;
     private readonly maxChunkIdY: number;
 
-    public constructor(map: IVoxelMap, voxelsChunkSize: VoxelsChunkSize, minChunkIdY: number, maxChunkIdY: number) {
+    public constructor(
+        map: IVoxelMap,
+        voxelsChunkSize: VoxelsChunkSize,
+        minChunkIdY: number,
+        maxChunkIdY: number,
+        includePlateau: boolean
+    ) {
         this.minAltitude = map.minAltitude;
         this.maxAltitude = map.maxAltitude;
         this.voxelMaterialsList = map.voxelMaterialsList;
@@ -44,6 +54,8 @@ class VoxelmapWrapper implements IVoxelMap {
         this.chunkSize = voxelsChunkSize;
         this.minChunkIdY = minChunkIdY;
         this.maxChunkIdY = maxChunkIdY;
+
+        this.includePlateau = includePlateau;
     }
 
     public getLocalMapData(blockStart: THREE.Vector3Like, blockEnd: THREE.Vector3Like): ILocalMapData | Promise<ILocalMapData> {
@@ -60,10 +72,25 @@ class VoxelmapWrapper implements IVoxelMap {
                         const localX = columnWorld.x - blockStart.x;
                         const localZ = columnWorld.z - blockStart.z;
 
-                        for (columnWorld.y = Math.max(hiddenColumn.fromY, blockStart.y); columnWorld.y < blockEnd.y; columnWorld.y++) {
+                        for (
+                            columnWorld.y = Math.max(hiddenColumn.plateauY - 1, blockStart.y);
+                            columnWorld.y < blockEnd.y;
+                            columnWorld.y++
+                        ) {
                             const localY = columnWorld.y - blockStart.y;
                             const index = localX + localY * blockSize.x + localZ * blockSize.x * blockSize.y;
-                            localMapData.data[index]! = voxelmapDataPacking.encode(true, 0);
+
+                            if (this.includePlateau) {
+                                const deltaYPlateau = columnWorld.y - hiddenColumn.plateauY;
+                                const maxDeltaYPlateau = hiddenColumn.plateauSquareType === EPlateauSquareType.OBSTACLE ? 1 : 0;
+                                if (deltaYPlateau <= maxDeltaYPlateau) {
+                                    localMapData.data[index]! = voxelmapDataPacking.encode(false, true, hiddenColumn.materialId);
+                                } else {
+                                    localMapData.data[index]! = voxelmapDataPacking.encode(true, false, 0);
+                                }
+                            } else {
+                                localMapData.data[index]! = voxelmapDataPacking.encode(true, false, 0);
+                            }
                         }
                     }
                 }
@@ -79,23 +106,33 @@ class VoxelmapWrapper implements IVoxelMap {
         }
 
         const chunksColumns: Record<string, ColumnId> = {};
-        const hiddenColumns: Record<string, HiddenColumn> = {};
-        for (const columnLocal of plateau.columns) {
-            const columnWorld = {
-                x: columnLocal.x + plateau.origin.x,
-                z: columnLocal.z + plateau.origin.z,
-            };
-            const chunkColumnId = {
-                x: Math.floor(columnWorld.x / this.chunkSize.xz),
-                z: Math.floor(columnWorld.z / this.chunkSize.xz),
-            };
-            chunksColumns[`${chunkColumnId.x}_${chunkColumnId.z}`] = chunkColumnId;
-            hiddenColumns[`${columnWorld.x}_${columnWorld.z}`] = {
-                id: columnWorld,
-                fromY: plateau.origin.y - 1,
-            };
+        const hiddenColumnsList: HiddenColumn[] = [];
+        const columnLocal = { x: 0, z: 0 };
+        for (columnLocal.z = 0; columnLocal.z < plateau.size.z; columnLocal.z++) {
+            for (columnLocal.x = 0; columnLocal.x < plateau.size.x; columnLocal.x++) {
+                const columnWorld = {
+                    x: columnLocal.x + plateau.origin.x,
+                    z: columnLocal.z + plateau.origin.z,
+                };
+
+                const index = columnLocal.x + columnLocal.z * plateau.size.x;
+                const square = plateau.squares[index]!;
+                if (square.type !== EPlateauSquareType.HOLE) {
+                    hiddenColumnsList.push({
+                        id: columnWorld,
+                        plateauY: plateau.origin.y - 1,
+                        plateauSquareType: square.type,
+                        materialId: square.materialId,
+                    });
+                }
+
+                const chunkColumnId = {
+                    x: Math.floor(columnWorld.x / this.chunkSize.xz),
+                    z: Math.floor(columnWorld.z / this.chunkSize.xz),
+                };
+                chunksColumns[`${chunkColumnId.x}_${chunkColumnId.z}`] = chunkColumnId;
+            }
         }
-        const hiddenColumnsList = Object.values(hiddenColumns);
         const chunksColumnsList = Object.values(chunksColumns);
 
         const modifiedPatchesIdsList: PatchId[] = [];

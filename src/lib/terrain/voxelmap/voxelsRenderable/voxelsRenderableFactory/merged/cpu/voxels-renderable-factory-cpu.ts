@@ -7,6 +7,7 @@ import { VoxelsRenderableFactory } from '../voxels-renderable-factory';
 type FaceData = {
     readonly voxelLocalPosition: THREE.Vector3Like;
     readonly voxelMaterialId: number;
+    readonly voxelIsCheckerboard: boolean;
     readonly faceType: Cube.FaceType;
     readonly faceId: number;
     readonly verticesData: [VertexData, VertexData, VertexData, VertexData];
@@ -57,9 +58,13 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
             const faceVerticesData = new Uint32Array(uint32PerVertex * 4);
             const voxelsChunkCache = this.buildLocalMapCache(voxelsChunkData);
             for (const faceData of this.iterateOnVisibleFacesWithCache(voxelsChunkCache)) {
-                const faceNoiseId = this.isCheckerboard
-                    ? (faceData.voxelLocalPosition.x + faceData.voxelLocalPosition.y + faceData.voxelLocalPosition.z) % 2
-                    : Math.floor(Math.random() * this.vertexData2Encoder.faceNoiseId.maxValue);
+                let faceNoiseId: number;
+
+                if (this.isCheckerboard || faceData.voxelIsCheckerboard) {
+                    faceNoiseId = (faceData.voxelLocalPosition.x + faceData.voxelLocalPosition.y + faceData.voxelLocalPosition.z) % 2;
+                } else {
+                    faceNoiseId = 2 + Math.floor(Math.random() * (this.vertexData2Encoder.faceNoiseId.maxValue - 2));
+                }
 
                 faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
                     faceVerticesData[2 * faceVertexIndex + 0] = this.vertexData1Encoder.encode(
@@ -136,6 +141,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                             ) {
                                 const voxelLocalPosition = { x: localPosition.x - 1, y: localPosition.y - 1, z: localPosition.z - 1 };
                                 const voxelMaterialId = this.voxelmapDataPacking.getMaterialid(cacheData);
+                                const voxelIsCheckerboard = this.voxelmapDataPacking.isCheckerboard(cacheData);
 
                                 for (const face of Object.values(this.cube.faces)) {
                                     if (voxelsChunkCache.neighbourExists(cacheIndex, face.normal.vec)) {
@@ -146,6 +152,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                                     yield {
                                         voxelLocalPosition,
                                         voxelMaterialId,
+                                        voxelIsCheckerboard,
                                         faceType: face.type,
                                         faceId: face.id,
                                         verticesData: face.vertices.map((faceVertex: Cube.FaceVertex): VertexData => {

@@ -116,12 +116,18 @@ class VoxelsComputerGpu {
                 if (!${voxelmapDataPacking.wgslIsEmpty('voxelData')}) {
                     let voxelMaterialId: u32 = ${voxelmapDataPacking.wgslGetMaterialId('voxelData')};
                     let encodedVoxelPosition = ${vertexData1Encoder.wgslEncodeVoxelData('voxelLocalPosition')};
+                    let isCheckerboard = ${voxelmapDataPacking.wgslIsCheckerboard('voxelData')};
                     ${Object.values(Cube.faces)
                         .map(
                             face => `
                     if (!doesNeighbourExist(cacheIndex, vec3i(${vec3ToString(face.normal.vec, ', ')}))) {
                         let firstVertexIndex: u32 = atomicAdd(&verticesBuffer.verticesCount, 6u);
-                        let faceNoiseId: u32 = (firstVertexIndex / 6u) % (${vertexData2Encoder.faceNoiseId.maxValue});
+                        var faceNoiseId: u32;
+                        if (isCheckerboard) {
+                            faceNoiseId = (voxelLocalPosition.x + voxelLocalPosition.y + voxelLocalPosition.z) % 2u;
+                        } else {
+                            faceNoiseId = 2u + (firstVertexIndex / 6u) % (${vertexData2Encoder.faceNoiseId.maxValue - 2});
+                        }
                         var ao: u32;
                         var edgeRoundnessX: bool;
                         var edgeRoundnessY: bool;
