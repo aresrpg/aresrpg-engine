@@ -232,26 +232,32 @@ void main() {
                 '#include <normal_fragment_begin>': `
     vec3 normal = normalMatrix * modelNormal;`,
                 '#include <map_fragment>': `
-    diffuseColor.rgb = vec3(0.75);
+    vec3 materialColor = vec3(0.75);
     if (uDisplayMode == ${EVoxelsDisplayMode.TEXTURED}u) {
         uint voxelMaterialId = ${VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId.glslDecode('vData2')};
         ivec2 texelCoords = ivec2(voxelMaterialId % ${this.texture.image.width}u, voxelMaterialId / ${this.texture.image.width}u);
-        diffuseColor.rgb = texelFetch(uTexture, texelCoords, 0).rgb;
+        materialColor = texelFetch(uTexture, texelCoords, 0).rgb;
     } else if (uDisplayMode == ${EVoxelsDisplayMode.NORMALS}u) {
-        diffuseColor.rgb = 0.5 + 0.5 * modelNormal;
+        materialColor = 0.5 + 0.5 * modelNormal;
     }
+
+    diffuseColor.rgb = materialColor;
+
+#ifdef ${cstVoxelNoise}
+    diffuseColor.rgb += computeNoise();
+#endif // ${cstVoxelNoise}
 
 #ifdef ${cstVoxelGrid}
     if (uGridThickness > 0.0) {
         vec2 fromCenter = abs(vUv - 0.5);
         vec2 isEdge = step(vec2(0.5 - uGridThickness), fromCenter);
-        diffuseColor.rgb += uGridColor * max(isEdge.x, isEdge.y);
+        diffuseColor.rgb = mix(
+            diffuseColor.rgb,
+            materialColor + uGridColor,
+            max(isEdge.x, isEdge.y)
+        );
     }
 #endif // ${cstVoxelGrid}
-
-#ifdef ${cstVoxelNoise}
-    diffuseColor.rgb += computeNoise();
-#endif // ${cstVoxelNoise}
 
 #ifdef ${cstVoxelAo}
     float ao = (1.0 - uAoStrength) + uAoStrength * (smoothstep(0.0, uAoSpread, 1.0 - vAo));
