@@ -32,7 +32,7 @@ class VoxelmapDataPacking {
         return `(${this.isChecker.wgslDecode(varname)} == 1u)`;
     }
 
-    public getMaterialid(data: number): number {
+    public getMaterialId(data: number): number {
         if (this.isEmpty(data)) {
             throw new Error(`Cannot extract material ID from empty data.`);
         }
@@ -51,7 +51,7 @@ class VoxelmapDataPacking {
             ${this.encode.toString()},
             ${this.isEmpty.toString()},
             ${this.isCheckerboard.toString()},
-            ${this.getMaterialid.toString()},
+            ${this.getMaterialId.toString()},
         }`;
     }
 }
