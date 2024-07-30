@@ -4,8 +4,7 @@ import * as THREE from '../../../../three-usage';
 import { type IVoxelMaterial } from '../../i-voxelmap';
 import { type VoxelsMaterialUniforms, type VoxelsMaterials } from '../voxels-material';
 import { VoxelsRenderable } from '../voxels-renderable';
-
-import { type PackedUintFragment } from './uint-packing';
+import { type PackedUintFragment } from '../../../../helpers/uint-packing';
 
 type GeometryAndMaterial = {
     readonly id: string;
