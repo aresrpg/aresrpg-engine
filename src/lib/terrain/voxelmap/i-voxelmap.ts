@@ -24,9 +24,10 @@ type VoxelsChunkSize = {
 interface ILocalMapData {
     /** Compact array storing the voxel data.
      * Each element in the array represent a coordinate in the map and stores the data of the voxel at these coordinates.
-     * An element:
-     * - should be equal to 0 if there is no voxel at these coordinates
-     * - should be equal to the voxel's material id + 1 if there is a voxel at these coordinates
+     * Each element should be encoded as follows:
+     * - bit 0: 0 if the voxel is empty, 1 otherwise
+     * - bits 1-12: ID of the material
+     * Use the helper "voxelmapDataPacking" to do this encoding and be future-proof.
      *
      * The elements should be ordered by coordinates as follow by Z first, then Y then X.
      * For example, for a portion of the map between (0,0,0) and (2,2,2): (0,0,0) then (1,0,0) then (0,1,0) then (1,1,0) then (0,1,1) then (1,1,1)
