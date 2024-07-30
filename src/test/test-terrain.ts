@@ -56,7 +56,7 @@ class TestTerrain extends TestBase {
 
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
         // this.terrainViewer.parameters.lod.enabled = false;
-        this.terrainViewer.parameters.lod.wireframe = true;
+        // this.terrainViewer.parameters.lod.wireframe = true;
         this.scene.add(this.terrainViewer.container);
 
         this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(
