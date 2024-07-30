@@ -44,7 +44,7 @@ abstract class VoxelmapViewerBase {
         grid: {
             enabled: false,
             thickness: 0.02,
-            color: new THREE.Vector3(-0.05, -0.05, -0.05),
+            color: new THREE.Vector3(-0.1, -0.1, -0.1),
         },
     };
 
