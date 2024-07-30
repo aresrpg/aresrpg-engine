@@ -1,5 +1,5 @@
 import * as THREE from '../../../three-usage';
-import { type IVoxelMap } from '../i-voxelmap';
+import { voxelmapDataPacking, type IVoxelMap } from '../i-voxelmap';
 
 enum EPlateauSquareType {
     FLAT = 0,
@@ -111,17 +111,22 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
         };
         let originSample = sampleData(originWorldCoords);
         let deltaY = 0;
-        while (originSample === 0 && deltaY < maxDeltaY) {
+        while (voxelmapDataPacking.isEmpty(originSample) && deltaY < maxDeltaY) {
             originWorldCoords.y--;
             deltaY++;
             originSample = sampleData(originWorldCoords);
         }
-        if (originSample === 0) {
+        if (voxelmapDataPacking.isEmpty(originSample)) {
             throw new Error();
         }
         setPlateauSquare(
             { x: 0, z: 0 },
-            { type: EPlateauSquareType.FLAT, materialId: originSample - 1, generation: currentGeneration, floorY: originWorldCoords.y - 1 }
+            {
+                type: EPlateauSquareType.FLAT,
+                materialId: voxelmapDataPacking.getMaterialid(originSample),
+                generation: currentGeneration,
+                floorY: originWorldCoords.y - 1,
+            }
         );
     }
     const originY = getPlateauSquare({ x: 0, z: 0 })!.floorY;
@@ -149,15 +154,15 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
                 const generation = currentGeneration;
                 const sampleY = sampleData(worldPos);
 
-                if (sampleY > 0) {
+                if (!voxelmapDataPacking.isEmpty(sampleY)) {
                     let firstSample: number | null = null;
                     let lastSample = sampleY;
                     for (let deltaY = 1; deltaY < maxDeltaY; deltaY++) {
                         const sample = sampleData({ x: worldPos.x, y: worldPos.y + deltaY, z: worldPos.z });
-                        if (sample === 0) {
+                        if (voxelmapDataPacking.isEmpty(sample)) {
                             return {
                                 type: EPlateauSquareType.FLAT,
-                                materialId: lastSample - 1,
+                                materialId: voxelmapDataPacking.getMaterialid(lastSample),
                                 floorY: worldPos.y + deltaY - 1,
                                 generation,
                             };
@@ -173,17 +178,17 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
 
                     return {
                         type: EPlateauSquareType.OBSTACLE,
-                        materialId: firstSample - 1,
+                        materialId: voxelmapDataPacking.getMaterialid(firstSample),
                         floorY: worldPos.y,
                         generation,
                     };
                 } else {
                     for (let deltaY = -1; deltaY > -maxDeltaY; deltaY--) {
                         const sample = sampleData({ x: worldPos.x, y: worldPos.y + deltaY, z: worldPos.z });
-                        if (sample > 0) {
+                        if (!voxelmapDataPacking.isEmpty(sample)) {
                             return {
                                 type: EPlateauSquareType.FLAT,
-                                materialId: sample - 1,
+                                materialId: voxelmapDataPacking.getMaterialid(sample),
                                 floorY: worldPos.y + deltaY,
                                 generation,
                             };
@@ -247,17 +252,11 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
                 plateauColumns.push({
                     x: iPlateauX,
                     z: iPlateauZ,
-                });
-            }
-        }
-    }
-
     return {
         id: plateauxCount++,
         size: plateauSize,
         squares: plateauSquares,
         origin: plateauOrigin,
-        columns: plateauColumns,
     };
 }
 
