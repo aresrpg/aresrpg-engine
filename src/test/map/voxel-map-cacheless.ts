@@ -175,7 +175,7 @@ class VoxelMapCacheless implements IVoxelMap, IHeightmap {
             for (worldPos.x = blockStart.x; worldPos.x < blockEnd.x; worldPos.x++) {
                 const sample = this.sampleHeightmapBaseTerrain(worldPos.x, worldPos.z);
                 samples.push(sample);
-                if (sample.altitude >= blockStart.y) {
+                if (sample.altitude <= blockEnd.y) {
                     isFullPatch = false;
                 }
             }
