@@ -26,7 +26,8 @@ interface ILocalMapData {
      * Each element in the array represent a coordinate in the map and stores the data of the voxel at these coordinates.
      * Each element should be encoded as follows:
      * - bit 0: 0 if the voxel is empty, 1 otherwise
-     * - bits 1-12: ID of the material
+     * - bit 1: 1 if the voxel should be displayed as cheesserboard, 0 otherwise
+     * - bits 2-13: ID of the material
      * Use the helper "voxelmapDataPacking" to do this encoding and be future-proof.
      *
      * The elements should be ordered by coordinates as follow by Z first, then Y then X.
