@@ -1,4 +1,4 @@
-import { PackedUintFactory } from '../uint-packing';
+import { PackedUintFactory } from '../../../../../helpers/uint-packing';
 
 class VertexData2Encoder {
     private readonly packedUintFactory = new PackedUintFactory(32);
