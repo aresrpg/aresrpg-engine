@@ -1,5 +1,5 @@
 import * as THREE from '../../../three-usage';
-import { type IVoxelMaterial } from '../i-voxelmap';
+import { voxelmapDataPacking, type IVoxelMaterial } from '../i-voxelmap';
 import { type VoxelsRenderable } from '../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryCpuWorker } from '../voxelsRenderable/voxelsRenderableFactory/merged/cpu/voxels-renderable-factory-cpu-worker';
 import { type VoxelsChunkData } from '../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
@@ -99,7 +99,7 @@ class PlateauRenderableFactory extends VoxelsRenderableFactoryCpuWorker {
 
                 for (let iChunkY = fromChunkY; iChunkY < toChunkY; iChunkY++) {
                     const index = iChunkX + iChunkY * chunkSize.x + iChunkZ * (chunkSize.x * chunkSize.y);
-                    chunkData[index] = plateauSquare.materialId + 1;
+                    chunkData[index] = voxelmapDataPacking.encode(false, plateauSquare.materialId);
                     chunkIsEmpty = false;
                 }
             }
