@@ -1,7 +1,9 @@
 type PackedUintFragment = {
     readonly maxValue: number;
     encode(value: number): number;
+    decode(value: number): number;
     wgslEncode(varname: string): string;
+    wgslDecode(varname: string): string;
     glslDecode(varname: string): string;
     serialize(): string;
 };
@@ -32,8 +34,14 @@ class PackedUintFactory {
                 }
                 return value << this.shift;
             },
+            decode(value: number) {
+                return (value >> this.shift) & this.maxValue;
+            },
             wgslEncode(varname: string) {
                 return `(${varname} << ${this.shift}u)`;
+            },
+            wgslDecode(varname: string) {
+                return `((${varname} >> ${this.shift}u) & ${this.maxValue}u)`;
             },
             glslDecode(varname: string) {
                 return `((${varname} >> ${this.shift}u) & ${this.maxValue}u)`;
@@ -43,6 +51,7 @@ class PackedUintFactory {
             maxValue: ${result.maxValue},
             shift: ${result.shift},
             ${result.encode},
+            ${result.decode},
         }`;
             },
         };
