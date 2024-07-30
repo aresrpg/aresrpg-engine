@@ -133,7 +133,7 @@ class VoxelMapCacheless implements IVoxelMap, IHeightmap {
         let isEmpty = true;
         const setVoxel = (localPos: THREE.Vector3Like, voxelType: EVoxelType) => {
             const index = buildIndex(localPos);
-            data[index] = voxelmapDataPacking.encode(false, voxelType);
+            data[index] = voxelmapDataPacking.encode(false, false, voxelType);
             isEmpty = false;
         };
 

@@ -65,7 +65,7 @@ class TestTerrain extends TestBase {
             this.voxelmapViewer.maxChunkIdY
         );
 
-        this.map = new VoxelmapWrapper(map, chunkSize, minChunkIdY, maxChunkIdY);
+        this.map = new VoxelmapWrapper(map, chunkSize, minChunkIdY, maxChunkIdY, true);
         this.map.onChange.push(modifiedPatchesIdsList => {
             if (modifiedPatchesIdsList.length > 0) {
                 this.promisesQueue.cancelAll();
@@ -152,7 +152,10 @@ class TestTerrain extends TestBase {
                 this.map.unregisterPlateau(currentPlateau.plateau);
             }
             currentPlateau = { renderable, plateau };
-            plateauContainer.add(currentPlateau.renderable.container);
+
+            if (!this.map.includePlateau) {
+                plateauContainer.add(currentPlateau.renderable.container);
+            }
             this.map.registerPlateau(currentPlateau.plateau);
         };
 

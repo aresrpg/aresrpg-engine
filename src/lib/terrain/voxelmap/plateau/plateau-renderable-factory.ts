@@ -99,7 +99,7 @@ class PlateauRenderableFactory extends VoxelsRenderableFactoryCpuWorker {
 
                 for (let iChunkY = fromChunkY; iChunkY < toChunkY; iChunkY++) {
                     const index = iChunkX + iChunkY * chunkSize.x + iChunkZ * (chunkSize.x * chunkSize.y);
-                    chunkData[index] = voxelmapDataPacking.encode(false, plateauSquare.materialId);
+                    chunkData[index] = voxelmapDataPacking.encode(false, false, plateauSquare.materialId);
                     chunkIsEmpty = false;
                 }
             }

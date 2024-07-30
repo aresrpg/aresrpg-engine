@@ -218,7 +218,11 @@ float computeNoise() {
     ivec2 texelCoords = clamp(ivec2(vUv * ${this.noiseResolution.toFixed(1)}), ivec2(0), ivec2(${this.noiseResolution - 1}));
     texelCoords.x += noiseId * ${this.noiseResolution};
     float noise = texelFetch(uNoiseTexture, texelCoords, 0).r - 0.5;
-    return uNoiseStrength * noise;
+    float noiseStrength = uNoiseStrength;
+    if (noiseId < 2) {
+        noiseStrength = 0.1;
+    }
+    return noiseStrength * noise;
 }
 #endif // ${cstVoxelNoise}
 
