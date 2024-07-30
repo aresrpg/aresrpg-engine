@@ -6,13 +6,25 @@ class VoxelmapDataPacking {
     private readonly isChecker = this.packedUintFactory.encodePart(1 << 2);
     private readonly materialId = this.packedUintFactory.encodePart(1 << 12);
 
+    private readonly empty: number;
+
     public constructor() {
         if (!this.isEmpty(0)) {
             throw new Error(`0 should always mean the voxel is empty.`);
         }
+
+        this.empty = this.encodeInternal(true, false, 0);
     }
 
-    public encode(isEmpty: boolean, isCheckerboard: boolean, materialId: number): number {
+    public encodeEmpty(): number {
+        return this.empty;
+    }
+
+    public encode(isCheckerboard: boolean, materialId: number): number {
+        return this.encodeInternal(false, isCheckerboard, materialId);
+    }
+
+    private encodeInternal(isEmpty: boolean, isCheckerboard: boolean, materialId: number): number {
         return this.isNotEmpty.encode(+!isEmpty) + this.isChecker.encode(+isCheckerboard) + this.materialId.encode(materialId);
     }
 
@@ -48,7 +60,10 @@ class VoxelmapDataPacking {
             isNotEmpty: ${this.isNotEmpty.serialize()},
             materialId: ${this.materialId.serialize()},
             isChecker: ${this.isChecker.serialize()},
+            empty: ${this.empty},
+            ${this.encodeEmpty.toString()},
             ${this.encode.toString()},
+            ${this.encodeInternal.toString()},
             ${this.isEmpty.toString()},
             ${this.isCheckerboard.toString()},
             ${this.getMaterialId.toString()},

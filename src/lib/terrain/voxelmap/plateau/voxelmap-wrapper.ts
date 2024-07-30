@@ -84,12 +84,12 @@ class VoxelmapWrapper implements IVoxelMap {
                                 const deltaYPlateau = columnWorld.y - hiddenColumn.plateauY;
                                 const maxDeltaYPlateau = hiddenColumn.plateauSquareType === EPlateauSquareType.OBSTACLE ? 1 : 0;
                                 if (deltaYPlateau <= maxDeltaYPlateau) {
-                                    localMapData.data[index]! = voxelmapDataPacking.encode(false, true, hiddenColumn.materialId);
+                                    localMapData.data[index]! = voxelmapDataPacking.encode(true, hiddenColumn.materialId);
                                 } else {
-                                    localMapData.data[index]! = voxelmapDataPacking.encode(true, false, 0);
+                                    localMapData.data[index]! = voxelmapDataPacking.encodeEmpty();
                                 }
                             } else {
-                                localMapData.data[index]! = voxelmapDataPacking.encode(true, false, 0);
+                                localMapData.data[index]! = voxelmapDataPacking.encodeEmpty();
                             }
                         }
                     }
