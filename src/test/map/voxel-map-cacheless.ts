@@ -3,7 +3,14 @@ import { type NoiseFunction2D, createNoise2D } from 'simplex-noise';
 import * as THREE from 'three';
 
 import { safeModulo } from '../../lib/helpers/math';
-import { type IHeightmap, type IHeightmapCoords, type IHeightmapSample, type ILocalMapData, type IVoxelMap } from '../../lib/index';
+import {
+    voxelmapDataPacking,
+    type IHeightmap,
+    type IHeightmapCoords,
+    type IHeightmapSample,
+    type ILocalMapData,
+    type IVoxelMap,
+} from '../../lib/index';
 
 import { EVoxelType, voxelMaterials } from './materials';
 import { TreeRepartition } from './trees/repartition';
@@ -126,7 +133,7 @@ class VoxelMapCacheless implements IVoxelMap, IHeightmap {
         let isEmpty = true;
         const setVoxel = (localPos: THREE.Vector3Like, voxelType: EVoxelType) => {
             const index = buildIndex(localPos);
-            data[index] = voxelType + 1;
+            data[index] = voxelmapDataPacking.encode(false, voxelType);
             isEmpty = false;
         };
 
@@ -179,6 +186,9 @@ class VoxelMapCacheless implements IVoxelMap, IHeightmap {
                 for (worldPos.x = blockStart.x; worldPos.x < blockEnd.x; worldPos.x++) {
                     localPos.subVectors(worldPos, blockStart);
                     const sample = samples[localPos.x + localPos.z * blockSize.x];
+                    if (typeof sample === 'undefined') {
+                        throw new Error();
+                    }
                     const voxelType = this.altitudeToVoxelType(sample.altitude);
                     const fromY = blockStart.y - blockStart.y;
                     const toY = Math.min(blockEnd.y, sample.altitude + 1) - blockStart.y;

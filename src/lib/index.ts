@@ -3,7 +3,13 @@ export { ELogLevel, setVerbosity } from './helpers/logger';
 export { HeightmapViewer } from './terrain/heightmap/heightmap-viewer';
 export type { IHeightmap, IHeightmapCoords, IHeightmapSample } from './terrain/heightmap/i-heightmap';
 export { TerrainViewer } from './terrain/terrain-viewer';
-export type { ILocalMapData, IVoxelMap, IVoxelMaterial, VoxelsChunkSize } from './terrain/voxelmap/i-voxelmap';
+export {
+    type ILocalMapData,
+    type IVoxelMap,
+    type IVoxelMaterial,
+    type VoxelsChunkSize,
+    voxelmapDataPacking,
+} from './terrain/voxelmap/i-voxelmap';
 export { EPlateauSquareType, computePlateau, type Plateau, type PlateauSquare } from './terrain/voxelmap/plateau/plateau';
 export { PlateauRenderableFactory, type PlateauRenderable } from './terrain/voxelmap/plateau/plateau-renderable-factory';
 export { VoxelmapWrapper } from './terrain/voxelmap/plateau/voxelmap-wrapper';

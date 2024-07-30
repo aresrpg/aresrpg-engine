@@ -1,5 +1,5 @@
 import * as THREE from '../../../../../../three-usage';
-import { type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
+import { voxelmapDataPacking, type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
 import { type GeometryAndMaterial, type VertexData, type VoxelsChunkData } from '../../voxels-renderable-factory-base';
 import { VoxelsRenderableFactory } from '../voxels-renderable-factory';
@@ -31,6 +31,8 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
 
         vertexData1Encoder: this.vertexData1Encoder,
         vertexData2Encoder: VoxelsRenderableFactory.vertexData2Encoder,
+
+        voxelmapDataPacking,
 
         isCheckerboard: false,
 
@@ -99,7 +101,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                 if (typeof neighbourData === 'undefined') {
                     throw new Error();
                 }
-                return neighbourData !== 0;
+                return !this.voxelmapDataPacking.isEmpty(neighbourData);
             };
 
             return Object.assign(voxelsChunkData, {
@@ -122,7 +124,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                             throw new Error();
                         }
 
-                        if (cacheData > 0) {
+                        if (!this.voxelmapDataPacking.isEmpty(cacheData)) {
                             // if there is a voxel there
                             if (
                                 localPosition.x > 0 &&
@@ -133,7 +135,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                                 localPosition.z < voxelsChunkCache.size.z - 1
                             ) {
                                 const voxelLocalPosition = { x: localPosition.x - 1, y: localPosition.y - 1, z: localPosition.z - 1 };
-                                const voxelMaterialId = cacheData - 1;
+                                const voxelMaterialId = this.voxelmapDataPacking.getMaterialid(cacheData);
 
                                 for (const face of Object.values(this.cube.faces)) {
                                     if (voxelsChunkCache.neighbourExists(cacheIndex, face.normal.vec)) {
@@ -218,6 +220,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
     cube: ${JSON.stringify(this.serializableFactory.cube)},
     vertexData1Encoder: ${this.serializableFactory.vertexData1Encoder.serialize()},
     vertexData2Encoder: ${this.serializableFactory.vertexData2Encoder.serialize()},
+    voxelmapDataPacking: ${this.serializableFactory.voxelmapDataPacking.serialize()},
     isCheckerboard: ${this.serializableFactory.isCheckerboard},
     ${this.serializableFactory.buildBuffer},
     ${this.serializableFactory.buildLocalMapCache},
