@@ -4,18 +4,18 @@ import { TransformControls } from 'three/examples/jsm/controls/TransformControls
 import {
     computePlateau,
     EComputationMethod,
-    type PlateauRenderable,
+    HeightmapViewer,
     PlateauRenderableFactory,
     PromisesQueue,
     TerrainViewer,
     VoxelmapViewer,
     VoxelmapVisibilityComputer,
+    VoxelmapWrapper,
     type IHeightmap,
     type IVoxelMap,
-    VoxelmapWrapper,
     type Plateau,
+    type PlateauRenderable,
 } from '../lib';
-import { HeightmapViewer } from '../lib/terrain/heightmap/heightmap-viewer';
 
 import { TestBase, type ITerrainMap } from './test-base';
 

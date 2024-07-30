@@ -1,9 +1,8 @@
 import type * as THREE from 'three';
 
-import { TerrainViewer, VoxelmapViewerAutonomous, type IHeightmap, type IVoxelMap } from '../lib';
-import { HeightmapViewer } from '../lib/terrain/heightmap/heightmap-viewer';
+import { HeightmapViewer, TerrainViewer, VoxelmapViewerAutonomous, type IHeightmap, type IVoxelMap } from '../lib';
 
-import { type ITerrainMap, TestBase } from './test-base';
+import { TestBase, type ITerrainMap } from './test-base';
 
 class TestTerrainAutonomous extends TestBase {
     protected override readonly terrainViewer: TerrainViewer;
