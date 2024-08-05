@@ -20,6 +20,7 @@ class VoxelsRenderable {
         voxels: {
             displayMode: EVoxelsDisplayMode.TEXTURED,
             noiseStrength: 0.05,
+            checkerboardStrength: 0.1,
         },
         smoothEdges: {
             enabled: true,
@@ -82,6 +83,7 @@ class VoxelsRenderable {
                 uniforms.uDisplayMode.value = this.parameters.voxels.displayMode;
 
                 uniforms.uNoiseStrength.value = this.parameters.voxels.noiseStrength;
+                uniforms.uCheckerboardStrength.value = this.parameters.voxels.checkerboardStrength;
 
                 uniforms.uGridThickness.value = +this.parameters.grid.enabled * this.parameters.grid.thickness;
                 uniforms.uGridColor.value = this.parameters.grid.color;
