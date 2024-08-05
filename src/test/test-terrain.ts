@@ -71,7 +71,7 @@ class TestTerrain extends TestBase {
             if (modifiedPatchesIdsList.length > 0) {
                 this.promisesQueue.cancelAll();
                 for (const patchId of modifiedPatchesIdsList) {
-                    this.voxelmapViewer.deletePatch(patchId);
+                    this.voxelmapViewer.invalidatePatch(patchId);
                 }
             }
         });
