@@ -4,11 +4,11 @@ export { HeightmapViewer } from './terrain/heightmap/heightmap-viewer';
 export type { IHeightmap, IHeightmapCoords, IHeightmapSample } from './terrain/heightmap/i-heightmap';
 export { TerrainViewer } from './terrain/terrain-viewer';
 export {
+    voxelmapDataPacking,
     type ILocalMapData,
     type IVoxelMap,
     type IVoxelMaterial,
     type VoxelsChunkSize,
-    voxelmapDataPacking,
 } from './terrain/voxelmap/i-voxelmap';
 export { EPlateauSquareType, computePlateau, type Plateau, type PlateauSquare } from './terrain/voxelmap/plateau/plateau';
 export { PlateauRenderableFactory, type PlateauRenderable } from './terrain/voxelmap/plateau/plateau-renderable-factory';
@@ -26,3 +26,4 @@ export {
     type VoxelsChunkData,
 } from './terrain/voxelmap/viewer/simple/voxelmap-viewer';
 export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibility-computer';
+export { type CheckerboardType } from './terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
