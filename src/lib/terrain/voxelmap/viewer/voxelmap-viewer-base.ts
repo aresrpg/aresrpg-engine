@@ -25,8 +25,8 @@ abstract class VoxelmapViewerBase {
     public readonly parameters = {
         faces: {
             displayMode: EVoxelsDisplayMode.TEXTURED,
-            noiseStrength: 0.025,
-            checkerboardStrength: 0.1,
+            noiseContrast: 0.025,
+            checkerboardContrast: 0.1,
         },
         smoothEdges: {
             enabled: true,
@@ -77,8 +77,8 @@ abstract class VoxelmapViewerBase {
             const voxelsRenderable = patch.voxelsRenderable;
 
             voxelsRenderable.parameters.voxels.displayMode = voxelsSettings.faces.displayMode;
-            voxelsRenderable.parameters.voxels.noiseStrength = voxelsSettings.faces.noiseStrength;
-            voxelsRenderable.parameters.voxels.checkerboardStrength = voxelsSettings.faces.checkerboardStrength;
+            voxelsRenderable.parameters.voxels.noiseStrength = voxelsSettings.faces.noiseContrast;
+            voxelsRenderable.parameters.voxels.checkerboardStrength = voxelsSettings.faces.checkerboardContrast;
 
             voxelsRenderable.parameters.smoothEdges.enabled = voxelsSettings.smoothEdges.enabled;
             voxelsRenderable.parameters.smoothEdges.radius = voxelsSettings.smoothEdges.radius;
