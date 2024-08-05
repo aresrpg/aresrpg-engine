@@ -12,7 +12,7 @@ import {
     type IVoxelMap,
 } from '../../lib/index';
 
-import { EVoxelType, voxelMaterials } from './materials';
+import { colorMapping } from './color-mapping';
 import { TreeRepartition } from './trees/repartition';
 import { Tree } from './trees/tree';
 
@@ -28,10 +28,20 @@ type TreesTexture = {
     buildIndex(x: number, y: number): number;
 };
 
+const keyColors = {
+    rock: { color: new THREE.Color('#ABABAB') },
+    grass: { color: new THREE.Color('#00B920') },
+    snow: { color: new THREE.Color('#E5E5E5') },
+    water: { color: new THREE.Color('#0055E2') },
+    sand: { color: new THREE.Color('#DCBE28') },
+    treeTrunk: { color: new THREE.Color('#692D00') },
+    treeLeaves: { color: new THREE.Color('#007A00') },
+};
+
 class VoxelMap implements IVoxelMap, IHeightmap {
     public readonly scaleXZ: number;
     public readonly scaleY: number;
-    public readonly voxelMaterialsList = Object.values(voxelMaterials);
+    public readonly voxelMaterialsList = colorMapping.materialsList;
 
     public readonly minAltitude: number = -1;
     public readonly maxAltitude: number;
@@ -44,6 +54,8 @@ class VoxelMap implements IVoxelMap, IHeightmap {
     private readonly treesDensityFrequency = 0.002;
     private readonly treesRepartition = new TreeRepartition(150, 2 * this.tree.radiusXZ);
     private readonly treesTexture: TreesTexture;
+
+    private readonly colorVariationNoise: NoiseFunction2D;
 
     private thresholdWater: number;
     private thresholdSand: number;
@@ -63,6 +75,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         const prng = alea(seed);
         this.noise2D = createNoise2D(prng);
         this.treesDensityNoise = createNoise2D(prng);
+        this.colorVariationNoise = createNoise2D(prng);
 
         const centerMap = true;
         if (centerMap) {
@@ -131,9 +144,9 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         };
 
         let isEmpty = true;
-        const setVoxel = (localPos: THREE.Vector3Like, voxelType: EVoxelType) => {
+        const setVoxel = (localPos: THREE.Vector3Like, materialId: number) => {
             const index = buildIndex(localPos);
-            data[index] = voxelmapDataPacking.encode(false, voxelType);
+            data[index] = voxelmapDataPacking.encode(false, materialId);
             isEmpty = false;
         };
 
@@ -189,11 +202,12 @@ class VoxelMap implements IVoxelMap, IHeightmap {
                     if (typeof sample === 'undefined') {
                         throw new Error();
                     }
-                    const voxelType = this.altitudeToVoxelType(sample.altitude);
+                    const voxelColor = this.positionToColor(worldPos.x, sample.altitude, worldPos.z);
+                    const materialId = colorMapping.getMaterialId(voxelColor);
                     const fromY = blockStart.y - blockStart.y;
                     const toY = Math.min(blockEnd.y, sample.altitude + 1) - blockStart.y;
                     for (localPos.y = fromY; localPos.y < toY; localPos.y++) {
-                        setVoxel(localPos, voxelType);
+                        setVoxel(localPos, materialId);
                     }
                 }
             }
@@ -289,25 +303,51 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         }
         altitude = Math.floor(altitude);
 
-        const voxelType = this.altitudeToVoxelType(altitude);
-        const material = this.voxelMaterialsList[voxelType]!;
+        const color = this.positionToColor(x, altitude, z);
         return {
             altitude,
-            color: material.color,
+            color,
         };
     }
 
-    private altitudeToVoxelType(y: number): EVoxelType {
+    private positionToColor(x: number, y: number, z: number): THREE.Color {
+        const computeGrassColor = () => {
+            const frequency = 1 / 100;
+            const noise = this.colorVariationNoise(x * frequency, z * frequency);
+            return new THREE.Color().copy(keyColors.grass.color).multiplyScalar(1 + 0.3 * noise);
+        };
+
+        const computeRockThreshold = () => {
+            const frequency = 1 / 10;
+            const noise = this.colorVariationNoise(x * frequency, z * frequency);
+            return this.thresholdRock + 0.02 * noise * this.scaleY;
+        };
+
         if (y < this.thresholdWater) {
-            return EVoxelType.WATER;
+            return keyColors.water.color;
         } else if (y < this.thresholdSand) {
-            return EVoxelType.SAND;
+            const pureSandLimit = this.thresholdWater + 0.3 * (this.thresholdSand - this.thresholdWater);
+            if (y < pureSandLimit) {
+                return keyColors.sand.color;
+            } else {
+                const grassColor = computeGrassColor();
+                const closeToGrass = (0.5 * (y - pureSandLimit)) / (this.thresholdSand - pureSandLimit);
+                return new THREE.Color().lerpColors(keyColors.sand.color, grassColor, closeToGrass);
+            }
         } else if (y < this.thresholdGrass) {
-            return EVoxelType.GRASS;
-        } else if (y < this.thresholdRock) {
-            return EVoxelType.ROCK;
+            const grassColor = computeGrassColor();
+            const mergeFactor = 0.2;
+            const pureGrassLimit = this.thresholdSand + mergeFactor * (this.thresholdGrass - this.thresholdSand);
+            if (y < pureGrassLimit) {
+                const closeToSand = (0.5 * (pureGrassLimit - y)) / (pureGrassLimit - this.thresholdSand);
+                return new THREE.Color().lerpColors(grassColor, keyColors.sand.color, closeToSand);
+            } else {
+                return grassColor;
+            }
+        } else if (y < computeRockThreshold()) {
+            return keyColors.rock.color;
         } else {
-            return EVoxelType.SNOW;
+            return keyColors.snow.color;
         }
     }
 

@@ -1,7 +1,12 @@
 import * as THREE from 'three';
 
 import { type IHeightmapSample, type VoxelsChunkData } from '../../../lib';
-import { EVoxelType, voxelMaterials } from '../materials';
+import { colorMapping } from '../color-mapping';
+
+const keyColors = {
+    treeTrunk: { color: new THREE.Color('#692D00') },
+    treeLeaves: { color: new THREE.Color('#007A00') },
+};
 
 class Tree {
     public readonly radiusXZ: number;
@@ -26,10 +31,15 @@ class Tree {
         this.offset = new THREE.Vector3(-this.radiusXZ, 0, -this.radiusXZ);
 
         // fill voxels
+        const trunkMaterialId = colorMapping.getMaterialId(keyColors.treeTrunk.color);
+        const trunkVoxelData = trunkMaterialId + 1;
         for (let iY = 0; iY <= trunkHeight; iY++) {
             const index = this.buildIndex({ x: this.radiusXZ, y: iY, z: this.radiusXZ });
-            this.voxels.data[index] = EVoxelType.TREE_TRUNK + 1;
+            this.voxels.data[index] = trunkVoxelData;
         }
+
+        const leavesMaterialId = colorMapping.getMaterialId(keyColors.treeLeaves.color);
+        const leavesVoxelData = leavesMaterialId + 1;
         const canopeeCenter = new THREE.Vector3(this.radiusXZ, trunkHeight + this.radiusXZ, this.radiusXZ);
         const pos = { x: 0, y: 0, z: 0 };
         for (pos.z = 0; pos.z < this.size.z; pos.z++) {
@@ -37,7 +47,7 @@ class Tree {
                 for (pos.x = 0; pos.x < this.size.x; pos.x++) {
                     if (canopeeCenter.distanceTo(pos) < this.radiusXZ) {
                         const index = this.buildIndex(pos);
-                        this.voxels.data[index] = EVoxelType.TREE_LEAVES + 1;
+                        this.voxels.data[index] = leavesVoxelData;
                     }
                 }
             }
@@ -53,7 +63,7 @@ class Tree {
                     if (voxelData) {
                         sample = {
                             altitude: pos.y,
-                            color: voxelMaterials[voxelData].color,
+                            color: colorMapping.getColor(voxelData),
                         };
                         break;
                     }
@@ -67,7 +77,7 @@ class Tree {
         return this.voxels.size;
     }
 
-    public getVoxel(position: THREE.Vector3Like): EVoxelType | null {
+    public getVoxel(position: THREE.Vector3Like): number | null {
         const index = this.buildIndex(position);
         const voxel = this.voxels.data[index];
         if (typeof voxel === 'undefined') {
@@ -76,7 +86,7 @@ class Tree {
         if (voxel === 0) {
             return null;
         }
-        return (voxel - 1) as EVoxelType;
+        return (voxel - 1) as number;
     }
 
     public getHeightmapSample(position: THREE.Vector2Like): IHeightmapSample | null {
