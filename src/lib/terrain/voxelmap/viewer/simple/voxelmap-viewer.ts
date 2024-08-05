@@ -9,7 +9,7 @@ import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patc
 import { type PatchFactoryBase } from '../../patch/patch-factory/patch-factory-base';
 import { PatchId } from '../../patch/patch-id';
 import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
-import { type VoxelsChunkData } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
+import { type CheckerboardType, type VoxelsChunkData } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 import { VoxelmapViewerBase, type ComputedPatch, type PatchRenderable } from '../voxelmap-viewer-base';
 
 enum EComputationMethod {
@@ -30,6 +30,7 @@ type ComputationOptions =
 type VoxelmapViewerOptions = {
     patchSize?: VoxelsChunkSize;
     computationOptions?: ComputationOptions;
+    checkerboardType?: CheckerboardType;
 };
 
 type ComputationStatus = 'success' | 'skipped' | 'aborted';
@@ -84,14 +85,24 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             threadsCount: 3,
         };
 
+        let checkerboardType: CheckerboardType = 'xyz';
+        if (options?.checkerboardType) {
+            checkerboardType = options.checkerboardType;
+        }
+
         if (this.computationOptions.method === EComputationMethod.CPU_MONOTHREADED) {
-            this.patchFactory = new PatchFactoryCpu(voxelsMaterialsList, voxelsChunksSize);
+            this.patchFactory = new PatchFactoryCpu(voxelsMaterialsList, voxelsChunksSize, checkerboardType);
             this.maxPatchesComputedInParallel = 1;
         } else if (this.computationOptions.method === EComputationMethod.CPU_MULTITHREADED) {
-            this.patchFactory = new PatchFactoryCpuWorker(voxelsMaterialsList, voxelsChunksSize, this.computationOptions.threadsCount);
+            this.patchFactory = new PatchFactoryCpuWorker(
+                voxelsMaterialsList,
+                voxelsChunksSize,
+                this.computationOptions.threadsCount,
+                checkerboardType
+            );
             this.maxPatchesComputedInParallel = this.computationOptions.threadsCount;
         } else {
-            this.patchFactory = new PatchFactoryGpuSequential(voxelsMaterialsList, voxelsChunksSize);
+            this.patchFactory = new PatchFactoryGpuSequential(voxelsMaterialsList, voxelsChunksSize, checkerboardType);
             this.maxPatchesComputedInParallel = 1;
         }
 

@@ -3,7 +3,10 @@ import * as THREE from '../../../../../three-usage';
 import { type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryGpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
-import { type GeometryAndMaterial } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
+import {
+    type CheckerboardType,
+    type GeometryAndMaterial,
+} from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 import { PatchFactoryBase, type LocalMapData } from '../patch-factory-base';
 
 type PatchGenerationJob = {
@@ -18,10 +21,11 @@ class PatchFactoryGpuOptimized extends PatchFactoryBase {
 
     private readonly pendingJobs: PatchGenerationJob[] = [];
 
-    public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, patchSize: VoxelsChunkSize) {
+    public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, patchSize: VoxelsChunkSize, checkerboardType?: CheckerboardType) {
         const voxelsRenderableFactory = new VoxelsRenderableFactoryGpu({
             voxelMaterialsList,
             voxelsChunkSize: patchSize,
+            checkerboardType,
         });
         super(voxelsRenderableFactory);
     }

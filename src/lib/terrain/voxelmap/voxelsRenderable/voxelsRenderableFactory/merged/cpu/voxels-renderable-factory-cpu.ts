@@ -1,7 +1,12 @@
 import * as THREE from '../../../../../../three-usage';
 import { voxelmapDataPacking, type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
-import { type GeometryAndMaterial, type VertexData, type VoxelsChunkData } from '../../voxels-renderable-factory-base';
+import {
+    type CheckerboardType,
+    type GeometryAndMaterial,
+    type VertexData,
+    type VoxelsChunkData,
+} from '../../voxels-renderable-factory-base';
 import { VoxelsRenderableFactory } from '../voxels-renderable-factory';
 
 type FaceData = {
@@ -21,6 +26,7 @@ type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly maxVoxelsChunkSize: VoxelsChunkSize;
     readonly isCheckerboardMode?: boolean | undefined;
+    readonly checkerboardType?: CheckerboardType | undefined;
 };
 
 class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
@@ -36,6 +42,11 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
         voxelmapDataPacking,
 
         isCheckerboard: false,
+        checkerboardPattern: {
+            x: +this.checkerboardType.includes('x'),
+            y: +this.checkerboardType.includes('y'),
+            z: +this.checkerboardType.includes('z'),
+        },
 
         buildBuffer(voxelsChunkData: VoxelsChunkData): Uint32Array {
             const innerChunkSize = {
@@ -61,7 +72,11 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                 let faceNoiseId: number;
 
                 if (this.isCheckerboard || faceData.voxelIsCheckerboard) {
-                    faceNoiseId = (faceData.voxelLocalPosition.x + faceData.voxelLocalPosition.y + faceData.voxelLocalPosition.z) % 2;
+                    faceNoiseId =
+                        (this.checkerboardPattern.x * faceData.voxelLocalPosition.x +
+                            this.checkerboardPattern.y * faceData.voxelLocalPosition.y +
+                            this.checkerboardPattern.z * faceData.voxelLocalPosition.z) %
+                        2;
                 } else {
                     faceNoiseId = 2 + Math.floor(Math.random() * (this.vertexData2Encoder.faceNoiseId.maxValue - 2));
                 }
@@ -205,6 +220,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
             voxelMaterialsList: params.voxelMaterialsList,
             maxVoxelsChunkSize: params.maxVoxelsChunkSize,
             noise,
+            checkerboardType: params.checkerboardType,
         });
 
         this.serializableFactory.isCheckerboard = !!params.isCheckerboardMode;
@@ -229,6 +245,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
     vertexData2Encoder: ${this.serializableFactory.vertexData2Encoder.serialize()},
     voxelmapDataPacking: ${this.serializableFactory.voxelmapDataPacking.serialize()},
     isCheckerboard: ${this.serializableFactory.isCheckerboard},
+    checkerboardPattern: ${JSON.stringify(this.serializableFactory.checkerboardPattern)},
     ${this.serializableFactory.buildBuffer},
     ${this.serializableFactory.buildLocalMapCache},
     ${this.serializableFactory.iterateOnVisibleFacesWithCache},

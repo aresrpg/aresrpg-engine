@@ -46,6 +46,7 @@ class TestTerrain extends TestBase {
                 method: EComputationMethod.CPU_MULTITHREADED,
                 threadsCount: 4,
             },
+            checkerboardType: 'xz',
         });
 
         const heightmapViewer = new HeightmapViewer(map, {

@@ -1,15 +1,15 @@
 /// <reference types="@webgpu/types" />
 
-import { logger } from '../../../../../../helpers/logger';
 import { PromisesQueue } from '../../../../../../helpers/async/promises-queue';
+import { logger } from '../../../../../../helpers/logger';
 import { vec3ToString } from '../../../../../../helpers/string';
 import { getGpuDevice } from '../../../../../../helpers/webgpu/webgpu-device';
 import type * as THREE from '../../../../../../three-usage';
+import { voxelmapDataPacking } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
-import { type VoxelsChunkData } from '../../voxels-renderable-factory-base';
+import { type CheckerboardType, type VoxelsChunkData } from '../../voxels-renderable-factory-base';
 import { type VertexData1Encoder } from '../vertex-data1-encoder';
 import { type VertexData2Encoder } from '../vertex-data2-encoder';
-import { voxelmapDataPacking } from '../../../../i-voxelmap';
 
 type FaceBuffer = {
     readonly storageBuffer: GPUBuffer;
@@ -22,11 +22,12 @@ class VoxelsComputerGpu {
     public static async create(
         maxVoxelsChunkSize: THREE.Vector3Like,
         vertexData1Encoder: VertexData1Encoder,
-        vertexData2Encoder: VertexData2Encoder
+        vertexData2Encoder: VertexData2Encoder,
+        checkerboardType: CheckerboardType
     ): Promise<VoxelsComputerGpu> {
         logger.debug('Requesting WebGPU device...');
         const device = await getGpuDevice();
-        return new VoxelsComputerGpu(device, maxVoxelsChunkSize, vertexData1Encoder, vertexData2Encoder);
+        return new VoxelsComputerGpu(device, maxVoxelsChunkSize, vertexData1Encoder, vertexData2Encoder, checkerboardType);
     }
 
     private readonly device: GPUDevice;
@@ -44,9 +45,16 @@ class VoxelsComputerGpu {
         device: GPUDevice,
         maxVoxelsChunkSize: THREE.Vector3Like,
         vertexData1Encoder: VertexData1Encoder,
-        vertexData2Encoder: VertexData2Encoder
+        vertexData2Encoder: VertexData2Encoder,
+        checkerboardType: CheckerboardType
     ) {
         this.device = device;
+
+        const checkerboardPattern = {
+            x: +checkerboardType.includes('x'),
+            y: +checkerboardType.includes('y'),
+            z: +checkerboardType.includes('z'),
+        };
 
         const code = `
         struct VoxelsChunkBuffer {
@@ -124,7 +132,7 @@ class VoxelsComputerGpu {
                         let firstVertexIndex: u32 = atomicAdd(&verticesBuffer.verticesCount, 6u);
                         var faceNoiseId: u32;
                         if (isCheckerboard) {
-                            faceNoiseId = (voxelLocalPosition.x + voxelLocalPosition.y + voxelLocalPosition.z) % 2u;
+                            faceNoiseId = dot(voxelLocalPosition, vec3u(${vec3ToString(checkerboardPattern, ', ')})) % 2u;
                         } else {
                             faceNoiseId = 2u + (firstVertexIndex / 6u) % (${vertexData2Encoder.faceNoiseId.maxValue - 2});
                         }

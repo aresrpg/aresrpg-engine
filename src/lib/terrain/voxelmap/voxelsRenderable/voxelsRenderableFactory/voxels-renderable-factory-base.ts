@@ -1,10 +1,10 @@
 import { nextPowerOfTwo } from '../../../../helpers/math';
 import { vec3ToString } from '../../../../helpers/string';
+import { type PackedUintFragment } from '../../../../helpers/uint-packing';
 import * as THREE from '../../../../three-usage';
 import { type IVoxelMaterial } from '../../i-voxelmap';
 import { type VoxelsMaterialUniforms, type VoxelsMaterials } from '../voxels-material';
 import { VoxelsRenderable } from '../voxels-renderable';
-import { type PackedUintFragment } from '../../../../helpers/uint-packing';
 
 type GeometryAndMaterial = {
     readonly id: string;
@@ -27,6 +27,8 @@ type VoxelsChunkData = {
     readonly isEmpty: boolean;
 };
 
+type CheckerboardType = 'x' | 'y' | 'z' | 'xy' | 'xz' | 'yz' | 'xyz';
+
 type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly voxelTypeEncoder: PackedUintFragment;
@@ -37,6 +39,7 @@ type Parameters = {
               readonly resolution: number;
               readonly textureBuilder?: () => THREE.DataTexture;
           };
+    readonly checkerboardType?: undefined | CheckerboardType;
 };
 
 abstract class VoxelsRenderableFactoryBase {
@@ -49,6 +52,7 @@ abstract class VoxelsRenderableFactoryBase {
 
     protected readonly noiseResolution: number = 5;
     private readonly noiseTypesCount: number = 16;
+    protected readonly checkerboardType: CheckerboardType = 'xyz';
 
     protected readonly uniformsTemplate: VoxelsMaterialUniforms;
 
@@ -58,6 +62,10 @@ abstract class VoxelsRenderableFactoryBase {
         }
         if (this.noiseResolution <= 0) {
             throw new Error(`Noise resolution must be positive (is "${this.noiseResolution}").`);
+        }
+
+        if (typeof params.checkerboardType !== 'undefined') {
+            this.checkerboardType = params.checkerboardType;
         }
 
         let textureBuilder = () => VoxelsRenderableFactoryBase.buildNoiseTexture(this.noiseResolution, this.noiseTypesCount);
@@ -212,4 +220,11 @@ abstract class VoxelsRenderableFactoryBase {
     }
 }
 
-export { VoxelsRenderableFactoryBase, type GeometryAndMaterial, type Parameters, type VertexData, type VoxelsChunkData };
+export {
+    VoxelsRenderableFactoryBase,
+    type GeometryAndMaterial,
+    type Parameters,
+    type VertexData,
+    type VoxelsChunkData,
+    type CheckerboardType,
+};

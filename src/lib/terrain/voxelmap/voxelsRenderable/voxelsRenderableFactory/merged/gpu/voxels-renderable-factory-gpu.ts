@@ -1,5 +1,5 @@
 import { type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
-import { type GeometryAndMaterial, type VoxelsChunkData } from '../../voxels-renderable-factory-base';
+import { type CheckerboardType, type GeometryAndMaterial, type VoxelsChunkData } from '../../voxels-renderable-factory-base';
 import { VoxelsRenderableFactory } from '../voxels-renderable-factory';
 
 import { VoxelsComputerGpu } from './voxels-computer-gpu';
@@ -7,6 +7,7 @@ import { VoxelsComputerGpu } from './voxels-computer-gpu';
 type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly voxelsChunkSize: VoxelsChunkSize;
+    readonly checkerboardType?: CheckerboardType | undefined;
 };
 
 class VoxelsRenderableFactoryGpu extends VoxelsRenderableFactory {
@@ -16,12 +17,14 @@ class VoxelsRenderableFactoryGpu extends VoxelsRenderableFactory {
         super({
             voxelMaterialsList: params.voxelMaterialsList,
             maxVoxelsChunkSize: params.voxelsChunkSize,
+            checkerboardType: params.checkerboardType,
         });
         const localCacheSize = this.maxVoxelsChunkSize.clone().addScalar(2);
         this.voxelsComputerGpuPromise = VoxelsComputerGpu.create(
             localCacheSize,
             this.vertexData1Encoder,
-            VoxelsRenderableFactory.vertexData2Encoder
+            VoxelsRenderableFactory.vertexData2Encoder,
+            this.checkerboardType
         );
     }
 
