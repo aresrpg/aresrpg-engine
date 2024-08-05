@@ -1,4 +1,4 @@
-import * as THREE from '../../../../../../three-usage';
+import type * as THREE from '../../../../../../three-usage';
 import { voxelmapDataPacking, type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
 import {
@@ -25,7 +25,6 @@ type VoxelsChunkCache = VoxelsChunkData & {
 type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly maxVoxelsChunkSize: VoxelsChunkSize;
-    readonly isCheckerboardMode?: boolean | undefined;
     readonly checkerboardType?: CheckerboardType | undefined;
 };
 
@@ -41,7 +40,6 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
 
         voxelmapDataPacking,
 
-        isCheckerboard: false,
         checkerboardPattern: {
             x: +this.checkerboardType.includes('x'),
             y: +this.checkerboardType.includes('y'),
@@ -71,7 +69,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
             for (const faceData of this.iterateOnVisibleFacesWithCache(voxelsChunkCache)) {
                 let faceNoiseId: number;
 
-                if (this.isCheckerboard || faceData.voxelIsCheckerboard) {
+                if (faceData.voxelIsCheckerboard) {
                     faceNoiseId =
                         (this.checkerboardPattern.x * faceData.voxelLocalPosition.x +
                             this.checkerboardPattern.y * faceData.voxelLocalPosition.y +
@@ -209,21 +207,11 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
     };
 
     public constructor(params: Parameters) {
-        const noise = params.isCheckerboardMode
-            ? {
-                  resolution: 1,
-                  textureBuilder: () => new THREE.DataTexture(new Uint8Array([0, 0, 0, 0, 255, 255, 255, 255]), 2, 1),
-              }
-            : undefined;
-
         super({
             voxelMaterialsList: params.voxelMaterialsList,
             maxVoxelsChunkSize: params.maxVoxelsChunkSize,
-            noise,
             checkerboardType: params.checkerboardType,
         });
-
-        this.serializableFactory.isCheckerboard = !!params.isCheckerboardMode;
     }
 
     public async buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkData): Promise<GeometryAndMaterial[]> {
@@ -244,7 +232,6 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
     vertexData1Encoder: ${this.serializableFactory.vertexData1Encoder.serialize()},
     vertexData2Encoder: ${this.serializableFactory.vertexData2Encoder.serialize()},
     voxelmapDataPacking: ${this.serializableFactory.voxelmapDataPacking.serialize()},
-    isCheckerboard: ${this.serializableFactory.isCheckerboard},
     checkerboardPattern: ${JSON.stringify(this.serializableFactory.checkerboardPattern)},
     ${this.serializableFactory.buildBuffer},
     ${this.serializableFactory.buildLocalMapCache},

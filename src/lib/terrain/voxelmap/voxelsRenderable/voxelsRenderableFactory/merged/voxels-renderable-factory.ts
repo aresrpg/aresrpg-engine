@@ -17,12 +17,7 @@ type VoxelsMaterialTemp = THREE.Material & {
 type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly maxVoxelsChunkSize: VoxelsChunkSize;
-    readonly noise?:
-        | {
-              readonly resolution: number;
-              readonly textureBuilder?: () => THREE.DataTexture;
-          }
-        | undefined;
+    readonly noiseResolution?: number | undefined;
     readonly checkerboardType?: undefined | CheckerboardType;
 };
 
@@ -336,7 +331,7 @@ void main() {
             voxelMaterialsList: params.voxelMaterialsList,
             voxelTypeEncoder: VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId,
             noiseIdEncoder: VoxelsRenderableFactory.vertexData2Encoder.faceNoiseId,
-            noise: params.noise,
+            noiseResolution: params.noiseResolution,
             checkerboardType: params.checkerboardType,
         });
 

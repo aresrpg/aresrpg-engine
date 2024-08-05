@@ -9,7 +9,6 @@ type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly maxVoxelsChunkSize: VoxelsChunkSize;
     readonly workersPoolSize: number;
-    readonly isCheckerboardMode?: boolean;
     readonly checkerboardType?: CheckerboardType | undefined;
 };
 
@@ -25,7 +24,6 @@ class VoxelsRenderableFactoryCpuWorker extends VoxelsRenderableFactoryCpu {
         super({
             voxelMaterialsList: params.voxelMaterialsList,
             maxVoxelsChunkSize: params.maxVoxelsChunkSize,
-            isCheckerboardMode: params.isCheckerboardMode,
             checkerboardType: params.checkerboardType,
         });
 
