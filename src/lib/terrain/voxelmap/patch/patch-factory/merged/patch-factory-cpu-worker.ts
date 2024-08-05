@@ -3,17 +3,24 @@ import type * as THREE from '../../../../../three-usage';
 import { type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryCpuWorker } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/cpu/voxels-renderable-factory-cpu-worker';
+import { type CheckerboardType } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 import { PatchFactoryBase } from '../patch-factory-base';
 
 class PatchFactoryCpuWorker extends PatchFactoryBase {
     public readonly maxPatchesComputedInParallel: number;
     private readonly throttler: PromisesQueue;
 
-    public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, patchSize: VoxelsChunkSize, workersPoolSize: number) {
+    public constructor(
+        voxelMaterialsList: ReadonlyArray<IVoxelMaterial>,
+        patchSize: VoxelsChunkSize,
+        workersPoolSize: number,
+        checkerboardType?: CheckerboardType
+    ) {
         const voxelsRenderableFactory = new VoxelsRenderableFactoryCpuWorker({
             voxelMaterialsList,
             maxVoxelsChunkSize: patchSize,
             workersPoolSize,
+            checkerboardType,
         });
         super(voxelsRenderableFactory);
 

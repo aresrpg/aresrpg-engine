@@ -3,7 +3,7 @@ import * as THREE from '../../../../../three-usage';
 import { type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterialUniforms, type VoxelsMaterials } from '../../voxels-material';
 import * as Cube from '../cube';
-import { VoxelsRenderableFactoryBase, type GeometryAndMaterial } from '../voxels-renderable-factory-base';
+import { VoxelsRenderableFactoryBase, type CheckerboardType, type GeometryAndMaterial } from '../voxels-renderable-factory-base';
 
 import { VertexData1Encoder } from './vertex-data1-encoder';
 import { VertexData2Encoder } from './vertex-data2-encoder';
@@ -23,6 +23,7 @@ type Parameters = {
               readonly textureBuilder?: () => THREE.DataTexture;
           }
         | undefined;
+    readonly checkerboardType?: undefined | CheckerboardType;
 };
 
 abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
@@ -336,6 +337,7 @@ void main() {
             voxelTypeEncoder: VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId,
             noiseIdEncoder: VoxelsRenderableFactory.vertexData2Encoder.faceNoiseId,
             noise: params.noise,
+            checkerboardType: params.checkerboardType,
         });
 
         this.vertexData1Encoder = new VertexData1Encoder(params.maxVoxelsChunkSize);
