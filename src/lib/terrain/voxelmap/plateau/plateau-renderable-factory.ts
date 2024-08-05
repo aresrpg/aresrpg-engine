@@ -21,7 +21,6 @@ class PlateauRenderableFactory extends VoxelsRenderableFactoryCpuWorker {
             voxelMaterialsList: params.voxelMaterialsList,
             maxVoxelsChunkSize: { xz: 128, y: 16 },
             workersPoolSize: 1,
-            isCheckerboardMode: true,
         });
     }
 
@@ -99,7 +98,7 @@ class PlateauRenderableFactory extends VoxelsRenderableFactoryCpuWorker {
 
                 for (let iChunkY = fromChunkY; iChunkY < toChunkY; iChunkY++) {
                     const index = iChunkX + iChunkY * chunkSize.x + iChunkZ * (chunkSize.x * chunkSize.y);
-                    chunkData[index] = voxelmapDataPacking.encode(false, plateauSquare.materialId);
+                    chunkData[index] = voxelmapDataPacking.encode(true, plateauSquare.materialId);
                     chunkIsEmpty = false;
                 }
             }

@@ -33,12 +33,7 @@ type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly voxelTypeEncoder: PackedUintFragment;
     readonly noiseIdEncoder: PackedUintFragment;
-    readonly noise?:
-        | undefined
-        | {
-              readonly resolution: number;
-              readonly textureBuilder?: () => THREE.DataTexture;
-          };
+    readonly noiseResolution?: number | undefined;
     readonly checkerboardType?: undefined | CheckerboardType;
 };
 
@@ -57,10 +52,10 @@ abstract class VoxelsRenderableFactoryBase {
     protected readonly uniformsTemplate: VoxelsMaterialUniforms;
 
     protected constructor(params: Parameters) {
-        if (typeof params.noise !== 'undefined') {
-            this.noiseResolution = params.noise.resolution;
+        if (typeof params.noiseResolution !== 'undefined') {
+            this.noiseResolution = params.noiseResolution;
         }
-        if (this.noiseResolution <= 0) {
+        if (this.noiseResolution <= 0 || !Number.isInteger(this.noiseResolution)) {
             throw new Error(`Noise resolution must be positive (is "${this.noiseResolution}").`);
         }
 
@@ -68,11 +63,7 @@ abstract class VoxelsRenderableFactoryBase {
             this.checkerboardType = params.checkerboardType;
         }
 
-        let textureBuilder = () => VoxelsRenderableFactoryBase.buildNoiseTexture(this.noiseResolution, this.noiseTypesCount);
-        if (params?.noise?.textureBuilder) {
-            textureBuilder = params.noise.textureBuilder;
-        }
-        this.noiseTexture = textureBuilder();
+        this.noiseTexture = VoxelsRenderableFactoryBase.buildNoiseTexture(this.noiseResolution, this.noiseTypesCount);
         this.noiseTexture.needsUpdate = true;
         const noiseTextureSize = this.noiseTexture.image;
         if (noiseTextureSize.height !== this.noiseResolution) {
