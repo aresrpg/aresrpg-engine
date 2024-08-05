@@ -1,3 +1,4 @@
+import { logger } from '../../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../../helpers/meshes-statistics';
 import * as THREE from '../../../three-usage';
 import { type VoxelsChunkSize } from '../i-voxelmap';
@@ -99,29 +100,55 @@ abstract class VoxelmapViewerBase {
     }
 
     public getCompleteChunksColumns(): { x: number; z: number }[] {
-        const result: Record<string, { x: number; z: number }> = {};
+        type Column = {
+            id: { x: number; z: number };
+            yFilled: number[];
+        };
+
+        const columns: Record<string, Column> = {};
 
         const minPatchIdY = this.minChunkIdY;
         const maxPatchIdY = this.maxChunkIdY;
+        const requiredPatchIdYList: number[] = [];
+        for (let iY = minPatchIdY; iY < maxPatchIdY; iY++) {
+            requiredPatchIdYList.push(iY);
+        }
 
         for (const patch of this.allVisiblePatches) {
-            let isWholeColumnDisplayed = true;
-
-            for (let iY = minPatchIdY; iY < maxPatchIdY; iY++) {
-                const id = new PatchId({ x: patch.id.x, y: iY, z: patch.id.z });
-                if (!this.isPatchAttached(id)) {
-                    isWholeColumnDisplayed = false;
-                    break;
+            for (const y of requiredPatchIdYList) {
+                const id = new PatchId({ x: patch.id.x, y, z: patch.id.z });
+                if (this.isPatchAttached(id)) {
+                    const columnId = `${patch.id.x}_${patch.id.z}`;
+                    let column = columns[columnId];
+                    if (!column) {
+                        column = {
+                            id: { x: patch.id.x, z: patch.id.z },
+                            yFilled: [],
+                        };
+                        columns[columnId] = column;
+                    }
+                    column.yFilled.push(y);
                 }
-            }
-
-            if (isWholeColumnDisplayed) {
-                const id = `${patch.id.x}_${patch.id.z}`;
-                result[id] = patch.id;
             }
         }
 
-        return Object.values(result);
+        const completeColumns = Object.values(columns).filter(column => {
+            const missingYList: number[] = [];
+
+            for (const y of requiredPatchIdYList) {
+                if (!column.yFilled.includes(y)) {
+                    missingYList.push(y);
+                }
+            }
+
+            if (missingYList.length > 0) {
+                logger.diagnostic(`Incomplete colum "x=${column.id.x};z=${column.id.z}": missing y=${missingYList.join(',')}`);
+                return false;
+            }
+            return true;
+        });
+
+        return completeColumns.map(column => column.id);
     }
 
     /**
