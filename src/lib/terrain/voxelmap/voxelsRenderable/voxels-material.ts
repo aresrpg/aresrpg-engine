@@ -11,6 +11,7 @@ type VoxelsMaterialUniforms = {
     readonly uTexture: { value: THREE.Texture };
     readonly uNoiseTexture: { value: THREE.Texture };
     readonly uNoiseStrength: { value: number };
+    readonly uCheckerboardStrength: { value: number };
     readonly uAoStrength: { value: number };
     readonly uAoSpread: { value: number };
     readonly uSmoothEdgeRadius: { value: number };

@@ -154,6 +154,7 @@ uniform sampler2D uTexture;
 #ifdef ${cstVoxelNoise}
 uniform sampler2D uNoiseTexture;
 uniform float uNoiseStrength;
+uniform float uCheckerboardStrength;
 #endif // ${cstVoxelNoise}
 
 #ifdef ${cstVoxelAo}
@@ -220,7 +221,7 @@ float computeNoise() {
     float noise = texelFetch(uNoiseTexture, texelCoords, 0).r - 0.5;
     float noiseStrength = uNoiseStrength;
     if (noiseId < 2) {
-        noiseStrength = 0.1;
+        noiseStrength = uCheckerboardStrength;
     }
     return noiseStrength * noise;
 }

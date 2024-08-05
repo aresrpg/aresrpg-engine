@@ -86,6 +86,7 @@ abstract class VoxelsRenderableFactoryBase {
             uTexture: { value: this.texture },
             uNoiseTexture: { value: this.noiseTexture },
             uNoiseStrength: { value: 0 },
+            uCheckerboardStrength: { value: 0 },
             uAoStrength: { value: 0 },
             uAoSpread: { value: 0 },
             uSmoothEdgeRadius: { value: 0 },
