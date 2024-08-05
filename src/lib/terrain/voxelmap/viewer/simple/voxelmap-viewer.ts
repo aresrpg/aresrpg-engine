@@ -48,6 +48,7 @@ type StoredPatchRenderable =
           isVisible: boolean;
           isInvisibleSince: number;
           readonly renderable: VoxelsRenderable | null;
+          invalidated: boolean;
       };
 
 type EnqueuedPatchRenderable = {
@@ -55,6 +56,7 @@ type EnqueuedPatchRenderable = {
     readonly status: 'in-queue';
     readonly computationTask: AsyncTask<VoxelsRenderable | null>;
     cancelled: boolean;
+    invalidated: boolean;
 };
 
 class VoxelmapViewer extends VoxelmapViewerBase {
@@ -112,7 +114,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     public doesPatchRequireVoxelsData(id: THREE.Vector3Like): boolean {
         const patchId = new PatchId(id);
         const storedPatch = this.getOrBuildStoredPatch(patchId);
-        return storedPatch.status === 'pending';
+        return storedPatch.status === 'pending' || (storedPatch.status === 'ready' && storedPatch.invalidated);
     }
 
     public async enqueuePatch(id: THREE.Vector3Like, voxelsChunkData: VoxelsChunkData): Promise<ComputationStatus> {
@@ -123,13 +125,17 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
         const patchId = new PatchId(id);
         const storedPatch = this.getOrBuildStoredPatch(patchId);
-        if (storedPatch.status !== 'pending') {
+        if (storedPatch.status === 'ready' && !storedPatch.invalidated) {
             return Promise.resolve('skipped');
         }
 
         const existingEnqueuedPatch = this.enqueuedPatchesStore[patchId.asString];
         if (existingEnqueuedPatch) {
-            return Promise.resolve('skipped');
+            if (existingEnqueuedPatch.invalidated) {
+                existingEnqueuedPatch.cancelled = true;
+            } else {
+                return Promise.resolve('skipped');
+            }
         }
 
         return new Promise<ComputationStatus>(resolve => {
@@ -144,6 +150,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                     return await this.patchFactory.buildPatchFromVoxelsChunk(patchId, patchStart, patchEnd, voxelsChunkData);
                 }),
                 cancelled: false,
+                invalidated: false,
             };
             this.enqueuedPatchesStore[patchId.asString] = enqueuedPatch;
 
@@ -172,8 +179,17 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                 if (!storedPatch) {
                     throw new Error();
                 }
-                if (storedPatch.status !== 'pending') {
-                    throw new Error();
+                if (storedPatch.status === 'ready') {
+                    if (storedPatch.invalidated) {
+                        if (storedPatch.renderable) {
+                            if (storedPatch.isVisible) {
+                                this.container.remove(storedPatch.renderable.container);
+                            }
+                            storedPatch.renderable.dispose();
+                        }
+                    } else {
+                        throw new Error();
+                    }
                 }
 
                 this.patchesStore[patchId.asString] = {
@@ -182,6 +198,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                     isInvisibleSince: storedPatch.isInvisibleSince,
                     status: 'ready',
                     renderable: voxelsRenderable,
+                    invalidated: enqueuedPatch.invalidated,
                 };
 
                 if (voxelsRenderable && storedPatch.isVisible) {
@@ -204,6 +221,20 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         if (enqueuedPatch) {
             enqueuedPatch.cancelled = true;
             delete this.enqueuedPatchesStore[patchId.asString];
+        }
+    }
+
+    public invalidatePatch(id: THREE.Vector3Like): void {
+        const patchId = new PatchId(id);
+
+        const patch = this.patchesStore[patchId.asString];
+        if (patch && patch.status === 'ready') {
+            patch.invalidated = true;
+        }
+
+        const enqueuedPatch = this.enqueuedPatchesStore[patchId.asString];
+        if (enqueuedPatch) {
+            enqueuedPatch.invalidated = true;
         }
     }
 
