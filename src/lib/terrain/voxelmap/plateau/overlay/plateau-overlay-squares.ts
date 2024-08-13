@@ -3,7 +3,6 @@ import type * as THREE from '../../../../three-usage';
 import { type GridCoord, PlateauOverlay } from './plateau-overlay';
 
 type Parameters = {
-    readonly color?: THREE.Color;
     readonly size: GridCoord;
     readonly margin?: number;
     readonly innerCornerRadius?: number;
