@@ -1,10 +1,10 @@
 import type * as THREE from '../../../../three-usage';
 
-import { PlateauOverlay } from './plateau-overlay';
+import { type GridCoord, PlateauOverlay } from './plateau-overlay';
 
 type Parameters = {
-    readonly size: THREE.Vector2Like;
     readonly color?: THREE.Color;
+    readonly size: GridCoord;
     readonly margin?: number;
     readonly innerCornerRadius?: number;
 };
@@ -54,11 +54,11 @@ void main(void) {
         });
     }
 
-    public enableCell(cellId: THREE.Vector2Like, color: THREE.Color): void {
+    public enableCell(cellId: GridCoord, color: THREE.Color): void {
         this.setTexel(cellId, [Math.floor(255 * color.r), Math.floor(255 * color.g), Math.floor(255 * color.b), 255]);
     }
 
-    public disableCell(cellId: THREE.Vector2Like): void {
+    public disableCell(cellId: GridCoord): void {
         this.setTexel(cellId, [0, 0, 0, 0]);
     }
 }
