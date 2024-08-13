@@ -17,6 +17,7 @@ export {
     Vector2,
     Vector3,
     type Frustum,
+    type IUniform,
     type Material,
     type Object3D,
     type TypedArray,
