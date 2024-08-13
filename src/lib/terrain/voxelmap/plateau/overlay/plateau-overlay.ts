@@ -16,13 +16,16 @@ abstract class PlateauOverlay {
     private readonly texture: THREE.DataTexture;
     private readonly textureData: Uint8Array;
 
+    private readonly mesh: THREE.Mesh;
+    private readonly material: THREE.Material;
+
     protected constructor(params: Parameters) {
         this.gridSize = params.size;
 
         this.textureData = new Uint8Array(4 * this.gridSize.x * this.gridSize.y);
         this.texture = new THREE.DataTexture(this.textureData, this.gridSize.x, this.gridSize.y);
 
-        const material = new THREE.ShaderMaterial({
+        this.material = new THREE.ShaderMaterial({
             glslVersion: '300 es',
             transparent: true,
             uniforms: { ...params.uniforms, uDataTexture: { value: this.texture } },
@@ -59,16 +62,21 @@ void main(void) {
         );
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', positionsAttribute);
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.frustumCulled = false;
+        this.mesh = new THREE.Mesh(geometry, this.material);
+        this.mesh.frustumCulled = false;
         this.container = new THREE.Group();
         this.container.name = `plateau-overlay ${params.name}`;
-        this.container.add(mesh);
+        this.container.add(this.mesh);
     }
 
     public clear(): void {
         this.textureData.fill(0);
         this.texture.needsUpdate = true;
+    }
+
+    public dispose(): void {
+        this.mesh.geometry.dispose();
+        this.material.dispose();
     }
 
     protected setTexel(position: THREE.Vector2Like, texelData: [number, number, number, number]): void {
