@@ -183,7 +183,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                     if (storedPatch.invalidated) {
                         if (storedPatch.renderable) {
                             if (storedPatch.isVisible) {
-                                this.container.remove(storedPatch.renderable.container);
+                                storedPatch.renderable.container.removeFromParent();
                             }
                             storedPatch.renderable.dispose();
                         }
@@ -245,7 +245,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         if (patch && patch.status === 'ready') {
             if (patch.renderable) {
                 if (patch.isVisible) {
-                    this.container.remove(patch.renderable.container);
+                    patch.renderable.container.removeFromParent();
                 }
                 patch.renderable.dispose();
             }
@@ -268,7 +268,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         for (const patch of Object.values(this.patchesStore)) {
             if (patch.isVisible) {
                 if (patch.status === 'ready' && patch.renderable) {
-                    this.container.remove(patch.renderable.container);
+                    patch.renderable.container.removeFromParent();
                 }
                 patch.isVisible = false;
                 patch.isInvisibleSince = performance.now();

@@ -34,9 +34,7 @@ class HeightmapNodeMesh {
 
         if (this.mesh) {
             this.mesh.geometry.dispose();
-            if (this.mesh.parent) {
-                this.mesh.parent.remove(this.mesh);
-            }
+            this.mesh.removeFromParent();
             this.mesh = null;
         }
         this.parent = null;

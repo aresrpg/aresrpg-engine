@@ -99,7 +99,7 @@ class VoxelsRenderable {
     public dispose(): void {
         if (this.gpuResources) {
             for (const patchMesh of this.gpuResources.patchMeshes) {
-                this.container.remove(patchMesh.mesh);
+                patchMesh.mesh.removeFromParent();
                 patchMesh.mesh.geometry.dispose();
                 patchMesh.materials.material.dispose();
                 patchMesh.materials.shadowMaterial.dispose();
