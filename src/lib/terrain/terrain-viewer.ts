@@ -98,8 +98,8 @@ class TerrainViewer {
                 this.heightmapViewer.setHiddenPatches(completeChunksColumns);
                 this.heightmapViewerNeedsUpdate = false;
             }
-        } else if (heightmapContainer.parent) {
-            this.container.remove(heightmapContainer);
+        } else {
+            heightmapContainer.removeFromParent();
         }
     }
 }
