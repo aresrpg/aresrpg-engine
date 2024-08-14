@@ -42,6 +42,11 @@ class PathFinder {
         if (this.origin && this.origin.x === coords.x && this.origin.z === coords.z) {
             return;
         }
+
+        if (!this.getCell(coords).walkable) {
+            return;
+        }
+
         this.origin = coords;
 
         for (const cell of this.grid.cells) {
@@ -58,7 +63,7 @@ class PathFinder {
             for (cellCoords.z = 0; cellCoords.z < this.grid.size.z; cellCoords.z++) {
                 for (cellCoords.x = 0; cellCoords.x < this.grid.size.x; cellCoords.x++) {
                     const cell = this.getCell(cellCoords);
-                    if (cell.distance < 0) {
+                    if (cell.walkable && cell.distance < 0) {
                         // cell has not been reached yet
                         for (const delta of [{ x: -1, z: 0 }, { x: +1, z: 0 }, { x: 0, z: -1 }, { x: 0, z: 1 }]) {
                             const neighbourCoords = { x: cellCoords.x + delta.x, z: cellCoords.z + delta.z };
