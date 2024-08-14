@@ -144,7 +144,8 @@ class TestTerrain extends TestBase {
             lastPlateauRequestId++;
             const requestId = lastPlateauRequestId;
 
-            const plateau = await computePlateau(voxelMap, origin);
+            const plateauRadius = 31;
+            const plateau = await computePlateau(voxelMap, origin, plateauRadius);
             const renderable = await factory.buildPlateauRenderable(plateau);
             const handler = new PlateauHandler({ plateau });
 

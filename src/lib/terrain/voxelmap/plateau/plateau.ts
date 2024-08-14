@@ -29,7 +29,7 @@ type PlateauSquareExtended = PlateauSquare & {
 
 let plateauxCount = 0;
 
-async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): Promise<Plateau> {
+async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like, radius: number): Promise<Plateau> {
     originWorld = {
         x: Math.floor(originWorld.x),
         y: Math.floor(originWorld.y),
@@ -38,7 +38,7 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
 
     let currentGeneration = 0;
     const maxDeltaY = 4;
-    const plateauHalfSize = 31;
+    const plateauHalfSize = radius;
     const plateauSize = { x: 2 * plateauHalfSize + 1, z: 2 * plateauHalfSize + 1 };
     const plateauSquares: PlateauSquareExtended[] = [];
     for (let iZ = 0; iZ < plateauSize.z; iZ++) {
