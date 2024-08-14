@@ -1,6 +1,6 @@
 import * as THREE from '../../../../three-usage';
 
-type GridCoord = { readonly x: number, readonly z: number };
+type GridCoord = { readonly x: number; readonly z: number };
 
 type Parameters = {
     readonly name: string;
@@ -92,4 +92,3 @@ void main(void) {
 }
 
 export { PlateauOverlay, type GridCoord };
-

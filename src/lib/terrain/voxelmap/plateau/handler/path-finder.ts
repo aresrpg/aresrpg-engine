@@ -1,5 +1,5 @@
-import { type GridCoord } from "../overlay/plateau-overlay";
-import * as THREE from "../../../../three-usage";
+import * as THREE from '../../../../three-usage';
+import { type GridCoord } from '../overlay/plateau-overlay';
 
 type InputGrid = {
     readonly size: GridCoord;
@@ -15,7 +15,7 @@ type GridCell = {
     distance: number;
     readonly x: number;
     readonly z: number;
-}
+};
 
 type Grid = {
     readonly size: GridCoord;
@@ -80,13 +80,13 @@ class PathFinder {
         }
 
         if (keepSearching) {
-            throw new Error("Distance is too big to compute.");
+            throw new Error('Distance is too big to compute.');
         }
     }
 
     public getReachableCells(maxDistance: number = Number.MAX_SAFE_INTEGER): GridCell[] {
         if (!this.origin) {
-            throw new Error("Must specify an origin before asking for a path.");
+            throw new Error('Must specify an origin before asking for a path.');
         }
 
         const reachableCells: GridCell[] = this.grid.cells.filter(cell => cell.distance >= 0 && cell.distance <= maxDistance);
@@ -95,7 +95,7 @@ class PathFinder {
 
     public findPathTo(coords: GridCoord): GridCoord[] | null {
         if (!this.origin) {
-            throw new Error("Must specify an origin before asking for a path.");
+            throw new Error('Must specify an origin before asking for a path.');
         }
 
         const targetCell = this.getCell(coords);
@@ -148,11 +148,9 @@ class PathFinder {
     private tryGetCell(coords: GridCoord): GridCell | null {
         try {
             return this.getCell(coords);
-        } catch {
-        }
+        } catch {}
         return null;
     }
-}
 
     private getNeighbouringCells(coords: GridCoord): GridCell[] {
         const result: GridCell[] = [];
