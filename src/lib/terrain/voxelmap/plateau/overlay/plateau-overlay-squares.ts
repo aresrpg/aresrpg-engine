@@ -1,4 +1,4 @@
-import type * as THREE from '../../../../three-usage';
+import * as THREE from '../../../../three-usage';
 
 import { type GridCoord, PlateauOverlay } from './plateau-overlay';
 
@@ -6,12 +6,20 @@ type Parameters = {
     readonly size: GridCoord;
     readonly margin?: number;
     readonly innerCornerRadius?: number;
+    readonly background?: {
+        readonly color: THREE.Color;
+        readonly alpha: number;
+    };
 };
 
 class PlateauOverlaySquares extends PlateauOverlay {
+    private readonly backgroundColorUniform: THREE.IUniform<THREE.Vector4>;
+
     public constructor(params: Parameters) {
         const marginUniform = { value: params.margin ?? 0.05 };
         const innerCornerRadiusUniform = { value: params.innerCornerRadius ?? 0.2 };
+
+        const backgroundColorUniform = { value: new THREE.Vector4() };
 
         super({
             name: 'blob',
@@ -19,10 +27,12 @@ class PlateauOverlaySquares extends PlateauOverlay {
             uniforms: {
                 uMargin: marginUniform,
                 uInnerCornerRadius: innerCornerRadiusUniform,
+                uBackgroundColor: backgroundColorUniform,
             },
             fragmentShader: `uniform sampler2D uDataTexture;
 uniform float uMargin;
 uniform float uInnerCornerRadius;
+uniform vec4 uBackgroundColor;
 
 in vec2 vGridCell;
 out vec4 fragColor;
@@ -46,11 +56,21 @@ void main(void) {
     float alpha = step(dist, r2 - r1);
 
     if (alpha == 0.0) {
-        discard;
+        fragColor = uBackgroundColor;
+    } else {
+        fragColor = vec4(data.rgb, alpha);
     }
-    fragColor = vec4(data.rgb, alpha);
 }`,
         });
+
+        this.backgroundColorUniform = backgroundColorUniform;
+
+        const background = params.background ?? { color: new THREE.Color(0xaaaaaa), alpha: 0.7 };
+        this.setBackground(background.color, background.alpha);
+    }
+
+    public setBackground(color: THREE.Color, alpha: number): void {
+        this.backgroundColorUniform.value = new THREE.Vector4(color.r, color.g, color.b, alpha);
     }
 
     public enableCell(cellId: GridCoord, color: THREE.Color): void {

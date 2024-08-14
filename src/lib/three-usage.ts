@@ -16,6 +16,7 @@ export {
     Uint32BufferAttribute,
     Vector2,
     Vector3,
+    Vector4,
     type Frustum,
     type IUniform,
     type Material,

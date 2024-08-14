@@ -39,7 +39,13 @@ class PlateauHandler {
 
         this.container.position.set(this.plateau.origin.x, this.plateau.origin.y, this.plateau.origin.z);
 
-        this.overlayMoves = new PlateauOverlaySquares({ size: this.plateau.size });
+        this.overlayMoves = new PlateauOverlaySquares({
+            size: this.plateau.size,
+            background: {
+                color: this.colors.cellReachable,
+                alpha: 0.4,
+            },
+        });
         this.overlayMoves.container.position.y = 2 * PlateauHandler.yShift;
         this.container.add(this.overlayMoves.container);
 
