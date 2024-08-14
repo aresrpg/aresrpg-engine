@@ -173,13 +173,14 @@ class TestTerrain extends TestBase {
                     cells: plateau.squares.map(square => square.type === EPlateauSquareType.FLAT),
                 },
             });
-            handler.clearPaths();
+
+            handler.clearSquares();
             pathFinder.setOrigin({ x: 30, z: 30 });
             const reachableCells = pathFinder.getReachableCells(11);
-            handler.displayReachableCells(reachableCells);
+            handler.displaySquares(reachableCells, new THREE.Color(0x88dd88), 0.4);
             const path = pathFinder.findPathTo({ x: 31, z: 35 });
             if (path) {
-                handler.displayPath(path);
+                handler.displaySquares(path, new THREE.Color(0x88dd88), 1);
             }
         };
 
