@@ -10,6 +10,7 @@ export {
     type IVoxelMaterial,
     type VoxelsChunkSize,
 } from './terrain/voxelmap/i-voxelmap';
+export { LineOfSight } from './terrain/voxelmap/plateau/handler/line-of-sight';
 export { PathFinder } from './terrain/voxelmap/plateau/handler/path-finder';
 export { PlateauHandler } from './terrain/voxelmap/plateau/handler/plateau-handler';
 export { PlateauOverlayBlob } from './terrain/voxelmap/plateau/overlay/plateau-overlay-blob';
