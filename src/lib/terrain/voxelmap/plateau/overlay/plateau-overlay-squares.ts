@@ -41,8 +41,8 @@ void main(void) {
     ivec2 gridCellId = ivec2(floor(vGridCell));
     vec2 uv = fract(vGridCell);
 
-    vec4 data = texelFetch(uDataTexture, gridCellId, 0);
-    if (data.a == 0.0) {
+    vec4 cellColor = texelFetch(uDataTexture, gridCellId, 0);
+    if (cellColor.a == 0.0) {
         discard;
     }
 
@@ -53,19 +53,14 @@ void main(void) {
     vec2 dCenter = max(vec2(0), abs(uv - 0.5) - r1);
     float dist = length(dCenter);
 
-    float alpha = step(dist, r2 - r1);
-
-    if (alpha == 0.0) {
-        fragColor = uBackgroundColor;
-    } else {
-        fragColor = vec4(data.rgb, alpha);
-    }
+    float isInSquare = step(dist, r2 - r1);
+    fragColor = mix(uBackgroundColor, cellColor, isInSquare);
 }`,
         });
 
         this.backgroundColorUniform = backgroundColorUniform;
 
-        const background = params.background ?? { color: new THREE.Color(0xaaaaaa), alpha: 0.7 };
+        const background = params.background ?? { color: new THREE.Color(0xaaaaaa), alpha: 0 };
         this.setBackground(background.color, background.alpha);
     }
 
@@ -73,8 +68,8 @@ void main(void) {
         this.backgroundColorUniform.value = new THREE.Vector4(color.r, color.g, color.b, alpha);
     }
 
-    public enableCell(cellId: GridCoord, color: THREE.Color): void {
-        this.setTexel(cellId, [Math.floor(255 * color.r), Math.floor(255 * color.g), Math.floor(255 * color.b), 255]);
+    public enableCell(cellId: GridCoord, color: THREE.Color, alpha: number = 1): void {
+        this.setTexel(cellId, [Math.floor(255 * color.r), Math.floor(255 * color.g), Math.floor(255 * color.b), Math.floor(255 * alpha)]);
     }
 
     public disableCell(cellId: GridCoord): void {
