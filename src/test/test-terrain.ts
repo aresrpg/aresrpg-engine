@@ -6,6 +6,7 @@ import {
     EComputationMethod,
     EPlateauSquareType,
     HeightmapViewer,
+    LineOfSight,
     PathFinder,
     PlateauHandler,
     PlateauRenderableFactory,
@@ -51,6 +52,7 @@ class TestTerrain extends TestBase {
             },
             checkerboardType: 'xz',
         });
+        this.voxelmapViewer.parameters.faces.checkerboardContrast = 0.01;
 
         const heightmapViewer = new HeightmapViewer(map, {
             basePatchSize: chunkSize.xz,
@@ -59,7 +61,7 @@ class TestTerrain extends TestBase {
         });
 
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
-        // this.terrainViewer.parameters.lod.enabled = false;
+        this.terrainViewer.parameters.lod.enabled = false;
         // this.terrainViewer.parameters.lod.wireframe = true;
         this.scene.add(this.terrainViewer.container);
 
@@ -131,6 +133,9 @@ class TestTerrain extends TestBase {
             voxelMaterialsList: voxelMap.voxelMaterialsList,
         });
 
+        const testLineOfSight = false;
+        const testPathFinding = true;
+
         const plateauContainer = new THREE.Group();
         this.scene.add(plateauContainer);
         let currentPlateau: {
@@ -168,20 +173,37 @@ class TestTerrain extends TestBase {
             this.map.registerPlateau(currentPlateau.plateau);
             this.scene.add(handler.container);
 
-            const pathFinder = new PathFinder({
-                grid: {
-                    size: plateau.size,
-                    cells: plateau.squares.map(square => square.type === EPlateauSquareType.FLAT),
-                },
-            });
-
             handler.clearSquares();
-            pathFinder.setOrigin({ x: 30, z: 30 });
-            const reachableCells = pathFinder.getReachableCells(11);
-            handler.displaySquares(reachableCells, new THREE.Color(0x88dd88), 0.4);
-            const path = pathFinder.findPathTo({ x: 31, z: 35 });
-            if (path) {
-                handler.displaySquares(path, new THREE.Color(0x88dd88), 1);
+
+            if (testLineOfSight) {
+                const lineOfSight = new LineOfSight({
+                    grid: {
+                        size: plateau.size,
+                        cells: plateau.squares.map(square => square.type === EPlateauSquareType.OBSTACLE),
+                    },
+                });
+                const gridVisibility = lineOfSight.computeCellsVisibility({ x: plateauRadius, z: plateauRadius }, 10);
+                const cellsVisibilities = gridVisibility.cells.filter(cell => {
+                    return plateau.squares[cell.x + cell.z * plateau.size.x]!.type === EPlateauSquareType.FLAT;
+                });
+                const visibleSquares = cellsVisibilities.filter(cell => cell.visibility === 'visible');
+                const obstructedSquares = cellsVisibilities.filter(cell => cell.visibility === 'hidden');
+                handler.displaySquares(visibleSquares, new THREE.Color(0x00ff00));
+                handler.displaySquares(obstructedSquares, new THREE.Color(0xff0000));
+            } else if (testPathFinding) {
+                const pathFinder = new PathFinder({
+                    grid: {
+                        size: plateau.size,
+                        cells: plateau.squares.map(square => square.type === EPlateauSquareType.FLAT),
+                    },
+                });
+                pathFinder.setOrigin({ x: plateauRadius, z: plateauRadius });
+                const reachableCells = pathFinder.getReachableCells(11);
+                handler.displaySquares(reachableCells, new THREE.Color(0x88dd88), 0.4);
+                const path = pathFinder.findPathTo({ x: 31, z: 35 });
+                if (path) {
+                    handler.displaySquares(path, new THREE.Color(0x88dd88), 1);
+                }
             }
         };
 
