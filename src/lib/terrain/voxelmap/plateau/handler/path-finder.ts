@@ -65,10 +65,8 @@ class PathFinder {
                     const cell = this.getCell(cellCoords);
                     if (cell.walkable && cell.distance < 0) {
                         // cell has not been reached yet
-                        for (const delta of [{ x: -1, z: 0 }, { x: +1, z: 0 }, { x: 0, z: -1 }, { x: 0, z: 1 }]) {
-                            const neighbourCoords = { x: cellCoords.x + delta.x, z: cellCoords.z + delta.z };
-                            const neighbour = this.tryGetCell(neighbourCoords);
-                            if (neighbour && neighbour.distance === distance - 1) {
+                        for (const neighbour of this.getNeighbouringCells(cellCoords)) {
+                            if (neighbour.distance === distance - 1) {
                                 cell.distance = distance;
                                 foundNewPath = true;
                                 break;
@@ -111,11 +109,12 @@ class PathFinder {
         let lastCell = targetCell;
         const reversePath: GridCell[] = [lastCell];
         while (lastCell.distance > 0) {
-            const potentialPreviousSteps: { cell: GridCell, alignment: number }[] = [];
-            for (const delta of [{ x: -1, z: 0 }, { x: +1, z: 0 }, { x: 0, z: -1 }, { x: 0, z: 1 }]) {
-                const neighbour = this.tryGetCell({ x: lastCell.x + delta.x, z: lastCell.z + delta.z });
-                if (neighbour && neighbour.distance === lastCell.distance - 1) {
-                    const neighbourToOrigin = new THREE.Vector2(neighbour.x, neighbour.z).sub({ x: this.origin.x, y: this.origin.z }).normalize();
+            const potentialPreviousSteps: { cell: GridCell; alignment: number }[] = [];
+            for (const neighbour of this.getNeighbouringCells(lastCell)) {
+                if (neighbour.distance === lastCell.distance - 1) {
+                    const neighbourToOrigin = new THREE.Vector2(neighbour.x, neighbour.z)
+                        .sub({ x: this.origin.x, y: this.origin.z })
+                        .normalize();
                     const alignment = targetToOrigin.dot(neighbourToOrigin);
                     potentialPreviousSteps.push({ cell: neighbour, alignment });
                 }
@@ -155,7 +154,21 @@ class PathFinder {
     }
 }
 
-export {
-    PathFinder
-};
+    private getNeighbouringCells(coords: GridCoord): GridCell[] {
+        const result: GridCell[] = [];
+        for (const delta of [
+            { x: -1, z: 0 },
+            { x: +1, z: 0 },
+            { x: 0, z: -1 },
+            { x: 0, z: 1 },
+        ]) {
+            const neighbour = this.tryGetCell({ x: coords.x + delta.x, z: coords.z + delta.z });
+            if (neighbour) {
+                result.push(neighbour);
+            }
+        }
+        return result;
+    }
+}
 
+export { PathFinder };
