@@ -2,9 +2,10 @@ import * as THREE from '../../../three-usage';
 import { voxelmapDataPacking, type IVoxelMap } from '../i-voxelmap';
 
 enum EPlateauSquareType {
-    FLAT = 0,
-    HOLE = 1,
-    OBSTACLE = 2,
+    OUT_OF_BOUNDS = 0,
+    FLAT = 1,
+    HOLE = 2,
+    OBSTACLE = 3,
 }
 
 type PlateauSquare = {
@@ -43,7 +44,7 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
     for (let iZ = 0; iZ < plateauSize.z; iZ++) {
         for (let iX = 0; iX < plateauSize.x; iX++) {
             plateauSquares.push({
-                type: EPlateauSquareType.HOLE,
+                type: EPlateauSquareType.OUT_OF_BOUNDS,
                 materialId: 0,
                 floorY: NaN,
                 generation: currentGeneration,
@@ -132,7 +133,7 @@ async function computePlateau(map: IVoxelMap, originWorld: THREE.Vector3Like): P
 
     const computePlateauSquare = (relativePos: ColumnId): PlateauSquareExtended | null => {
         const square = getPlateauSquare(relativePos);
-        if (square.type !== EPlateauSquareType.HOLE) {
+        if (square.type !== EPlateauSquareType.OUT_OF_BOUNDS) {
             // this square has been computed already
             return null;
         }

@@ -11,7 +11,7 @@ type ColumnId = { readonly x: number; readonly z: number };
 type HiddenColumn = {
     readonly id: ColumnId;
     readonly plateauY: number;
-    readonly plateauSquareType: EPlateauSquareType.FLAT | EPlateauSquareType.OBSTACLE;
+    readonly plateauSquareType: EPlateauSquareType.FLAT | EPlateauSquareType.OBSTACLE | EPlateauSquareType.HOLE;
     readonly materialId: number;
 };
 type PlateauAndPatchesIds = {
@@ -80,16 +80,25 @@ class VoxelmapWrapper implements IVoxelMap {
                             const localY = columnWorld.y - blockStart.y;
                             const index = localX + localY * blockSize.x + localZ * blockSize.x * blockSize.y;
 
-                            if (this.includePlateau) {
-                                const deltaYPlateau = columnWorld.y - hiddenColumn.plateauY;
-                                const maxDeltaYPlateau = hiddenColumn.plateauSquareType === EPlateauSquareType.OBSTACLE ? 1 : 0;
-                                if (deltaYPlateau <= maxDeltaYPlateau) {
-                                    localMapData.data[index]! = voxelmapDataPacking.encode(true, hiddenColumn.materialId);
-                                } else {
-                                    localMapData.data[index]! = voxelmapDataPacking.encodeEmpty();
-                                }
+                            const deltaYPlateau = columnWorld.y - hiddenColumn.plateauY;
+                            let plateauY: number;
+                            if (hiddenColumn.plateauSquareType === EPlateauSquareType.HOLE) {
+                                plateauY = 0;
+                            } else if (hiddenColumn.plateauSquareType === EPlateauSquareType.FLAT) {
+                                plateauY = 0;
                             } else {
+                                plateauY = 1;
+                            }
+                            if (deltaYPlateau >= plateauY) {
                                 localMapData.data[index]! = voxelmapDataPacking.encodeEmpty();
+                            }
+
+                            if (this.includePlateau) {
+                                if (hiddenColumn.plateauSquareType !== EPlateauSquareType.HOLE) {
+                                    if (deltaYPlateau === plateauY) {
+                                        localMapData.data[index]! = voxelmapDataPacking.encode(true, hiddenColumn.materialId);
+                                    }
+                                }
                             }
                         }
                     }
@@ -117,7 +126,7 @@ class VoxelmapWrapper implements IVoxelMap {
 
                 const index = columnLocal.x + columnLocal.z * plateau.size.x;
                 const square = plateau.squares[index]!;
-                if (square.type !== EPlateauSquareType.HOLE) {
+                if (square.type !== EPlateauSquareType.OUT_OF_BOUNDS) {
                     hiddenColumnsList.push({
                         id: columnWorld,
                         plateauY: plateau.origin.y - 1,
