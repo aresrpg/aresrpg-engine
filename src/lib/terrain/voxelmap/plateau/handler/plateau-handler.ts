@@ -9,7 +9,6 @@ type Parameters = {
 };
 class PlateauHandler {
     private static readonly yShift = 0.001;
-    private readonly maxBlobs = 10;
 
     public readonly container: THREE.Object3D;
 
