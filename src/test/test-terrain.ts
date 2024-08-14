@@ -4,7 +4,10 @@ import { TransformControls } from 'three/examples/jsm/controls/TransformControls
 import {
     computePlateau,
     EComputationMethod,
+    EPlateauSquareType,
     HeightmapViewer,
+    PathFinder,
+    PlateauHandler,
     PlateauRenderableFactory,
     PromisesQueue,
     TerrainViewer,
@@ -133,6 +136,7 @@ class TestTerrain extends TestBase {
         let currentPlateau: {
             plateau: Plateau;
             renderable: PlateauRenderable;
+            handler: PlateauHandler;
         } | null = null;
 
         let lastPlateauRequestId = -1;
@@ -142,6 +146,7 @@ class TestTerrain extends TestBase {
 
             const plateau = await computePlateau(voxelMap, origin);
             const renderable = await factory.buildPlateauRenderable(plateau);
+            const handler = new PlateauHandler({ plateau });
 
             if (lastPlateauRequestId !== requestId) {
                 return; // another request was launched in the meantime
@@ -151,13 +156,31 @@ class TestTerrain extends TestBase {
             if (currentPlateau) {
                 currentPlateau.renderable.dispose();
                 this.map.unregisterPlateau(currentPlateau.plateau);
+                currentPlateau.handler.container.removeFromParent();
+                currentPlateau.handler.dispose();
             }
-            currentPlateau = { renderable, plateau };
+            currentPlateau = { renderable, plateau, handler };
 
             if (!this.map.includePlateau) {
                 plateauContainer.add(currentPlateau.renderable.container);
             }
             this.map.registerPlateau(currentPlateau.plateau);
+            this.scene.add(handler.container);
+
+            const pathFinder = new PathFinder({
+                grid: {
+                    size: plateau.size,
+                    cells: plateau.squares.map(square => square.type === EPlateauSquareType.FLAT),
+                },
+            });
+            handler.clearPaths();
+            pathFinder.setOrigin({ x: 30, z: 30 });
+            const reachableCells = pathFinder.getReachableCells(11);
+            handler.displayReachableCells(reachableCells);
+            const path = pathFinder.findPathTo({ x: 31, z: 35 });
+            if (path) {
+                handler.displayPath(path);
+            }
         };
 
         const plateauCenterContainer = new THREE.Group();

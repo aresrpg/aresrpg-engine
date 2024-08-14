@@ -10,6 +10,10 @@ export {
     type IVoxelMaterial,
     type VoxelsChunkSize,
 } from './terrain/voxelmap/i-voxelmap';
+export { PathFinder } from './terrain/voxelmap/plateau/handler/path-finder';
+export { PlateauHandler } from './terrain/voxelmap/plateau/handler/plateau-handler';
+export { PlateauOverlayBlob } from './terrain/voxelmap/plateau/overlay/plateau-overlay-blob';
+export { PlateauOverlaySquares } from './terrain/voxelmap/plateau/overlay/plateau-overlay-squares';
 export { EPlateauSquareType, computePlateau, type Plateau, type PlateauSquare } from './terrain/voxelmap/plateau/plateau';
 export { PlateauRenderableFactory, type PlateauRenderable } from './terrain/voxelmap/plateau/plateau-renderable-factory';
 export { VoxelmapWrapper } from './terrain/voxelmap/plateau/voxelmap-wrapper';
