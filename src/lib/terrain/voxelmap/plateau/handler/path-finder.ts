@@ -1,6 +1,3 @@
-import * as THREE from '../../../../three-usage';
-import { type GridCoord } from '../overlay/plateau-overlay';
-
 type InputGrid = {
     readonly size: GridCoord;
     readonly cells: ReadonlyArray<boolean>;
@@ -8,6 +5,11 @@ type InputGrid = {
 
 type Parameters = {
     readonly grid: InputGrid;
+};
+
+type GridCoord = {
+    readonly x: number;
+    readonly z: number;
 };
 
 type GridCell = {
@@ -21,6 +23,27 @@ type Grid = {
     readonly size: GridCoord;
     readonly cells: ReadonlyArray<GridCell>;
 };
+
+type Vec2 = {
+    x: number;
+    z: number;
+};
+function normalizeVec2(v: Vec2): Vec2 {
+    const length = Math.sqrt(v.x * v.x + v.z * v.z);
+    if (length === 0) {
+        v.x = 0;
+        v.z = 0;
+    }
+    v.x /= length;
+    v.z /= length;
+    return v;
+}
+function substractVec2(v1: Vec2, v2: Vec2): Vec2 {
+    return { x: v1.x - v2.x, z: v1.z - v2.z };
+}
+function dotVec2(v1: Vec2, v2: Vec2): number {
+    return v1.x * v2.x + v1.z * v2.z;
+}
 
 class PathFinder {
     private readonly grid: Grid;
@@ -104,18 +127,19 @@ class PathFinder {
             return null;
         }
 
-        const targetToOrigin = new THREE.Vector2(coords.x, coords.z).sub({ x: this.origin.x, y: this.origin.z }).normalize();
+        const targetToOrigin = normalizeVec2(substractVec2(coords, this.origin));
 
         let lastCell = targetCell;
         const reversePath: GridCell[] = [lastCell];
         while (lastCell.distance > 0) {
-            const potentialPreviousSteps: { cell: GridCell; alignment: number }[] = [];
+            const potentialPreviousSteps: {
+                cell: GridCell;
+                alignment: number;
+            }[] = [];
             for (const neighbour of this.getNeighbouringCells(lastCell)) {
                 if (neighbour.distance === lastCell.distance - 1) {
-                    const neighbourToOrigin = new THREE.Vector2(neighbour.x, neighbour.z)
-                        .sub({ x: this.origin.x, y: this.origin.z })
-                        .normalize();
-                    const alignment = targetToOrigin.dot(neighbourToOrigin);
+                    const neighbourToOrigin = normalizeVec2(substractVec2(neighbour, this.origin));
+                    const alignment = dotVec2(targetToOrigin, neighbourToOrigin);
                     potentialPreviousSteps.push({ cell: neighbour, alignment });
                 }
             }
