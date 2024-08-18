@@ -198,8 +198,8 @@ class TestTerrain extends TestBase {
                     },
                 });
                 pathFinder.setOrigin({ x: plateauRadius, z: plateauRadius });
-                const reachableCells = pathFinder.getReachableCells(11);
-                handler.displaySquares(reachableCells, new THREE.Color(0x88dd88), 0.4);
+                const reachableCells = pathFinder.getReachableCells(10);
+                handler.displayBlob(reachableCells, new THREE.Color(0x88dd88), 0.5);
                 const path = pathFinder.findPathTo({ x: 31, z: 35 });
                 if (path) {
                     handler.displaySquares(path, new THREE.Color(0x88dd88), 1);

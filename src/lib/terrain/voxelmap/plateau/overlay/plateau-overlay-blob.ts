@@ -12,12 +12,14 @@ type Parameters = {
 
 class PlateauOverlayBlob extends PlateauOverlay {
     private readonly colorUniform: THREE.IUniform<THREE.Color>;
+    private readonly alphaUniform: THREE.IUniform<number>;
 
     public constructor(params: Parameters) {
         const marginUniform = { value: params.margin ?? 0.05 };
-        const borderThicknessUniform = { value: params.borderThickness ?? 0.03 };
+        const borderThicknessUniform = { value: params.borderThickness ?? 0.05 };
         const innerCornerRadiusUniform = { value: params.innerCornerRadius ?? 0.2 };
         const colorUniform = { value: params.color ?? new THREE.Color(0xffffff) };
+        const alphaUniform = { value: 0.7 };
 
         super({
             name: 'blob',
@@ -27,6 +29,7 @@ class PlateauOverlayBlob extends PlateauOverlay {
                 uBorderThickness: borderThicknessUniform,
                 uInnerCornerRadius: innerCornerRadiusUniform,
                 uColor: colorUniform,
+                uAlpha: alphaUniform,
             },
             fragmentShader: `
 uniform sampler2D uDataTexture;
@@ -34,6 +37,7 @@ uniform float uMargin;
 uniform float uBorderThickness;
 uniform float uInnerCornerRadius;
 uniform vec3 uColor;
+uniform float uAlpha;
 
 in vec2 vGridCell;
 out vec4 fragColor;
@@ -82,8 +86,8 @@ void main(void) {
     float r2 = 0.5 - uMargin;
     float r1 = r2 - border - uInnerCornerRadius;
 
-    const float alphaCenter = 0.7;
-    const float alphaBorder = 0.9;
+    float alphaCenter = uAlpha;
+    const float alphaBorder = 1.0;
 
     float alpha = 0.0;
     if (cell_1) {
@@ -116,6 +120,7 @@ void main(void) {
         });
 
         this.colorUniform = colorUniform;
+        this.alphaUniform = alphaUniform;
     }
 
     public get color(): THREE.Color {
@@ -124,6 +129,14 @@ void main(void) {
 
     public set color(value: THREE.Color) {
         this.colorUniform.value = value;
+    }
+
+    public get alpha(): number {
+        return this.alphaUniform.value;
+    }
+
+    public set alpha(value: number) {
+        this.alphaUniform.value = value;
     }
 
     public enableCell(cellId: GridCoord): void {

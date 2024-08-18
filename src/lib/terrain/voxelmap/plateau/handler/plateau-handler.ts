@@ -15,7 +15,7 @@ class PlateauHandler {
     private readonly plateau: Plateau;
 
     private readonly overlaySquares: PlateauOverlaySquares;
-    private readonly overlaySpells: PlateauOverlayBlob;
+    private readonly overlayBlob: PlateauOverlayBlob;
 
     public constructor(params: Parameters) {
         this.plateau = params.plateau;
@@ -31,9 +31,9 @@ class PlateauHandler {
         this.overlaySquares.container.position.y = 2 * PlateauHandler.yShift;
         this.container.add(this.overlaySquares.container);
 
-        this.overlaySpells = new PlateauOverlayBlob({ size: this.plateau.size });
-        this.overlaySpells.container.position.y = 1 * PlateauHandler.yShift;
-        this.container.add(this.overlaySpells.container);
+        this.overlayBlob = new PlateauOverlayBlob({ size: this.plateau.size });
+        this.overlayBlob.container.position.y = 1 * PlateauHandler.yShift;
+        this.container.add(this.overlayBlob.container);
     }
 
     public clearSquares(): void {
@@ -46,8 +46,21 @@ class PlateauHandler {
         }
     }
 
+    public clearBlob(): void {
+        this.overlayBlob.clear();
+    }
+
+    public displayBlob(coords: GridCoord[], color: THREE.Color, alpha: number): void {
+        this.overlayBlob.color = color;
+        this.overlayBlob.alpha = alpha;
+
+        for (const cell of coords) {
+            this.overlayBlob.enableCell(cell);
+        }
+    }
+
     public dispose(): void {
-        this.overlaySpells.dispose();
+        this.overlayBlob.dispose();
     }
 }
 
