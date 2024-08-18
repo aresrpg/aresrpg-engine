@@ -1,3 +1,8 @@
+type GridCoord = {
+    readonly x: number;
+    readonly z: number;
+};
+
 type InputGrid = {
     readonly size: GridCoord;
     readonly cells: ReadonlyArray<boolean>;
@@ -5,11 +10,6 @@ type InputGrid = {
 
 type Parameters = {
     readonly grid: InputGrid;
-};
-
-type GridCoord = {
-    readonly x: number;
-    readonly z: number;
 };
 
 type GridCell = {
