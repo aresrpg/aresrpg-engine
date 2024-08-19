@@ -11,15 +11,13 @@ type Parameters = {
 };
 
 class PlateauOverlayBlob extends PlateauOverlay {
-    private readonly colorUniform: THREE.IUniform<THREE.Color>;
-    private readonly alphaUniform: THREE.IUniform<number>;
+    private readonly colorUniform: THREE.IUniform<THREE.Vector4>;
 
     public constructor(params: Parameters) {
         const marginUniform = { value: params.margin ?? 0.05 };
         const borderThicknessUniform = { value: params.borderThickness ?? 0.05 };
         const innerCornerRadiusUniform = { value: params.innerCornerRadius ?? 0.2 };
-        const colorUniform = { value: params.color ?? new THREE.Color(0xffffff) };
-        const alphaUniform = { value: 0.7 };
+        const colorUniform = { value: params.color ? new THREE.Vector4(params.color.r, params.color.g, params.color.b, 0.7) : new THREE.Vector4(1, 1, 1, 0.7)};
 
         super({
             name: 'blob',
@@ -29,15 +27,13 @@ class PlateauOverlayBlob extends PlateauOverlay {
                 uBorderThickness: borderThicknessUniform,
                 uInnerCornerRadius: innerCornerRadiusUniform,
                 uColor: colorUniform,
-                uAlpha: alphaUniform,
             },
             fragmentShader: `
 uniform sampler2D uDataTexture;
 uniform float uMargin;
 uniform float uBorderThickness;
 uniform float uInnerCornerRadius;
-uniform vec3 uColor;
-uniform float uAlpha;
+uniform vec4 uColor;
 
 in vec2 vGridCell;
 out vec4 fragColor;
@@ -86,7 +82,7 @@ void main(void) {
     float r2 = 0.5 - uMargin;
     float r1 = r2 - border - uInnerCornerRadius;
 
-    float alphaCenter = uAlpha;
+    float alphaCenter = uColor.a;
     const float alphaBorder = 1.0;
 
     float alpha = 0.0;
@@ -115,28 +111,29 @@ void main(void) {
     if (alpha == 0.0) {
         discard;
     }
-    fragColor = vec4(uColor, alpha);
+    fragColor = vec4(uColor.rgb, alpha);
 }`,
         });
 
         this.colorUniform = colorUniform;
-        this.alphaUniform = alphaUniform;
     }
 
     public get color(): THREE.Color {
-        return this.colorUniform.value;
+        return new THREE.Color(this.colorUniform.value.x, this.colorUniform.value.y, this.colorUniform.value.z);
     }
 
     public set color(value: THREE.Color) {
-        this.colorUniform.value = value;
+        this.colorUniform.value.x = value.r;
+        this.colorUniform.value.y = value.g;
+        this.colorUniform.value.z = value.b;
     }
 
     public get alpha(): number {
-        return this.alphaUniform.value;
+        return this.colorUniform.value.w;
     }
 
     public set alpha(value: number) {
-        this.alphaUniform.value = value;
+        this.colorUniform.value.w = value;
     }
 
     public enableCell(cellId: GridCoord): void {
