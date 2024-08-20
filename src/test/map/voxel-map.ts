@@ -52,7 +52,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
     private readonly tree = new Tree();
     private readonly treesDensityNoise: NoiseFunction2D;
     private readonly treesDensityFrequency = 0.002;
-    private readonly treesRepartition = new TreeRepartition(150, 2 * this.tree.radiusXZ);
+    private readonly treesRepartition = new TreeRepartition("seed_trees", 150, 2 * this.tree.radiusXZ);
     private readonly treesTexture: TreesTexture;
 
     private readonly colorVariationNoise: NoiseFunction2D;
