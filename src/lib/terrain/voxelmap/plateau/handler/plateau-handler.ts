@@ -46,16 +46,20 @@ class PlateauHandler {
         }
     }
 
-    public clearBlob(): void {
-        this.overlayBlob.clear();
+    public clearAllBlobs(): void {
+        this.overlayBlob.clearAll();
     }
 
-    public displayBlob(coords: GridCoord[], color: THREE.Color, alpha: number): void {
-        this.overlayBlob.color = color;
-        this.overlayBlob.alpha = alpha;
+    public clearBlob(blobId: number): void {
+        this.overlayBlob.clear(blobId);
+    }
+
+    public displayBlob(blobId: number, coords: GridCoord[], color: THREE.Color, alpha: number): void {
+        this.overlayBlob.setColor(blobId, color);
+        this.overlayBlob.setAlpha(blobId, alpha);
 
         for (const cell of coords) {
-            this.overlayBlob.enableCell(cell);
+            this.overlayBlob.enableCell(blobId, cell);
         }
     }
 
@@ -65,3 +69,4 @@ class PlateauHandler {
 }
 
 export { PlateauHandler };
+
