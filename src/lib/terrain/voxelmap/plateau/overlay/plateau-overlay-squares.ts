@@ -108,4 +108,3 @@ void main(void) {
 }
 
 export { PlateauOverlaySquares };
-
