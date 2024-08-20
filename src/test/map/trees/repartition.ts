@@ -1,3 +1,4 @@
+import alea from "alea";
 import type * as THREE from 'three';
 
 import { safeModulo } from '../../../lib/helpers/math';
@@ -10,17 +11,19 @@ type TreePosition = {
 class TreeRepartition {
     public readonly size: number;
     private readonly data: Uint8Array;
+    private readonly prng: () => number;
 
-    public constructor(patternSize: number, minSpacing: number) {
+    public constructor(seed: string, patternSize: number, minSpacing: number) {
         this.size = patternSize;
         this.data = new Uint8Array(this.size * this.size);
+        this.prng = alea(seed);
 
         const itemSurface = minSpacing * minSpacing;
 
         const treesCount = (this.data.length / itemSurface) * 1000;
         for (let i = 0; i < treesCount; i++) {
-            const x = Math.floor(this.size * Math.random());
-            const z = Math.floor(this.size * Math.random());
+            const x = Math.floor(this.size * this.prng());
+            const z = Math.floor(this.size * this.prng());
 
             const neighbourXFrom = x - minSpacing;
             const neighbourXTo = x + minSpacing;
@@ -42,7 +45,7 @@ class TreeRepartition {
             }
 
             if (!isTooClose) {
-                const proba = Math.random();
+                const proba = this.prng();
 
                 const index = this.buildIndex(x, z);
                 this.data[index] = Math.floor(255 * proba);
@@ -86,3 +89,4 @@ class TreeRepartition {
 }
 
 export { TreeRepartition, type TreePosition };
+
