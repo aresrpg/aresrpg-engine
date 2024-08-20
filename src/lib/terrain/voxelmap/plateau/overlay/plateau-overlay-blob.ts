@@ -23,13 +23,15 @@ class PlateauOverlayBlob extends PlateauOverlay {
 
         const colorUniformsObject: Record<string, THREE.IUniform<THREE.Vector4>> = {};
         for (let i = 0; i < 32; i++) {
-            const color = params.color ? new THREE.Vector4(params.color.r, params.color.g, params.color.b, 0.7) : new THREE.Vector4(1, 1, 1, 0.7);
+            const color = params.color
+                ? new THREE.Vector4(params.color.r, params.color.g, params.color.b, 0.7)
+                : new THREE.Vector4(1, 1, 1, 0.7);
             colorUniformsObject[`uColor_${i}`] = { value: color };
         }
 
         const textureData = new Uint32Array(params.size.x * params.size.z);
         const texture = new THREE.DataTexture(textureData, params.size.x, params.size.z, THREE.RedIntegerFormat, THREE.UnsignedIntType);
-        texture.internalFormat = "R32UI";
+        texture.internalFormat = 'R32UI';
         texture.needsUpdate = true;
 
         super({
@@ -47,7 +49,9 @@ uniform highp usampler2D uDataTexture;
 uniform float uMargin;
 uniform float uBorderThickness;
 uniform float uInnerCornerRadius;
-${Object.keys(colorUniformsObject).map(name => `uniform vec4 ${name};`).join("\n")}
+${Object.keys(colorUniformsObject)
+    .map(name => `uniform vec4 ${name};`)
+    .join('\n')}
 
 in vec2 vGridCell;
 out vec4 fragColor;
@@ -141,7 +145,9 @@ void main(void) {
     float visibleInnerCount = 0.0;
     float visibleEdgesCount = 0.0;
 
-    ${Object.keys(colorUniformsObject).map((name: string, index: number) => `
+    ${Object.keys(colorUniformsObject)
+        .map(
+            (name: string, index: number) => `
     {
         float isInner;
         float isEdge;
@@ -157,7 +163,8 @@ void main(void) {
             }
         }
     }`
-    ).join("\n")}
+        )
+        .join('\n')}
 
     if (visibleEdgesCount > 0.0) {
         fragColor = vec4(cumulatedEdgeColor.rgb / visibleEdgesCount, 1.0);
@@ -196,7 +203,7 @@ void main(void) {
 
     public setColor(blobIndex: number, value: THREE.Color) {
         const uniform = this.colorUniforms[blobIndex];
-        if (typeof uniform === "undefined") {
+        if (typeof uniform === 'undefined') {
             throw new Error(`Invalid blob index "${blobIndex}".`);
         }
         uniform.value.x = value.r;
@@ -206,7 +213,7 @@ void main(void) {
 
     public setAlpha(blobIndex: number, value: number) {
         const uniform = this.colorUniforms[blobIndex];
-        if (typeof uniform === "undefined") {
+        if (typeof uniform === 'undefined') {
             throw new Error(`Invalid blob index "${blobIndex}".`);
         }
         uniform.value.w = value;
@@ -214,7 +221,7 @@ void main(void) {
 
     public enableCell(blobIndex: number, cellId: GridCoord): void {
         let data = this.getTexel(cellId);
-        data |= (1 << blobIndex);
+        data |= 1 << blobIndex;
         this.setTexel(cellId, data);
     }
 
@@ -233,7 +240,7 @@ void main(void) {
     private getTexel(position: GridCoord): number {
         const index = this.buildTexelIndex(position);
         const data = this.textureData[index];
-        if (typeof data === "undefined") {
+        if (typeof data === 'undefined') {
             throw new Error();
         }
         return data;

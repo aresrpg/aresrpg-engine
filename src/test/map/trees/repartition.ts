@@ -1,4 +1,4 @@
-import alea from "alea";
+import alea from 'alea';
 import type * as THREE from 'three';
 
 import { safeModulo } from '../../../lib/helpers/math';
@@ -89,4 +89,3 @@ class TreeRepartition {
 }
 
 export { TreeRepartition, type TreePosition };
-
