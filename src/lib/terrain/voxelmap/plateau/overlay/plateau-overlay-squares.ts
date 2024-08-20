@@ -13,6 +13,9 @@ type Parameters = {
 };
 
 class PlateauOverlaySquares extends PlateauOverlay {
+    private readonly texture: THREE.DataTexture;
+    private readonly textureData: Uint8Array;
+
     private readonly backgroundColorUniform: THREE.IUniform<THREE.Vector4>;
 
     public constructor(params: Parameters) {
@@ -21,6 +24,9 @@ class PlateauOverlaySquares extends PlateauOverlay {
 
         const backgroundColorUniform = { value: new THREE.Vector4() };
 
+        const textureData = new Uint8Array(4 * params.size.x * params.size.z);
+        const texture = new THREE.DataTexture(textureData, params.size.x, params.size.z);
+
         super({
             name: 'blob',
             size: params.size,
@@ -28,6 +34,7 @@ class PlateauOverlaySquares extends PlateauOverlay {
                 uMargin: marginUniform,
                 uInnerCornerRadius: innerCornerRadiusUniform,
                 uBackgroundColor: backgroundColorUniform,
+                uDataTexture: { value: texture },
             },
             fragmentShader: `uniform sampler2D uDataTexture;
 uniform float uMargin;
@@ -58,10 +65,23 @@ void main(void) {
 }`,
         });
 
+        this.textureData = textureData;
+        this.texture = texture;
+
         this.backgroundColorUniform = backgroundColorUniform;
 
         const background = params.background ?? { color: new THREE.Color(0xaaaaaa), alpha: 0 };
         this.setBackground(background.color, background.alpha);
+    }
+
+    public clear(): void {
+        this.textureData.fill(0);
+        this.texture.needsUpdate = true;
+    }
+
+    public override dispose(): void {
+        this.texture.dispose();
+        super.dispose();
     }
 
     public setBackground(color: THREE.Color, alpha: number): void {
@@ -75,6 +95,17 @@ void main(void) {
     public disableCell(cellId: GridCoord): void {
         this.setTexel(cellId, [0, 0, 0, 0]);
     }
+
+    private setTexel(position: GridCoord, texelData: [number, number, number, number]): void {
+        if (position.x < 0 || position.z < 0 || position.x >= this.gridSize.x || position.z >= this.gridSize.z) {
+            throw new Error(`Out of bounds position "${position.x}x${position.z}" (size is "${this.gridSize.x}x${this.gridSize.z}")`);
+        }
+
+        const index = 4 * (position.x + position.z * this.gridSize.x);
+        this.textureData.set(texelData, index);
+        this.texture.needsUpdate = true;
+    }
 }
 
 export { PlateauOverlaySquares };
+

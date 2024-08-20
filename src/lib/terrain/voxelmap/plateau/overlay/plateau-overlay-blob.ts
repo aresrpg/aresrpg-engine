@@ -11,13 +11,21 @@ type Parameters = {
 };
 
 class PlateauOverlayBlob extends PlateauOverlay {
+    private readonly texture: THREE.DataTexture;
+    private readonly textureData: Uint32Array;
+
     private readonly colorUniform: THREE.IUniform<THREE.Vector4>;
 
     public constructor(params: Parameters) {
         const marginUniform = { value: params.margin ?? 0.05 };
         const borderThicknessUniform = { value: params.borderThickness ?? 0.05 };
         const innerCornerRadiusUniform = { value: params.innerCornerRadius ?? 0.2 };
-        const colorUniform = { value: params.color ? new THREE.Vector4(params.color.r, params.color.g, params.color.b, 0.7) : new THREE.Vector4(1, 1, 1, 0.7)};
+        const colorUniform = { value: params.color ? new THREE.Vector4(params.color.r, params.color.g, params.color.b, 0.7) : new THREE.Vector4(1, 1, 1, 0.7) };
+
+        const textureData = new Uint32Array(params.size.x * params.size.z);
+        const texture = new THREE.DataTexture(textureData, params.size.x, params.size.z, THREE.RedIntegerFormat, THREE.UnsignedIntType);
+        texture.internalFormat = "R32UI";
+        texture.needsUpdate = true;
 
         super({
             name: 'blob',
@@ -27,9 +35,10 @@ class PlateauOverlayBlob extends PlateauOverlay {
                 uBorderThickness: borderThicknessUniform,
                 uInnerCornerRadius: innerCornerRadiusUniform,
                 uColor: colorUniform,
+                uDataTexture: { value: texture },
             },
             fragmentShader: `
-uniform sampler2D uDataTexture;
+uniform highp usampler2D uDataTexture;
 uniform float uMargin;
 uniform float uBorderThickness;
 uniform float uInnerCornerRadius;
@@ -39,8 +48,8 @@ in vec2 vGridCell;
 out vec4 fragColor;
 
 bool isCellOn(const ivec2 cellId) {
-    vec4 data = texelFetch(uDataTexture, cellId, 0);
-    return data.a > 0.0;
+    uint data = texelFetch(uDataTexture, cellId, 0).r;
+    return data > 0u;
 }
 
 void main(void) {
@@ -115,7 +124,20 @@ void main(void) {
 }`,
         });
 
+        this.textureData = textureData;
+        this.texture = texture;
+
         this.colorUniform = colorUniform;
+    }
+
+    public clear(): void {
+        this.textureData.fill(0);
+        this.texture.needsUpdate = true;
+    }
+
+    public override dispose(): void {
+        this.texture.dispose();
+        super.dispose();
     }
 
     public get color(): THREE.Color {
@@ -137,11 +159,25 @@ void main(void) {
     }
 
     public enableCell(cellId: GridCoord): void {
-        this.setTexel(cellId, [255, 255, 255, 255]);
+        this.setTexel(cellId, 255);
     }
 
     public disableCell(cellId: GridCoord): void {
-        this.setTexel(cellId, [0, 0, 0, 0]);
+        this.setTexel(cellId, 0);
+    }
+
+    private setTexel(position: GridCoord, texelData: number): void {
+        const index = this.buildTexelIndex(position);
+        this.textureData.set([texelData], index);
+        this.texture.needsUpdate = true;
+    }
+
+    private buildTexelIndex(position: GridCoord): number {
+        if (position.x < 0 || position.z < 0 || position.x >= this.gridSize.x || position.z >= this.gridSize.z) {
+            throw new Error(`Out of bounds position "${position.x}x${position.z}" (size is "${this.gridSize.x}x${this.gridSize.z}")`);
+        }
+
+        return position.x + position.z * this.gridSize.x;
     }
 }
 
