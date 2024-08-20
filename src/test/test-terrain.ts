@@ -197,12 +197,21 @@ class TestTerrain extends TestBase {
                         cells: plateau.squares.map(square => square.type === EPlateauSquareType.FLAT),
                     },
                 });
-                pathFinder.setOrigin({ x: plateauRadius, z: plateauRadius });
-                const reachableCells = pathFinder.getReachableCells(10);
-                handler.displayBlob(reachableCells, new THREE.Color(0x88dd88), 0.5);
-                const path = pathFinder.findPathTo({ x: 31, z: 35 });
-                if (path) {
-                    handler.displaySquares(path, new THREE.Color(0x88dd88), 1);
+
+                {
+                    pathFinder.setOrigin({ x: plateauRadius, z: plateauRadius });
+                    const reachableCells = pathFinder.getReachableCells(10);
+                    handler.displayBlob(0, reachableCells, new THREE.Color(0x88dd88), 0.5);
+                    const path = pathFinder.findPathTo({ x: 31, z: 35 });
+                    if (path) {
+                        handler.displaySquares(path, new THREE.Color(0x88dd88), 1);
+                    }
+                }
+
+                {
+                    pathFinder.setOrigin({ x: plateauRadius - 5, z: plateauRadius - 5 });
+                    const reachableCells = pathFinder.getReachableCells(7);
+                    handler.displayBlob(1, reachableCells, new THREE.Color(0xdd8888), 0.5);
                 }
             }
         };
