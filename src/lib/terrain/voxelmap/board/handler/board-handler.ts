@@ -1,38 +1,38 @@
 import * as THREE from '../../../../three-usage';
-import { type GridCoord } from '../overlay/plateau-overlay';
-import { PlateauOverlayBlob } from '../overlay/plateau-overlay-blob';
-import { PlateauOverlaySquares } from '../overlay/plateau-overlay-squares';
-import { type Plateau } from '../plateau';
+import { type Board } from '../board';
+import { type GridCoord } from '../overlay/board-overlay';
+import { BoardOverlayBlob } from '../overlay/board-overlay-blob';
+import { BoardOverlaySquares } from '../overlay/board-overlay-squares';
 
 type Parameters = {
-    readonly plateau: Plateau;
+    readonly board: Board;
 };
-class PlateauHandler {
+class BoardHandler {
     private static readonly yShift = 0.001;
 
     public readonly container: THREE.Object3D;
 
-    private readonly plateau: Plateau;
+    private readonly board: Board;
 
-    private readonly overlaySquares: PlateauOverlaySquares;
-    private readonly overlayBlob: PlateauOverlayBlob;
+    private readonly overlaySquares: BoardOverlaySquares;
+    private readonly overlayBlob: BoardOverlayBlob;
 
     public constructor(params: Parameters) {
-        this.plateau = params.plateau;
+        this.board = params.board;
 
         this.container = new THREE.Group();
-        this.container.name = 'plateau-handler';
+        this.container.name = 'board-handler';
 
-        this.container.position.set(this.plateau.origin.x, this.plateau.origin.y, this.plateau.origin.z);
+        this.container.position.set(this.board.origin.x, this.board.origin.y, this.board.origin.z);
 
-        this.overlaySquares = new PlateauOverlaySquares({
-            size: this.plateau.size,
+        this.overlaySquares = new BoardOverlaySquares({
+            size: this.board.size,
         });
-        this.overlaySquares.container.position.y = 2 * PlateauHandler.yShift;
+        this.overlaySquares.container.position.y = 2 * BoardHandler.yShift;
         this.container.add(this.overlaySquares.container);
 
-        this.overlayBlob = new PlateauOverlayBlob({ size: this.plateau.size });
-        this.overlayBlob.container.position.y = 1 * PlateauHandler.yShift;
+        this.overlayBlob = new BoardOverlayBlob({ size: this.board.size });
+        this.overlayBlob.container.position.y = 1 * BoardHandler.yShift;
         this.container.add(this.overlayBlob.container);
     }
 
@@ -68,4 +68,4 @@ class PlateauHandler {
     }
 }
 
-export { PlateauHandler };
+export { BoardHandler };
