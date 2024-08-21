@@ -2,23 +2,23 @@ import * as THREE from 'three';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 
 import {
-    computePlateau,
+    BoardHandler,
+    BoardRenderableFactory,
+    computeBoard,
+    EBoardSquareType,
     EComputationMethod,
-    EPlateauSquareType,
     HeightmapViewer,
     LineOfSight,
     PathFinder,
-    PlateauHandler,
-    PlateauRenderableFactory,
     PromisesQueue,
     TerrainViewer,
     VoxelmapViewer,
     VoxelmapVisibilityComputer,
     VoxelmapWrapper,
+    type Board,
+    type BoardRenderable,
     type IHeightmap,
     type IVoxelMap,
-    type Plateau,
-    type PlateauRenderable,
 } from '../lib';
 
 import { TestBase, type ITerrainMap } from './test-base';
@@ -35,9 +35,9 @@ class TestTerrain extends TestBase {
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
         super(map);
 
-        const testPlateau = true;
-        if (testPlateau) {
-            this.setupPlateau(map);
+        const testBoard = true;
+        if (testBoard) {
+            this.setupBoard(map);
         }
 
         const chunkSize = { xz: 64, y: 64 };
@@ -128,49 +128,49 @@ class TestTerrain extends TestBase {
         }
     }
 
-    private setupPlateau(voxelMap: IVoxelMap & ITerrainMap): void {
-        const factory = new PlateauRenderableFactory({
+    private setupBoard(voxelMap: IVoxelMap & ITerrainMap): void {
+        const factory = new BoardRenderableFactory({
             voxelMaterialsList: voxelMap.voxelMaterialsList,
         });
 
         const testLineOfSight = false;
         const testPathFinding = true;
 
-        const plateauContainer = new THREE.Group();
-        this.scene.add(plateauContainer);
-        let currentPlateau: {
-            plateau: Plateau;
-            renderable: PlateauRenderable;
-            handler: PlateauHandler;
+        const boardContainer = new THREE.Group();
+        this.scene.add(boardContainer);
+        let currentBoard: {
+            board: Board;
+            renderable: BoardRenderable;
+            handler: BoardHandler;
         } | null = null;
 
-        let lastPlateauRequestId = -1;
-        const requestPlateau = async (origin: THREE.Vector3Like) => {
-            lastPlateauRequestId++;
-            const requestId = lastPlateauRequestId;
+        let lastBoardRequestId = -1;
+        const requestBoard = async (origin: THREE.Vector3Like) => {
+            lastBoardRequestId++;
+            const requestId = lastBoardRequestId;
 
-            const plateauRadius = 31;
-            const plateau = await computePlateau(voxelMap, origin, plateauRadius);
-            const renderable = await factory.buildPlateauRenderable(plateau);
-            const handler = new PlateauHandler({ plateau });
+            const boardRadius = 31;
+            const board = await computeBoard(voxelMap, origin, boardRadius);
+            const renderable = await factory.buildBoardRenderable(board);
+            const handler = new BoardHandler({ board });
 
-            if (lastPlateauRequestId !== requestId) {
+            if (lastBoardRequestId !== requestId) {
                 return; // another request was launched in the meantime
             }
 
-            plateauContainer.clear();
-            if (currentPlateau) {
-                currentPlateau.renderable.dispose();
-                this.map.unregisterPlateau(currentPlateau.plateau);
-                currentPlateau.handler.container.removeFromParent();
-                currentPlateau.handler.dispose();
+            boardContainer.clear();
+            if (currentBoard) {
+                currentBoard.renderable.dispose();
+                this.map.unregisterBoard(currentBoard.board);
+                currentBoard.handler.container.removeFromParent();
+                currentBoard.handler.dispose();
             }
-            currentPlateau = { renderable, plateau, handler };
+            currentBoard = { renderable, board, handler };
 
-            if (!this.map.includePlateau) {
-                plateauContainer.add(currentPlateau.renderable.container);
+            if (!this.map.includeBoard) {
+                boardContainer.add(currentBoard.renderable.container);
             }
-            this.map.registerPlateau(currentPlateau.plateau);
+            this.map.registerBoard(currentBoard.board);
             this.scene.add(handler.container);
 
             handler.clearSquares();
@@ -178,13 +178,13 @@ class TestTerrain extends TestBase {
             if (testLineOfSight) {
                 const lineOfSight = new LineOfSight({
                     grid: {
-                        size: plateau.size,
-                        cells: plateau.squares.map(square => square.type === EPlateauSquareType.OBSTACLE),
+                        size: board.size,
+                        cells: board.squares.map(square => square.type === EBoardSquareType.OBSTACLE),
                     },
                 });
-                const gridVisibility = lineOfSight.computeCellsVisibility({ x: plateauRadius, z: plateauRadius }, 10);
+                const gridVisibility = lineOfSight.computeCellsVisibility({ x: boardRadius, z: boardRadius }, 10);
                 const cellsVisibilities = gridVisibility.cells.filter(cell => {
-                    return plateau.squares[cell.x + cell.z * plateau.size.x]!.type === EPlateauSquareType.FLAT;
+                    return board.squares[cell.x + cell.z * board.size.x]!.type === EBoardSquareType.FLAT;
                 });
                 const visibleSquares = cellsVisibilities.filter(cell => cell.visibility === 'visible');
                 const obstructedSquares = cellsVisibilities.filter(cell => cell.visibility === 'hidden');
@@ -193,13 +193,13 @@ class TestTerrain extends TestBase {
             } else if (testPathFinding) {
                 const pathFinder = new PathFinder({
                     grid: {
-                        size: plateau.size,
-                        cells: plateau.squares.map(square => square.type === EPlateauSquareType.FLAT),
+                        size: board.size,
+                        cells: board.squares.map(square => square.type === EBoardSquareType.FLAT),
                     },
                 });
 
                 {
-                    pathFinder.setOrigin({ x: plateauRadius, z: plateauRadius });
+                    pathFinder.setOrigin({ x: boardRadius, z: boardRadius });
                     const reachableCells = pathFinder.getReachableCells(10);
                     handler.displayBlob(0, reachableCells, new THREE.Color(0x88dd88), 0.5);
                     const path = pathFinder.findPathTo({ x: 31, z: 35 });
@@ -209,38 +209,38 @@ class TestTerrain extends TestBase {
                 }
 
                 {
-                    pathFinder.setOrigin({ x: plateauRadius - 5, z: plateauRadius - 5 });
+                    pathFinder.setOrigin({ x: boardRadius - 5, z: boardRadius - 5 });
                     const reachableCells = pathFinder.getReachableCells(7);
                     handler.displayBlob(1, reachableCells, new THREE.Color(0xdd8888), 0.5);
                 }
             }
         };
 
-        const plateauCenterContainer = new THREE.Group();
-        const plateauCenter = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0xffffff }));
-        plateauCenter.position.set(0.5, 0.5, 0.5);
-        plateauCenterContainer.add(plateauCenter);
+        const boardCenterContainer = new THREE.Group();
+        const boardCenter = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0xffffff }));
+        boardCenter.position.set(0.5, 0.5, 0.5);
+        boardCenterContainer.add(boardCenter);
 
         const updateAltitude = () => {
             const terrainSample = voxelMap.sampleHeightmapBaseTerrain(
-                Math.floor(plateauCenterContainer.position.x),
-                Math.floor(plateauCenterContainer.position.z)
+                Math.floor(boardCenterContainer.position.x),
+                Math.floor(boardCenterContainer.position.z)
             );
-            plateauCenterContainer.position.setY(terrainSample.altitude + 1);
-            requestPlateau(plateauCenterContainer.position.clone());
+            boardCenterContainer.position.setY(terrainSample.altitude + 1);
+            requestBoard(boardCenterContainer.position.clone());
         };
         updateAltitude();
 
-        const plateauCenterControls = new TransformControls(this.camera, this.renderer.domElement);
-        plateauCenterControls.showY = false;
-        plateauCenterControls.addEventListener('dragging-changed', event => {
+        const boardCenterControls = new TransformControls(this.camera, this.renderer.domElement);
+        boardCenterControls.showY = false;
+        boardCenterControls.addEventListener('dragging-changed', event => {
             this.cameraControl.enabled = !event.value;
         });
-        plateauCenterControls.addEventListener('change', updateAltitude);
-        plateauCenterControls.attach(plateauCenterContainer);
+        boardCenterControls.addEventListener('change', updateAltitude);
+        boardCenterControls.attach(boardCenterContainer);
 
-        this.scene.add(plateauCenterContainer);
-        this.scene.add(plateauCenterControls);
+        this.scene.add(boardCenterContainer);
+        this.scene.add(boardCenterControls);
     }
 }
 

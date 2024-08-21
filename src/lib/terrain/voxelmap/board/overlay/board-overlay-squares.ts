@@ -1,6 +1,6 @@
 import * as THREE from '../../../../three-usage';
 
-import { type GridCoord, PlateauOverlay } from './plateau-overlay';
+import { type GridCoord, BoardOverlay } from './board-overlay';
 
 type Parameters = {
     readonly size: GridCoord;
@@ -12,7 +12,7 @@ type Parameters = {
     };
 };
 
-class PlateauOverlaySquares extends PlateauOverlay {
+class BoardOverlaySquares extends BoardOverlay {
     private readonly texture: THREE.DataTexture;
     private readonly textureData: Uint8Array;
 
@@ -107,4 +107,4 @@ void main(void) {
     }
 }
 
-export { PlateauOverlaySquares };
+export { BoardOverlaySquares };

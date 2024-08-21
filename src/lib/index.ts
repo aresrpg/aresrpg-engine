@@ -3,6 +3,14 @@ export { ELogLevel, setVerbosity } from './helpers/logger';
 export { HeightmapViewer } from './terrain/heightmap/heightmap-viewer';
 export type { IHeightmap, IHeightmapCoords, IHeightmapSample } from './terrain/heightmap/i-heightmap';
 export { TerrainViewer } from './terrain/terrain-viewer';
+export { EBoardSquareType, computeBoard, type Board, type BoardSquare } from './terrain/voxelmap/board/board';
+export { BoardRenderableFactory, type BoardRenderable } from './terrain/voxelmap/board/board-renderable-factory';
+export { BoardHandler } from './terrain/voxelmap/board/handler/board-handler';
+export { LineOfSight } from './terrain/voxelmap/board/handler/line-of-sight';
+export { PathFinder } from './terrain/voxelmap/board/handler/path-finder';
+export { BoardOverlayBlob } from './terrain/voxelmap/board/overlay/board-overlay-blob';
+export { BoardOverlaySquares } from './terrain/voxelmap/board/overlay/board-overlay-squares';
+export { VoxelmapWrapper } from './terrain/voxelmap/board/voxelmap-wrapper';
 export {
     voxelmapDataPacking,
     type ILocalMapData,
@@ -10,14 +18,6 @@ export {
     type IVoxelMaterial,
     type VoxelsChunkSize,
 } from './terrain/voxelmap/i-voxelmap';
-export { LineOfSight } from './terrain/voxelmap/plateau/handler/line-of-sight';
-export { PathFinder } from './terrain/voxelmap/plateau/handler/path-finder';
-export { PlateauHandler } from './terrain/voxelmap/plateau/handler/plateau-handler';
-export { PlateauOverlayBlob } from './terrain/voxelmap/plateau/overlay/plateau-overlay-blob';
-export { PlateauOverlaySquares } from './terrain/voxelmap/plateau/overlay/plateau-overlay-squares';
-export { EPlateauSquareType, computePlateau, type Plateau, type PlateauSquare } from './terrain/voxelmap/plateau/plateau';
-export { PlateauRenderableFactory, type PlateauRenderable } from './terrain/voxelmap/plateau/plateau-renderable-factory';
-export { VoxelmapWrapper } from './terrain/voxelmap/plateau/voxelmap-wrapper';
 export {
     VoxelmapViewerAutonomous,
     type VoxelmapViewerAutonomousOptions,

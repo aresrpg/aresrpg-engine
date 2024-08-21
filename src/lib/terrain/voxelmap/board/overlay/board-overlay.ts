@@ -9,7 +9,7 @@ type Parameters = {
     readonly fragmentShader: string;
 };
 
-abstract class PlateauOverlay {
+abstract class BoardOverlay {
     public readonly container: THREE.Object3D;
 
     protected readonly gridSize: GridCoord;
@@ -60,7 +60,7 @@ void main(void) {
         this.mesh = new THREE.Mesh(geometry, this.material);
         this.mesh.frustumCulled = false;
         this.container = new THREE.Group();
-        this.container.name = `plateau-overlay ${params.name}`;
+        this.container.name = `board-overlay ${params.name}`;
         this.container.add(this.mesh);
     }
 
@@ -70,4 +70,4 @@ void main(void) {
     }
 }
 
-export { PlateauOverlay, type GridCoord };
+export { BoardOverlay, type GridCoord };
