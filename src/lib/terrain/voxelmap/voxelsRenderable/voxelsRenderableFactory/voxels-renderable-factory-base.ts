@@ -173,13 +173,13 @@ abstract class VoxelsRenderableFactoryBase {
     private static buildNoiseTexture(resolution: number): THREE.DataTexture {
         const textureWidth = resolution;
         const textureHeight = resolution;
-        const textureData = new Uint8Array(4 * textureWidth * textureHeight);
+        const textureData = new Uint8Array(textureWidth * textureHeight);
 
         for (let i = 0; i < textureData.length; i++) {
             textureData[i] = 256 * Math.random();
         }
 
-        return new THREE.DataTexture(textureData, textureWidth, textureHeight);
+        return new THREE.DataTexture(textureData, textureWidth, textureHeight, THREE.RedFormat);
     }
 }
 
