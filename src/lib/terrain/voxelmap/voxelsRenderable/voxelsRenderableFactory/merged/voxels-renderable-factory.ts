@@ -73,7 +73,6 @@ in uint ${VoxelsRenderableFactory.data1AttributeName};
 in uint ${VoxelsRenderableFactory.data2AttributeName};
 
 #if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise}) || defined(${cstVoxelGrid})
-out vec2 vUv;
 out vec2 vModelUv;
 #endif // ${cstVoxelRounded} || ${cstVoxelNoise} || ${cstVoxelGrid}
 
@@ -104,24 +103,18 @@ void main() {`,
     vec3 transformed = modelPosition;
     
 #if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise}) || defined(${cstVoxelGrid})
-    const vec2 uvs[] = vec2[](
-        vec2(0,0),
-        vec2(0,1),
-        vec2(1,0),
-        vec2(1,1)
-    );
-    const uint vertexIds[] = uint[](${Cube.faceIndices.map(indice => `${indice}u`).join(', ')});
-    uint vertexId = vertexIds[gl_VertexID % 6];
-    vUv = uvs[vertexId];
-
-    if (faceId == ${Cube.facesById.findIndex(face => face.type === "front")}u ||
-        faceId == ${Cube.facesById.findIndex(face => face.type === "back")}u) {
+    if (faceId == ${Cube.facesById.findIndex(face => face.type === 'left')}u) {
+        vModelUv = modelPosition.zy;
+    } else if (faceId == ${Cube.facesById.findIndex(face => face.type === 'right')}u) {
+        vModelUv = vec2(-modelPosition.z, modelPosition.y);
+    } else if (faceId == ${Cube.facesById.findIndex(face => face.type === 'front')}u) {
         vModelUv = modelPosition.xy;
-    } else if (faceId == ${Cube.facesById.findIndex(face => face.type === "up")}u ||
-               faceId == ${Cube.facesById.findIndex(face => face.type === "down")}u) {
-        vModelUv = modelPosition.xz;
+    } else if (faceId == ${Cube.facesById.findIndex(face => face.type === 'back')}u) {
+        vModelUv = vec2(-modelPosition.x, modelPosition.y);
+    } else if (faceId == ${Cube.facesById.findIndex(face => face.type === 'up')}u) {
+        vModelUv = vec2(modelPosition.x, -modelPosition.z);
     } else {
-        vModelUv = modelPosition.yz;
+        vModelUv = modelPosition.xz;
     }
 #endif // ${cstVoxelRounded} || ${cstVoxelNoise} || ${cstVoxelGrid}
 
@@ -183,7 +176,6 @@ uniform uint uDisplayMode;
 uniform mat3 normalMatrix; // from three.js
 
 #if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise}) || defined(${cstVoxelGrid})
-in vec2 vUv;
 in vec2 vModelUv;
 #endif // ${cstVoxelRounded} || ${cstVoxelNoise} || ${cstVoxelGrid}
 
@@ -205,10 +197,11 @@ vec3 computeModelNormal() {
     vec3 modelNormal = modelNormalsById[${VoxelsRenderableFactory.vertexData2Encoder.normalId.glslDecode('vData2')}];
 #ifdef ${cstVoxelRounded}
     if (uSmoothEdgeRadius > 0.0) {
+        vec2 uv = fract(vModelUv);
         vec2 edgeRoundness = step(${VoxelsRenderableFactory.maxSmoothEdgeRadius.toFixed(2)}, vEdgeRoundness);
         vec2 margin = mix(vec2(0), vec2(uSmoothEdgeRadius), edgeRoundness);
-        vec3 roundnessCenter = vec3(clamp(vUv, margin, 1.0 - margin), -uSmoothEdgeRadius);
-        vec3 localNormal = normalize(vec3(vUv, 0) - roundnessCenter);
+        vec3 roundnessCenter = vec3(clamp(uv, margin, 1.0 - margin), -uSmoothEdgeRadius);
+        vec3 localNormal = normalize(vec3(uv, 0) - roundnessCenter);
 
         vec3 uvRight = modelNormalsById[${VoxelsRenderableFactory.vertexData2Encoder.uvRightId.glslDecode('vData2')}];
         vec3 uvUp = cross(modelNormal, uvRight);
