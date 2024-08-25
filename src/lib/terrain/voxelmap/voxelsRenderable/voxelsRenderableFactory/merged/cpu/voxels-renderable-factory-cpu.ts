@@ -94,19 +94,20 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                 }
             };
 
-            const voxelsChunkCache = this.buildLocalMapCache(voxelsChunkData);
-            for (const faceData of this.iterateOnVisibleFacesWithCache(voxelsChunkCache)) {
-                let faceNoiseId: number;
-                if (faceData.voxelIsCheckerboard) {
-                    faceNoiseId =
-                        (this.checkerboardPattern.x * faceData.voxelLocalPosition.x +
-                            this.checkerboardPattern.y * faceData.voxelLocalPosition.y +
-                            this.checkerboardPattern.z * faceData.voxelLocalPosition.z) %
+            const computeFaceNoiseId = (voxelIsCheckerboard: boolean, voxelLocalPosition: THREE.Vector3Like) => {
+                if (voxelIsCheckerboard) {
+                    return (this.checkerboardPattern.x * voxelLocalPosition.x +
+                        this.checkerboardPattern.y * voxelLocalPosition.y +
+                        this.checkerboardPattern.z * voxelLocalPosition.z) %
                         2;
                 } else {
-                    faceNoiseId = 2 + Math.floor(Math.random() * (this.vertexData2Encoder.faceNoiseId.maxValue - 2));
+                    return 2 + Math.floor(Math.random() * (this.vertexData2Encoder.faceNoiseId.maxValue - 2));
                 }
+            };
 
+            const voxelsChunkCache = this.buildLocalMapCache(voxelsChunkData);
+            for (const faceData of this.iterateOnVisibleFacesWithCache(voxelsChunkCache)) {
+                const faceNoiseId = computeFaceNoiseId(faceData.voxelIsCheckerboard, faceData.voxelLocalPosition);
                 registerFace(faceData, faceNoiseId);
             }
 
