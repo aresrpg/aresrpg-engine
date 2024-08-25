@@ -1,9 +1,9 @@
 import { PackedUintFactory } from '../../../../../helpers/uint-packing';
 
 type CheckerboardCellId =
-    0 | // not a checkerboard cell
-    1 | // light checkerboard cell
-    2;  // dark checkerboard cell
+    | 0 // not a checkerboard cell
+    | 1 // light checkerboard cell
+    | 2; // dark checkerboard cell
 
 class VertexData2Encoder {
     private readonly packedUintFactory = new PackedUintFactory(32);
@@ -43,4 +43,3 @@ class VertexData2Encoder {
 }
 
 export { VertexData2Encoder, type CheckerboardCellId };
-
