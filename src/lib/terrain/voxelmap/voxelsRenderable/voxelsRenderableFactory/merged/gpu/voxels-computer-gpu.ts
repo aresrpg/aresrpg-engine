@@ -163,11 +163,12 @@ class VoxelsComputerGpu {
                         let vertex${faceVertexId}Data = encodeVertexData1(encodedVoxelPosition, vertex${faceVertexId}Position, ao, u32(edgeRoundnessX), u32(edgeRoundnessY));`
                             )
                             .join('')}
+                        let voxelData2 = encodeVoxelData2(voxelMaterialId, faceNoiseId, ${face.normal.id}u, ${face.uvRight.id}u);
                         ${Cube.faceIndices
                             .map(
                                 (faceVertexId: number, index: number) => `
                         verticesBuffer.verticesData[2u * (firstVertexIndex + ${index}u) + 0u] = vertex${faceVertexId}Data;
-                        verticesBuffer.verticesData[2u * (firstVertexIndex + ${index}u) + 1u] = encodeVoxelData2(voxelMaterialId, faceNoiseId, ${face.normal.id}u, ${face.uvRight.id}u);`
+                        verticesBuffer.verticesData[2u * (firstVertexIndex + ${index}u) + 1u] = voxelData2;`
                             )
                             .join('')}
                     }`
