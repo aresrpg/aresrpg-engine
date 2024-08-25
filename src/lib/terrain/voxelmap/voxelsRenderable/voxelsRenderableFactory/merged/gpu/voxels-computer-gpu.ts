@@ -88,11 +88,9 @@ class VoxelsComputerGpu {
             let neighbourData = sampleVoxelsChunk(neighbourCacheIndex);
             return !${voxelmapDataPacking.wgslIsEmpty('neighbourData')};
         }
-        fn encodeVoxelData1(voxelPosition: vec3u) -> u32 {
-            return ${vertexData1Encoder.wgslEncodeVoxelData('voxelPosition')};
-        }
-        fn encodeVertexData1(encodedVoxelPosition: u32, verticePosition: vec3u, ao: u32, edgeRoundnessX: u32, edgeRoundnessY: u32) -> u32 {
-            return encodedVoxelPosition + ${vertexData1Encoder.wgslEncodeVertexData('verticePosition', 'ao', 'edgeRoundnessX', 'edgeRoundnessY')};
+        fn encodeVertexData1(voxelPosition: vec3u, verticePosition: vec3u, ao: u32, edgeRoundnessX: u32, edgeRoundnessY: u32) -> u32 {
+            let position = voxelPosition + verticePosition;
+            return ${vertexData1Encoder.wgslEncodeVertexData('position', 'ao', 'edgeRoundnessX', 'edgeRoundnessY')};
         }
         fn encodeVoxelData2(voxelMaterialId: u32, checkerboardCellid: u32, normalId: u32, uvRightId: u32) -> u32 {
             return ${vertexData2Encoder.wgslEncodeVoxelData('voxelMaterialId', 'checkerboardCellid', 'normalId', 'uvRightId')};
@@ -123,7 +121,6 @@ class VoxelsComputerGpu {
                 let voxelData: u32 = sampleVoxelsChunk(cacheIndex);
                 if (!${voxelmapDataPacking.wgslIsEmpty('voxelData')}) {
                     let voxelMaterialId: u32 = ${voxelmapDataPacking.wgslGetMaterialId('voxelData')};
-                    let encodedVoxelPosition = ${vertexData1Encoder.wgslEncodeVoxelData('voxelLocalPosition')};
                     let isCheckerboard = ${voxelmapDataPacking.wgslIsCheckerboard('voxelData')};
                     ${Object.values(Cube.faces)
                         .map(
@@ -158,7 +155,7 @@ class VoxelsComputerGpu {
                             .map(neighbour => `!doesNeighbourExist(cacheIndex, vec3i(${vec3ToString(neighbour, ', ')}))`)
                             .join(' && ')};
                         let vertex${faceVertexId}Position = vec3u(${faceVertex.vertex.x}u, ${faceVertex.vertex.y}u, ${faceVertex.vertex.z}u);
-                        let vertex${faceVertexId}Data = encodeVertexData1(encodedVoxelPosition, vertex${faceVertexId}Position, ao, u32(edgeRoundnessX), u32(edgeRoundnessY));`
+                        let vertex${faceVertexId}Data = encodeVertexData1(voxelLocalPosition, vertex${faceVertexId}Position, ao, u32(edgeRoundnessX), u32(edgeRoundnessY));`
                             )
                             .join('')}
                         let voxelData2 = encodeVoxelData2(voxelMaterialId, checkerboardCellId, ${face.normal.id}u, ${face.uvRight.id}u);

@@ -88,18 +88,11 @@ out float vAo;
 
 void main() {`,
                 '#include <begin_vertex>': `
-    uvec3 modelVoxelPosition = uvec3(
-        ${this.vertexData1Encoder.voxelX.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
-        ${this.vertexData1Encoder.voxelY.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
-        ${this.vertexData1Encoder.voxelZ.glslDecode(VoxelsRenderableFactory.data1AttributeName)}
-    );
-
-    uvec3 localVertexPosition = uvec3(
-        ${this.vertexData1Encoder.localX.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
-        ${this.vertexData1Encoder.localY.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
-        ${this.vertexData1Encoder.localZ.glslDecode(VoxelsRenderableFactory.data1AttributeName)}
-    );
-    vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
+    vec3 modelPosition = vec3(uvec3(
+        ${this.vertexData1Encoder.positionX.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
+        ${this.vertexData1Encoder.positionY.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
+        ${this.vertexData1Encoder.positionZ.glslDecode(VoxelsRenderableFactory.data1AttributeName)}
+    ));
     vec3 transformed = modelPosition;
     
 #if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise}) || defined(${cstVoxelGrid})
@@ -293,18 +286,11 @@ void main() {
             const uint vertexIds[] = uint[](${Cube.faceIndices.map(indice => `${indice}u`).join(', ')});
             uint vertexId = vertexIds[gl_VertexID % 6];
 
-            uvec3 modelVoxelPosition = uvec3(
-                ${this.vertexData1Encoder.voxelX.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
-                ${this.vertexData1Encoder.voxelY.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
-                ${this.vertexData1Encoder.voxelZ.glslDecode(VoxelsRenderableFactory.data1AttributeName)}
-            );
-
-            uvec3 localVertexPosition = uvec3(
-                ${this.vertexData1Encoder.localX.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
-                ${this.vertexData1Encoder.localY.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
-                ${this.vertexData1Encoder.localZ.glslDecode(VoxelsRenderableFactory.data1AttributeName)}
-            );
-            vec3 modelPosition = vec3(modelVoxelPosition + localVertexPosition);
+            vec3 modelPosition = vec3(uvec3(
+                ${this.vertexData1Encoder.positionX.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
+                ${this.vertexData1Encoder.positionY.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
+                ${this.vertexData1Encoder.positionZ.glslDecode(VoxelsRenderableFactory.data1AttributeName)}
+            ));
             gl_Position = projectionMatrix * modelViewMatrix * vec4(modelPosition, 1.0);
 
             vHighPrecisionZW = gl_Position.zw;
@@ -343,9 +329,9 @@ void main() {
 
         this.vertexData1Encoder = new VertexData1Encoder(params.maxVoxelsChunkSize);
         this.maxVoxelsChunkSize = new THREE.Vector3(
-            this.vertexData1Encoder.voxelX.maxValue + 1,
-            this.vertexData1Encoder.voxelY.maxValue + 1,
-            this.vertexData1Encoder.voxelZ.maxValue + 1
+            params.maxVoxelsChunkSize.xz,
+            params.maxVoxelsChunkSize.y,
+            params.maxVoxelsChunkSize.xz,
         );
 
         this.materialsTemplates = this.buildVoxelsMaterials();
