@@ -47,6 +47,10 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
         },
 
         buildBuffer(voxelsChunkData: VoxelsChunkData): Uint32Array {
+            if (voxelsChunkData.isEmpty) {
+                return new Uint32Array();
+            }
+
             const innerChunkSize = {
                 x: voxelsChunkData.size.x - 2,
                 y: voxelsChunkData.size.y - 2,
