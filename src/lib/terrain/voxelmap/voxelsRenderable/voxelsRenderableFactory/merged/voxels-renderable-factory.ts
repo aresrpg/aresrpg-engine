@@ -331,7 +331,7 @@ void main() {
         this.maxVoxelsChunkSize = new THREE.Vector3(
             params.maxVoxelsChunkSize.xz,
             params.maxVoxelsChunkSize.y,
-            params.maxVoxelsChunkSize.xz,
+            params.maxVoxelsChunkSize.xz
         );
 
         this.materialsTemplates = this.buildVoxelsMaterials();

@@ -7,7 +7,7 @@ import {
     type VertexData,
     type VoxelsChunkData,
 } from '../../voxels-renderable-factory-base';
-import { CheckerboardCellId } from '../vertex-data2-encoder';
+import { type CheckerboardCellId } from '../vertex-data2-encoder';
 import { VoxelsRenderableFactory } from '../voxels-renderable-factory';
 
 type FaceData = {
@@ -102,11 +102,12 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                 if (!voxelIsCheckerboard) {
                     return 0;
                 }
-                const color = this.checkerboardPattern.x * voxelLocalPosition.x +
+                const color =
+                    this.checkerboardPattern.x * voxelLocalPosition.x +
                     this.checkerboardPattern.y * voxelLocalPosition.y +
                     this.checkerboardPattern.z * voxelLocalPosition.z;
 
-                return 1 + (color % 2) as CheckerboardCellId;
+                return (1 + (color % 2)) as CheckerboardCellId;
             };
 
             const voxelsChunkCache = this.buildLocalMapCache(voxelsChunkData);
@@ -135,18 +136,21 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                     const referenceFaceData = referenceFacesData[faceData.faceType];
                     if (referenceFaceData) {
                         let mergeWithPreviousFace =
-                            (referenceFaceData.faceData.voxelMaterialId === faceData.voxelMaterialId) &&
-                            (!referenceFaceData.faceData.voxelIsCheckerboard) &&
-                            (!faceData.voxelIsCheckerboard) &&
-                            (referenceFaceData.faceData.voxelLocalPosition.x + referenceFaceData.repeatX + 1 === faceData.voxelLocalPosition.x) &&
-                            (referenceFaceData.faceData.voxelLocalPosition.y === faceData.voxelLocalPosition.y) &&
-                            (referenceFaceData.faceData.voxelLocalPosition.z === faceData.voxelLocalPosition.z) &&
-                            (!['left', 'right'].includes(referenceFaceData.faceData.faceType));
+                            referenceFaceData.faceData.voxelMaterialId === faceData.voxelMaterialId &&
+                            !referenceFaceData.faceData.voxelIsCheckerboard &&
+                            !faceData.voxelIsCheckerboard &&
+                            referenceFaceData.faceData.voxelLocalPosition.x + referenceFaceData.repeatX + 1 ===
+                                faceData.voxelLocalPosition.x &&
+                            referenceFaceData.faceData.voxelLocalPosition.y === faceData.voxelLocalPosition.y &&
+                            referenceFaceData.faceData.voxelLocalPosition.z === faceData.voxelLocalPosition.z &&
+                            !['left', 'right'].includes(referenceFaceData.faceData.faceType);
 
                         for (let iV = 0; iV < 4 && mergeWithPreviousFace; iV++) {
                             mergeWithPreviousFace &&= referenceFaceData.faceData.verticesData[iV]!.ao === faceData.verticesData[iV]!.ao;
-                            mergeWithPreviousFace &&= referenceFaceData.faceData.verticesData[iV]!.roundnessX === faceData.verticesData[iV]!.roundnessX;
-                            mergeWithPreviousFace &&= referenceFaceData.faceData.verticesData[iV]!.roundnessY === faceData.verticesData[iV]!.roundnessY;
+                            mergeWithPreviousFace &&=
+                                referenceFaceData.faceData.verticesData[iV]!.roundnessX === faceData.verticesData[iV]!.roundnessX;
+                            mergeWithPreviousFace &&=
+                                referenceFaceData.faceData.verticesData[iV]!.roundnessY === faceData.verticesData[iV]!.roundnessY;
                         }
 
                         if (mergeWithPreviousFace) {

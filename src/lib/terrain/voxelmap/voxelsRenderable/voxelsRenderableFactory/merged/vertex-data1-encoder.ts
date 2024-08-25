@@ -20,12 +20,7 @@ class VertexData1Encoder {
         this.edgeRoundness = this.packedUintFactory.encodePart(4);
     }
 
-    public encode(
-        position: THREE.Vector3Like,
-        faceId: number,
-        ao: number,
-        edgeRoundness: [boolean, boolean]
-    ): number {
+    public encode(position: THREE.Vector3Like, faceId: number, ao: number, edgeRoundness: [boolean, boolean]): number {
         return (
             this.positionX.encode(position.x) +
             this.positionY.encode(position.y) +
