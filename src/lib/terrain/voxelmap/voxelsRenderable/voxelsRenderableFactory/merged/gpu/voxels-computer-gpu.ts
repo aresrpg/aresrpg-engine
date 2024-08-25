@@ -94,8 +94,8 @@ class VoxelsComputerGpu {
         fn encodeVertexData1(encodedVoxelPosition: u32, verticePosition: vec3u, ao: u32, edgeRoundnessX: u32, edgeRoundnessY: u32) -> u32 {
             return encodedVoxelPosition + ${vertexData1Encoder.wgslEncodeVertexData('verticePosition', 'ao', 'edgeRoundnessX', 'edgeRoundnessY')};
         }
-        fn encodeVoxelData2(voxelMaterialId: u32, faceNoiseId: u32, normalId: u32, uvRightId: u32) -> u32 {
-            return ${vertexData2Encoder.wgslEncodeVoxelData('voxelMaterialId', 'faceNoiseId', 'normalId', 'uvRightId')};
+        fn encodeVoxelData2(voxelMaterialId: u32, checkerboardCellid: u32, normalId: u32, uvRightId: u32) -> u32 {
+            return ${vertexData2Encoder.wgslEncodeVoxelData('voxelMaterialId', 'checkerboardCellid', 'normalId', 'uvRightId')};
         }
 
         @compute @workgroup_size(${this.workgroupSize})
@@ -130,11 +130,9 @@ class VoxelsComputerGpu {
                             face => `
                     if (!doesNeighbourExist(cacheIndex, vec3i(${vec3ToString(face.normal.vec, ', ')}))) {
                         let firstVertexIndex: u32 = atomicAdd(&verticesBuffer.verticesCount, 6u);
-                        var faceNoiseId: u32;
+                        var checkerboardCellId = 0u;
                         if (isCheckerboard) {
-                            faceNoiseId = dot(voxelLocalPosition, vec3u(${vec3ToString(checkerboardPattern, ', ')})) % 2u;
-                        } else {
-                            faceNoiseId = 2u + (firstVertexIndex / 6u) % (${vertexData2Encoder.faceNoiseId.maxValue - 2});
+                            checkerboardCellId = 1u + (dot(voxelLocalPosition, vec3u(${vec3ToString(checkerboardPattern, ', ')})) % 2u);
                         }
                         var ao: u32;
                         var edgeRoundnessX: bool;
@@ -163,7 +161,7 @@ class VoxelsComputerGpu {
                         let vertex${faceVertexId}Data = encodeVertexData1(encodedVoxelPosition, vertex${faceVertexId}Position, ao, u32(edgeRoundnessX), u32(edgeRoundnessY));`
                             )
                             .join('')}
-                        let voxelData2 = encodeVoxelData2(voxelMaterialId, faceNoiseId, ${face.normal.id}u, ${face.uvRight.id}u);
+                        let voxelData2 = encodeVoxelData2(voxelMaterialId, checkerboardCellId, ${face.normal.id}u, ${face.uvRight.id}u);
                         ${Cube.faceIndices
                             .map(
                                 (faceVertexId: number, index: number) => `
