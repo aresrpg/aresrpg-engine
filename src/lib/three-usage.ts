@@ -10,6 +10,7 @@ export {
     InterleavedBufferAttribute,
     Mesh,
     MeshPhongMaterial,
+    RedFormat,
     RedIntegerFormat,
     ShaderMaterial,
     Sphere,
