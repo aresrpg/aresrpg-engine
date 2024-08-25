@@ -88,9 +88,6 @@ out float vAo;
 
 void main() {`,
                 '#include <begin_vertex>': `
-    const uint vertexIds[] = uint[](${Cube.faceIndices.map(indice => `${indice}u`).join(', ')});
-    uint vertexId = vertexIds[gl_VertexID % 6];
-
     uvec3 modelVoxelPosition = uvec3(
         ${this.vertexData1Encoder.voxelX.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
         ${this.vertexData1Encoder.voxelY.glslDecode(VoxelsRenderableFactory.data1AttributeName)},
@@ -107,11 +104,13 @@ void main() {`,
     
 #if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise}) || defined(${cstVoxelGrid})
     const vec2 uvs[] = vec2[](
-            vec2(0,0),
-            vec2(0,1),
-            vec2(1,0),
-            vec2(1,1)
-        );
+        vec2(0,0),
+        vec2(0,1),
+        vec2(1,0),
+        vec2(1,1)
+    );
+    const uint vertexIds[] = uint[](${Cube.faceIndices.map(indice => `${indice}u`).join(', ')});
+    uint vertexId = vertexIds[gl_VertexID % 6];
     vUv = uvs[vertexId];
 #endif // ${cstVoxelRounded} || ${cstVoxelNoise} || ${cstVoxelGrid}
 
