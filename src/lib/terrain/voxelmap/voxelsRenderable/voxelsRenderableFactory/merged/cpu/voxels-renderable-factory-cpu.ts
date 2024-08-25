@@ -73,8 +73,11 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
             const registerFace = (faceData: FaceData, checkerboardCellId: CheckerboardCellId) => {
                 faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
                     verticesData1[faceVertexIndex] = this.vertexData1Encoder.encode(
-                        faceData.voxelLocalPosition,
-                        faceVertexData.localPosition,
+                        {
+                            x: faceData.voxelLocalPosition.x + faceVertexData.localPosition.x,
+                            y: faceData.voxelLocalPosition.y + faceVertexData.localPosition.y,
+                            z: faceData.voxelLocalPosition.z + faceVertexData.localPosition.z,
+                        },
                         faceData.faceId,
                         faceVertexData.ao,
                         [faceVertexData.roundnessX, faceVertexData.roundnessY]
