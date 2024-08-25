@@ -7,6 +7,7 @@ import {
     type VertexData,
     type VoxelsChunkData,
 } from '../../voxels-renderable-factory-base';
+import { CheckerboardCellId } from '../vertex-data2-encoder';
 import { VoxelsRenderableFactory } from '../voxels-renderable-factory';
 
 type FaceData = {
@@ -69,7 +70,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
             };
 
             const verticesData1 = new Uint32Array(4);
-            const registerFace = (faceData: FaceData, faceNoiseId: number) => {
+            const registerFace = (faceData: FaceData, checkerboardCellId: CheckerboardCellId) => {
                 faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
                     verticesData1[faceVertexIndex] = this.vertexData1Encoder.encode(
                         faceData.voxelLocalPosition,
@@ -82,7 +83,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
 
                 const vertexData2 = this.vertexData2Encoder.encode(
                     faceData.voxelMaterialId,
-                    faceNoiseId,
+                    checkerboardCellId,
                     this.cube.faces[faceData.faceType].normal.id,
                     this.cube.faces[faceData.faceType].uvRight.id
                 );
@@ -94,21 +95,21 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                 }
             };
 
-            const computeFaceNoiseId = (voxelIsCheckerboard: boolean, voxelLocalPosition: THREE.Vector3Like) => {
-                if (voxelIsCheckerboard) {
-                    return (this.checkerboardPattern.x * voxelLocalPosition.x +
-                        this.checkerboardPattern.y * voxelLocalPosition.y +
-                        this.checkerboardPattern.z * voxelLocalPosition.z) %
-                        2;
-                } else {
-                    return 2 + Math.floor(Math.random() * (this.vertexData2Encoder.faceNoiseId.maxValue - 2));
+            const computeCheckerboardCellId = (voxelIsCheckerboard: boolean, voxelLocalPosition: THREE.Vector3Like): CheckerboardCellId => {
+                if (!voxelIsCheckerboard) {
+                    return 0;
                 }
+                const color = this.checkerboardPattern.x * voxelLocalPosition.x +
+                    this.checkerboardPattern.y * voxelLocalPosition.y +
+                    this.checkerboardPattern.z * voxelLocalPosition.z;
+
+                return 1 + (color % 2) as CheckerboardCellId;
             };
 
             const voxelsChunkCache = this.buildLocalMapCache(voxelsChunkData);
             for (const faceData of this.iterateOnVisibleFacesWithCache(voxelsChunkCache)) {
-                const faceNoiseId = computeFaceNoiseId(faceData.voxelIsCheckerboard, faceData.voxelLocalPosition);
-                registerFace(faceData, faceNoiseId);
+                const checkerboardCellId = computeCheckerboardCellId(faceData.voxelIsCheckerboard, faceData.voxelLocalPosition);
+                registerFace(faceData, checkerboardCellId);
             }
 
             return new Uint32Array(bufferData.buffer.subarray(0, uint32PerVertex * bufferData.verticesCount));

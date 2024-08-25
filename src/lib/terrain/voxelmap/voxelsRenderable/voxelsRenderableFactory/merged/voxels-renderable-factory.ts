@@ -74,6 +74,7 @@ in uint ${VoxelsRenderableFactory.data2AttributeName};
 
 #if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise}) || defined(${cstVoxelGrid})
 out vec2 vUv;
+out vec2 vModelUv;
 #endif // ${cstVoxelRounded} || ${cstVoxelNoise} || ${cstVoxelGrid}
 
 #ifdef ${cstVoxelRounded}
@@ -112,6 +113,16 @@ void main() {`,
     const uint vertexIds[] = uint[](${Cube.faceIndices.map(indice => `${indice}u`).join(', ')});
     uint vertexId = vertexIds[gl_VertexID % 6];
     vUv = uvs[vertexId];
+
+    if (faceId == ${Cube.facesById.findIndex(face => face.type === "front")}u ||
+        faceId == ${Cube.facesById.findIndex(face => face.type === "back")}u) {
+        vModelUv = modelPosition.xy;
+    } else if (faceId == ${Cube.facesById.findIndex(face => face.type === "up")}u ||
+               faceId == ${Cube.facesById.findIndex(face => face.type === "down")}u) {
+        vModelUv = modelPosition.xz;
+    } else {
+        vModelUv = modelPosition.yz;
+    }
 #endif // ${cstVoxelRounded} || ${cstVoxelNoise} || ${cstVoxelGrid}
 
 #ifdef ${cstVoxelRounded}
@@ -173,6 +184,7 @@ uniform mat3 normalMatrix; // from three.js
 
 #if defined(${cstVoxelRounded}) || defined(${cstVoxelNoise}) || defined(${cstVoxelGrid})
 in vec2 vUv;
+in vec2 vModelUv;
 #endif // ${cstVoxelRounded} || ${cstVoxelNoise} || ${cstVoxelGrid}
 
 #ifdef ${cstVoxelRounded}
@@ -210,12 +222,14 @@ vec3 computeModelNormal() {
 
 #ifdef ${cstVoxelNoise}
 float computeNoise() {
-    int noiseId = int(${VoxelsRenderableFactory.vertexData2Encoder.faceNoiseId.glslDecode('vData2')});
-    ivec2 texelCoords = clamp(ivec2(vUv * ${this.noiseResolution.toFixed(1)}), ivec2(0), ivec2(${this.noiseResolution - 1}));
-    texelCoords.x += noiseId * ${this.noiseResolution};
-    float noise = texelFetch(uNoiseTexture, texelCoords, 0).r - 0.5;
-    float noiseStrength = uNoiseStrength;
-    if (noiseId < 2) {
+    int checkerboardCellId = int(${VoxelsRenderableFactory.vertexData2Encoder.checkerboardCellId.glslDecode('vData2')});
+    float noise, noiseStrength;
+    if (checkerboardCellId == 0) {
+        ivec2 texelCoords = ivec2(mod(vModelUv * ${this.noiseResolution.toFixed(1)}, vec2(${this.noiseTextureSize})));
+        noise = texelFetch(uNoiseTexture, texelCoords, 0).r - 0.5;
+        noiseStrength = uNoiseStrength;
+    } else {
+        noise = 2.0 * (float(checkerboardCellId) - 1.5);
         noiseStrength = uCheckerboardStrength;
     }
     return noiseStrength * noise;
@@ -245,7 +259,8 @@ void main() {
 
 #ifdef ${cstVoxelGrid}
     if (uGridThickness > 0.0) {
-        vec2 fromCenter = abs(vUv - 0.5);
+        vec2 uv = fract(vModelUv);
+        vec2 fromCenter = abs(uv - 0.5);
         vec2 isEdge = step(vec2(0.5 - uGridThickness), fromCenter);
         diffuseColor.rgb = mix(
             diffuseColor.rgb,
@@ -329,7 +344,6 @@ void main() {
         super({
             voxelMaterialsList: params.voxelMaterialsList,
             voxelTypeEncoder: VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId,
-            noiseIdEncoder: VoxelsRenderableFactory.vertexData2Encoder.faceNoiseId,
             noiseResolution: params.noiseResolution,
             checkerboardType: params.checkerboardType,
         });

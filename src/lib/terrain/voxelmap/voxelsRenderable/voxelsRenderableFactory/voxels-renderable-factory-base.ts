@@ -32,7 +32,6 @@ type CheckerboardType = 'x' | 'y' | 'z' | 'xy' | 'xz' | 'yz' | 'xyz';
 type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly voxelTypeEncoder: PackedUintFragment;
-    readonly noiseIdEncoder: PackedUintFragment;
     readonly noiseResolution?: number | undefined;
     readonly checkerboardType?: undefined | CheckerboardType;
 };
@@ -46,7 +45,7 @@ abstract class VoxelsRenderableFactoryBase {
     private readonly noiseTexture: THREE.DataTexture;
 
     protected readonly noiseResolution: number = 5;
-    private readonly noiseTypesCount: number = 16;
+    protected readonly noiseTextureSize: number = 64;
     protected readonly checkerboardType: CheckerboardType = 'xyz';
 
     protected readonly uniformsTemplate: VoxelsMaterialUniforms;
@@ -63,20 +62,8 @@ abstract class VoxelsRenderableFactoryBase {
             this.checkerboardType = params.checkerboardType;
         }
 
-        this.noiseTexture = VoxelsRenderableFactoryBase.buildNoiseTexture(this.noiseResolution, this.noiseTypesCount);
+        this.noiseTexture = VoxelsRenderableFactoryBase.buildNoiseTexture(this.noiseTextureSize);
         this.noiseTexture.needsUpdate = true;
-        const noiseTextureSize = this.noiseTexture.image;
-        if (noiseTextureSize.height !== this.noiseResolution) {
-            throw new Error(`Noise texture should have a height of "${this.noiseResolution}" (has "${noiseTextureSize.height}").`);
-        }
-        const noiseTypesCount = noiseTextureSize.width / noiseTextureSize.height;
-        if (!Number.isInteger(noiseTypesCount) || noiseTypesCount <= 0) {
-            throw new Error(`Noise texture should have  width multiple of "${this.noiseResolution}" (has "${noiseTextureSize.width}").`);
-        }
-        if (noiseTypesCount > params.noiseIdEncoder.maxValue + 1) {
-            throw new Error(`Cannot have more than "${params.noiseIdEncoder.maxValue + 1}" noises (has "${noiseTypesCount}").`);
-        }
-        this.noiseTypesCount = noiseTypesCount;
 
         this.texture = VoxelsRenderableFactoryBase.buildMaterialsTexture(params.voxelMaterialsList, params.voxelTypeEncoder);
 
@@ -183,8 +170,8 @@ abstract class VoxelsRenderableFactoryBase {
         return texture;
     }
 
-    private static buildNoiseTexture(resolution: number, typesCount: number): THREE.DataTexture {
-        const textureWidth = resolution * typesCount;
+    private static buildNoiseTexture(resolution: number): THREE.DataTexture {
+        const textureWidth = resolution;
         const textureHeight = resolution;
         const textureData = new Uint8Array(4 * textureWidth * textureHeight);
 
@@ -192,21 +179,6 @@ abstract class VoxelsRenderableFactoryBase {
             textureData[i] = 256 * Math.random();
         }
 
-        // first two IDs are for checkerboard
-        if (typesCount < 3) {
-            throw new Error(`There should be at least 3 noise types.`);
-        }
-        for (let iY = 0; iY < resolution; iY++) {
-            for (let iNoiseId = 0; iNoiseId < 2; iNoiseId++) {
-                const value = iNoiseId * 255;
-                for (let deltaX = 0; deltaX < resolution; deltaX++) {
-                    const iX = iNoiseId * resolution + deltaX;
-                    for (let iChannel = 0; iChannel < 4; iChannel++) {
-                        textureData[4 * (iX + iY * textureWidth) + iChannel] = value;
-                    }
-                }
-            }
-        }
         return new THREE.DataTexture(textureData, textureWidth, textureHeight);
     }
 }
