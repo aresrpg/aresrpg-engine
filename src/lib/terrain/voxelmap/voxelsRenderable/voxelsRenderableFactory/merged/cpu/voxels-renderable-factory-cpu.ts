@@ -70,11 +70,11 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
             };
 
             const verticesData1 = new Uint32Array(4);
-            const registerFace = (faceData: FaceData, checkerboardCellId: CheckerboardCellId) => {
+            const registerFace = (faceData: FaceData, checkerboardCellId: CheckerboardCellId, repeatX: number) => {
                 faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
                     verticesData1[faceVertexIndex] = this.vertexData1Encoder.encode(
                         {
-                            x: faceData.voxelLocalPosition.x + faceVertexData.localPosition.x,
+                            x: faceData.voxelLocalPosition.x + faceVertexData.localPosition.x * (1 + repeatX),
                             y: faceData.voxelLocalPosition.y + faceVertexData.localPosition.y,
                             z: faceData.voxelLocalPosition.z + faceVertexData.localPosition.z,
                         },
@@ -110,9 +110,69 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
             };
 
             const voxelsChunkCache = this.buildLocalMapCache(voxelsChunkData);
-            for (const faceData of this.iterateOnVisibleFacesWithCache(voxelsChunkCache)) {
-                const checkerboardCellId = computeCheckerboardCellId(faceData.voxelIsCheckerboard, faceData.voxelLocalPosition);
-                registerFace(faceData, checkerboardCellId);
+
+            const mergeFaces = true as boolean;
+            if (!mergeFaces) {
+                for (const faceData of this.iterateOnVisibleFacesWithCache(voxelsChunkCache)) {
+                    const checkerboardCellId = computeCheckerboardCellId(faceData.voxelIsCheckerboard, faceData.voxelLocalPosition);
+                    registerFace(faceData, checkerboardCellId, 0);
+                }
+            } else {
+                type ReferenceFaceData = {
+                    readonly faceData: FaceData;
+                    readonly checkerboardCellId: CheckerboardCellId;
+                    repeatX: number;
+                };
+                const referenceFacesData: Record<Cube.FaceType, ReferenceFaceData | null> = {
+                    up: null,
+                    down: null,
+                    left: null,
+                    right: null,
+                    front: null,
+                    back: null,
+                };
+                for (const faceData of this.iterateOnVisibleFacesWithCache(voxelsChunkCache)) {
+                    const referenceFaceData = referenceFacesData[faceData.faceType];
+                    if (referenceFaceData) {
+                        let mergeWithPreviousFace =
+                            (referenceFaceData.faceData.voxelMaterialId === faceData.voxelMaterialId) &&
+                            (!referenceFaceData.faceData.voxelIsCheckerboard) &&
+                            (!faceData.voxelIsCheckerboard) &&
+                            (referenceFaceData.faceData.voxelLocalPosition.x + referenceFaceData.repeatX + 1 === faceData.voxelLocalPosition.x) &&
+                            (referenceFaceData.faceData.voxelLocalPosition.y === faceData.voxelLocalPosition.y) &&
+                            (referenceFaceData.faceData.voxelLocalPosition.z === faceData.voxelLocalPosition.z) &&
+                            (!['left', 'right'].includes(referenceFaceData.faceData.faceType));
+
+                        for (let iV = 0; iV < 4 && mergeWithPreviousFace; iV++) {
+                            mergeWithPreviousFace &&= referenceFaceData.faceData.verticesData[iV]!.ao === faceData.verticesData[iV]!.ao;
+                            mergeWithPreviousFace &&= referenceFaceData.faceData.verticesData[iV]!.roundnessX === faceData.verticesData[iV]!.roundnessX;
+                            mergeWithPreviousFace &&= referenceFaceData.faceData.verticesData[iV]!.roundnessY === faceData.verticesData[iV]!.roundnessY;
+                        }
+
+                        if (mergeWithPreviousFace) {
+                            referenceFaceData.repeatX++;
+                        } else {
+                            registerFace(referenceFaceData.faceData, referenceFaceData.checkerboardCellId, referenceFaceData.repeatX);
+                            referenceFacesData[faceData.faceType] = {
+                                faceData,
+                                checkerboardCellId: computeCheckerboardCellId(faceData.voxelIsCheckerboard, faceData.voxelLocalPosition),
+                                repeatX: 0,
+                            };
+                        }
+                    } else {
+                        referenceFacesData[faceData.faceType] = {
+                            faceData,
+                            checkerboardCellId: computeCheckerboardCellId(faceData.voxelIsCheckerboard, faceData.voxelLocalPosition),
+                            repeatX: 0,
+                        };
+                    }
+                }
+
+                for (const referenceFaceData of Object.values(referenceFacesData)) {
+                    if (referenceFaceData) {
+                        registerFace(referenceFaceData.faceData, referenceFaceData.checkerboardCellId, referenceFaceData.repeatX);
+                    }
+                }
             }
 
             return new Uint32Array(bufferData.buffer.subarray(0, uint32PerVertex * bufferData.verticesCount));
