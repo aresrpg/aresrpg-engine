@@ -6,26 +6,30 @@ import { VoxelsRenderableFactoryCpuWorker } from '../../../voxelsRenderable/voxe
 import { type CheckerboardType } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 import { PatchFactoryBase } from '../patch-factory-base';
 
+type Parameters = {
+    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly patchSize: VoxelsChunkSize;
+    readonly workersPoolSize: number;
+    readonly checkerboardType?: CheckerboardType;
+    readonly greedyMeshing?: boolean;
+};
+
 class PatchFactoryCpuWorker extends PatchFactoryBase {
     public readonly maxPatchesComputedInParallel: number;
     private readonly throttler: PromisesQueue;
 
-    public constructor(
-        voxelMaterialsList: ReadonlyArray<IVoxelMaterial>,
-        patchSize: VoxelsChunkSize,
-        workersPoolSize: number,
-        checkerboardType?: CheckerboardType
-    ) {
+    public constructor(params: Parameters) {
         const voxelsRenderableFactory = new VoxelsRenderableFactoryCpuWorker({
-            voxelMaterialsList,
-            maxVoxelsChunkSize: patchSize,
-            workersPoolSize,
-            checkerboardType,
+            voxelMaterialsList: params.voxelMaterialsList,
+            maxVoxelsChunkSize: params.patchSize,
+            workersPoolSize: params.workersPoolSize,
+            checkerboardType: params.checkerboardType,
+            greedyMeshing: params.greedyMeshing,
         });
         super(voxelsRenderableFactory);
 
         this.throttler = new PromisesQueue(voxelsRenderableFactory.workersPoolSize);
-        this.maxPatchesComputedInParallel = workersPoolSize;
+        this.maxPatchesComputedInParallel = params.workersPoolSize;
     }
 
     protected override queryMapAndBuildVoxelsRenderable(

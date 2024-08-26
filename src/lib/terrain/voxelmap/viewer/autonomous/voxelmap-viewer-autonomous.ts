@@ -50,7 +50,10 @@ class VoxelmapViewerAutonomous extends VoxelmapViewerBase {
 
         let patchFactory: PatchFactoryBase;
         if (computingMode === EPatchComputingMode.CPU_CACHED) {
-            patchFactory = new PatchFactoryCpu(map.voxelMaterialsList, voxelsChunksSize);
+            patchFactory = new PatchFactoryCpu({
+                voxelMaterialsList: map.voxelMaterialsList,
+                patchSize: voxelsChunksSize,
+            });
         } else if (computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
             patchFactory = new PatchFactoryGpuSequential(map.voxelMaterialsList, voxelsChunksSize);
         } else if (computingMode === EPatchComputingMode.GPU_OPTIMIZED) {

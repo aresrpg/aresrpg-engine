@@ -27,6 +27,7 @@ type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly maxVoxelsChunkSize: VoxelsChunkSize;
     readonly checkerboardType?: CheckerboardType | undefined;
+    readonly greedyMeshing?: boolean | undefined;
 };
 
 class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
@@ -46,6 +47,8 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
             y: +this.checkerboardType.includes('y'),
             z: +this.checkerboardType.includes('z'),
         },
+
+        greedyMeshing: true,
 
         buildBuffer(voxelsChunkData: VoxelsChunkData): Uint32Array {
             if (voxelsChunkData.isEmpty) {
@@ -70,11 +73,11 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
             };
 
             const verticesData1 = new Uint32Array(4);
-            const registerFace = (faceData: FaceData, checkerboardCellId: CheckerboardCellId, repeatX: number) => {
+            const registerFace = (faceData: FaceData, checkerboardCellId: CheckerboardCellId, _repeatX: number) => {
                 faceData.verticesData.forEach((faceVertexData: VertexData, faceVertexIndex: number) => {
                     verticesData1[faceVertexIndex] = this.vertexData1Encoder.encode(
                         {
-                            x: faceData.voxelLocalPosition.x + faceVertexData.localPosition.x * (1 + repeatX),
+                            x: faceData.voxelLocalPosition.x + faceVertexData.localPosition.x * (1 + 0),
                             y: faceData.voxelLocalPosition.y + faceVertexData.localPosition.y,
                             z: faceData.voxelLocalPosition.z + faceVertexData.localPosition.z,
                         },
@@ -112,8 +115,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
 
             const voxelsChunkCache = this.buildLocalMapCache(voxelsChunkData);
 
-            const mergeFaces = true as boolean;
-            if (!mergeFaces) {
+            if (!this.greedyMeshing) {
                 for (const faceData of this.iterateOnVisibleFacesWithCache(voxelsChunkCache)) {
                     const checkerboardCellId = computeCheckerboardCellId(faceData.voxelIsCheckerboard, faceData.voxelLocalPosition);
                     registerFace(faceData, checkerboardCellId, 0);
@@ -284,11 +286,9 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
     };
 
     public constructor(params: Parameters) {
-        super({
-            voxelMaterialsList: params.voxelMaterialsList,
-            maxVoxelsChunkSize: params.maxVoxelsChunkSize,
-            checkerboardType: params.checkerboardType,
-        });
+        super(params);
+
+        this.serializableFactory.greedyMeshing = params.greedyMeshing ?? true;
     }
 
     public async buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkData): Promise<GeometryAndMaterial[]> {
@@ -310,6 +310,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
     vertexData2Encoder: ${this.serializableFactory.vertexData2Encoder.serialize()},
     voxelmapDataPacking: ${this.serializableFactory.voxelmapDataPacking.serialize()},
     checkerboardPattern: ${JSON.stringify(this.serializableFactory.checkerboardPattern)},
+    greedyMeshing: ${this.serializableFactory.greedyMeshing},
     ${this.serializableFactory.buildBuffer},
     ${this.serializableFactory.buildLocalMapCache},
     ${this.serializableFactory.iterateOnVisibleFacesWithCache},

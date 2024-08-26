@@ -6,14 +6,22 @@ import { VoxelsRenderableFactoryCpu } from '../../../voxelsRenderable/voxelsRend
 import { type CheckerboardType } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 import { PatchFactoryBase } from '../patch-factory-base';
 
+type Parameters = {
+    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly patchSize: VoxelsChunkSize;
+    readonly checkerboardType?: CheckerboardType;
+    readonly greedyMeshing?: boolean;
+};
+
 class PatchFactoryCpu extends PatchFactoryBase {
     private readonly throttler = new PromisesQueue(1);
 
-    public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, patchSize: VoxelsChunkSize, checkerboardType?: CheckerboardType) {
+    public constructor(params: Parameters) {
         const voxelsRenderableFactory = new VoxelsRenderableFactoryCpu({
-            voxelMaterialsList,
-            maxVoxelsChunkSize: patchSize,
-            checkerboardType,
+            voxelMaterialsList: params.voxelMaterialsList,
+            maxVoxelsChunkSize: params.patchSize,
+            checkerboardType: params.checkerboardType,
+            greedyMeshing: params.greedyMeshing,
         });
         super(voxelsRenderableFactory);
     }
