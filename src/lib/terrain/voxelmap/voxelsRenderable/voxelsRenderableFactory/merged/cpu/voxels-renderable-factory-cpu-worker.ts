@@ -10,6 +10,7 @@ type Parameters = {
     readonly maxVoxelsChunkSize: VoxelsChunkSize;
     readonly workersPoolSize: number;
     readonly checkerboardType?: CheckerboardType | undefined;
+    readonly greedyMeshing?: boolean | undefined;
 };
 
 class VoxelsRenderableFactoryCpuWorker extends VoxelsRenderableFactoryCpu {
@@ -21,11 +22,7 @@ class VoxelsRenderableFactoryCpuWorker extends VoxelsRenderableFactoryCpu {
     private workersPool: DedicatedWorkersPool | null = null;
 
     public constructor(params: Parameters) {
-        super({
-            voxelMaterialsList: params.voxelMaterialsList,
-            maxVoxelsChunkSize: params.maxVoxelsChunkSize,
-            checkerboardType: params.checkerboardType,
-        });
+        super(params);
 
         this.workersPoolSize = params.workersPoolSize;
     }
