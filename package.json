@@ -6,13 +6,14 @@
     "dist"
   ],
   "scripts": {
-    "publish": "npm run build && npm run lint",
+    "publish": "npm run clean && npm run build && npm run lint",
     "build": "tsc -p ./src/lib/tsconfig.json",
-    "clean": "shx rm -rf dist test/**/*.js*",
+    "clean": "shx rm -rf dist",
     "lint": "eslint . --ext .ts && prettier . --check",
     "format": "prettier . --write && eslint . --fix --ext .ts",
     "test:http-server": "http-server ./test -p 8086 -c-1",
     "test:build": "webpack --config src/test/webpack.config.js --watch",
+    "test:clean": "shx rm -rf test/**/*/js",
     "postversion": "git push --follow-tags"
   },
   "publishConfig": {
