@@ -1,4 +1,4 @@
-import * as THREE from '../../../three-usage';
+import * as THREE from 'three-usage';
 
 import { EVoxelsDisplayMode, type VoxelsMaterials } from './voxels-material';
 

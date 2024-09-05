@@ -1,5 +1,6 @@
+import * as THREE from 'three-usage';
+
 import { processAsap } from '../../../helpers/async/async-sync';
-import * as THREE from '../../../three-usage';
 import { voxelmapDataPacking, type ILocalMapData, type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../i-voxelmap';
 import { PatchId } from '../patch/patch-id';
 

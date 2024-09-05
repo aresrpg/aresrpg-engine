@@ -1,5 +1,6 @@
+import * as THREE from 'three-usage';
+
 import { vec2ToString } from '../../helpers/string';
-import * as THREE from '../../three-usage';
 
 interface IRoot {
     readonly basePatchSize: number;

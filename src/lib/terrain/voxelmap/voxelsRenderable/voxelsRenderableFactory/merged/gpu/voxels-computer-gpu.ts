@@ -1,10 +1,11 @@
 /// <reference types="@webgpu/types" />
 
+import type * as THREE from 'three-usage';
+
 import { PromisesQueue } from '../../../../../../helpers/async/promises-queue';
 import { logger } from '../../../../../../helpers/logger';
 import { vec3ToString } from '../../../../../../helpers/string';
 import { getGpuDevice } from '../../../../../../helpers/webgpu/webgpu-device';
-import type * as THREE from '../../../../../../three-usage';
 import { voxelmapDataPacking } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
 import { type CheckerboardType, type VoxelsChunkData } from '../../voxels-renderable-factory-base';

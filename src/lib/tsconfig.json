@@ -2,6 +2,9 @@
   "extends": "../../tsconfig.json",
   "files": ["./index.ts"],
   "compilerOptions": {
-    "outDir": "../../dist"
+    "outDir": "../../dist",
+    "paths": {
+      "three-usage": ["./libs/three-usage.ts"]
+    }
   }
 }

@@ -1,7 +1,8 @@
+import * as THREE from 'three-usage';
+
 import { nextPowerOfTwo } from '../../../../helpers/math';
 import { vec3ToString } from '../../../../helpers/string';
 import { type PackedUintFragment } from '../../../../helpers/uint-packing';
-import * as THREE from '../../../../three-usage';
 import { type IVoxelMaterial } from '../../i-voxelmap';
 import { type VoxelsMaterialUniforms, type VoxelsMaterials } from '../voxels-material';
 import { VoxelsRenderable } from '../voxels-renderable';

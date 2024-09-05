@@ -1,5 +1,6 @@
+import * as THREE from 'three-usage';
+
 import { type MeshesStatistics } from '../../helpers/meshes-statistics';
-import * as THREE from '../../three-usage';
 
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapRoot, type HeightmapRootOptions } from './heightmap-root';

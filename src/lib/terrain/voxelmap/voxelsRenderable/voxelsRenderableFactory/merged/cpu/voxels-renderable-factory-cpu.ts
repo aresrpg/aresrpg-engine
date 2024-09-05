@@ -1,4 +1,5 @@
-import type * as THREE from '../../../../../../three-usage';
+import type * as THREE from 'three-usage';
+
 import { voxelmapDataPacking, type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
 import {
