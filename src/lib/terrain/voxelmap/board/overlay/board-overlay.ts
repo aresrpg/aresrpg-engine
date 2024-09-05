@@ -1,4 +1,4 @@
-import * as THREE from '../../../../three-usage';
+import * as THREE from 'three-usage';
 
 type GridCoord = { readonly x: number; readonly z: number };
 

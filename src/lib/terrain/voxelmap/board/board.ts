@@ -1,4 +1,5 @@
-import * as THREE from '../../../three-usage';
+import * as THREE from 'three-usage';
+
 import { voxelmapDataPacking, type IVoxelMap } from '../i-voxelmap';
 
 enum EBoardSquareType {

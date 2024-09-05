@@ -1,4 +1,4 @@
-import * as THREE from '../three-usage';
+import * as THREE from 'three-usage';
 
 import { type HeightmapViewer, type HeightmapStatistics } from './heightmap/heightmap-viewer';
 import { type VoxelmapStatistics, type VoxelmapViewerBase } from './voxelmap/viewer/voxelmap-viewer-base';

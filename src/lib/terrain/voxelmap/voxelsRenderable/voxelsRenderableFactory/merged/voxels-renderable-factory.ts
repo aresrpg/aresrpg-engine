@@ -1,5 +1,6 @@
+import * as THREE from 'three-usage';
+
 import { vec3ToString } from '../../../../../helpers/string';
-import * as THREE from '../../../../../three-usage';
 import { type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterialUniforms, type VoxelsMaterials } from '../../voxels-material';
 import * as Cube from '../cube';

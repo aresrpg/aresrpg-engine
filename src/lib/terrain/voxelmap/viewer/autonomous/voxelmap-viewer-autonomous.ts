@@ -1,7 +1,8 @@
+import * as THREE from 'three-usage';
+
 import { DisposableMap } from '../../../../helpers/disposable-map';
 import { logger } from '../../../../helpers/logger';
 import { vec3ToString } from '../../../../helpers/string';
-import * as THREE from '../../../../three-usage';
 import { type VoxelsChunkSize, type IVoxelMap } from '../../i-voxelmap';
 import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-cpu';
 import { PatchFactoryGpuOptimized } from '../../patch/patch-factory/merged/patch-factory-gpu-optimized';

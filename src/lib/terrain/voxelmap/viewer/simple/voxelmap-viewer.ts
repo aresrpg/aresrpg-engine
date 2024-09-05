@@ -1,7 +1,8 @@
+import * as THREE from 'three-usage';
+
 import { AsyncTask } from '../../../../helpers/async/async-task';
 import { PromisesQueue } from '../../../../helpers/async/promises-queue';
 import { vec3ToString } from '../../../../helpers/string';
-import * as THREE from '../../../../three-usage';
 import { type IVoxelMaterial, type VoxelsChunkSize } from '../../i-voxelmap';
 import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-cpu';
 import { PatchFactoryCpuWorker } from '../../patch/patch-factory/merged/patch-factory-cpu-worker';

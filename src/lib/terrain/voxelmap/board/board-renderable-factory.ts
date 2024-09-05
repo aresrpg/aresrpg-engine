@@ -1,4 +1,5 @@
-import * as THREE from '../../../three-usage';
+import * as THREE from 'three-usage';
+
 import { voxelmapDataPacking, type IVoxelMaterial } from '../i-voxelmap';
 import { type VoxelsRenderable } from '../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryCpuWorker } from '../voxelsRenderable/voxelsRenderableFactory/merged/cpu/voxels-renderable-factory-cpu-worker';

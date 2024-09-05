@@ -1,5 +1,6 @@
+import * as THREE from 'three-usage';
+
 import { AsyncTask } from '../../../../../helpers/async/async-task';
-import * as THREE from '../../../../../three-usage';
 import { type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryGpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';

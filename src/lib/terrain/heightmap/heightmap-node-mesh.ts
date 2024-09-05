@@ -1,5 +1,6 @@
+import type * as THREE from 'three-usage';
+
 import { processAsap, type SyncOrPromise } from '../../helpers/async/async-sync';
-import type * as THREE from '../../three-usage';
 
 class HeightmapNodeMesh {
     private mesh: THREE.Mesh | null = null;

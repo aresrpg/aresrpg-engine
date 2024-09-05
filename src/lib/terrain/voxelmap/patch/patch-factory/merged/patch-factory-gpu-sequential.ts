@@ -1,5 +1,6 @@
+import * as THREE from 'three-usage';
+
 import { PromisesQueue } from '../../../../../helpers/async/promises-queue';
-import * as THREE from '../../../../../three-usage';
 import { type VoxelsChunkSize, type IVoxelMap, type IVoxelMaterial } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryGpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';

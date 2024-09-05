@@ -15,5 +15,5 @@ export {
 } from 'three';
 export { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 export { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
-export * from '../../lib/three-usage';
+export * from '../../lib/libs/three-usage';
 export { Stats };

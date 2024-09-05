@@ -1,6 +1,7 @@
+import * as THREE from 'three-usage';
+
 import { logger } from '../../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../../helpers/meshes-statistics';
-import * as THREE from '../../../three-usage';
 import { type VoxelsChunkSize } from '../i-voxelmap';
 import { PatchId } from '../patch/patch-id';
 import { EVoxelsDisplayMode } from '../voxelsRenderable/voxels-material';
