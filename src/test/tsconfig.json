@@ -3,9 +3,7 @@
   "compilerOptions": {
     "declaration": false,
     "paths": {
-      "three-usage-test": [
-        "./libs/three-usage-test.ts"
-      ]
+      "three-usage-test": ["./libs/three-usage-test.ts"]
     }
   }
 }
