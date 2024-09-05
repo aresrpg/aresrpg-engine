@@ -7,12 +7,12 @@
   ],
   "scripts": {
     "publish": "npm run build && npm run lint",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p ./src/lib/tsconfig.json",
     "clean": "shx rm -rf dist test/**/*.js*",
     "lint": "eslint . --ext .ts && prettier . --check",
     "format": "prettier . --write && eslint . --fix --ext .ts",
     "test:http-server": "http-server ./test -p 8086 -c-1",
-    "test:build": "webpack --config src/test/config/webpack.config.js --watch",
+    "test:build": "webpack --config src/test/webpack.config.js --watch",
     "postversion": "git push --follow-tags"
   },
   "publishConfig": {

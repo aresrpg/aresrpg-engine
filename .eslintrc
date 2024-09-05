@@ -11,7 +11,7 @@
     "requireConfigFile": false,
     "sourceType": "module",
     "ecmaVersion": 12,
-    "project": ["./src/test/config/tsconfig.json"]
+    "project": ["./tsconfig.json"]
   },
   "rules": {
     "camelcase": "error",

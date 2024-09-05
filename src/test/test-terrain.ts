@@ -1,5 +1,4 @@
-import * as THREE from 'three';
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+import * as THREE from 'three-usage-test';
 
 import {
     BoardHandler,
@@ -231,7 +230,7 @@ class TestTerrain extends TestBase {
         };
         updateAltitude();
 
-        const boardCenterControls = new TransformControls(this.camera, this.renderer.domElement);
+        const boardCenterControls = new THREE.TransformControls(this.camera, this.renderer.domElement);
         boardCenterControls.showY = false;
         boardCenterControls.addEventListener('dragging-changed', event => {
             this.cameraControl.enabled = !event.value;
@@ -245,3 +244,4 @@ class TestTerrain extends TestBase {
 }
 
 export { TestTerrain };
+

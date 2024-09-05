@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "declaration": false,
+    "paths": {
+      "three-usage-test": [
+        "./libs/three-usage-test.ts"
+      ]
+    }
+  }
+}

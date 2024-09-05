@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from 'three-usage-test';
 
 import { type IVoxelMaterial } from '../../lib';
 

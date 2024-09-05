@@ -1,9 +1,9 @@
 const path = require('path');
 
-const PROJECT_DIR = path.resolve(__dirname, '..', '..', '..');
+const PROJECT_DIR = path.resolve(__dirname, '..', '..');
 
-function makeExport(sourceFilepath /* string */, outFolder /* string */, mode /* string */, library /* optional string */) /* void */ {
-  let name = library ? library.toLowerCase() : '[name]';
+function makeExport(sourceFilepath /* string */, outFolder /* string */, mode /* string */, library /* optional string */, externals /* object */) /* void */ {
+  const name = library ? library.toLowerCase() : '[name]';
   const filename = `${name}${mode === 'production' ? '.min' : ''}.js`;
 
   return {
@@ -12,7 +12,7 @@ function makeExport(sourceFilepath /* string */, outFolder /* string */, mode /*
     entry: sourceFilepath,
     output: {
       path: outFolder,
-      filename: filename,
+      filename,
       library,
     },
     target: ['web', 'es5'],
@@ -35,17 +35,24 @@ function makeExport(sourceFilepath /* string */, outFolder /* string */, mode /*
                 compilerOptions: {
                   rootDir: path.join(PROJECT_DIR, 'src'),
                 },
-                configFile: path.join(PROJECT_DIR, 'src', 'test', 'config', 'tsconfig.json'),
+                configFile: path.join(PROJECT_DIR, 'src', 'test', 'tsconfig.json'),
               },
             },
           ],
         },
       ],
     },
+    externals,
   };
 }
 
 const srcDir = path.join(PROJECT_DIR, 'src', 'test');
 const targetDir = path.join(PROJECT_DIR, 'test', 'script');
 
-module.exports = [makeExport(path.join(srcDir, 'main.ts'), targetDir, 'development')];
+module.exports = [
+  makeExport(path.join(srcDir, 'main.ts'), targetDir, 'development', undefined, {
+    "three-usage-test": "THREE",
+    "three": "THREE",
+  }),
+  makeExport(path.join(srcDir, "libs", "three-usage-test.ts"), targetDir, 'development', "THREE"),
+];
