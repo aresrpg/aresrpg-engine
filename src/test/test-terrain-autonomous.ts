@@ -1,4 +1,4 @@
-import type * as THREE from 'three';
+import type * as THREE from 'three-usage-test';
 
 import { HeightmapViewer, TerrainViewer, VoxelmapViewerAutonomous, type IHeightmap, type IVoxelMap } from '../lib';
 

@@ -1,6 +1,6 @@
 import alea from 'alea';
 import { createNoise2D, type NoiseFunction2D } from 'simplex-noise';
-import * as THREE from 'three';
+import * as THREE from 'three-usage-test';
 
 import { safeModulo } from '../../lib/helpers/math';
 import {

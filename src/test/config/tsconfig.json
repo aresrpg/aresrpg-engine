@@ -1,7 +1,0 @@
-{
-  "extends": "../../../tsconfig.json",
-  "files": ["../main.ts"],
-  "compilerOptions": {
-    "declaration": false
-  }
-}

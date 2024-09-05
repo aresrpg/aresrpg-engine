@@ -1,5 +1,4 @@
 {
-  "files": ["src/lib/index.ts"],
   "compilerOptions": {
     /* Type Checking */
     "allowUnreachableCode": false,
@@ -30,7 +29,6 @@
     /* Emit */
     "declaration": true,
     "declarationMap": false,
-    "outDir": "dist",
     "sourceMap": true,
 
     /* JavaScript Support */

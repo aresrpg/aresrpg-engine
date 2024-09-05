@@ -1,5 +1,5 @@
 import alea from 'alea';
-import type * as THREE from 'three';
+import type * as THREE from 'three-usage-test';
 
 import { safeModulo } from '../../../lib/helpers/math';
 

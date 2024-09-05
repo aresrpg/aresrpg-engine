@@ -1,7 +1,4 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
-import Stats from 'three/examples/jsm/libs/stats.module.js';
+import * as THREE from 'three-usage-test';
 
 import { type IHeightmap, type IHeightmapSample, type IVoxelMap, type TerrainViewer } from '../lib';
 
@@ -12,19 +9,19 @@ interface ITerrainMap {
 abstract class TestBase {
     protected abstract readonly terrainViewer: TerrainViewer;
 
-    private readonly stats: Stats;
+    private readonly stats: THREE.Stats;
 
     protected readonly renderer: THREE.WebGLRenderer;
     protected readonly camera: THREE.PerspectiveCamera;
-    protected readonly cameraControl: OrbitControls;
+    protected readonly cameraControl: THREE.OrbitControls;
     protected readonly scene: THREE.Scene;
 
     private started: boolean = false;
 
-    private update: VoidFunction = () => {};
+    private update: VoidFunction = () => { };
 
     public constructor(voxelMap: IHeightmap & IVoxelMap & ITerrainMap) {
-        this.stats = new Stats();
+        this.stats = new THREE.Stats();
         document.body.appendChild(this.stats.dom);
 
         this.renderer = new THREE.WebGLRenderer();
@@ -42,9 +39,9 @@ abstract class TestBase {
         window.addEventListener('resize', udpateRendererSize);
         udpateRendererSize();
 
-        this.camera.position.set(-200, 400, 200);
-        this.cameraControl = new OrbitControls(this.camera, this.renderer.domElement);
-        this.cameraControl.target.set(0, 0, 0);
+        this.camera.position.set(0, 210, 10);
+        this.cameraControl = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.cameraControl.target.set(0, 200, 0);
 
         this.scene = new THREE.Scene();
         this.scene.name = 'Scene';
@@ -80,12 +77,12 @@ abstract class TestBase {
             //     new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true })
             // );
             // playerContainer.add(playerViewSphere);
-            const playerControls = new TransformControls(this.camera, this.renderer.domElement);
+            const playerControls = new  THREE.TransformControls(this.camera, this.renderer.domElement);
             playerControls.addEventListener('dragging-changed', event => {
                 this.cameraControl.enabled = !event.value;
             });
             playerControls.attach(playerContainer);
-            this.scene.add(playerControls);
+            // this.scene.add(playerControls);
 
             let playerVisibilityFrustum: THREE.Frustum | undefined;
 
@@ -167,7 +164,7 @@ abstract class TestBase {
             planeReceivingShadows.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 4);
             planeReceivingShadows.receiveShadow = true;
             this.scene.add(planeReceivingShadows);
-            const planeControls = new TransformControls(this.camera, this.renderer.domElement);
+            const planeControls = new THREE.TransformControls(this.camera, this.renderer.domElement);
             planeControls.addEventListener('dragging-changed', event => {
                 this.cameraControl.enabled = !event.value;
             });
