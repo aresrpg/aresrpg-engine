@@ -244,4 +244,3 @@ class TestTerrain extends TestBase {
 }
 
 export { TestTerrain };
-

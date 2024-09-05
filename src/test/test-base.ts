@@ -18,7 +18,7 @@ abstract class TestBase {
 
     private started: boolean = false;
 
-    private update: VoidFunction = () => { };
+    private update: VoidFunction = () => {};
 
     public constructor(voxelMap: IHeightmap & IVoxelMap & ITerrainMap) {
         this.stats = new THREE.Stats();
@@ -77,7 +77,7 @@ abstract class TestBase {
             //     new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true })
             // );
             // playerContainer.add(playerViewSphere);
-            const playerControls = new  THREE.TransformControls(this.camera, this.renderer.domElement);
+            const playerControls = new THREE.TransformControls(this.camera, this.renderer.domElement);
             playerControls.addEventListener('dragging-changed', event => {
                 this.cameraControl.enabled = !event.value;
             });
