@@ -7,6 +7,7 @@ import {
     EBoardSquareType,
     EComputationMethod,
     HeightmapViewer,
+    InstancedBillboard,
     LineOfSight,
     PathFinder,
     PromisesQueue,
@@ -20,6 +21,7 @@ import {
     type IVoxelMap,
 } from '../lib';
 
+import { type VoxelMap } from './map/voxel-map';
 import { TestBase, type ITerrainMap } from './test-base';
 
 class TestTerrain extends TestBase {
@@ -30,6 +32,11 @@ class TestTerrain extends TestBase {
     private readonly promisesQueue: PromisesQueue;
 
     private readonly map: VoxelmapWrapper;
+
+    private readonly trees: {
+        readonly perPatch: Map<string, THREE.Vector3Like[]>;
+        readonly instancedBillboard: InstancedBillboard;
+    } | null = null;
 
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
         super(map);
@@ -60,9 +67,51 @@ class TestTerrain extends TestBase {
         });
 
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
-        this.terrainViewer.parameters.lod.enabled = false;
+        // this.terrainViewer.parameters.lod.enabled = false;
         // this.terrainViewer.parameters.lod.wireframe = true;
         this.scene.add(this.terrainViewer.container);
+
+        if (!(map as VoxelMap).includeTreesInLod) {
+            const perPatch = new Map<string, THREE.Vector3Like[]>();
+
+            let totalTreesCount = 0;
+            const maxLodPatch = Math.ceil(2000 / this.voxelmapViewer.chunkSize.xz);
+            for (let iPatchZ = -maxLodPatch; iPatchZ <= maxLodPatch; iPatchZ++) {
+                for (let iPatchX = -maxLodPatch; iPatchX <= maxLodPatch; iPatchX++) {
+                    const id = `${iPatchX}_${iPatchZ}`;
+                    const trees = (map as VoxelMap)["getAllTreesForBlock"]( // eslint-disable-line dot-notation
+                        {
+                            x: iPatchX * this.voxelmapViewer.chunkSize.xz,
+                            y: iPatchZ * this.voxelmapViewer.chunkSize.xz,
+                        },
+                        {
+                            x: (iPatchX + 1) * this.voxelmapViewer.chunkSize.xz,
+                            y: (iPatchZ + 1) * this.voxelmapViewer.chunkSize.xz,
+                        }
+                    );
+                    totalTreesCount += trees.length;
+                    perPatch.set(id, trees);
+                }
+            }
+
+            const instancedBillboard = new InstancedBillboard({
+                origin: { x: 0, y: 0.5 * 240 },
+                lockAxis: { x: 0, y: 1, z: 0 },
+                baseSize: { x: 165, y: 240 },
+            });
+            this.scene.add(instancedBillboard.container);
+
+            this.trees = { perPatch, instancedBillboard };
+
+            const scheduleTreesUpdate = () => {
+                setTimeout(() => {
+                    instancedBillboard.setInstancesCount(totalTreesCount);
+                    this.updateTreeBillboards();
+                    scheduleTreesUpdate();
+                }, 2000);
+            };
+            scheduleTreesUpdate();
+        }
 
         this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(
             this.voxelmapViewer.patchSize,
@@ -80,6 +129,33 @@ class TestTerrain extends TestBase {
             }
         });
         this.promisesQueue = new PromisesQueue(this.voxelmapViewer.maxPatchesComputedInParallel + 5);
+    }
+
+    private updateTreeBillboards(): void {
+        if (!this.trees) {
+            return;
+        }
+
+        const nonLodChunks = this.voxelmapViewer.getCompleteChunksColumns();
+
+        let i = 0;
+        for (const [patchIdString, trees] of this.trees.perPatch.entries()) {
+            const [patchIdX, patchIdZ] = patchIdString.split('_').map(s => parseInt(s));
+            const patchIsLod = !!nonLodChunks.find(chunkId => chunkId.x === patchIdX && chunkId.z === patchIdZ);
+
+            for (const tree of trees) {
+                this.trees.instancedBillboard.setInstanceTransform(
+                    i++,
+                    {
+                        x: tree.x + 0.5,
+                        y: tree.y - Number(patchIsLod) * 100,
+                        z: tree.z + 0.5,
+                    },
+                    0,
+                    1 / 15
+                );
+            }
+        }
     }
 
     protected override showMapPortion(box: THREE.Box3): void {
@@ -239,7 +315,7 @@ class TestTerrain extends TestBase {
         boardCenterControls.attach(boardCenterContainer);
 
         this.scene.add(boardCenterContainer);
-        this.scene.add(boardCenterControls);
+        // this.scene.add(boardCenterControls);
     }
 }
 

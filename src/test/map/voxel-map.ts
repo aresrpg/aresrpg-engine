@@ -57,15 +57,18 @@ class VoxelMap implements IVoxelMap, IHeightmap {
 
     private readonly colorVariationNoise: NoiseFunction2D;
 
+    public readonly includeTreesInLod: boolean;
+
     private thresholdWater: number;
     private thresholdSand: number;
     private thresholdGrass: number;
     private thresholdRock: number;
 
-    public constructor(scaleXZ: number, altitude: number, seed: string) {
+    public constructor(scaleXZ: number, altitude: number, seed: string, includeTreesInLod: boolean) {
         this.scaleXZ = scaleXZ;
         this.scaleY = altitude;
         this.maxAltitude = altitude + 1;
+        this.includeTreesInLod = includeTreesInLod;
 
         this.thresholdWater = 0.1 * this.scaleY;
         this.thresholdSand = 0.3 * this.scaleY;
@@ -237,6 +240,10 @@ class VoxelMap implements IVoxelMap, IHeightmap {
     public sampleHeightmap(coords: IHeightmapCoords[]): IHeightmapSample[] | Promise<IHeightmapSample[]> {
         const result = coords.map(coords => {
             let sample = this.sampleHeightmapBaseTerrain(coords.x, coords.z);
+
+            if (!this.includeTreesInLod) {
+                return sample;
+            }
 
             const voxelsWorldCoords = {
                 x: Math.floor(coords.x),

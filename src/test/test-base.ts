@@ -1,6 +1,6 @@
 import * as THREE from 'three-usage-test';
 
-import { InstancedBillboard, type IHeightmap, type IHeightmapSample, type IVoxelMap, type TerrainViewer } from '../lib';
+import { type IHeightmap, type IHeightmapSample, type IVoxelMap, type TerrainViewer } from '../lib';
 
 interface ITerrainMap {
     sampleHeightmapBaseTerrain(x: number, z: number): IHeightmapSample;
@@ -18,7 +18,7 @@ abstract class TestBase {
 
     private started: boolean = false;
 
-    private update: VoidFunction = () => { };
+    private update: VoidFunction = () => {};
 
     public constructor(voxelMap: IHeightmap & IVoxelMap & ITerrainMap) {
         this.stats = new THREE.Stats();
@@ -47,22 +47,6 @@ abstract class TestBase {
         this.scene.name = 'Scene';
         this.scene.matrixAutoUpdate = false;
         this.scene.add(new THREE.AxesHelper(500));
-
-        const billboard = new InstancedBillboard({
-            origin: { x: 0, y: 0 },
-            lockAxis: { x: 0, y: 1, z: 0 },
-            baseSize: { x: 1, y: 1 },
-            maxInstancesCount: 100,
-        });
-
-        billboard.setInstancesCount(100);
-
-        for (let iZ = 0; iZ < 10; iZ++) {
-            for (let iX = 0; iX < 10; iX++) {
-                billboard.setInstanceTransform(iX + 10 * iZ, { x: 2 * iX - 10, y: 200, z: 2 * iZ - 10 }, 0, 1);
-            }
-        }
-        this.scene.add(billboard.container);
 
         this.setupLighting();
 
@@ -98,7 +82,7 @@ abstract class TestBase {
                 this.cameraControl.enabled = !event.value;
             });
             playerControls.attach(playerContainer);
-            // this.scene.add(playerControls);
+            this.scene.add(playerControls);
 
             let playerVisibilityFrustum: THREE.Frustum | undefined;
 
@@ -137,7 +121,7 @@ abstract class TestBase {
         }
 
         setInterval(() => {
-            this.terrainViewer.setLod(this.camera.position, 100, 6000);
+            this.terrainViewer.setLod(this.camera.position, 100, 3000);
         }, 200);
     }
 
