@@ -26,6 +26,7 @@ function makeExport(
       extensions: ['.ts'],
       alias: {
         three: path.resolve('./node_modules/three'),
+        'three-usage': path.resolve('./src/lib/libs/three-usage.ts'),
       },
     },
     module: {

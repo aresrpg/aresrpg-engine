@@ -32,3 +32,5 @@ export {
 } from './terrain/voxelmap/viewer/simple/voxelmap-viewer';
 export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibility-computer';
 export { type CheckerboardType } from './terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
+
+export { InstancedBillboard } from './effects/billboard/instanced-billboard';
