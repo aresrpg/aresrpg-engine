@@ -7,6 +7,8 @@ export {
     DoubleSide,
     Float32BufferAttribute,
     Group,
+    InstancedBufferAttribute,
+    InstancedBufferGeometry,
     InstancedMesh,
     InterleavedBuffer,
     InterleavedBufferAttribute,

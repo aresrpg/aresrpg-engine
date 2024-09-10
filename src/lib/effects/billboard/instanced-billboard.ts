@@ -1,21 +1,27 @@
 import * as THREE from 'three-usage';
 
-import { type Spritesheet } from '../spritesheet';
 import { vec3ToString } from '../../helpers/string';
+import { type Spritesheet } from '../spritesheet';
 
 type Parameters = {
-    readonly origin: THREE.Vector2Like;
+    readonly origin?: THREE.Vector2Like;
     readonly lockAxis?: THREE.Vector3Like;
-    readonly baseSize: THREE.Vector2Like;
+};
+
+type Batch = {
+    readonly mesh: THREE.InstancedMesh;
+    readonly instanceWorldPositionAttribute: THREE.InstancedBufferAttribute;
+    readonly instanceLocalTransformAttribute: THREE.InstancedBufferAttribute;
 };
 
 class InstancedBillboard {
     public readonly container: THREE.Object3D;
 
-    private readonly billboardGeometry: THREE.BufferGeometry;
     private readonly billboardMaterial: THREE.Material;
-    private readonly meshes: THREE.InstancedMesh[] = [];
-    private readonly maxInstancesPerMesh = 2000;
+
+    private readonly batches: Batch[] = [];
+
+    private readonly maxInstancesPerBatch = 2000;
 
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
@@ -30,16 +36,7 @@ class InstancedBillboard {
             lifetimeUniform.value = performance.now() / 100;
         }, 50);
 
-        this.billboardGeometry = new THREE.BufferGeometry();
-        this.billboardGeometry.setAttribute(
-            'position',
-            new THREE.Float32BufferAttribute([0.5, 0.5, 0, -0.5, 0.5, 0, -0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, -0.5, 0, 0.5, -0.5, 0], 3)
-        );
-        this.billboardGeometry.setAttribute(
-            'normal',
-            new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3)
-        );
-        this.billboardGeometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1], 2));
+        const spriteOrigin = params.origin ?? { x: 0, y: 0 };
 
         this.billboardMaterial = new THREE.ShaderMaterial({
             uniforms: {
@@ -51,24 +48,27 @@ class InstancedBillboard {
 uniform float uLifetime;
 uniform vec2 uSpritesheetSize;
 
+attribute vec3 aInstanceWorldPosition;
+attribute mat2 aInstanceLocalTransform;
+
 varying vec2 vUv;
 varying vec2 vSpriteId;
 
 void main() {
-    vec3 cameraUp = normalize(vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]));
+    vec3 up = ${
+        params.lockAxis
+            ? `vec3(${vec3ToString(new THREE.Vector3().copy(params.lockAxis).normalize(), ', ')})`
+            : 'normalize(vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]))'
+    };
     vec3 lookVector = normalize(vec3(viewMatrix[0][2], viewMatrix[1][2], viewMatrix[2][2]));
-
-    vec3 up = ${params.lockAxis ? `vec3(${vec3ToString(new THREE.Vector3().copy(params.lockAxis).normalize(), ', ')})` : 'cameraUp'};
     vec3 right = normalize(cross(up, lookVector));
 
-    const vec2 size = vec2(${params.baseSize.x}, ${params.baseSize.y});
-    const vec3 origin = vec3(${params.origin.x.toFixed(3)}, ${params.origin.y.toFixed(3)}, 0);
+    const vec2 origin2d = vec2(${spriteOrigin.x.toFixed(3)}, ${spriteOrigin.y.toFixed(3)});
+    vec2 localPosition2d = aInstanceLocalTransform * (position.xy - origin2d);
 
-    vec3 modelPosition = origin +
-        size.x * position.x * right +
-        size.y * position.y * up;
+    vec3 worldPosition = aInstanceWorldPosition + localPosition2d.x * right + localPosition2d.y * up;
 
-    gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(modelPosition, 1);
+    gl_Position = projectionMatrix * viewMatrix * vec4(worldPosition, 1);
     vUv = uv;
 
     float spriteId = 3.0;//mod(uLifetime, uSpritesheetSize.x * uSpritesheetSize.y);
@@ -105,41 +105,89 @@ void main() {
     }
 
     public setInstancesCount(value: number): void {
-        const requiredMeshesCount = Math.ceil(value / this.maxInstancesPerMesh);
-        while (this.meshes.length < requiredMeshesCount) {
-            const mesh = new THREE.InstancedMesh(this.billboardGeometry, this.billboardMaterial, this.maxInstancesPerMesh);
-            mesh.count = 0;
-            mesh.frustumCulled = false;
-            this.container.add(mesh);
-            this.meshes.push(mesh);
+        const requiredMeshesCount = Math.ceil(value / this.maxInstancesPerBatch);
+        while (this.batches.length < requiredMeshesCount) {
+            const batch = this.createBatch();
+            this.container.add(batch.mesh);
+            this.batches.push(batch);
         }
 
-        this.meshes.forEach((mesh: THREE.InstancedMesh, index: number) => {
-            if (value < index * this.maxInstancesPerMesh) {
+        this.batches.forEach((batch: Batch, index: number) => {
+            const mesh = batch.mesh;
+
+            if (value < index * this.maxInstancesPerBatch) {
                 mesh.count = 0;
-            } else if ((index + 1) * this.maxInstancesPerMesh <= value) {
-                mesh.count = this.maxInstancesPerMesh;
+            } else if ((index + 1) * this.maxInstancesPerBatch <= value) {
+                mesh.count = this.maxInstancesPerBatch;
             } else {
-                mesh.count = value - index * this.maxInstancesPerMesh;
+                mesh.count = value - index * this.maxInstancesPerBatch;
             }
         });
     }
 
-    public setInstanceTransform(instanceId: number, position: THREE.Vector3Like, rotation: number, scaling: number): void {
-        const matrix = new THREE.Matrix4().multiplyMatrices(
-            new THREE.Matrix4().makeTranslation(position.x, position.y, position.z),
-            new THREE.Matrix4().multiplyMatrices(
-                new THREE.Matrix4().makeRotationZ(rotation),
-                new THREE.Matrix4().makeScale(scaling, scaling, scaling)
-            )
-        );
+    public setInstancePosition(instanceId: number, position: THREE.Vector3Like): void {
+        const { batch, localInstanceId } = this.getBatchInstanceId(instanceId);
 
-        const mesh = this.meshes[Math.floor(instanceId / this.maxInstancesPerMesh)];
-        if (!mesh) {
+        (batch.instanceWorldPositionAttribute.array as Float32Array).set([position.x, position.y, position.z], 3 * localInstanceId);
+        batch.instanceWorldPositionAttribute.needsUpdate = true;
+    }
+
+    public setInstanceTransform(instanceId: number, rotation: number, size: THREE.Vector2Like): void {
+        const { batch, localInstanceId } = this.getBatchInstanceId(instanceId);
+
+        const cosTheta = Math.cos(rotation);
+        const sinTheta = Math.sin(rotation);
+        (batch.instanceLocalTransformAttribute.array as Float32Array).set(
+            [size.x * cosTheta, sinTheta * size.x, -sinTheta * size.y, size.y * cosTheta],
+            4 * localInstanceId
+        );
+        batch.instanceLocalTransformAttribute.needsUpdate = true;
+    }
+
+    private getBatchInstanceId(instanceId: number): { readonly batch: Batch; readonly localInstanceId: number } {
+        const batchId = Math.floor(instanceId / this.maxInstancesPerBatch);
+        const batch = this.batches[batchId];
+        if (!batch) {
             throw new Error('No mesh');
         }
-        mesh.setMatrixAt(instanceId % this.maxInstancesPerMesh, matrix);
-        mesh.instanceMatrix.needsUpdate = true;
+        const localInstanceId = instanceId % this.maxInstancesPerBatch;
+        return { batch, localInstanceId };
+    }
+
+    private createBatch(): Batch {
+        const billboardGeometry = new THREE.InstancedBufferGeometry();
+        billboardGeometry.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute([0.5, 0.5, 0, -0.5, 0.5, 0, -0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, -0.5, 0, 0.5, -0.5, 0], 3)
+        );
+        billboardGeometry.setAttribute(
+            'normal',
+            new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3)
+        );
+        billboardGeometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1], 2));
+
+        const instancedWorldPositionBuffer: number[] = [];
+        const instanceLocalTransformBuffer: number[] = [];
+        for (let i = 0; i < this.maxInstancesPerBatch; i++) {
+            instancedWorldPositionBuffer.push(0, 0, 0);
+            instanceLocalTransformBuffer.push(1 / 15, 0, 0, 1 / 15);
+        }
+
+        const instanceWorldPositionAttribute = new THREE.InstancedBufferAttribute(new Float32Array(instancedWorldPositionBuffer), 3);
+        billboardGeometry.setAttribute('aInstanceWorldPosition', instanceWorldPositionAttribute);
+
+        const instanceLocalTransformAttribute = new THREE.InstancedBufferAttribute(new Float32Array(instanceLocalTransformBuffer), 4);
+        billboardGeometry.setAttribute('aInstanceLocalTransform', instanceLocalTransformAttribute);
+
+        const mesh = new THREE.InstancedMesh(billboardGeometry, this.billboardMaterial, this.maxInstancesPerBatch);
+        mesh.count = 0;
+        mesh.frustumCulled = false;
+
+        return {
+            mesh,
+            instanceWorldPositionAttribute,
+            instanceLocalTransformAttribute,
+        };
     }
 }
 

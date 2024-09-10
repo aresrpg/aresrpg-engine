@@ -75,11 +75,12 @@ class TestTerrain extends TestBase {
             const perPatch = new Map<string, THREE.Vector3Like[]>();
 
             let totalTreesCount = 0;
-            const maxLodPatch = Math.ceil(2000 / this.voxelmapViewer.chunkSize.xz);
+            const maxLodPatch = Math.ceil(3000 / this.voxelmapViewer.chunkSize.xz);
             for (let iPatchZ = -maxLodPatch; iPatchZ <= maxLodPatch; iPatchZ++) {
                 for (let iPatchX = -maxLodPatch; iPatchX <= maxLodPatch; iPatchX++) {
                     const id = `${iPatchX}_${iPatchZ}`;
-                    const trees = (map as VoxelMap)["getAllTreesForBlock"]( // eslint-disable-line dot-notation
+                    const getAllTreesForBlock = 'getAllTreesForBlock' as 'getAllTreesForBlock';
+                    const trees = (map as VoxelMap)[getAllTreesForBlock](
                         {
                             x: iPatchX * this.voxelmapViewer.chunkSize.xz,
                             y: iPatchZ * this.voxelmapViewer.chunkSize.xz,
@@ -95,22 +96,21 @@ class TestTerrain extends TestBase {
             }
 
             const instancedBillboard = new InstancedBillboard({
-                origin: { x: 0, y: 0.5 * 240 },
+                origin: { x: 0, y: -0.5 },
                 lockAxis: { x: 0, y: 1, z: 0 },
-                baseSize: { x: 165, y: 240 },
             });
             this.scene.add(instancedBillboard.container);
 
             this.trees = { perPatch, instancedBillboard };
 
-            const scheduleTreesUpdate = () => {
+            const updateTreesAndScheduleNextUpdate = () => {
+                instancedBillboard.setInstancesCount(totalTreesCount);
+                this.updateTreeBillboards();
                 setTimeout(() => {
-                    instancedBillboard.setInstancesCount(totalTreesCount);
-                    this.updateTreeBillboards();
-                    scheduleTreesUpdate();
+                    updateTreesAndScheduleNextUpdate();
                 }, 2000);
             };
-            scheduleTreesUpdate();
+            updateTreesAndScheduleNextUpdate();
         }
 
         this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(
@@ -144,16 +144,13 @@ class TestTerrain extends TestBase {
             const patchIsLod = !!nonLodChunks.find(chunkId => chunkId.x === patchIdX && chunkId.z === patchIdZ);
 
             for (const tree of trees) {
-                this.trees.instancedBillboard.setInstanceTransform(
-                    i++,
-                    {
-                        x: tree.x + 0.5,
-                        y: tree.y - Number(patchIsLod) * 100,
-                        z: tree.z + 0.5,
-                    },
-                    0,
-                    1 / 15
-                );
+                const instanceId = i++;
+                this.trees.instancedBillboard.setInstanceTransform(instanceId, 0, { x: 11, y: 16 });
+                this.trees.instancedBillboard.setInstancePosition(instanceId, {
+                    x: tree.x,
+                    y: tree.y - Number(patchIsLod) * 100,
+                    z: tree.z,
+                });
             }
         }
     }
