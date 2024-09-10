@@ -98,6 +98,18 @@ class TestTerrain extends TestBase {
             const instancedBillboard = new InstancedBillboard({
                 origin: { x: 0, y: -0.5 },
                 lockAxis: { x: 0, y: 1, z: 0 },
+                rendering: {
+                    uniforms: {
+                        uTexture: { value: new THREE.TextureLoader().load('/resources/tree.png'), type: 'sampler2D' },
+                    },
+                    fragmentCode: `
+vec4 sampled = texture(uTexture, uv);
+if (sampled.a < 0.5) {
+    discard;
+}
+return vec4(sampled.rgb / sampled.a, 1);
+`,
+                },
             });
             this.scene.add(instancedBillboard.container);
 

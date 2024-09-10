@@ -1,11 +1,14 @@
 import * as THREE from 'three-usage';
 
 import { vec3ToString } from '../../helpers/string';
-import { type Spritesheet } from '../spritesheet';
 
 type Parameters = {
     readonly origin?: THREE.Vector2Like;
     readonly lockAxis?: THREE.Vector3Like;
+    readonly rendering: {
+        readonly uniforms: Record<string, THREE.IUniform<unknown> & { readonly type: string }>;
+        readonly fragmentCode: string;
+    };
 };
 
 type Batch = {
@@ -26,33 +29,15 @@ class InstancedBillboard {
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
 
-        const spritesheet: Spritesheet = {
-            texture: new THREE.TextureLoader().load('/resources/tree.png'),
-            size: { x: 1, y: 1 },
-        };
-
-        const lifetimeUniform: THREE.IUniform<number> = { value: 0 };
-        setInterval(() => {
-            lifetimeUniform.value = performance.now() / 100;
-        }, 50);
-
         const spriteOrigin = params.origin ?? { x: 0, y: 0 };
 
         this.billboardMaterial = new THREE.ShaderMaterial({
-            uniforms: {
-                uSpritesheetTexture: { value: spritesheet.texture },
-                uSpritesheetSize: { value: spritesheet.size },
-                uLifetime: lifetimeUniform,
-            },
+            uniforms: params.rendering.uniforms,
             vertexShader: `
-uniform float uLifetime;
-uniform vec2 uSpritesheetSize;
-
 attribute vec3 aInstanceWorldPosition;
 attribute mat2 aInstanceLocalTransform;
 
 varying vec2 vUv;
-varying vec2 vSpriteId;
 
 void main() {
     vec3 up = ${
@@ -70,34 +55,22 @@ void main() {
 
     gl_Position = projectionMatrix * viewMatrix * vec4(worldPosition, 1);
     vUv = uv;
-
-    float spriteId = 3.0;//mod(uLifetime, uSpritesheetSize.x * uSpritesheetSize.y);
-    vSpriteId = vec2(0,0);//floor(vec2(
-    //     mod(spriteId, uSpritesheetSize.x),
-    //     spriteId / uSpritesheetSize.x
-    // ));
 }
         `,
             fragmentShader: `
-uniform sampler2D uSpritesheetTexture;
-uniform vec2 uSpritesheetSize;
+${Object.entries(params.rendering.uniforms)
+    .map(([key, uniform]) => `uniform ${uniform.type} ${key};`)
+    .join('\n')}
 
 varying vec2 vUv;
-varying vec2 vSpriteId;
 
-vec4 sampleTexture() {
-    vec2 uv = (vSpriteId + vUv) / uSpritesheetSize;
-    return texture(uSpritesheetTexture, vec2(uv.x, 1.0 - uv.y));
+vec4 getColor(const vec2 uv) {
+    ${params.rendering.fragmentCode}
 }
 
 void main() {
-    vec4 sampled = sampleTexture();
-    if (sampled.a < 0.5) {
-        discard;
-    }
-    sampled.rgb /= sampled.a;
-
-    gl_FragColor = vec4(sampled.rgb, 1);
+    vec4 color = getColor(vUv);
+    gl_FragColor = color;
 }
 `,
             side: THREE.DoubleSide,
