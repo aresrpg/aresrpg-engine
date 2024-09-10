@@ -16,6 +16,8 @@ abstract class TestBase {
     protected readonly cameraControl: THREE.OrbitControls;
     protected readonly scene: THREE.Scene;
 
+    protected readonly enableShadows: boolean = true;
+
     private started: boolean = false;
 
     private update: VoidFunction = () => {};
@@ -156,8 +158,7 @@ abstract class TestBase {
         const ambientLight = new THREE.AmbientLight(0xffffff);
         this.scene.add(ambientLight);
 
-        const testShadows = false;
-        if (testShadows) {
+        if (this.enableShadows) {
             const planeReceivingShadows = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial());
             planeReceivingShadows.position.set(0, -20, 0);
             planeReceivingShadows.rotateOnAxis(new THREE.Vector3(1, 0, 0), -Math.PI / 4);

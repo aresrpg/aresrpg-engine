@@ -11,6 +11,7 @@ export {
     PCFShadowMap,
     PerspectiveCamera,
     Scene,
+    SRGBColorSpace,
     WebGLRenderer,
 } from 'three';
 export { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';

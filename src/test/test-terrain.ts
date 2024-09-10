@@ -67,6 +67,8 @@ class TestTerrain extends TestBase {
         });
 
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
+        this.terrainViewer.parameters.shadows.cast = true;
+        this.terrainViewer.parameters.shadows.receive = true;
         // this.terrainViewer.parameters.lod.enabled = false;
         // this.terrainViewer.parameters.lod.wireframe = true;
         this.scene.add(this.terrainViewer.container);
@@ -75,7 +77,7 @@ class TestTerrain extends TestBase {
             const perPatch = new Map<string, THREE.Vector3Like[]>();
 
             let totalTreesCount = 0;
-            const maxLodPatch = Math.ceil(3000 / this.voxelmapViewer.chunkSize.xz);
+            const maxLodPatch = Math.ceil(1000 / this.voxelmapViewer.chunkSize.xz);
             for (let iPatchZ = -maxLodPatch; iPatchZ <= maxLodPatch; iPatchZ++) {
                 for (let iPatchX = -maxLodPatch; iPatchX <= maxLodPatch; iPatchX++) {
                     const id = `${iPatchX}_${iPatchZ}`;
@@ -99,8 +101,14 @@ class TestTerrain extends TestBase {
                 origin: { x: 0, y: -0.5 },
                 lockAxis: { x: 0, y: 1, z: 0 },
                 rendering: {
+                    shadows: { receive: this.enableShadows },
                     uniforms: {
-                        uTexture: { value: new THREE.TextureLoader().load('/resources/tree.png'), type: 'sampler2D' },
+                        uTexture: {
+                            value: new THREE.TextureLoader().load('/resources/tree.png', texture => {
+                                texture.colorSpace = THREE.SRGBColorSpace;
+                            }),
+                            type: 'sampler2D',
+                        },
                     },
                     fragmentCode: `
 vec4 sampled = texture(uTexture, uv);
@@ -157,7 +165,7 @@ return vec4(sampled.rgb / sampled.a, 1);
 
             for (const tree of trees) {
                 const instanceId = i++;
-                this.trees.instancedBillboard.setInstanceTransform(instanceId, 0, { x: 11, y: 16 });
+                this.trees.instancedBillboard.setInstanceTransform(instanceId, 0, { x: 11, y: 15 });
                 this.trees.instancedBillboard.setInstancePosition(instanceId, {
                     x: tree.x,
                     y: tree.y - Number(patchIsLod) * 100,
@@ -329,3 +337,4 @@ return vec4(sampled.rgb / sampled.a, 1);
 }
 
 export { TestTerrain };
+
