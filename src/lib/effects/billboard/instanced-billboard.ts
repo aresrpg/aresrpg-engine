@@ -131,13 +131,13 @@ void main() {
         const billboardGeometry = new THREE.InstancedBufferGeometry();
         billboardGeometry.setAttribute(
             'position',
-            new THREE.Float32BufferAttribute([0.5, 0.5, 0, -0.5, 0.5, 0, -0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, -0.5, 0, 0.5, -0.5, 0], 3)
+            new THREE.Float32BufferAttribute([0.5, 0.5, 0, -0.5, -0.5, 0, -0.5, 0.5, 0, 0.5, 0.5, 0, 0.5, -0.5, 0, -0.5, -0.5, 0], 3)
         );
         billboardGeometry.setAttribute(
             'normal',
             new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3)
         );
-        billboardGeometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0], 2));
+        billboardGeometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0], 2));
 
         const instancedWorldPositionBuffer: number[] = [];
         const instanceLocalTransformBuffer: number[] = [];
