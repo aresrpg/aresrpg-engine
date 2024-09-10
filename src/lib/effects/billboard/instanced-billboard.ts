@@ -61,7 +61,7 @@ void main() {
             : 'normalize(vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]))'
     };
     vec3 lookVector = normalize(vec3(viewMatrix[0][2], viewMatrix[1][2], viewMatrix[2][2]));
-    vec3 right = normalize(cross(up, lookVector));
+    vec3 right = normalize(cross(lookVector, up));
 
     const vec2 origin2d = vec2(${spriteOrigin.x.toFixed(3)}, ${spriteOrigin.y.toFixed(3)});
     vec2 localPosition2d = aInstanceLocalTransform * (position.xy - origin2d);
@@ -164,7 +164,7 @@ void main() {
             'normal',
             new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3)
         );
-        billboardGeometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1], 2));
+        billboardGeometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0], 2));
 
         const instancedWorldPositionBuffer: number[] = [];
         const instanceLocalTransformBuffer: number[] = [];
