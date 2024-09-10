@@ -10,6 +10,7 @@ type Parameters = {
             readonly receive: boolean;
         };
         readonly uniforms: Record<string, THREE.IUniform<unknown> & { readonly type: string }>;
+        readonly attributes: Record<string, { readonly type: "float"; }>;
         readonly fragmentCode: string;
     };
 };
@@ -18,6 +19,14 @@ type Batch = {
     readonly mesh: THREE.InstancedMesh;
     readonly instanceWorldPositionAttribute: THREE.InstancedBufferAttribute;
     readonly instanceLocalTransformAttribute: THREE.InstancedBufferAttribute;
+    readonly instanceCustomAttributes: Record<string, THREE.InstancedBufferAttribute>;
+};
+
+const attributeSizes = {
+    float: 1,
+    vec2: 2,
+    vec3: 3,
+    vec4: 4,
 };
 
 class InstancedBillboard {
@@ -29,12 +38,16 @@ class InstancedBillboard {
 
     private readonly maxInstancesPerBatch = 2000;
 
+    private readonly customAttributes: Record<string, { readonly type: keyof typeof attributeSizes; }>;
+
     private readonly shadows: {
         readonly receive: boolean;
     };
 
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
+
+        this.customAttributes = params.rendering.attributes;
 
         this.shadows = {
             receive: params.rendering.shadows.receive,
@@ -66,14 +79,16 @@ class InstancedBillboard {
 attribute vec3 aInstanceWorldPosition;
 attribute mat2 aInstanceLocalTransform;
 
+${Object.entries(params.rendering.attributes).map(([key, attribute]) => `attribute ${attribute.type} a_${key};`).join("\n")}
+
 varying vec2 vUv;
+${Object.entries(params.rendering.attributes).map(([key, attribute]) => `varying ${attribute.type} v_${key};`).join("\n")}
 
 void main() {
-    vec3 up = ${
-        params.lockAxis
-            ? `vec3(${vec3ToString(new THREE.Vector3().copy(params.lockAxis).normalize(), ', ')})`
-            : 'normalize(vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]))'
-    };
+    vec3 up = ${params.lockAxis
+                        ? `vec3(${vec3ToString(new THREE.Vector3().copy(params.lockAxis).normalize(), ', ')})`
+                        : 'normalize(vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]))'
+                    };
     vec3 lookVector = normalize(vec3(viewMatrix[0][2], viewMatrix[1][2], viewMatrix[2][2]));
     vec3 right = normalize(cross(lookVector, up));
 `,
@@ -84,6 +99,7 @@ void main() {
     vec3 transformed = aInstanceWorldPosition + localPosition2d.x * right + localPosition2d.y * up;
 
     vUv = uv;
+    ${Object.keys(params.rendering.attributes).map(key => `v_${key} = a_${key};`).join("\n")}
 `,
                 '#include <beginnormal_vertex>': `
     vec3 objectNormal = lookVector;
@@ -93,18 +109,26 @@ void main() {
             parameters.fragmentShader = applyReplacements(parameters.fragmentShader, {
                 'void main() {': `
 ${Object.entries(params.rendering.uniforms)
-    .map(([key, uniform]) => `uniform ${uniform.type} ${key};`)
-    .join('\n')}
+                        .map(([key, uniform]) => `uniform ${uniform.type} ${key};`)
+                        .join('\n')}
 
 varying vec2 vUv;
 
-vec4 getColor(const vec2 uv) {
+${Object.entries(params.rendering.attributes).map(([key, attribute]) => `varying ${attribute.type} v_${key};`).join("\n")}
+
+vec4 getColor(
+    const vec2 uv
+    ${Object.entries(params.rendering.attributes).map(([key, attribute]) => `, const ${attribute.type} ${key}`).join("")}
+    ) {
     ${params.rendering.fragmentCode}
 }
 
 void main() {`,
                 '#include <map_fragment>': `
-    diffuseColor.rgb = getColor(vUv).rgb;
+    diffuseColor.rgb = getColor(
+        vUv
+        ${Object.keys(params.rendering.attributes).map(key => `, v_${key}`).join("")}
+    ).rgb;
 `,
             });
         };
@@ -151,6 +175,28 @@ void main() {`,
         batch.instanceLocalTransformAttribute.needsUpdate = true;
     }
 
+    public setInstanceCustomAttribute(instanceId: number, name: string, value: ReadonlyArray<number>): void {
+        const { batch, localInstanceId } = this.getBatchInstanceId(instanceId);
+
+        const customAttribute = batch.instanceCustomAttributes[name];
+        const definition = this.customAttributes[name];
+        if (!customAttribute || !definition) {
+            throw new Error(`Unknown attribute "${name}".`);
+        }
+
+        const size = attributeSizes[definition.type];
+        if (typeof definition.type === "undefined") {
+            throw new Error(`Unknown attribute type "${definition.type}".`);
+        }
+
+        if (value.length !== size) {
+            throw new Error(`Invalid value size for "${name}": "${value.length}", expected "${size}".`);
+        }
+
+        (customAttribute.array as Float32Array).set(value, size * localInstanceId);
+        customAttribute.needsUpdate = true;
+    }
+
     private getBatchInstanceId(instanceId: number): { readonly batch: Batch; readonly localInstanceId: number } {
         const batchId = Math.floor(instanceId / this.maxInstancesPerBatch);
         const batch = this.batches[batchId];
@@ -186,6 +232,18 @@ void main() {`,
         const instanceLocalTransformAttribute = new THREE.InstancedBufferAttribute(new Float32Array(instanceLocalTransformBuffer), 4);
         billboardGeometry.setAttribute('aInstanceLocalTransform', instanceLocalTransformAttribute);
 
+        const instanceCustomAttributes: Record<string, THREE.InstancedBufferAttribute> = {};
+        for (const [name, definition] of Object.entries(this.customAttributes)) {
+            const size = attributeSizes[definition.type];
+            if (typeof size === "undefined") {
+                throw new Error();
+            }
+
+            const customAttribute = new THREE.InstancedBufferAttribute(new Float32Array(size * this.maxInstancesPerBatch), size);
+            billboardGeometry.setAttribute(`a_${name}`, customAttribute)
+            instanceCustomAttributes[name] = customAttribute;
+        }
+
         const mesh = new THREE.InstancedMesh(billboardGeometry, this.billboardMaterial, this.maxInstancesPerBatch);
         mesh.count = 0;
         mesh.frustumCulled = false;
@@ -196,6 +254,7 @@ void main() {`,
             mesh,
             instanceWorldPositionAttribute,
             instanceLocalTransformAttribute,
+            instanceCustomAttributes,
         };
     }
 }
