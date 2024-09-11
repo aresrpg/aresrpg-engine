@@ -5,6 +5,7 @@ import { vec3ToString } from '../../helpers/string';
 type Parameters = {
     readonly origin?: THREE.Vector2Like;
     readonly lockAxis?: THREE.Vector3Like;
+    readonly maxInstancesCount?: number;
     readonly rendering: {
         readonly shadows: {
             readonly receive: boolean;
@@ -17,6 +18,7 @@ type Parameters = {
 
 type Batch = {
     readonly mesh: THREE.InstancedMesh;
+    readonly maxInstancesCount: number;
     readonly instanceWorldPositionAttribute: THREE.InstancedBufferAttribute;
     readonly instanceLocalTransformAttribute: THREE.InstancedBufferAttribute;
     readonly instanceCustomAttributes: Record<string, THREE.InstancedBufferAttribute>;
@@ -36,7 +38,7 @@ class InstancedBillboard {
 
     private readonly batches: Batch[] = [];
 
-    private readonly maxInstancesPerBatch = 2000;
+    private readonly maxInstancesCount: number;
 
     private readonly customAttributes: Record<string, { readonly type: keyof typeof attributeSizes; }>;
 
@@ -47,6 +49,8 @@ class InstancedBillboard {
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
 
+        this.maxInstancesCount = params.maxInstancesCount ?? Infinity;
+        
         this.customAttributes = params.rendering.attributes;
 
         this.shadows = {
@@ -135,25 +139,35 @@ void main() {`,
         this.billboardMaterial = billboardMaterial;
     }
 
-    public setInstancesCount(value: number): void {
-        const requiredMeshesCount = Math.ceil(value / this.maxInstancesPerBatch);
-        while (this.batches.length < requiredMeshesCount) {
-            const batch = this.createBatch();
-            this.container.add(batch.mesh);
-            this.batches.push(batch);
+    public setInstancesCount(instancesCount: number): void {
+        if (instancesCount > this.maxInstancesCount) {
+            throw new Error(`Cannot set instancescount="${instancesCount}" because max is "${this.maxInstancesCount}".`);
         }
 
-        this.batches.forEach((batch: Batch, index: number) => {
-            const mesh = batch.mesh;
+        let currentInstancesCapacity = 0;
+        for (const batch of this.batches) {
+            currentInstancesCapacity +=  batch.maxInstancesCount;
+        }
+        while (currentInstancesCapacity < instancesCount) {
+            const maxBatchSize = 2000;
+            const batchSize = Math.min(maxBatchSize, this.maxInstancesCount - currentInstancesCapacity);
+            const batch = this.createBatch(batchSize);
+            this.container.add(batch.mesh);
+            this.batches.push(batch);
+            currentInstancesCapacity += batch.maxInstancesCount;
+        }
 
-            if (value < index * this.maxInstancesPerBatch) {
-                mesh.count = 0;
-            } else if ((index + 1) * this.maxInstancesPerBatch <= value) {
-                mesh.count = this.maxInstancesPerBatch;
+        let batchInstanceIdStart = 0;
+        for (const batch of this.batches) {
+            if (instancesCount < batchInstanceIdStart) {
+                batch.mesh.count = 0;
+            } else if (instancesCount < batchInstanceIdStart + batch.maxInstancesCount) {
+                batch.mesh.count = instancesCount - batchInstanceIdStart;
             } else {
-                mesh.count = value - index * this.maxInstancesPerBatch;
+                batch.mesh.count = batch.maxInstancesCount;
             }
-        });
+            batchInstanceIdStart += batch.maxInstancesCount;
+        }
     }
 
     public setInstancePosition(instanceId: number, position: THREE.Vector3Like): void {
@@ -198,16 +212,18 @@ void main() {`,
     }
 
     private getBatchInstanceId(instanceId: number): { readonly batch: Batch; readonly localInstanceId: number } {
-        const batchId = Math.floor(instanceId / this.maxInstancesPerBatch);
-        const batch = this.batches[batchId];
-        if (!batch) {
-            throw new Error('No mesh');
+        let batchInstanceIdStart = 0;
+        for (const batch of this.batches) {
+            if (batchInstanceIdStart <= instanceId && instanceId < batchInstanceIdStart + batch.maxInstancesCount) {
+                const localInstanceId = instanceId - batchInstanceIdStart;
+                return { batch, localInstanceId };
+            }
+            batchInstanceIdStart += batch.maxInstancesCount;
         }
-        const localInstanceId = instanceId % this.maxInstancesPerBatch;
         return { batch, localInstanceId };
     }
 
-    private createBatch(): Batch {
+    private createBatch(maxInstancesCount: number): Batch {
         const billboardGeometry = new THREE.InstancedBufferGeometry();
         billboardGeometry.setAttribute(
             'position',
@@ -221,7 +237,7 @@ void main() {`,
 
         const instancedWorldPositionBuffer: number[] = [];
         const instanceLocalTransformBuffer: number[] = [];
-        for (let i = 0; i < this.maxInstancesPerBatch; i++) {
+        for (let i = 0; i < maxInstancesCount; i++) {
             instancedWorldPositionBuffer.push(0, 0, 0);
             instanceLocalTransformBuffer.push(1 / 15, 0, 0, 1 / 15);
         }
@@ -239,12 +255,12 @@ void main() {`,
                 throw new Error();
             }
 
-            const customAttribute = new THREE.InstancedBufferAttribute(new Float32Array(size * this.maxInstancesPerBatch), size);
+            const customAttribute = new THREE.InstancedBufferAttribute(new Float32Array(size * maxInstancesCount), size);
             billboardGeometry.setAttribute(`a_${name}`, customAttribute)
             instanceCustomAttributes[name] = customAttribute;
         }
 
-        const mesh = new THREE.InstancedMesh(billboardGeometry, this.billboardMaterial, this.maxInstancesPerBatch);
+        const mesh = new THREE.InstancedMesh(billboardGeometry, this.billboardMaterial, maxInstancesCount);
         mesh.count = 0;
         mesh.frustumCulled = false;
         mesh.receiveShadow = this.shadows.receive;
@@ -252,6 +268,7 @@ void main() {`,
 
         return {
             mesh,
+            maxInstancesCount,
             instanceWorldPositionAttribute,
             instanceLocalTransformAttribute,
             instanceCustomAttributes,
