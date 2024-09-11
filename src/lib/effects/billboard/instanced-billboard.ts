@@ -9,6 +9,7 @@ type Parameters = {
     readonly lockAxis?: THREE.Vector3Like;
     readonly maxInstancesCount?: number;
     readonly rendering: {
+        readonly material: "Basic" | "Phong";
         readonly shadows: {
             readonly receive: boolean;
         };
@@ -35,6 +36,9 @@ const attributeSizes = {
 
 class InstancedBillboard {
     public readonly container: THREE.Object3D;
+
+    private static nextId: number = 0;
+    private readonly id = InstancedBillboard.nextId++;
 
     private readonly billboardMaterial: THREE.Material;
 
@@ -71,9 +75,17 @@ class InstancedBillboard {
             return result;
         }
 
-        const billboardMaterial = new THREE.MeshPhongMaterial();
-        // this.billboardMaterial.side = THREE.DoubleSide;
-        // billboardMaterial.shininess = 0;
+        let billboardMaterial: THREE.Material;
+        if (params.rendering.material === "Phong") {
+            billboardMaterial = new THREE.MeshPhongMaterial();
+            // billboardMaterial.shininess = 0;
+        } else if (params.rendering.material === "Basic") {
+            billboardMaterial = new THREE.MeshBasicMaterial();
+        } else {
+            throw new Error(`Unsupported material "${params.rendering.material}".`);
+        }
+
+        billboardMaterial.customProgramCacheKey = () => `billboard_material_${this.id}`;
         billboardMaterial.onBeforeCompile = parameters => {
             parameters.uniforms = {
                 ...parameters.uniforms,
@@ -222,7 +234,8 @@ void main() {`,
             }
             batchInstanceIdStart += batch.maxInstancesCount;
         }
-        return { batch, localInstanceId };
+
+        throw new Error(`InstanceId ${instanceId} is incorrect. Have you called setInstancesCount() ?`);
     }
 
     private createBatch(maxInstancesCount: number): Batch {
