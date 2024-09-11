@@ -2,6 +2,8 @@ import * as THREE from 'three-usage';
 
 import { vec3ToString } from '../../helpers/string';
 
+type UniformType = "sampler2D" | "float" | "vec2" | "vec3" | "vec4";
+
 type Parameters = {
     readonly origin?: THREE.Vector2Like;
     readonly lockAxis?: THREE.Vector3Like;
@@ -10,7 +12,7 @@ type Parameters = {
         readonly shadows: {
             readonly receive: boolean;
         };
-        readonly uniforms: Record<string, THREE.IUniform<unknown> & { readonly type: string }>;
+        readonly uniforms: Record<string, THREE.IUniform<unknown> & { readonly type: UniformType }>;
         readonly attributes: Record<string, { readonly type: "float"; }>;
         readonly fragmentCode: string;
     };
