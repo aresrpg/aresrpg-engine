@@ -20,7 +20,7 @@ abstract class TestBase {
 
     private started: boolean = false;
 
-    private update: VoidFunction = () => {};
+    protected update: VoidFunction = () => {};
 
     public constructor(voxelMap: IHeightmap & IVoxelMap & ITerrainMap) {
         this.stats = new THREE.Stats();
@@ -43,7 +43,7 @@ abstract class TestBase {
 
         this.camera.position.set(0, 210, 10);
         this.cameraControl = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-        this.cameraControl.target.set(0, 200, 0);
+        this.cameraControl.target.set(0, this.camera.position.y - 10, 0);
 
         this.scene = new THREE.Scene();
         this.scene.name = 'Scene';

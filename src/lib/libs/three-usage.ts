@@ -1,4 +1,5 @@
 export {
+    type Blending,
     Box2,
     Box3,
     BufferGeometry,
@@ -16,6 +17,7 @@ export {
     Mesh,
     MeshBasicMaterial,
     MeshPhongMaterial,
+    NormalBlending,
     PlaneGeometry,
     RedFormat,
     RedIntegerFormat,

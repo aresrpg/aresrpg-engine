@@ -10,6 +10,9 @@ type Parameters = {
     readonly maxInstancesCount?: number;
     readonly rendering: {
         readonly material: "Basic" | "Phong";
+        readonly blending?: THREE.Blending;
+        readonly depthWrite?: boolean;
+        readonly transparent?: boolean;
         readonly shadows: {
             readonly receive: boolean;
         };
@@ -84,6 +87,9 @@ class InstancedBillboard {
         } else {
             throw new Error(`Unsupported material "${params.rendering.material}".`);
         }
+        billboardMaterial.blending = params.rendering.blending ?? THREE.NormalBlending;
+        billboardMaterial.depthWrite = params.rendering.depthWrite ?? true;
+        billboardMaterial.transparent = params.rendering.transparent ?? false;
 
         billboardMaterial.customProgramCacheKey = () => `billboard_material_${this.id}`;
         billboardMaterial.onBeforeCompile = parameters => {

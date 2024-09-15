@@ -23,6 +23,9 @@ import {
 
 import { type VoxelMap } from './map/voxel-map';
 import { TestBase, type ITerrainMap } from './test-base';
+import { Puff } from './effects/puff';
+import { Fountain } from './effects/fire-fountain';
+import { Snow } from './effects/snow';
 
 class TestTerrain extends TestBase {
     protected override readonly terrainViewer: TerrainViewer;
@@ -38,8 +41,44 @@ class TestTerrain extends TestBase {
         readonly instancedBillboard: InstancedBillboard;
     } | null = null;
 
+    private readonly puff1: Puff;
+    private readonly puff2: Puff;
+    private readonly fountain: Fountain;
+    private readonly snow: Snow;
+
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
         super(map);
+
+        this.puff1 = new Puff({
+            texture: new THREE.TextureLoader().load('/resources/puff.png', texture => { texture.colorSpace = THREE.SRGBColorSpace; }),
+            size: { x: 3, y: 3 },
+        });
+        this.puff1.container.position.set(-5.5, 200, 0.5);
+        // this.puff1.container.position.set(-5.5, 139.25, 0.5);
+        // this.puff1.container.scale.set(0.5, 0.5, 0.5);
+        this.scene.add(this.puff1.container);
+
+        this.puff2 = new Puff({
+            texture: new THREE.TextureLoader().load('/resources/puff2.png', texture => { texture.colorSpace = THREE.SRGBColorSpace; }),
+            size: { x: 10, y: 1 },
+        });
+        this.puff2.container.position.set(+5, 200, 0);
+        this.scene.add(this.puff2.container);
+
+        this.fountain = new Fountain(new THREE.Color(0xFF3311));
+        this.fountain.container.position.set(5, 200, -10);
+        this.scene.add(this.fountain.container);
+
+        this.snow = new Snow();
+        this.snow.container.position.set(40, 170, -40);
+        this.scene.add(this.snow.container);
+
+        this.update = () => {
+            this.puff1.update();
+            this.puff2.update();
+            this.fountain.update();
+            this.snow.update();
+        };
 
         const testBoard = true;
         if (testBoard) {
@@ -101,6 +140,7 @@ class TestTerrain extends TestBase {
                 origin: { x: 0, y: -0.5 },
                 lockAxis: { x: 0, y: 1, z: 0 },
                 rendering: {
+                    material: "Phong",
                     shadows: { receive: this.enableShadows },
                     uniforms: {
                         uTexture: {
@@ -110,6 +150,7 @@ class TestTerrain extends TestBase {
                             type: 'sampler2D',
                         },
                     },
+                    attributes: {},
                     fragmentCode: `
 vec4 sampled = texture(uTexture, uv);
 if (sampled.a < 0.5) {

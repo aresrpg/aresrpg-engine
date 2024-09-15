@@ -16,11 +16,11 @@ export {
     type ILocalMapData,
     type IVoxelMap,
     type IVoxelMaterial,
-    type VoxelsChunkSize,
+    type VoxelsChunkSize
 } from './terrain/voxelmap/i-voxelmap';
 export {
     VoxelmapViewerAutonomous,
-    type VoxelmapViewerAutonomousOptions,
+    type VoxelmapViewerAutonomousOptions
 } from './terrain/voxelmap/viewer/autonomous/voxelmap-viewer-autonomous';
 export {
     EComputationMethod,
@@ -28,9 +28,10 @@ export {
     type ComputationOptions,
     type ComputationStatus,
     type VoxelmapViewerOptions,
-    type VoxelsChunkData,
+    type VoxelsChunkData
 } from './terrain/voxelmap/viewer/simple/voxelmap-viewer';
 export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibility-computer';
 export { type CheckerboardType } from './terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
 export { InstancedBillboard } from './effects/billboard/instanced-billboard';
+export { type Spritesheet } from "./effects/spritesheet";
