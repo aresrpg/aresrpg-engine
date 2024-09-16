@@ -25,6 +25,7 @@ import { type VoxelMap } from './map/voxel-map';
 import { TestBase, type ITerrainMap } from './test-base';
 import { Puff } from './effects/puff';
 import { Fountain } from './effects/fire-fountain';
+import { Rain } from './effects/rain';
 import { Snow } from './effects/snow';
 
 class TestTerrain extends TestBase {
@@ -45,6 +46,7 @@ class TestTerrain extends TestBase {
     private readonly puff2: Puff;
     private readonly fountain: Fountain;
     private readonly snow: Snow;
+    private readonly rain: Rain;
 
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
         super(map);
@@ -73,11 +75,16 @@ class TestTerrain extends TestBase {
         this.snow.container.position.set(40, 170, -40);
         this.scene.add(this.snow.container);
 
+        this.rain = new Rain();
+        this.rain.container.position.set(40, 170, 10);
+        this.scene.add(this.rain.container);
+
         this.update = () => {
             this.puff1.update();
             this.puff2.update();
             this.fountain.update();
             this.snow.update();
+            this.rain.update();
         };
 
         const testBoard = true;
