@@ -17,7 +17,7 @@ type Parameters = {
             readonly receive: boolean;
         };
         readonly uniforms: Record<string, THREE.IUniform<unknown> & { readonly type: UniformType }>;
-        readonly attributes: Record<string, { readonly type: "float"; }>;
+        readonly attributes: Record<string, { readonly type: keyof typeof attributeSizes; }>;
         readonly fragmentCode: string;
     };
 };
