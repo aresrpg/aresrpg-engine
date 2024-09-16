@@ -35,3 +35,4 @@ export { type CheckerboardType } from './terrain/voxelmap/voxelsRenderable/voxel
 
 export { InstancedBillboard } from './effects/billboard/instanced-billboard';
 export { type Spritesheet } from "./effects/spritesheet";
+export { BuffAscendEffect } from "./effects/particles/buff-ascend-effect";

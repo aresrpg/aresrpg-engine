@@ -3,6 +3,7 @@ import * as THREE from 'three-usage-test';
 import {
     BoardHandler,
     BoardRenderableFactory,
+    BuffAscendEffect,
     computeBoard,
     EBoardSquareType,
     EComputationMethod,
@@ -21,12 +22,12 @@ import {
     type IVoxelMap,
 } from '../lib';
 
-import { type VoxelMap } from './map/voxel-map';
-import { TestBase, type ITerrainMap } from './test-base';
-import { Puff } from './effects/puff';
 import { Fountain } from './effects/fire-fountain';
+import { Puff } from './effects/puff';
 import { Rain } from './effects/rain';
 import { Snow } from './effects/snow';
+import { type VoxelMap } from './map/voxel-map';
+import { TestBase, type ITerrainMap } from './test-base';
 
 class TestTerrain extends TestBase {
     protected override readonly terrainViewer: TerrainViewer;
@@ -47,6 +48,7 @@ class TestTerrain extends TestBase {
     private readonly fountain: Fountain;
     private readonly snow: Snow;
     private readonly rain: Rain;
+    private readonly heal: BuffAscendEffect;
 
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
         super(map);
@@ -79,12 +81,42 @@ class TestTerrain extends TestBase {
         this.rain.container.position.set(40, 170, 10);
         this.scene.add(this.rain.container);
 
+        this.heal = new BuffAscendEffect({
+            size: { x: 2, y: 6, z: 2 },
+            density: 32,
+            animationDuration: 1500,
+            texture: new THREE.TextureLoader().load('/resources/heal.png', texture => { texture.colorSpace = THREE.SRGBColorSpace; }),
+        });
+        this.heal.container.position.set(0, 200, 0);
+        this.scene.add(this.heal.container);
+
+        let healRunning = false;
+        window.addEventListener("keydown", event => {
+            if (!healRunning && event.code === "Space") {
+                this.heal.start();
+                healRunning = true;
+            }
+        });
+        window.addEventListener("keyup", event => {
+            if (healRunning && event.code === "Space") {
+                this.heal.stop();
+                healRunning = false;
+            }
+        });
+        // setTimeout(() => {
+        //     // this.heal.startSingle().then(() => healRunning = false);
+        //     this.heal.start();
+
+        //     setTimeout(() => this.heal.stop(), 3000);
+        // }, 3000);
+
         this.update = () => {
             this.puff1.update();
             this.puff2.update();
             this.fountain.update();
             this.snow.update();
             this.rain.update();
+            this.heal.update();
         };
 
         const testBoard = true;
@@ -123,7 +155,7 @@ class TestTerrain extends TestBase {
             const perPatch = new Map<string, THREE.Vector3Like[]>();
 
             let totalTreesCount = 0;
-            const maxLodPatch = Math.ceil(1000 / this.voxelmapViewer.chunkSize.xz);
+            const maxLodPatch = Math.ceil(2000 / this.voxelmapViewer.chunkSize.xz);
             for (let iPatchZ = -maxLodPatch; iPatchZ <= maxLodPatch; iPatchZ++) {
                 for (let iPatchX = -maxLodPatch; iPatchX <= maxLodPatch; iPatchX++) {
                     const id = `${iPatchX}_${iPatchZ}`;
