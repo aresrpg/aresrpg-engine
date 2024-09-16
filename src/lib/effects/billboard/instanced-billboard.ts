@@ -90,6 +90,7 @@ class InstancedBillboard {
         billboardMaterial.blending = params.rendering.blending ?? THREE.NormalBlending;
         billboardMaterial.depthWrite = params.rendering.depthWrite ?? true;
         billboardMaterial.transparent = params.rendering.transparent ?? false;
+        billboardMaterial.side = THREE.DoubleSide;
 
         billboardMaterial.customProgramCacheKey = () => `billboard_material_${this.id}`;
         billboardMaterial.onBeforeCompile = parameters => {
@@ -113,7 +114,8 @@ void main() {
                         ? `vec3(${vec3ToString(new THREE.Vector3().copy(params.lockAxis).normalize(), ', ')})`
                         : 'normalize(vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]))'
                     };
-    vec3 lookVector = normalize(cameraPosition - aInstanceWorldPosition);
+    vec4 billboardOriginWorld = modelMatrix * vec4(aInstanceWorldPosition, 1);
+    vec3 lookVector = normalize(cameraPosition - billboardOriginWorld.xyz / billboardOriginWorld.w);
     vec3 right = normalize(cross(lookVector, up));
 `,
                 '#include <begin_vertex>': `
