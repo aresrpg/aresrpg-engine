@@ -1,4 +1,4 @@
-import type * as THREE from 'three-usage';
+import type * as THREE from '../../../libs/three-usage';
 
 import { vec3ToString } from '../../../helpers/string';
 

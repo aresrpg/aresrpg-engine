@@ -1,4 +1,4 @@
-import * as THREE from 'three-usage';
+import * as THREE from '../../../libs/three-usage';
 
 import { voxelmapDataPacking, type IVoxelMaterial } from '../i-voxelmap';
 import { type VoxelsRenderable } from '../voxelsRenderable/voxels-renderable';

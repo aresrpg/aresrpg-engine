@@ -1,4 +1,4 @@
-import * as THREE from 'three-usage';
+import * as THREE from '../../../libs/three-usage';
 
 import { logger } from '../../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../../helpers/meshes-statistics';

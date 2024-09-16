@@ -1,4 +1,4 @@
-import type * as THREE from 'three-usage';
+import type * as THREE from '../../../../../libs/three-usage';
 
 import { PromisesQueue } from '../../../../../helpers/async/promises-queue';
 import { type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';

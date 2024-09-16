@@ -1,4 +1,4 @@
-import * as THREE from 'three-usage';
+import * as THREE from '../../libs/three-usage';
 
 import { vec2ToString } from '../../helpers/string';
 

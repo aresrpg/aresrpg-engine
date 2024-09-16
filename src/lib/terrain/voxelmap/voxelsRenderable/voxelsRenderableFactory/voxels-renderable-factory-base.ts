@@ -1,4 +1,4 @@
-import * as THREE from 'three-usage';
+import * as THREE from '../../../../libs/three-usage';
 
 import { nextPowerOfTwo } from '../../../../helpers/math';
 import { vec3ToString } from '../../../../helpers/string';

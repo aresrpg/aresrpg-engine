@@ -1,4 +1,4 @@
-import * as THREE from 'three-usage';
+import * as THREE from '../../libs/three-usage';
 
 import { processAsap, type SyncOrPromise } from '../../helpers/async/async-sync';
 import { DisposableMap } from '../../helpers/disposable-map';

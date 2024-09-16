@@ -3,8 +3,5 @@
   "files": ["./index.ts"],
   "compilerOptions": {
     "outDir": "../../dist",
-    "paths": {
-      "three-usage": ["./libs/three-usage.ts"]
-    }
   }
 }

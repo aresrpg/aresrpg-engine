@@ -1,4 +1,4 @@
-import * as THREE from 'three-usage';
+import * as THREE from '../../../../libs/three-usage';
 
 import { type Board } from '../board';
 import { type GridCoord } from '../overlay/board-overlay';

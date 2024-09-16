@@ -1,4 +1,4 @@
-import { type Vector3Like } from 'three-usage';
+import { type Vector3Like } from '../../libs/three-usage';
 
 import { VoxelmapDataPacking } from './voxelmap-data-packing';
 

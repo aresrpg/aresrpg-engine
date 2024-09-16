@@ -1,4 +1,4 @@
-import type * as THREE from 'three-usage';
+import type * as THREE from '../../../../libs/three-usage';
 
 import { type PatchId } from '../../patch/patch-id';
 import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
