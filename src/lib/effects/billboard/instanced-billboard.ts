@@ -113,7 +113,7 @@ void main() {
                         ? `vec3(${vec3ToString(new THREE.Vector3().copy(params.lockAxis).normalize(), ', ')})`
                         : 'normalize(vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]))'
                     };
-    vec3 lookVector = normalize(vec3(viewMatrix[0][2], viewMatrix[1][2], viewMatrix[2][2]));
+    vec3 lookVector = normalize(cameraPosition - aInstanceWorldPosition);
     vec3 right = normalize(cross(lookVector, up));
 `,
                 '#include <begin_vertex>': `
