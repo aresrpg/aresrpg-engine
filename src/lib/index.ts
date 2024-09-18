@@ -8,8 +8,6 @@ export { BoardRenderableFactory, type BoardRenderable } from './terrain/voxelmap
 export { BoardHandler } from './terrain/voxelmap/board/handler/board-handler';
 export { LineOfSight } from './terrain/voxelmap/board/handler/line-of-sight';
 export { PathFinder } from './terrain/voxelmap/board/handler/path-finder';
-export { BoardOverlayBlob } from './terrain/voxelmap/board/overlay/board-overlay-blob';
-export { BoardOverlaySquares } from './terrain/voxelmap/board/overlay/board-overlay-squares';
 export { VoxelmapWrapper } from './terrain/voxelmap/board/voxelmap-wrapper';
 export {
     voxelmapDataPacking,
@@ -34,5 +32,5 @@ export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibili
 export { type CheckerboardType } from './terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
 export { InstancedBillboard } from './effects/billboard/instanced-billboard';
-export { type Spritesheet } from './effects/spritesheet';
 export { BuffAscendEffect } from './effects/particles/buff-ascend-effect';
+export { type Spritesheet } from './effects/spritesheet';
