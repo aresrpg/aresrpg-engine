@@ -1,5 +1,4 @@
 import * as THREE from '../../../libs/three-usage';
-
 import { logger } from '../../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../../helpers/meshes-statistics';
 import { type VoxelsChunkSize } from '../i-voxelmap';

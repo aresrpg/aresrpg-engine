@@ -54,7 +54,9 @@ class TestTerrain extends TestBase {
         super(map);
 
         this.puff1 = new Puff({
-            texture: new THREE.TextureLoader().load('/resources/puff.png', texture => { texture.colorSpace = THREE.SRGBColorSpace; }),
+            texture: new THREE.TextureLoader().load('/resources/puff.png', texture => {
+                texture.colorSpace = THREE.SRGBColorSpace;
+            }),
             size: { x: 3, y: 3 },
         });
         this.puff1.container.position.set(-5.5, 200, 0.5);
@@ -63,13 +65,15 @@ class TestTerrain extends TestBase {
         this.scene.add(this.puff1.container);
 
         this.puff2 = new Puff({
-            texture: new THREE.TextureLoader().load('/resources/puff2.png', texture => { texture.colorSpace = THREE.SRGBColorSpace; }),
+            texture: new THREE.TextureLoader().load('/resources/puff2.png', texture => {
+                texture.colorSpace = THREE.SRGBColorSpace;
+            }),
             size: { x: 10, y: 1 },
         });
         this.puff2.container.position.set(+5, 200, 0);
         this.scene.add(this.puff2.container);
 
-        this.fountain = new Fountain(new THREE.Color(0xFF3311));
+        this.fountain = new Fountain(new THREE.Color(0xff3311));
         this.fountain.container.position.set(5, 200, -10);
         this.scene.add(this.fountain.container);
 
@@ -85,20 +89,22 @@ class TestTerrain extends TestBase {
             size: { x: 2, y: 6, z: 2 },
             density: 32,
             animationDuration: 1500,
-            texture: new THREE.TextureLoader().load('/resources/heal.png', texture => { texture.colorSpace = THREE.SRGBColorSpace; }),
+            texture: new THREE.TextureLoader().load('/resources/heal.png', texture => {
+                texture.colorSpace = THREE.SRGBColorSpace;
+            }),
         });
         this.heal.container.position.set(0, 200, 0);
         this.scene.add(this.heal.container);
 
         let healRunning = false;
-        window.addEventListener("keydown", event => {
-            if (!healRunning && event.code === "Space") {
+        window.addEventListener('keydown', event => {
+            if (!healRunning && event.code === 'Space') {
                 this.heal.start();
                 healRunning = true;
             }
         });
-        window.addEventListener("keyup", event => {
-            if (healRunning && event.code === "Space") {
+        window.addEventListener('keyup', event => {
+            if (healRunning && event.code === 'Space') {
                 this.heal.stop();
                 healRunning = false;
             }
@@ -179,7 +185,7 @@ class TestTerrain extends TestBase {
                 origin: { x: 0, y: -0.5 },
                 lockAxis: { x: 0, y: 1, z: 0 },
                 rendering: {
-                    material: "Phong",
+                    material: 'Phong',
                     shadows: { receive: this.enableShadows },
                     uniforms: {
                         uTexture: {
@@ -417,4 +423,3 @@ return vec4(sampled.rgb / sampled.a, 1);
 }
 
 export { TestTerrain };
-

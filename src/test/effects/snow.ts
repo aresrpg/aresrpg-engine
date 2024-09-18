@@ -1,7 +1,7 @@
-import * as THREE from "three-usage-test";
+import * as THREE from 'three-usage-test';
 
-import { InstancedBillboard } from "../../lib";
-import { safeModulo } from "../../lib/helpers/math";
+import { InstancedBillboard } from '../../lib';
+import { safeModulo } from '../../lib/helpers/math';
 
 type Particle = {
     position: THREE.Vector3;
@@ -23,7 +23,7 @@ class Snow {
         this.instancedBillboard = new InstancedBillboard({
             maxInstancesCount: particlesCount,
             rendering: {
-                material: "Basic",
+                material: 'Basic',
                 shadows: {
                     receive: false,
                 },
@@ -37,7 +37,7 @@ if (distSq > 0.2) {
 }
 return vec4(0.9, 0.9, 1, 1);
 `,
-            }
+            },
         });
 
         this.container = this.instancedBillboard.container;
@@ -69,7 +69,7 @@ return vec4(0.9, 0.9, 1, 1);
             particle.position.set(
                 safeModulo(particle.position.x, 50),
                 safeModulo(particle.position.y, 50),
-                safeModulo(particle.position.z, 50),
+                safeModulo(particle.position.z, 50)
             );
 
             const size = 0.2;
@@ -79,16 +79,9 @@ return vec4(0.9, 0.9, 1, 1);
     }
 
     private initializeParticle(particle: Particle): void {
-        particle.position = new THREE.Vector3(100 * Math.random(), 100 *  Math.random(), 100 * Math.random());
-        particle.velocity = new THREE.Vector3(
-            -0.5 + 0.1 * Math.random(),
-            -1 - 3 * Math.random(),
-            -0.5 + 0.1 * Math.random(),
-        );
+        particle.position = new THREE.Vector3(100 * Math.random(), 100 * Math.random(), 100 * Math.random());
+        particle.velocity = new THREE.Vector3(-0.5 + 0.1 * Math.random(), -1 - 3 * Math.random(), -0.5 + 0.1 * Math.random());
     }
 }
 
-export {
-    Snow
-};
-
+export { Snow };

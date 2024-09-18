@@ -1,15 +1,14 @@
 import * as THREE from '../../libs/three-usage';
-
 import { vec3ToString } from '../../helpers/string';
 
-type UniformType = "sampler2D" | "float" | "vec2" | "vec3" | "vec4";
+type UniformType = 'sampler2D' | 'float' | 'vec2' | 'vec3' | 'vec4';
 
 type Parameters = {
     readonly origin?: THREE.Vector2Like;
     readonly lockAxis?: THREE.Vector3Like;
     readonly maxInstancesCount?: number;
     readonly rendering: {
-        readonly material: "Basic" | "Phong";
+        readonly material: 'Basic' | 'Phong';
         readonly blending?: THREE.Blending;
         readonly depthWrite?: boolean;
         readonly transparent?: boolean;
@@ -17,7 +16,7 @@ type Parameters = {
             readonly receive: boolean;
         };
         readonly uniforms: Record<string, THREE.IUniform<unknown> & { readonly type: UniformType }>;
-        readonly attributes: Record<string, { readonly type: keyof typeof attributeSizes; }>;
+        readonly attributes: Record<string, { readonly type: keyof typeof attributeSizes }>;
         readonly fragmentCode: string;
     };
 };
@@ -49,7 +48,7 @@ class InstancedBillboard {
 
     private readonly maxInstancesCount: number;
 
-    private readonly customAttributes: Record<string, { readonly type: keyof typeof attributeSizes; }>;
+    private readonly customAttributes: Record<string, { readonly type: keyof typeof attributeSizes }>;
 
     private readonly shadows: {
         readonly receive: boolean;
@@ -59,7 +58,7 @@ class InstancedBillboard {
         this.container = new THREE.Group();
 
         this.maxInstancesCount = params.maxInstancesCount ?? Infinity;
-        
+
         this.customAttributes = params.rendering.attributes;
 
         this.shadows = {
@@ -79,10 +78,10 @@ class InstancedBillboard {
         }
 
         let billboardMaterial: THREE.Material;
-        if (params.rendering.material === "Phong") {
+        if (params.rendering.material === 'Phong') {
             billboardMaterial = new THREE.MeshPhongMaterial();
             // billboardMaterial.shininess = 0;
-        } else if (params.rendering.material === "Basic") {
+        } else if (params.rendering.material === 'Basic') {
             billboardMaterial = new THREE.MeshBasicMaterial();
         } else {
             throw new Error(`Unsupported material "${params.rendering.material}".`);
@@ -104,16 +103,21 @@ class InstancedBillboard {
 attribute vec3 aInstanceWorldPosition;
 attribute mat2 aInstanceLocalTransform;
 
-${Object.entries(params.rendering.attributes).map(([key, attribute]) => `attribute ${attribute.type} a_${key};`).join("\n")}
+${Object.entries(params.rendering.attributes)
+    .map(([key, attribute]) => `attribute ${attribute.type} a_${key};`)
+    .join('\n')}
 
 varying vec2 vUv;
-${Object.entries(params.rendering.attributes).map(([key, attribute]) => `varying ${attribute.type} v_${key};`).join("\n")}
+${Object.entries(params.rendering.attributes)
+    .map(([key, attribute]) => `varying ${attribute.type} v_${key};`)
+    .join('\n')}
 
 void main() {
-    vec3 up = ${params.lockAxis
-                        ? `vec3(${vec3ToString(new THREE.Vector3().copy(params.lockAxis).normalize(), ', ')})`
-                        : 'normalize(vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]))'
-                    };
+    vec3 up = ${
+        params.lockAxis
+            ? `vec3(${vec3ToString(new THREE.Vector3().copy(params.lockAxis).normalize(), ', ')})`
+            : 'normalize(vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]))'
+    };
     vec4 billboardOriginWorld = modelMatrix * vec4(aInstanceWorldPosition, 1);
     vec3 lookVector = normalize(cameraPosition - billboardOriginWorld.xyz / billboardOriginWorld.w);
     vec3 right = normalize(cross(lookVector, up));
@@ -125,7 +129,9 @@ void main() {
     vec3 transformed = aInstanceWorldPosition + localPosition2d.x * right + localPosition2d.y * up;
 
     vUv = uv;
-    ${Object.keys(params.rendering.attributes).map(key => `v_${key} = a_${key};`).join("\n")}
+    ${Object.keys(params.rendering.attributes)
+        .map(key => `v_${key} = a_${key};`)
+        .join('\n')}
 `,
                 '#include <beginnormal_vertex>': `
     vec3 objectNormal = lookVector;
@@ -135,16 +141,20 @@ void main() {
             parameters.fragmentShader = applyReplacements(parameters.fragmentShader, {
                 'void main() {': `
 ${Object.entries(params.rendering.uniforms)
-                        .map(([key, uniform]) => `uniform ${uniform.type} ${key};`)
-                        .join('\n')}
+    .map(([key, uniform]) => `uniform ${uniform.type} ${key};`)
+    .join('\n')}
 
 varying vec2 vUv;
 
-${Object.entries(params.rendering.attributes).map(([key, attribute]) => `varying ${attribute.type} v_${key};`).join("\n")}
+${Object.entries(params.rendering.attributes)
+    .map(([key, attribute]) => `varying ${attribute.type} v_${key};`)
+    .join('\n')}
 
 vec4 getColor(
     const vec2 uv
-    ${Object.entries(params.rendering.attributes).map(([key, attribute]) => `, const ${attribute.type} ${key}`).join("")}
+    ${Object.entries(params.rendering.attributes)
+        .map(([key, attribute]) => `, const ${attribute.type} ${key}`)
+        .join('')}
     ) {
     ${params.rendering.fragmentCode}
 }
@@ -153,7 +163,9 @@ void main() {`,
                 '#include <map_fragment>': `
     diffuseColor.rgb = getColor(
         vUv
-        ${Object.keys(params.rendering.attributes).map(key => `, v_${key}`).join("")}
+        ${Object.keys(params.rendering.attributes)
+            .map(key => `, v_${key}`)
+            .join('')}
     ).rgb;
 `,
             });
@@ -168,7 +180,7 @@ void main() {`,
 
         let currentInstancesCapacity = 0;
         for (const batch of this.batches) {
-            currentInstancesCapacity +=  batch.maxInstancesCount;
+            currentInstancesCapacity += batch.maxInstancesCount;
         }
         while (currentInstancesCapacity < instancesCount) {
             const maxBatchSize = 2000;
@@ -221,7 +233,7 @@ void main() {`,
         }
 
         const size = attributeSizes[definition.type];
-        if (typeof definition.type === "undefined") {
+        if (typeof definition.type === 'undefined') {
             throw new Error(`Unknown attribute type "${definition.type}".`);
         }
 
@@ -274,12 +286,12 @@ void main() {`,
         const instanceCustomAttributes: Record<string, THREE.InstancedBufferAttribute> = {};
         for (const [name, definition] of Object.entries(this.customAttributes)) {
             const size = attributeSizes[definition.type];
-            if (typeof size === "undefined") {
+            if (typeof size === 'undefined') {
                 throw new Error();
             }
 
             const customAttribute = new THREE.InstancedBufferAttribute(new Float32Array(size * maxInstancesCount), size);
-            billboardGeometry.setAttribute(`a_${name}`, customAttribute)
+            billboardGeometry.setAttribute(`a_${name}`, customAttribute);
             instanceCustomAttributes[name] = customAttribute;
         }
 

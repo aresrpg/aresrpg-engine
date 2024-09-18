@@ -1,5 +1,4 @@
 import type * as THREE from '../../../libs/three-usage';
-
 import { vec3ToString } from '../../../helpers/string';
 
 class PatchId {

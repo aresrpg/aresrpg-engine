@@ -1,7 +1,7 @@
-import * as THREE from "three-usage-test";
+import * as THREE from 'three-usage-test';
 
-import { InstancedBillboard } from "../../lib";
-import { safeModulo } from "../../lib/helpers/math";
+import { InstancedBillboard } from '../../lib';
+import { safeModulo } from '../../lib/helpers/math';
 
 type Particle = {
     position: THREE.Vector3;
@@ -27,7 +27,7 @@ class Rain {
             maxInstancesCount: particlesCount,
             lockAxis: { ...this.orientation },
             rendering: {
-                material: "Basic",
+                material: 'Basic',
                 shadows: {
                     receive: false,
                 },
@@ -36,7 +36,7 @@ class Rain {
                 fragmentCode: `
 return vec4(0.5, 0.5, 1, 1);
 `,
-            }
+            },
         });
 
         this.container = this.instancedBillboard.container;
@@ -65,7 +65,7 @@ return vec4(0.5, 0.5, 1, 1);
             particle.position.set(
                 safeModulo(particle.position.x, 50),
                 safeModulo(particle.position.y, 50),
-                safeModulo(particle.position.z, 50),
+                safeModulo(particle.position.z, 50)
             );
 
             const size = 0.4;
@@ -79,12 +79,11 @@ return vec4(0.5, 0.5, 1, 1);
         particle.velocity = new THREE.Vector3(
             this.orientation.x + 0.01 * Math.random(),
             this.orientation.y + 0.01 * Math.random(),
-            this.orientation.z + 0.01 * Math.random(),
-        ).multiplyScalar(1 + 0.1 * Math.random()).multiplyScalar(-30);
+            this.orientation.z + 0.01 * Math.random()
+        )
+            .multiplyScalar(1 + 0.1 * Math.random())
+            .multiplyScalar(-30);
     }
 }
 
-export {
-    Rain
-};
-
+export { Rain };

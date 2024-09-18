@@ -1,5 +1,4 @@
 import * as THREE from '../../../../libs/three-usage';
-
 import { nextPowerOfTwo } from '../../../../helpers/math';
 import { vec3ToString } from '../../../../helpers/string';
 import { type PackedUintFragment } from '../../../../helpers/uint-packing';

@@ -1,5 +1,4 @@
 import type * as THREE from '../../libs/three-usage';
-
 import { processAsap, type SyncOrPromise } from '../../helpers/async/async-sync';
 
 class HeightmapNodeMesh {

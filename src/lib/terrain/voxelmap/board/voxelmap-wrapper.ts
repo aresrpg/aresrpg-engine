@@ -1,5 +1,4 @@
 import * as THREE from '../../../libs/three-usage';
-
 import { processAsap } from '../../../helpers/async/async-sync';
 import { voxelmapDataPacking, type ILocalMapData, type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../i-voxelmap';
 import { PatchId } from '../patch/patch-id';

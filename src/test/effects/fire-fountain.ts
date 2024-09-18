@@ -1,6 +1,6 @@
-import * as THREE from "three-usage-test";
+import * as THREE from 'three-usage-test';
 
-import { InstancedBillboard } from "../../lib";
+import { InstancedBillboard } from '../../lib';
 
 type Particle = {
     position: THREE.Vector3;
@@ -25,7 +25,7 @@ class Fountain {
         this.instancedBillboard = new InstancedBillboard({
             maxInstancesCount: particlesCount,
             rendering: {
-                material: "Basic",
+                material: 'Basic',
                 blending: THREE.AdditiveBlending,
                 depthWrite: false,
                 transparent: true,
@@ -34,8 +34,10 @@ class Fountain {
                 },
                 uniforms: {
                     uTexture: {
-                        value: new THREE.TextureLoader().load('/resources/fire.jpg', texture => { texture.colorSpace = THREE.SRGBColorSpace; }),
-                        type: "sampler2D",
+                        value: new THREE.TextureLoader().load('/resources/fire.jpg', texture => {
+                            texture.colorSpace = THREE.SRGBColorSpace;
+                        }),
+                        type: 'sampler2D',
                     },
                 },
                 attributes: {},
@@ -54,7 +56,7 @@ vec4 sampled = texture(uTexture, uv);
 const vec3 color = vec3(${color.r}, ${color.g}, ${color.b});
 return vec4(color * sampled.r, 1);
 `,
-            }
+            },
         });
 
         this.container = this.instancedBillboard.container;
@@ -103,18 +105,11 @@ return vec4(color * sampled.r, 1);
 
     private initializeParticle(particle: Particle): void {
         particle.position = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
-        particle.velocity = new THREE.Vector3(
-            2 * (Math.random() - 0.5),
-            -2 * Math.random(),
-            2 * (Math.random() - 0.5),
-        );
+        particle.velocity = new THREE.Vector3(2 * (Math.random() - 0.5), -2 * Math.random(), 2 * (Math.random() - 0.5));
         particle.birthTimestamp = performance.now();
         particle.lifeDuration = 2000 + 3000 * Math.random();
         particle.rotation = 2 * Math.PI * Math.random();
     }
 }
 
-export {
-    Fountain
-};
-
+export { Fountain };

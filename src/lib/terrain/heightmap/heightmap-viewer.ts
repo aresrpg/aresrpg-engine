@@ -1,5 +1,4 @@
 import * as THREE from '../../libs/three-usage';
-
 import { type MeshesStatistics } from '../../helpers/meshes-statistics';
 
 import { HeightmapNodeId } from './heightmap-node-id';

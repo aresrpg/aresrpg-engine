@@ -1,6 +1,6 @@
-import * as THREE from "three-usage-test";
+import * as THREE from 'three-usage-test';
 
-import { InstancedBillboard, type Spritesheet } from "../../lib";
+import { InstancedBillboard, type Spritesheet } from '../../lib';
 
 type Particle = {
     position: THREE.Vector3;
@@ -26,18 +26,18 @@ class Puff {
         this.instancedBillboard = new InstancedBillboard({
             maxInstancesCount: particlesCount,
             rendering: {
-                material: "Basic",
+                material: 'Basic',
                 shadows: {
                     receive: false,
                 },
                 uniforms: {
                     uSpriteTexture: {
                         value: spritesheet.texture,
-                        type: "sampler2D",
+                        type: 'sampler2D',
                     },
                 },
                 attributes: {
-                    life: { type: "float" },
+                    life: { type: 'float' },
                 },
                 fragmentCode: `
 if (life > 1.0) {
@@ -57,20 +57,16 @@ if (sampled.a < 0.5) {
 }
 return vec4(sampled.rgb, 1);
 `,
-            }
+            },
         });
 
         this.container = this.instancedBillboard.container;
 
         for (let i = 0; i < particlesCount; i++) {
-            const angle = i * 2 * Math.PI / particlesCount;
+            const angle = (i * 2 * Math.PI) / particlesCount;
             this.particles.push({
                 position: new THREE.Vector3(0, 0, 0),
-                velocity: new THREE.Vector3(
-                    Math.cos(angle),
-                    0.2 * Math.random(),
-                    Math.sin(angle),
-                ),
+                velocity: new THREE.Vector3(Math.cos(angle), 0.2 * Math.random(), Math.sin(angle)),
                 birthTimestamp: performance.now(),
                 lifeDuration: 750,
                 initialRotation: Math.random() * 2 * Math.PI,
@@ -97,13 +93,13 @@ return vec4(sampled.rgb, 1);
                 const size = 2 + 0.5 * lifeSq * lifeSq;
                 const rotation = particle.initialRotation + particle.rotationSpeed * life;
 
-                this.instancedBillboard.setInstanceCustomAttribute(iP, "life", [life]);
+                this.instancedBillboard.setInstanceCustomAttribute(iP, 'life', [life]);
                 this.instancedBillboard.setInstancePosition(iP, particle.position);
                 this.instancedBillboard.setInstanceTransform(iP, rotation, { x: size, y: size });
             } else {
                 particle.birthTimestamp = now;
                 particle.position.set(0, 0, 0);
-                this.instancedBillboard.setInstanceCustomAttribute(iP, "life", [0]);
+                this.instancedBillboard.setInstanceCustomAttribute(iP, 'life', [0]);
                 this.instancedBillboard.setInstancePosition(iP, particle.position);
                 this.instancedBillboard.setInstanceTransform(iP, 0, { x: 0, y: 0 });
             }
@@ -111,7 +107,4 @@ return vec4(sampled.rgb, 1);
     }
 }
 
-export {
-    Puff
-};
-
+export { Puff };

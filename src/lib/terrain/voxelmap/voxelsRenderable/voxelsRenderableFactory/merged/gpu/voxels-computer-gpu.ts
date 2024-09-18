@@ -1,7 +1,6 @@
 /// <reference types="@webgpu/types" />
 
 import type * as THREE from '../../../../../../libs/three-usage';
-
 import { PromisesQueue } from '../../../../../../helpers/async/promises-queue';
 import { logger } from '../../../../../../helpers/logger';
 import { vec3ToString } from '../../../../../../helpers/string';

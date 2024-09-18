@@ -1,5 +1,4 @@
 import * as THREE from '../../../../libs/three-usage';
-
 import { DisposableMap } from '../../../../helpers/disposable-map';
 import { logger } from '../../../../helpers/logger';
 import { vec3ToString } from '../../../../helpers/string';

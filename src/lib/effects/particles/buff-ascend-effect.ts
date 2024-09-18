@@ -1,6 +1,5 @@
-import * as THREE from "../../libs/three-usage";
-
-import { InstancedBillboard } from "../billboard/instanced-billboard";
+import * as THREE from '../../libs/three-usage';
+import { InstancedBillboard } from '../billboard/instanced-billboard';
 
 type Particle = {
     initialPosition: THREE.Vector3;
@@ -34,14 +33,14 @@ class BuffAscendEffect {
         this.instancedBillboard = new InstancedBillboard({
             maxInstancesCount: particlesCount,
             rendering: {
-                material: "Basic",
+                material: 'Basic',
                 shadows: {
                     receive: false,
                 },
                 uniforms: {
                     uTexture: {
                         value: params.texture,
-                        type: "sampler2D",
+                        type: 'sampler2D',
                     },
                 },
                 attributes: {},
@@ -52,7 +51,7 @@ if (sampled.a < 0.5) {
 }
 return vec4(sampled.rgb, 1);
 `,
-            }
+            },
         });
 
         this.container = this.instancedBillboard.container;
@@ -111,7 +110,4 @@ return vec4(sampled.rgb, 1);
     }
 }
 
-export {
-    BuffAscendEffect
-};
-
+export { BuffAscendEffect };

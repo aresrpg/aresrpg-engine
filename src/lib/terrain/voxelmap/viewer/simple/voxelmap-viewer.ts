@@ -1,5 +1,4 @@
 import * as THREE from '../../../../libs/three-usage';
-
 import { AsyncTask } from '../../../../helpers/async/async-task';
 import { PromisesQueue } from '../../../../helpers/async/promises-queue';
 import { vec3ToString } from '../../../../helpers/string';

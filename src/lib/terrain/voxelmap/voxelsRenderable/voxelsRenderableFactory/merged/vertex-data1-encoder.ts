@@ -1,5 +1,4 @@
 import type * as THREE from '../../../../../libs/three-usage';
-
 import { type VoxelsChunkSize } from '../../../i-voxelmap';
 import { PackedUintFactory, type PackedUintFragment } from '../../../../../helpers/uint-packing';
 

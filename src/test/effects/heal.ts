@@ -1,6 +1,6 @@
-import * as THREE from "three-usage-test";
+import * as THREE from 'three-usage-test';
 
-import { InstancedBillboard } from "../../lib";
+import { InstancedBillboard } from '../../lib';
 
 type Particle = {
     initialPosition: THREE.Vector3;
@@ -34,14 +34,14 @@ class Heal {
         this.instancedBillboard = new InstancedBillboard({
             maxInstancesCount: particlesCount,
             rendering: {
-                material: "Basic",
+                material: 'Basic',
                 shadows: {
                     receive: false,
                 },
                 uniforms: {
                     uTexture: {
                         value: params.texture,
-                        type: "sampler2D",
+                        type: 'sampler2D',
                     },
                 },
                 attributes: {},
@@ -52,7 +52,7 @@ if (sampled.a < 0.5) {
 }
 return vec4(sampled.rgb, 1);
 `,
-            }
+            },
         });
 
         this.container = this.instancedBillboard.container;
@@ -112,7 +112,4 @@ return vec4(sampled.rgb, 1);
     }
 }
 
-export {
-    Heal
-};
-
+export { Heal };
