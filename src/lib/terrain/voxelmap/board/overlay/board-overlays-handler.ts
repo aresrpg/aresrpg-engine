@@ -71,6 +71,7 @@ class BoardOverlaysHandler {
 
     public dispose(): void {
         this.overlayBlob.dispose();
+        this.overlaySquares.dispose();
     }
 }
 
