@@ -1,18 +1,24 @@
 import * as THREE from '../../../../libs/three-usage';
-import { type Board } from '../board';
+
 import { type GridCoord } from './board-overlay';
 import { BoardOverlayBlob } from './board-overlay-blob';
 import { BoardOverlaySquares } from './board-overlay-squares';
 
-type Parameters = {
-    readonly board: Board;
+type InputBoard = {
+    readonly size: { readonly x: number; readonly z: number };
+    readonly origin: THREE.Vector3Like;
 };
+
+type Parameters = {
+    readonly board: InputBoard;
+};
+
 class BoardOverlaysHandler {
     private static readonly yShift = 0.001;
 
     public readonly container: THREE.Object3D;
 
-    private readonly board: Board;
+    private readonly board: InputBoard;
 
     private readonly overlaySquares: BoardOverlaySquares;
     private readonly overlayBlob: BoardOverlayBlob;
