@@ -319,8 +319,9 @@ return vec4(sampled.rgb / sampled.a, 1);
         let currentBoard: {
             board: Board;
             renderable: BoardRenderable;
-            boardOverlaysHandler: BoardOverlaysHandler;
         } | null = null;
+
+        const boardOverlaysHandler = new BoardOverlaysHandler({ board: { size: { x: 1, z: 1 }, origin: { x: 0, y: 0, z: 0 } } });
 
         let lastBoardRequestId = -1;
         const requestBoard = async (origin: THREE.Vector3Like) => {
@@ -330,7 +331,7 @@ return vec4(sampled.rgb / sampled.a, 1);
             const boardRadius = 31;
             const board = await computeBoard(voxelMap, origin, boardRadius);
             const renderable = await factory.buildBoardRenderable(board);
-            const boardOverlaysHandler = new BoardOverlaysHandler({ board });
+            boardOverlaysHandler.reset(board);
 
             if (lastBoardRequestId !== requestId) {
                 return; // another request was launched in the meantime
@@ -340,10 +341,9 @@ return vec4(sampled.rgb / sampled.a, 1);
             if (currentBoard) {
                 currentBoard.renderable.dispose();
                 this.map.unregisterBoard(currentBoard.board);
-                currentBoard.boardOverlaysHandler.container.removeFromParent();
-                currentBoard.boardOverlaysHandler.dispose();
+                boardOverlaysHandler.container.removeFromParent();
             }
-            currentBoard = { renderable, board, boardOverlaysHandler };
+            currentBoard = { renderable, board };
 
             if (!this.map.includeBoard) {
                 boardContainer.add(currentBoard.renderable.container);

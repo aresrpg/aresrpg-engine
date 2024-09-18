@@ -18,28 +18,19 @@ class BoardOverlaysHandler {
 
     public readonly container: THREE.Object3D;
 
-    private readonly board: InputBoard;
-
-    private readonly overlaySquares: BoardOverlaySquares;
-    private readonly overlayBlob: BoardOverlayBlob;
+    private overlaySquares: BoardOverlaySquares;
+    private overlayBlob: BoardOverlayBlob;
 
     public constructor(params: Parameters) {
-        this.board = params.board;
-
         this.container = new THREE.Group();
         this.container.name = 'board-overlays-handler';
 
-        this.container.position.set(this.board.origin.x, this.board.origin.y, this.board.origin.z);
-
-        this.overlaySquares = new BoardOverlaySquares({
-            size: this.board.size,
-        });
-        this.overlaySquares.container.position.y = 2 * BoardOverlaysHandler.yShift;
+        const overlays = this.buildOverlays(params.board.size);
+        this.overlaySquares = overlays.squares;
+        this.overlayBlob = overlays.blob;
         this.container.add(this.overlaySquares.container);
-
-        this.overlayBlob = new BoardOverlayBlob({ size: this.board.size });
-        this.overlayBlob.container.position.y = 1 * BoardOverlaysHandler.yShift;
         this.container.add(this.overlayBlob.container);
+        this.container.position.set(params.board.origin.x, params.board.origin.y, params.board.origin.z);
     }
 
     public clearSquares(): void {
@@ -72,6 +63,29 @@ class BoardOverlaysHandler {
     public dispose(): void {
         this.overlayBlob.dispose();
         this.overlaySquares.dispose();
+    }
+
+    public reset(board: InputBoard): void {
+        this.overlayBlob.dispose();
+        this.overlaySquares.dispose();
+        this.container.clear();
+
+        const overlays = this.buildOverlays(board.size);
+        this.overlaySquares = overlays.squares;
+        this.overlayBlob = overlays.blob;
+        this.container.add(this.overlaySquares.container);
+        this.container.add(this.overlayBlob.container);
+        this.container.position.set(board.origin.x, board.origin.y, board.origin.z);
+    }
+
+    private buildOverlays(gridSize: InputBoard['size']): { squares: BoardOverlaySquares; blob: BoardOverlayBlob } {
+        const squares = new BoardOverlaySquares({ size: gridSize });
+        squares.container.position.y = 2 * BoardOverlaysHandler.yShift;
+
+        const blob = new BoardOverlayBlob({ size: gridSize });
+        blob.container.position.y = 1 * BoardOverlaysHandler.yShift;
+
+        return { squares, blob };
     }
 }
 
