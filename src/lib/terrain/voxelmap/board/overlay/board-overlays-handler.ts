@@ -1,13 +1,13 @@
 import * as THREE from '../../../../libs/three-usage';
 import { type Board } from '../board';
-import { type GridCoord } from '../overlay/board-overlay';
-import { BoardOverlayBlob } from '../overlay/board-overlay-blob';
-import { BoardOverlaySquares } from '../overlay/board-overlay-squares';
+import { type GridCoord } from './board-overlay';
+import { BoardOverlayBlob } from './board-overlay-blob';
+import { BoardOverlaySquares } from './board-overlay-squares';
 
 type Parameters = {
     readonly board: Board;
 };
-class BoardHandler {
+class BoardOverlaysHandler {
     private static readonly yShift = 0.001;
 
     public readonly container: THREE.Object3D;
@@ -21,18 +21,18 @@ class BoardHandler {
         this.board = params.board;
 
         this.container = new THREE.Group();
-        this.container.name = 'board-handler';
+        this.container.name = 'board-overlays-handler';
 
         this.container.position.set(this.board.origin.x, this.board.origin.y, this.board.origin.z);
 
         this.overlaySquares = new BoardOverlaySquares({
             size: this.board.size,
         });
-        this.overlaySquares.container.position.y = 2 * BoardHandler.yShift;
+        this.overlaySquares.container.position.y = 2 * BoardOverlaysHandler.yShift;
         this.container.add(this.overlaySquares.container);
 
         this.overlayBlob = new BoardOverlayBlob({ size: this.board.size });
-        this.overlayBlob.container.position.y = 1 * BoardHandler.yShift;
+        this.overlayBlob.container.position.y = 1 * BoardOverlaysHandler.yShift;
         this.container.add(this.overlayBlob.container);
     }
 
@@ -68,4 +68,4 @@ class BoardHandler {
     }
 }
 
-export { BoardHandler };
+export { BoardOverlaysHandler };

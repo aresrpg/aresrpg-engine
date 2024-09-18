@@ -1,7 +1,7 @@
 import * as THREE from 'three-usage-test';
 
 import {
-    BoardHandler,
+    BoardOverlaysHandler,
     BoardRenderableFactory,
     BuffAscendEffect,
     computeBoard,
@@ -319,7 +319,7 @@ return vec4(sampled.rgb / sampled.a, 1);
         let currentBoard: {
             board: Board;
             renderable: BoardRenderable;
-            handler: BoardHandler;
+            boardOverlaysHandler: BoardOverlaysHandler;
         } | null = null;
 
         let lastBoardRequestId = -1;
@@ -330,7 +330,7 @@ return vec4(sampled.rgb / sampled.a, 1);
             const boardRadius = 31;
             const board = await computeBoard(voxelMap, origin, boardRadius);
             const renderable = await factory.buildBoardRenderable(board);
-            const handler = new BoardHandler({ board });
+            const boardOverlaysHandler = new BoardOverlaysHandler({ board });
 
             if (lastBoardRequestId !== requestId) {
                 return; // another request was launched in the meantime
@@ -340,18 +340,18 @@ return vec4(sampled.rgb / sampled.a, 1);
             if (currentBoard) {
                 currentBoard.renderable.dispose();
                 this.map.unregisterBoard(currentBoard.board);
-                currentBoard.handler.container.removeFromParent();
-                currentBoard.handler.dispose();
+                currentBoard.boardOverlaysHandler.container.removeFromParent();
+                currentBoard.boardOverlaysHandler.dispose();
             }
-            currentBoard = { renderable, board, handler };
+            currentBoard = { renderable, board, boardOverlaysHandler };
 
             if (!this.map.includeBoard) {
                 boardContainer.add(currentBoard.renderable.container);
             }
             this.map.registerBoard(currentBoard.board);
-            this.scene.add(handler.container);
+            this.scene.add(boardOverlaysHandler.container);
 
-            handler.clearSquares();
+            boardOverlaysHandler.clearSquares();
 
             if (testLineOfSight) {
                 const lineOfSight = new LineOfSight({
@@ -366,8 +366,8 @@ return vec4(sampled.rgb / sampled.a, 1);
                 });
                 const visibleSquares = cellsVisibilities.filter(cell => cell.visibility === 'visible');
                 const obstructedSquares = cellsVisibilities.filter(cell => cell.visibility === 'hidden');
-                handler.displaySquares(visibleSquares, new THREE.Color(0x00ff00));
-                handler.displaySquares(obstructedSquares, new THREE.Color(0xff0000));
+                boardOverlaysHandler.displaySquares(visibleSquares, new THREE.Color(0x00ff00));
+                boardOverlaysHandler.displaySquares(obstructedSquares, new THREE.Color(0xff0000));
             } else if (testPathFinding) {
                 const pathFinder = new PathFinder({
                     grid: {
@@ -379,17 +379,17 @@ return vec4(sampled.rgb / sampled.a, 1);
                 {
                     pathFinder.setOrigin({ x: boardRadius, z: boardRadius });
                     const reachableCells = pathFinder.getReachableCells(10);
-                    handler.displayBlob(0, reachableCells, new THREE.Color(0x88dd88), 0.5);
+                    boardOverlaysHandler.displayBlob(0, reachableCells, new THREE.Color(0x88dd88), 0.5);
                     const path = pathFinder.findPathTo({ x: 31, z: 35 });
                     if (path) {
-                        handler.displaySquares(path, new THREE.Color(0x88dd88), 1);
+                        boardOverlaysHandler.displaySquares(path, new THREE.Color(0x88dd88), 1);
                     }
                 }
 
                 {
                     pathFinder.setOrigin({ x: boardRadius - 5, z: boardRadius - 5 });
                     const reachableCells = pathFinder.getReachableCells(7);
-                    handler.displayBlob(1, reachableCells, new THREE.Color(0xdd8888), 0.5);
+                    boardOverlaysHandler.displayBlob(1, reachableCells, new THREE.Color(0xdd8888), 0.5);
                 }
             }
         };

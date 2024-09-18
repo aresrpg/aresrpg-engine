@@ -5,7 +5,7 @@ export type { IHeightmap, IHeightmapCoords, IHeightmapSample } from './terrain/h
 export { TerrainViewer } from './terrain/terrain-viewer';
 export { EBoardSquareType, computeBoard, type Board, type BoardSquare } from './terrain/voxelmap/board/board';
 export { BoardRenderableFactory, type BoardRenderable } from './terrain/voxelmap/board/board-renderable-factory';
-export { BoardHandler } from './terrain/voxelmap/board/handler/board-handler';
+export { BoardOverlaysHandler } from './terrain/voxelmap/board/overlay/board-overlays-handler';
 export { LineOfSight } from './terrain/voxelmap/board/handler/line-of-sight';
 export { PathFinder } from './terrain/voxelmap/board/handler/path-finder';
 export { VoxelmapWrapper } from './terrain/voxelmap/board/voxelmap-wrapper';
