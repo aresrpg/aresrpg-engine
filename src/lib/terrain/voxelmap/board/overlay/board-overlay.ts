@@ -32,29 +32,11 @@ void main(void) {
             fragmentShader: params.fragmentShader,
         });
 
-        const positionsAttribute = new THREE.Float32BufferAttribute(
-            [
-                0,
-                0,
-                0,
-                this.gridSize.x,
-                0,
-                this.gridSize.z,
-                this.gridSize.x,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                this.gridSize.z,
-                this.gridSize.x,
-                0,
-                this.gridSize.z,
-            ],
-            3
-        );
+        const v00 = [0, 0, 0];
+        const v10 = [this.gridSize.x, 0, 0];
+        const v01 = [0, 0, this.gridSize.z];
+        const v11 = [this.gridSize.x, 0, this.gridSize.z];
+        const positionsAttribute = new THREE.Float32BufferAttribute([...v00, ...v11, ...v10, ...v00, ...v01, ...v11], 3);
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', positionsAttribute);
         this.mesh = new THREE.Mesh(geometry, this.material);
