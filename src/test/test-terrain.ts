@@ -9,8 +9,6 @@ import {
     EComputationMethod,
     HeightmapViewer,
     InstancedBillboard,
-    LineOfSight,
-    PathFinder,
     PromisesQueue,
     TerrainViewer,
     VoxelmapViewer,
@@ -22,6 +20,8 @@ import {
     type IVoxelMap,
 } from '../lib';
 
+import { LineOfSight } from './board/line-of-sight';
+import { PathFinder } from './board/path-finder';
 import { Fountain } from './effects/fire-fountain';
 import { Puff } from './effects/puff';
 import { Rain } from './effects/rain';
