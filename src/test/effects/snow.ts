@@ -54,6 +54,10 @@ return vec4(0.9, 0.9, 1, 1);
             this.particles.push(particle);
         }
         this.instancedBillboard.setInstancesCount(this.particles.length);
+        const size = 0.2;
+        for (let iP = 0; iP < this.particles.length; iP++) {
+            this.instancedBillboard.setInstanceTransform(iP, 0, { x: size, y: size });
+        }
     }
 
     public update(): void {
@@ -71,10 +75,7 @@ return vec4(0.9, 0.9, 1, 1);
                 safeModulo(particle.position.y, 50),
                 safeModulo(particle.position.z, 50)
             );
-
-            const size = 0.2;
             this.instancedBillboard.setInstancePosition(iP, particle.position);
-            this.instancedBillboard.setInstanceTransform(iP, 0, { x: size, y: size });
         }
     }
 
