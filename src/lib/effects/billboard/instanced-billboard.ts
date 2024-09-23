@@ -1,6 +1,8 @@
 import * as THREE from '../../libs/three-usage';
 import { vec3ToString } from '../../helpers/string';
 
+import { type CustomAttributesDefinition, InstancedBillboardBatch } from './instanced-billboard-batch';
+
 type UniformType = 'sampler2D' | 'float' | 'vec2' | 'vec3' | 'vec4';
 
 type Parameters = {
@@ -16,24 +18,9 @@ type Parameters = {
             readonly receive: boolean;
         };
         readonly uniforms: Record<string, THREE.IUniform<unknown> & { readonly type: UniformType }>;
-        readonly attributes: Record<string, { readonly type: keyof typeof attributeSizes }>;
+        readonly attributes: CustomAttributesDefinition;
         readonly fragmentCode: string;
     };
-};
-
-type Batch = {
-    readonly mesh: THREE.InstancedMesh;
-    readonly maxInstancesCount: number;
-    readonly instanceWorldPositionAttribute: THREE.InstancedBufferAttribute;
-    readonly instanceLocalTransformAttribute: THREE.InstancedBufferAttribute;
-    readonly instanceCustomAttributes: Record<string, THREE.InstancedBufferAttribute>;
-};
-
-const attributeSizes = {
-    float: 1,
-    vec2: 2,
-    vec3: 3,
-    vec4: 4,
 };
 
 class InstancedBillboard {
@@ -44,11 +31,11 @@ class InstancedBillboard {
 
     private readonly billboardMaterial: THREE.Material;
 
-    private readonly batches: Batch[] = [];
+    private readonly batches: InstancedBillboardBatch[] = [];
 
     private readonly maxInstancesCount: number;
 
-    private readonly customAttributes: Record<string, { readonly type: keyof typeof attributeSizes }>;
+    private readonly customAttributes: CustomAttributesDefinition;
 
     private readonly shadows: {
         readonly receive: boolean;
@@ -186,7 +173,7 @@ void main() {`,
             const maxBatchSize = 2000;
             const batchSize = Math.min(maxBatchSize, this.maxInstancesCount - currentInstancesCapacity);
             const batch = this.createBatch(batchSize);
-            this.container.add(batch.mesh);
+            this.container.add(batch.object);
             this.batches.push(batch);
             currentInstancesCapacity += batch.maxInstancesCount;
         }
@@ -194,11 +181,11 @@ void main() {`,
         let batchInstanceIdStart = 0;
         for (const batch of this.batches) {
             if (instancesCount < batchInstanceIdStart) {
-                batch.mesh.count = 0;
+                batch.setInstancesCount(0);
             } else if (instancesCount < batchInstanceIdStart + batch.maxInstancesCount) {
-                batch.mesh.count = instancesCount - batchInstanceIdStart;
+                batch.setInstancesCount(instancesCount - batchInstanceIdStart);
             } else {
-                batch.mesh.count = batch.maxInstancesCount;
+                batch.setInstancesCount(batch.maxInstancesCount);
             }
             batchInstanceIdStart += batch.maxInstancesCount;
         }
@@ -206,46 +193,24 @@ void main() {`,
 
     public setInstancePosition(instanceId: number, position: THREE.Vector3Like): void {
         const { batch, localInstanceId } = this.getBatchInstanceId(instanceId);
-
-        (batch.instanceWorldPositionAttribute.array as Float32Array).set([position.x, position.y, position.z], 3 * localInstanceId);
-        batch.instanceWorldPositionAttribute.needsUpdate = true;
+        batch.setInstancePosition(localInstanceId, position);
     }
 
     public setInstanceTransform(instanceId: number, rotation: number, size: THREE.Vector2Like): void {
         const { batch, localInstanceId } = this.getBatchInstanceId(instanceId);
-
-        const cosTheta = Math.cos(rotation);
-        const sinTheta = Math.sin(rotation);
-        (batch.instanceLocalTransformAttribute.array as Float32Array).set(
-            [size.x * cosTheta, sinTheta * size.x, -sinTheta * size.y, size.y * cosTheta],
-            4 * localInstanceId
-        );
-        batch.instanceLocalTransformAttribute.needsUpdate = true;
+        batch.setInstanceTransform(localInstanceId, rotation, size);
     }
 
     public setInstanceCustomAttribute(instanceId: number, name: string, value: ReadonlyArray<number>): void {
         const { batch, localInstanceId } = this.getBatchInstanceId(instanceId);
-
-        const customAttribute = batch.instanceCustomAttributes[name];
-        const definition = this.customAttributes[name];
-        if (!customAttribute || !definition) {
-            throw new Error(`Unknown attribute "${name}".`);
-        }
-
-        const size = attributeSizes[definition.type];
-        if (typeof definition.type === 'undefined') {
-            throw new Error(`Unknown attribute type "${definition.type}".`);
-        }
-
-        if (value.length !== size) {
-            throw new Error(`Invalid value size for "${name}": "${value.length}", expected "${size}".`);
-        }
-
-        (customAttribute.array as Float32Array).set(value, size * localInstanceId);
-        customAttribute.needsUpdate = true;
+        batch.setInstanceCustomAttribute(localInstanceId, name, value);
     }
 
-    private getBatchInstanceId(instanceId: number): { readonly batch: Batch; readonly localInstanceId: number } {
+    public dispose(): void {
+        throw new Error('Not implemented');
+    }
+
+    private getBatchInstanceId(instanceId: number): { readonly batch: InstancedBillboardBatch; readonly localInstanceId: number } {
         let batchInstanceIdStart = 0;
         for (const batch of this.batches) {
             if (batchInstanceIdStart <= instanceId && instanceId < batchInstanceIdStart + batch.maxInstancesCount) {
@@ -258,56 +223,13 @@ void main() {`,
         throw new Error(`InstanceId ${instanceId} is incorrect. Have you called setInstancesCount() ?`);
     }
 
-    private createBatch(maxInstancesCount: number): Batch {
-        const billboardGeometry = new THREE.InstancedBufferGeometry();
-        billboardGeometry.setAttribute(
-            'position',
-            new THREE.Float32BufferAttribute([0.5, 0.5, 0, -0.5, -0.5, 0, -0.5, 0.5, 0, 0.5, 0.5, 0, 0.5, -0.5, 0, -0.5, -0.5, 0], 3)
-        );
-        billboardGeometry.setAttribute(
-            'normal',
-            new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3)
-        );
-        billboardGeometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0], 2));
-
-        const instancedWorldPositionBuffer: number[] = [];
-        const instanceLocalTransformBuffer: number[] = [];
-        for (let i = 0; i < maxInstancesCount; i++) {
-            instancedWorldPositionBuffer.push(0, 0, 0);
-            instanceLocalTransformBuffer.push(1 / 15, 0, 0, 1 / 15);
-        }
-
-        const instanceWorldPositionAttribute = new THREE.InstancedBufferAttribute(new Float32Array(instancedWorldPositionBuffer), 3);
-        billboardGeometry.setAttribute('aInstanceWorldPosition', instanceWorldPositionAttribute);
-
-        const instanceLocalTransformAttribute = new THREE.InstancedBufferAttribute(new Float32Array(instanceLocalTransformBuffer), 4);
-        billboardGeometry.setAttribute('aInstanceLocalTransform', instanceLocalTransformAttribute);
-
-        const instanceCustomAttributes: Record<string, THREE.InstancedBufferAttribute> = {};
-        for (const [name, definition] of Object.entries(this.customAttributes)) {
-            const size = attributeSizes[definition.type];
-            if (typeof size === 'undefined') {
-                throw new Error();
-            }
-
-            const customAttribute = new THREE.InstancedBufferAttribute(new Float32Array(size * maxInstancesCount), size);
-            billboardGeometry.setAttribute(`a_${name}`, customAttribute);
-            instanceCustomAttributes[name] = customAttribute;
-        }
-
-        const mesh = new THREE.InstancedMesh(billboardGeometry, this.billboardMaterial, maxInstancesCount);
-        mesh.count = 0;
-        mesh.frustumCulled = false;
-        mesh.receiveShadow = this.shadows.receive;
-        mesh.castShadow = false;
-
-        return {
-            mesh,
+    private createBatch(maxInstancesCount: number): InstancedBillboardBatch {
+        return new InstancedBillboardBatch({
+            billboardMaterial: this.billboardMaterial,
             maxInstancesCount,
-            instanceWorldPositionAttribute,
-            instanceLocalTransformAttribute,
-            instanceCustomAttributes,
-        };
+            customAttributes: this.customAttributes,
+            receiveShadows: this.shadows.receive,
+        });
     }
 }
 
