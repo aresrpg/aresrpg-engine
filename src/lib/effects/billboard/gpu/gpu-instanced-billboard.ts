@@ -269,7 +269,7 @@ void main() {
         unpackRGBATo2Half(positionZWTexel).x
     );
     vec3 instanceWorldPosition = uPositionsRange * positionInBox;
-    vec2 positionFromBoxCenter = positionInBox.xz - 0.5;
+    vec3 positionFromBoxCenter = positionInBox - 0.5;
     float distanceSqFromBoxCenter = dot(positionFromBoxCenter, positionFromBoxCenter);
 
     vec3 up = ${
@@ -283,7 +283,7 @@ void main() {
 `,
                     '#include <begin_vertex>': `
     const vec2 origin2d = vec2(${spriteOrigin.x.toFixed(3)}, ${spriteOrigin.y.toFixed(3)});
-    vec2 localPosition2d = 0.3 * (1.0 - smoothstep(0.24, 0.25, distanceSqFromBoxCenter)) * (position.xy - origin2d);
+    vec2 localPosition2d = 0.3 * (1.0 - smoothstep(0.23, 0.25, distanceSqFromBoxCenter)) * (position.xy - origin2d);
 
     vec3 transformed = instanceWorldPosition + localPosition2d.x * right + localPosition2d.y * up;
 
