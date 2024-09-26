@@ -77,7 +77,7 @@ class TestTerrain extends TestBase {
         this.fountain.container.position.set(5, 200, -10);
         this.scene.add(this.fountain.container);
 
-        this.snow = new Snow();
+        this.snow = new Snow(this.renderer);
         this.snow.container.position.set(40, 170, -40);
         this.scene.add(this.snow.container);
 
@@ -116,13 +116,22 @@ class TestTerrain extends TestBase {
         //     setTimeout(() => this.heal.stop(), 3000);
         // }, 3000);
 
+        const previousCameraPosition = this.camera.getWorldPosition(new THREE.Vector3());
         this.update = () => {
-            this.puff1.update();
-            this.puff2.update();
-            this.fountain.update();
-            this.snow.update();
-            this.rain.update();
-            this.heal.update();
+            const cameraPosition = this.camera.getWorldPosition(new THREE.Vector3());
+
+            // this.puff1.update();
+            // this.puff2.update();
+            // // this.fountain.update();
+            // this.rain.update();
+            // this.heal.update();
+
+            const deltaCameraPosition = previousCameraPosition.clone().sub(cameraPosition);
+            this.snow.update(this.renderer, deltaCameraPosition);
+            this.snow.container.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+            // this.snow.container.position.set(0, 200, 0);
+
+            previousCameraPosition.copy(cameraPosition);
         };
 
         const testBoard = true;

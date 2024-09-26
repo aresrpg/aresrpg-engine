@@ -29,6 +29,7 @@ export {
 export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibility-computer';
 export { type CheckerboardType } from './terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
+export { GpuInstancedBillboard } from './effects/billboard/gpu/gpu-instanced-billboard';
 export { InstancedBillboard } from './effects/billboard/instanced-billboard';
 export { BuffAscendEffect } from './effects/particles/buff-ascend-effect';
 export { type Spritesheet } from './effects/spritesheet';
