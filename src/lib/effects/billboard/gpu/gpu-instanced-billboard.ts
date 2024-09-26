@@ -1,6 +1,8 @@
 import * as THREE from '../../../libs/three-usage';
 import { vec3ToString } from '../../../helpers/string';
 
+import { GpuTexturesState } from './gpu-textures-state';
+
 type UniformType = 'sampler2D' | 'float' | 'vec2' | 'vec3' | 'vec4';
 
 type Parameters = {
@@ -20,14 +22,10 @@ type Parameters = {
     };
 };
 
-type PositionsTexture = {
-    readonly renderTarget: THREE.WebGLRenderTarget;
-    readonly xy: THREE.Texture;
-    readonly zw: THREE.Texture;
-};
-
 class GpuInstancedBillboard {
     public readonly container: THREE.Object3D;
+
+    private readonly gpuTexturesState: GpuTexturesState;
 
     public readonly positionsRange = new THREE.Vector3(1, 1, 1);
 
@@ -36,20 +34,10 @@ class GpuInstancedBillboard {
 
     private readonly mesh: THREE.InstancedMesh;
 
-    private readonly fakeCamera = new THREE.PerspectiveCamera();
-    private readonly fullscreenQuad: THREE.Mesh;
-
-    private readonly initializePositionsPipeline: {
-        readonly shader: THREE.Material;
-    };
-
-    private readonly updatePositionsPipeline: {
-        readonly shader: THREE.Material;
+    private readonly updatePipeline: {
         readonly uniforms: {
-            readonly uUniformMovement: THREE.IUniform<THREE.Vector3Like>;
-            readonly uDeltaTime: THREE.IUniform<number>;
-            readonly uPreviousPositionsXYTexture: THREE.IUniform<THREE.Texture | null>;
-            readonly uPreviousPositionsZWTexture: THREE.IUniform<THREE.Texture | null>;
+            readonly uUniformMovement: THREE.IUniform<THREE.Vector3Like> & { type: 'vec3' };
+            readonly uDeltaTime: THREE.IUniform<number> & { type: 'float' };
         };
     };
 
@@ -63,8 +51,6 @@ class GpuInstancedBillboard {
     };
 
     private readonly noiseTextures: [THREE.DataTexture, THREE.DataTexture];
-    private readonly positionsTextures: [PositionsTexture, PositionsTexture];
-    private currentPositionTextureIndex = 0;
 
     private readonly maxInstancesCount: number;
 
@@ -88,119 +74,47 @@ class GpuInstancedBillboard {
 
         this.noiseTextures = [createNoiseTexture(), createNoiseTexture()];
 
-        const fullscreenQuadGeometry = new THREE.BufferGeometry();
-        fullscreenQuadGeometry.setAttribute('aPosition', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1], 2));
-        fullscreenQuadGeometry.setDrawRange(0, 6);
-        this.fullscreenQuad = new THREE.Mesh(fullscreenQuadGeometry);
-        this.fullscreenQuad.frustumCulled = false;
+        this.updatePipeline = {
+            uniforms: {
+                uUniformMovement: { value: { x: 0, y: 0, z: 0 }, type: 'vec3' },
+                uDeltaTime: { value: 0, type: 'float' },
+            },
+        };
 
-        this.initializePositionsPipeline = {
-            shader: new THREE.RawShaderMaterial({
-                glslVersion: '300 es',
-                blending: THREE.NoBlending,
-                depthTest: false,
-                depthWrite: false,
-                uniforms: {
-                    uNoiseTexture1: { value: this.noiseTextures[0] },
-                    uNoiseTexture2: { value: this.noiseTextures[1] },
+        this.gpuTexturesState = new GpuTexturesState({
+            width: textureSize,
+            height: textureSize,
+            textureNames: ['positionsTexture1', 'positionsTexture2'],
+            pipelines: {
+                initialize: {
+                    uniforms: {
+                        uNoiseTexture1: { value: this.noiseTextures[0], type: 'sampler2D' },
+                        uNoiseTexture2: { value: this.noiseTextures[1], type: 'sampler2D' },
+                    },
+                    requiresPreviousState: false,
+                    shaderCode: `
+out_positionsTexture1 = texture(uNoiseTexture1, vUv);
+out_positionsTexture2 = texture(uNoiseTexture2, vUv);
+                `,
                 },
-                vertexShader: `
-in vec2 aPosition;
+                update: {
+                    uniforms: this.updatePipeline.uniforms,
+                    requiresPreviousState: true,
+                    shaderCode: `
+vec3 previousPosition = vec3(
+    unpackRGBATo2Half(in_positionsTexture1),
+    unpackRGBATo2Half(in_positionsTexture2).x
+);
 
-out vec2 vUv;
+vec3 newPosition = previousPosition + vec3(0, -1, 0) * uDeltaTime + uUniformMovement;
+newPosition = mod(newPosition, vec3(1,1,1));
 
-void main() {
-    vUv = aPosition;
-    gl_Position = vec4(2.0 * aPosition - 1.0, 0, 1);
-}
-            `,
-                fragmentShader: `
-precision highp float;
-
-uniform sampler2D uNoiseTexture1;
-uniform sampler2D uNoiseTexture2;
-
-in vec2 vUv;
-
-layout(location = 0) out vec4 positionXY;
-layout(location = 1) out vec4 positionZW;
-
-void main() {
-    positionXY = texture(uNoiseTexture1, vUv);
-    positionZW = texture(uNoiseTexture2, vUv);
-}
-`,
-            }),
-        };
-
-        {
-            const updatePositionsUniforms = {
-                uUniformMovement: { value: { x: 0, y: 0, z: 0 } },
-                uDeltaTime: { value: 0 },
-                uPreviousPositionsXYTexture: { value: null },
-                uPreviousPositionsZWTexture: { value: null },
-            };
-            const updatePositionsShader = new THREE.RawShaderMaterial({
-                glslVersion: '300 es',
-                blending: THREE.NoBlending,
-                depthTest: false,
-                depthWrite: false,
-                uniforms: updatePositionsUniforms,
-                vertexShader: `
-in vec2 aPosition;
-
-out vec2 vUv;
-
-void main() {
-    vUv = aPosition;
-    gl_Position = vec4(2.0 * aPosition - 1.0, 0, 1);
-}
-            `,
-                fragmentShader: `
-precision highp float;
-
-uniform vec3 uUniformMovement;
-uniform float uDeltaTime;
-uniform sampler2D uPreviousPositionsXYTexture;
-uniform sampler2D uPreviousPositionsZWTexture;
-
-in vec2 vUv;
-
-layout(location = 0) out vec4 positionXY;
-layout(location = 1) out vec4 positionZW;
-
-#include <packing>
-
-void main() {
-    vec3 previousPosition = vec3(
-        unpackRGBATo2Half(texture(uPreviousPositionsXYTexture, vUv)),
-        unpackRGBATo2Half(texture(uPreviousPositionsZWTexture, vUv)).x
-    );
-
-    vec3 newPosition = previousPosition + vec3(0, -1, 0) * uDeltaTime + uUniformMovement;
-    newPosition = mod(newPosition, vec3(1,1,1));
-
-    positionXY = pack2HalfToRGBA(newPosition.xy);
-    positionZW = pack2HalfToRGBA(vec2(newPosition.z, 0));
-}
-`,
-            });
-
-            this.updatePositionsPipeline = {
-                shader: updatePositionsShader,
-                uniforms: updatePositionsUniforms,
-            };
-        }
-
-        const createPositionsTextures = (): PositionsTexture => {
-            const renderTarget = new THREE.WebGLRenderTarget(textureSize, textureSize, { count: 2, depthBuffer: false });
-            return {
-                renderTarget,
-                xy: renderTarget.textures[0]!,
-                zw: renderTarget.textures[1]!,
-            };
-        };
-        this.positionsTextures = [createPositionsTextures(), createPositionsTextures()];
+out_positionsTexture1 = pack2HalfToRGBA(newPosition.xy);
+out_positionsTexture2 = pack2HalfToRGBA(vec2(newPosition.z, 0));
+                    `,
+                },
+            },
+        });
 
         this.maxInstancesCount = params.maxInstancesCount;
 
@@ -235,7 +149,6 @@ void main() {
             billboardMaterial.blending = params.rendering.blending ?? THREE.NormalBlending;
             billboardMaterial.depthWrite = params.rendering.depthWrite ?? true;
             billboardMaterial.transparent = params.rendering.transparent ?? false;
-            billboardMaterial.side = THREE.DoubleSide;
 
             billboardMaterial.customProgramCacheKey = () => `gpu_billboard_material_${this.id}`;
             billboardMaterial.onBeforeCompile = parameters => {
@@ -354,47 +267,21 @@ void main() {`,
         throw new Error('Not implemented');
     }
 
-    public get currentPositionTexture(): PositionsTexture {
-        return this.positionsTextures[this.currentPositionTextureIndex]!;
-    }
-
-    public get nextPositionTexture(): PositionsTexture {
-        return this.positionsTextures[(this.currentPositionTextureIndex + 1) % 2]!;
-    }
-
     public initializePositions(renderer: THREE.WebGLRenderer): void {
-        const previousState = {
-            renderTarget: renderer.getRenderTarget(),
-        };
-
-        renderer.setRenderTarget(this.currentPositionTexture.renderTarget);
-        this.fullscreenQuad.material = this.initializePositionsPipeline.shader;
-        renderer.render(this.fullscreenQuad, this.fakeCamera);
-        renderer.setRenderTarget(previousState.renderTarget);
+        this.gpuTexturesState.runPipeline(renderer, 'initialize');
+        this.enforceCurrentPositionTexture();
     }
 
     public updatePositions(renderer: THREE.WebGLRenderer, deltaTime: number, uniformMovement: THREE.Vector3Like): void {
-        const previousState = {
-            renderTarget: renderer.getRenderTarget(),
-        };
-
-        renderer.setRenderTarget(this.nextPositionTexture.renderTarget);
-        this.fullscreenQuad.material = this.updatePositionsPipeline.shader;
-        this.updatePositionsPipeline.uniforms.uUniformMovement.value = uniformMovement;
-        this.updatePositionsPipeline.uniforms.uDeltaTime.value = deltaTime;
-        this.updatePositionsPipeline.uniforms.uPreviousPositionsXYTexture.value = this.currentPositionTexture.xy;
-        this.updatePositionsPipeline.uniforms.uPreviousPositionsZWTexture.value = this.currentPositionTexture.zw;
-        renderer.render(this.fullscreenQuad, this.fakeCamera);
-        renderer.setRenderTarget(previousState.renderTarget);
-
-        this.currentPositionTextureIndex = (this.currentPositionTextureIndex + 1) % 2;
+        this.updatePipeline.uniforms.uDeltaTime.value = deltaTime;
+        this.updatePipeline.uniforms.uUniformMovement.value = uniformMovement;
+        this.gpuTexturesState.runPipeline(renderer, 'update');
         this.enforceCurrentPositionTexture();
     }
 
     private enforceCurrentPositionTexture(): void {
-        const positionsTexture = this.currentPositionTexture;
-        this.displayPipeline.uniforms.uPositionXYTexture.value = positionsTexture.xy;
-        this.displayPipeline.uniforms.uPositionZWTexture.value = positionsTexture.zw;
+        this.displayPipeline.uniforms.uPositionXYTexture.value = this.gpuTexturesState.getCurrentTexture('positionsTexture1');
+        this.displayPipeline.uniforms.uPositionZWTexture.value = this.gpuTexturesState.getCurrentTexture('positionsTexture2');
     }
 }
 
