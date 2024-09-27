@@ -1,5 +1,5 @@
 import * as THREE from '../../../libs/three-usage';
-import { vec3ToString } from '../../../helpers/string';
+import { createBillboardMaterial, type UniformDefinition } from '../billboard-shader';
 
 import { GpuTexturesState } from './gpu-textures-state';
 
@@ -28,9 +28,6 @@ class GpuInstancedBillboard {
     private readonly gpuTexturesState: GpuTexturesState;
 
     public readonly positionsRange = new THREE.Vector3(1, 1, 1);
-
-    private static nextId: number = 0;
-    private readonly id = GpuInstancedBillboard.nextId++;
 
     private readonly mesh: THREE.InstancedMesh;
 
@@ -118,126 +115,49 @@ out_positionsTexture2 = pack2HalfToRGBA(vec2(newPosition.z, 0));
 
         this.maxInstancesCount = params.maxInstancesCount;
 
-        const spriteOrigin = params.origin ?? { x: 0, y: 0 };
-
-        function applyReplacements(source: string, replacements: Record<string, string>): string {
-            let result = source;
-
-            for (const [source, replacement] of Object.entries(replacements)) {
-                result = result.replace(source, replacement);
-            }
-
-            return result;
-        }
-
         {
             const displayPipelineUniforms = {
-                uPositionXYTexture: { value: null },
-                uPositionZWTexture: { value: null },
-                uPositionsRange: { value: this.positionsRange },
+                uPositionXYTexture: { value: null, type: 'sampler2D' } as UniformDefinition<THREE.Texture | null>,
+                uPositionZWTexture: { value: null, type: 'sampler2D' } as UniformDefinition<THREE.Texture | null>,
+                uPositionsRange: { value: this.positionsRange, type: 'vec3' } as UniformDefinition<THREE.Vector3Like>,
             };
 
-            let billboardMaterial: THREE.Material;
-            if (params.rendering.material === 'Phong') {
-                billboardMaterial = new THREE.MeshPhongMaterial();
-                // billboardMaterial.shininess = 0;
-            } else if (params.rendering.material === 'Basic') {
-                billboardMaterial = new THREE.MeshBasicMaterial();
-            } else {
-                throw new Error(`Unsupported material "${params.rendering.material}".`);
-            }
-            billboardMaterial.blending = params.rendering.blending ?? THREE.NormalBlending;
-            billboardMaterial.depthWrite = params.rendering.depthWrite ?? true;
-            billboardMaterial.transparent = params.rendering.transparent ?? false;
-
-            billboardMaterial.customProgramCacheKey = () => `gpu_billboard_material_${this.id}`;
-            billboardMaterial.onBeforeCompile = parameters => {
-                parameters.uniforms = {
-                    ...parameters.uniforms,
-                    ...params.rendering.uniforms,
-                    ...displayPipelineUniforms,
-                };
-
-                parameters.vertexShader = applyReplacements(parameters.vertexShader, {
-                    'void main() {': `
-uniform sampler2D uPositionXYTexture;
-uniform sampler2D uPositionZWTexture;
-uniform vec3 uPositionsRange;
-
-varying vec2 vUv;
-
-#include <packing>
-
-void getBillboard(out vec3 modelPosition, out mat2 localTransform) {
-    ivec2 texelId = ivec2(
-        int(mod(float(gl_InstanceID), ${textureSize.toFixed(1)})),
-        gl_InstanceID / ${textureSize.toFixed()}
-    );
-
-    vec4 positionXYTexel = texelFetch(uPositionXYTexture, texelId, 0);
-    vec4 positionZWTexel = texelFetch(uPositionZWTexture, texelId, 0);
-    
-    vec3 positionInBox = vec3(
-        unpackRGBATo2Half(positionXYTexel),
-        unpackRGBATo2Half(positionZWTexel).x
-    );
-    modelPosition = uPositionsRange * positionInBox;
-    vec3 positionFromBoxCenter = positionInBox - 0.5;
-    float distanceSqFromBoxCenter = dot(positionFromBoxCenter, positionFromBoxCenter);
-
-    float size = 0.3 * (1.0 - smoothstep(0.23, 0.25, distanceSqFromBoxCenter));
-    localTransform = mat2(size, 0, 0, size);
-}
-
-void main() {
-    vec3 modelPosition;
-    mat2 localTransform;
-    getBillboard(modelPosition, localTransform);
-
-    vec3 up = ${
-        params.lockAxis
-            ? `vec3(${vec3ToString(new THREE.Vector3().copy(params.lockAxis).normalize(), ', ')})`
-            : 'normalize(vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]))'
-    };
-    vec4 billboardOriginWorld = modelMatrix * vec4(modelPosition, 1);
-    vec3 lookVector = normalize(cameraPosition - billboardOriginWorld.xyz / billboardOriginWorld.w);
-    vec3 right = normalize(cross(lookVector, up));
-`,
-                    '#include <begin_vertex>': `
-    const vec2 origin2d = vec2(${spriteOrigin.x.toFixed(3)}, ${spriteOrigin.y.toFixed(3)});
-    vec2 localPosition2d = localTransform * (position.xy - origin2d);
-
-    vec3 transformed = modelPosition + localPosition2d.x * right + localPosition2d.y * up;
-
-    vUv = uv;
-`,
-                    '#include <beginnormal_vertex>': `
-    vec3 objectNormal = lookVector;
-`,
-                });
-
-                parameters.fragmentShader = applyReplacements(parameters.fragmentShader, {
-                    'void main() {': `
-${Object.entries(params.rendering.uniforms)
-    .map(([key, uniform]) => `uniform ${uniform.type} ${key};`)
-    .join('\n')}
-
-varying vec2 vUv;
-
-uniform sampler2D uNoiseTexture;
-
-vec4 getColor(const vec2 uv) {
-    ${params.rendering.fragmentCode}
-}
-
-void main() {`,
-                    '#include <map_fragment>': `
-    diffuseColor.rgb = getColor(vUv).rgb;
-`,
-                });
-            };
             this.displayPipeline = {
-                shader: billboardMaterial,
+                shader: createBillboardMaterial({
+                    origin: params.origin,
+                    lockAxis: params.lockAxis,
+                    material: params.rendering.material,
+                    blending: params.rendering.blending,
+                    depthWrite: params.rendering.depthWrite,
+                    transparent: params.rendering.transparent,
+                    uniforms: displayPipelineUniforms,
+                    attributes: {},
+                    varyings: {},
+                    vertex: {
+                        getBillboardAndSetVaryingsCode: `
+ivec2 texelId = ivec2(
+    int(mod(float(gl_InstanceID), ${textureSize.toFixed(1)})),
+    gl_InstanceID / ${textureSize.toFixed()}
+);
+
+vec4 positionXYTexel = texelFetch(uPositionXYTexture, texelId, 0);
+vec4 positionZWTexel = texelFetch(uPositionZWTexture, texelId, 0);
+
+vec3 positionInBox = vec3(
+    unpackRGBATo2Half(positionXYTexel),
+    unpackRGBATo2Half(positionZWTexel).x
+);
+modelPosition = uPositionsRange * positionInBox;
+vec3 positionFromBoxCenter = positionInBox - 0.5;
+float distanceSqFromBoxCenter = dot(positionFromBoxCenter, positionFromBoxCenter);
+
+float size = 0.3 * (1.0 - smoothstep(0.23, 0.25, distanceSqFromBoxCenter));
+localTransform = mat2(size, 0, 0, size);`,
+                    },
+                    fragment: {
+                        getColorCode: params.rendering.fragmentCode,
+                    },
+                }),
                 uniforms: displayPipelineUniforms,
             };
         }

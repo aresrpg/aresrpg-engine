@@ -5,7 +5,6 @@ export {
     BufferGeometry,
     Color,
     DataTexture,
-    DoubleSide,
     Float32BufferAttribute,
     Group,
     InstancedBufferAttribute,

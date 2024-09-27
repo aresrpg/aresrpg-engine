@@ -1,6 +1,6 @@
 import * as THREE from '../../libs/three-usage';
-import { vec3ToString } from '../../helpers/string';
 
+import { createBillboardMaterial } from './billboard-shader';
 import { type CustomAttributesDefinition, InstancedBillboardBatch } from './instanced-billboard-batch';
 
 type UniformType = 'sampler2D' | 'float' | 'vec2' | 'vec3' | 'vec4';
@@ -26,9 +26,6 @@ type Parameters = {
 class InstancedBillboard {
     public readonly container: THREE.Object3D;
 
-    private static nextId: number = 0;
-    private readonly id = InstancedBillboard.nextId++;
-
     private readonly billboardMaterial: THREE.Material;
 
     private readonly batches: InstancedBillboardBatch[] = [];
@@ -52,121 +49,34 @@ class InstancedBillboard {
             receive: params.rendering.shadows.receive,
         };
 
-        const spriteOrigin = params.origin ?? { x: 0, y: 0 };
+        this.billboardMaterial = createBillboardMaterial({
+            origin: params.origin,
+            lockAxis: params.lockAxis,
+            material: params.rendering.material,
+            blending: params.rendering.blending,
+            depthWrite: params.rendering.depthWrite,
+            transparent: params.rendering.transparent,
+            uniforms: params.rendering.uniforms,
+            attributes: {
+                ...params.rendering.attributes,
+                aInstanceWorldPosition: { type: 'vec3' },
+                aInstanceLocalTransform: { type: 'mat2' },
+            },
+            varyings: params.rendering.attributes,
+            vertex: {
+                getBillboardAndSetVaryingsCode: `
+modelPosition = aInstanceWorldPosition;
+localTransform = aInstanceLocalTransform;
 
-        function applyReplacements(source: string, replacements: Record<string, string>): string {
-            let result = source;
-
-            for (const [source, replacement] of Object.entries(replacements)) {
-                result = result.replace(source, replacement);
-            }
-
-            return result;
-        }
-
-        let billboardMaterial: THREE.Material;
-        if (params.rendering.material === 'Phong') {
-            billboardMaterial = new THREE.MeshPhongMaterial();
-            // billboardMaterial.shininess = 0;
-        } else if (params.rendering.material === 'Basic') {
-            billboardMaterial = new THREE.MeshBasicMaterial();
-        } else {
-            throw new Error(`Unsupported material "${params.rendering.material}".`);
-        }
-        billboardMaterial.blending = params.rendering.blending ?? THREE.NormalBlending;
-        billboardMaterial.depthWrite = params.rendering.depthWrite ?? true;
-        billboardMaterial.transparent = params.rendering.transparent ?? false;
-        billboardMaterial.side = THREE.DoubleSide;
-
-        billboardMaterial.customProgramCacheKey = () => `billboard_material_${this.id}`;
-        billboardMaterial.onBeforeCompile = parameters => {
-            parameters.uniforms = {
-                ...parameters.uniforms,
-                ...params.rendering.uniforms,
-            };
-
-            parameters.vertexShader = applyReplacements(parameters.vertexShader, {
-                'void main() {': `
-attribute vec3 aInstanceWorldPosition;
-attribute mat2 aInstanceLocalTransform;
-
-${Object.entries(params.rendering.attributes)
-    .map(([key, attribute]) => `attribute ${attribute.type} a_${key};`)
+${Object.keys(params.rendering.attributes)
+    .map(key => `v_${key} = ${key};`)
     .join('\n')}
-
-varying vec2 vUv;
-${Object.entries(params.rendering.attributes)
-    .map(([key, attribute]) => `varying ${attribute.type} v_${key};`)
-    .join('\n')}
-
-void getBillboard(out vec3 modelPosition, out mat2 localTransform) {
-    modelPosition = aInstanceWorldPosition;
-    localTransform = aInstanceLocalTransform;
-}
-
-void main() {
-    vec3 modelPosition;
-    mat2 localTransform;
-    getBillboard(modelPosition, localTransform);
-
-    vec3 up = ${
-        params.lockAxis
-            ? `vec3(${vec3ToString(new THREE.Vector3().copy(params.lockAxis).normalize(), ', ')})`
-            : 'normalize(vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]))'
-    };
-    vec4 billboardOriginWorld = modelMatrix * vec4(modelPosition, 1);
-    vec3 lookVector = normalize(cameraPosition - billboardOriginWorld.xyz / billboardOriginWorld.w);
-    vec3 right = normalize(cross(lookVector, up));
 `,
-                '#include <begin_vertex>': `
-    const vec2 origin2d = vec2(${spriteOrigin.x.toFixed(3)}, ${spriteOrigin.y.toFixed(3)});
-    vec2 localPosition2d = localTransform * (position.xy - origin2d);
-
-    vec3 transformed = modelPosition + localPosition2d.x * right + localPosition2d.y * up;
-
-    vUv = uv;
-    ${Object.keys(params.rendering.attributes)
-        .map(key => `v_${key} = a_${key};`)
-        .join('\n')}
-`,
-                '#include <beginnormal_vertex>': `
-    vec3 objectNormal = lookVector;
-`,
-            });
-
-            parameters.fragmentShader = applyReplacements(parameters.fragmentShader, {
-                'void main() {': `
-${Object.entries(params.rendering.uniforms)
-    .map(([key, uniform]) => `uniform ${uniform.type} ${key};`)
-    .join('\n')}
-
-varying vec2 vUv;
-
-${Object.entries(params.rendering.attributes)
-    .map(([key, attribute]) => `varying ${attribute.type} v_${key};`)
-    .join('\n')}
-
-vec4 getColor(
-    const vec2 uv
-    ${Object.entries(params.rendering.attributes)
-        .map(([key, attribute]) => `, const ${attribute.type} ${key}`)
-        .join('')}
-    ) {
-    ${params.rendering.fragmentCode}
-}
-
-void main() {`,
-                '#include <map_fragment>': `
-    diffuseColor.rgb = getColor(
-        vUv
-        ${Object.keys(params.rendering.attributes)
-            .map(key => `, v_${key}`)
-            .join('')}
-    ).rgb;
-`,
-            });
-        };
-        this.billboardMaterial = billboardMaterial;
+            },
+            fragment: {
+                getColorCode: params.rendering.fragmentCode,
+            },
+        });
     }
 
     public setInstancesCount(instancesCount: number): void {
