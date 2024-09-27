@@ -1,5 +1,7 @@
 import * as THREE from '../../libs/three-usage';
 
+import { createBillboardInstancedBufferGeometry } from './billboard-shader';
+
 const attributeSizes = {
     float: 1,
     vec2: 2,
@@ -33,16 +35,7 @@ class InstancedBillboardBatch {
     private readonly instanceCustomAttributes: Record<string, CustomAttribute>;
 
     public constructor(params: Parameters) {
-        const billboardGeometry = new THREE.InstancedBufferGeometry();
-        billboardGeometry.setAttribute(
-            'position',
-            new THREE.Float32BufferAttribute([0.5, 0.5, 0, -0.5, -0.5, 0, -0.5, 0.5, 0, 0.5, 0.5, 0, 0.5, -0.5, 0, -0.5, -0.5, 0], 3)
-        );
-        billboardGeometry.setAttribute(
-            'normal',
-            new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3)
-        );
-        billboardGeometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0], 2));
+        const billboardGeometry = createBillboardInstancedBufferGeometry();
 
         const instancedWorldPositionBuffer: number[] = [];
         const instanceLocalTransformBuffer: number[] = [];

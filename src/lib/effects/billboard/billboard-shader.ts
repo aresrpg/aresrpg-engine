@@ -1,5 +1,5 @@
-import * as THREE from '../../libs/three-usage';
 import { vec3ToString } from '../../helpers/string';
+import * as THREE from '../../libs/three-usage';
 
 function applyReplacements(source: string, replacements: Record<string, string>): string {
     let result = source;
@@ -153,4 +153,21 @@ void main() {`,
     return material;
 }
 
-export { createBillboardMaterial, type UniformDefinition, type AttributeDefinition, type VaryingDefinition };
+function createBillboardInstancedBufferGeometry(): THREE.InstancedBufferGeometry {
+    const bufferGeometry = new THREE.InstancedBufferGeometry();
+    bufferGeometry.setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute([0.5, 0.5, 0, -0.5, -0.5, 0, -0.5, 0.5, 0, 0.5, 0.5, 0, 0.5, -0.5, 0, -0.5, -0.5, 0], 3)
+    );
+    bufferGeometry.setAttribute('normal', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
+    bufferGeometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0], 2));
+    return bufferGeometry;
+}
+
+export {
+    createBillboardMaterial,
+    createBillboardInstancedBufferGeometry,
+    type AttributeDefinition,
+    type UniformDefinition,
+    type VaryingDefinition,
+};

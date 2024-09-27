@@ -1,5 +1,5 @@
 import * as THREE from '../../../libs/three-usage';
-import { createBillboardMaterial, type UniformDefinition } from '../billboard-shader';
+import { createBillboardInstancedBufferGeometry, createBillboardMaterial, type UniformDefinition } from '../billboard-shader';
 
 import { GpuTexturesState } from './gpu-textures-state';
 
@@ -163,17 +163,7 @@ localTransform = mat2(size, 0, 0, size);`,
         }
 
         {
-            const billboardGeometry = new THREE.InstancedBufferGeometry();
-            billboardGeometry.setAttribute(
-                'position',
-                new THREE.Float32BufferAttribute([0.5, 0.5, 0, -0.5, -0.5, 0, -0.5, 0.5, 0, 0.5, 0.5, 0, 0.5, -0.5, 0, -0.5, -0.5, 0], 3)
-            );
-            billboardGeometry.setAttribute(
-                'normal',
-                new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3)
-            );
-            billboardGeometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0], 2));
-
+            const billboardGeometry = createBillboardInstancedBufferGeometry();
             this.mesh = new THREE.InstancedMesh(billboardGeometry, this.displayPipeline.shader, params.maxInstancesCount);
             this.mesh.count = 0;
             this.mesh.frustumCulled = false;
