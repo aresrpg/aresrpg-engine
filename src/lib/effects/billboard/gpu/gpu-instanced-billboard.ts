@@ -168,7 +168,7 @@ varying vec2 vUv;
 
 #include <packing>
 
-void main() {
+void getBillboard(out vec3 modelPosition, out mat2 localTransform) {
     ivec2 texelId = ivec2(
         int(mod(float(gl_InstanceID), ${textureSize.toFixed(1)})),
         gl_InstanceID / ${textureSize.toFixed()}
@@ -181,24 +181,33 @@ void main() {
         unpackRGBATo2Half(positionXYTexel),
         unpackRGBATo2Half(positionZWTexel).x
     );
-    vec3 instanceWorldPosition = uPositionsRange * positionInBox;
+    modelPosition = uPositionsRange * positionInBox;
     vec3 positionFromBoxCenter = positionInBox - 0.5;
     float distanceSqFromBoxCenter = dot(positionFromBoxCenter, positionFromBoxCenter);
+
+    float size = 0.3 * (1.0 - smoothstep(0.23, 0.25, distanceSqFromBoxCenter));
+    localTransform = mat2(size, 0, 0, size);
+}
+
+void main() {
+    vec3 modelPosition;
+    mat2 localTransform;
+    getBillboard(modelPosition, localTransform);
 
     vec3 up = ${
         params.lockAxis
             ? `vec3(${vec3ToString(new THREE.Vector3().copy(params.lockAxis).normalize(), ', ')})`
             : 'normalize(vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]))'
     };
-    vec4 billboardOriginWorld = modelMatrix * vec4(instanceWorldPosition, 1);
+    vec4 billboardOriginWorld = modelMatrix * vec4(modelPosition, 1);
     vec3 lookVector = normalize(cameraPosition - billboardOriginWorld.xyz / billboardOriginWorld.w);
     vec3 right = normalize(cross(lookVector, up));
 `,
                     '#include <begin_vertex>': `
     const vec2 origin2d = vec2(${spriteOrigin.x.toFixed(3)}, ${spriteOrigin.y.toFixed(3)});
-    vec2 localPosition2d = 0.3 * (1.0 - smoothstep(0.23, 0.25, distanceSqFromBoxCenter)) * (position.xy - origin2d);
+    vec2 localPosition2d = localTransform * (position.xy - origin2d);
 
-    vec3 transformed = instanceWorldPosition + localPosition2d.x * right + localPosition2d.y * up;
+    vec3 transformed = modelPosition + localPosition2d.x * right + localPosition2d.y * up;
 
     vUv = uv;
 `,

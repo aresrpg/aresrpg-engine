@@ -99,21 +99,30 @@ ${Object.entries(params.rendering.attributes)
     .map(([key, attribute]) => `varying ${attribute.type} v_${key};`)
     .join('\n')}
 
+void getBillboard(out vec3 modelPosition, out mat2 localTransform) {
+    modelPosition = aInstanceWorldPosition;
+    localTransform = aInstanceLocalTransform;
+}
+
 void main() {
+    vec3 modelPosition;
+    mat2 localTransform;
+    getBillboard(modelPosition, localTransform);
+
     vec3 up = ${
         params.lockAxis
             ? `vec3(${vec3ToString(new THREE.Vector3().copy(params.lockAxis).normalize(), ', ')})`
             : 'normalize(vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]))'
     };
-    vec4 billboardOriginWorld = modelMatrix * vec4(aInstanceWorldPosition, 1);
+    vec4 billboardOriginWorld = modelMatrix * vec4(modelPosition, 1);
     vec3 lookVector = normalize(cameraPosition - billboardOriginWorld.xyz / billboardOriginWorld.w);
     vec3 right = normalize(cross(lookVector, up));
 `,
                 '#include <begin_vertex>': `
     const vec2 origin2d = vec2(${spriteOrigin.x.toFixed(3)}, ${spriteOrigin.y.toFixed(3)});
-    vec2 localPosition2d = aInstanceLocalTransform * (position.xy - origin2d);
+    vec2 localPosition2d = localTransform * (position.xy - origin2d);
 
-    vec3 transformed = aInstanceWorldPosition + localPosition2d.x * right + localPosition2d.y * up;
+    vec3 transformed = modelPosition + localPosition2d.x * right + localPosition2d.y * up;
 
     vUv = uv;
     ${Object.keys(params.rendering.attributes)
