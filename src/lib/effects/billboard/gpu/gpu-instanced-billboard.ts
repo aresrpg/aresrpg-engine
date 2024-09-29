@@ -152,7 +152,7 @@ modelPosition = uPositionsRange * positionInBox;
 vec3 positionFromBoxCenter = positionInBox - 0.5;
 float distanceSqFromBoxCenter = dot(positionFromBoxCenter, positionFromBoxCenter);
 
-float size = 0.3 * (1.0 - smoothstep(0.23, 0.25, distanceSqFromBoxCenter));
+float size = 0.2 * (1.0 - smoothstep(0.23, 0.25, distanceSqFromBoxCenter));
 localTransform = mat2(size, 0, 0, size);`,
                     },
                     fragment: {

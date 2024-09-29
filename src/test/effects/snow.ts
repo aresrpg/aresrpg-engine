@@ -15,7 +15,7 @@ class Snow {
         const particlesCount = 20000;
 
         this.instancedBillboard = new GpuInstancedBillboard({
-            maxInstancesCount: particlesCount,
+            maxInstancesCount: 65000,
             rendering: {
                 material: 'Basic',
                 shadows: {
@@ -25,7 +25,7 @@ class Snow {
                 fragmentCode: `
 vec2 fromCenter = uv - 0.5;
 float distSq = dot(fromCenter, fromCenter);
-if (distSq > 0.2) {
+if (distSq > 0.24) {
     discard;
 }
 return vec4(0.9, 0.9, 1, 1);
@@ -67,6 +67,10 @@ return vec4(0.9, 0.9, 1, 1);
             y: movement.y / this.instancedBillboard.positionsRange.y,
             z: movement.z / this.instancedBillboard.positionsRange.z,
         });
+    }
+
+    public setParticlesCount(value: number): void {
+        this.instancedBillboard.setInstancesCount(value);
     }
 }
 

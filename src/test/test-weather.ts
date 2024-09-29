@@ -1,9 +1,18 @@
 import * as THREE from 'three-usage-test';
+import {GUI} from "lil-gui";
 
 import { TestBase } from "./test-base";
 import { Snow } from './effects/snow';
 
 class TestWeather extends TestBase {
+    private readonly gui: GUI;
+
+    private readonly parameters = {
+        snow: {
+            count: 10000,
+        },
+    };
+
     private readonly snow: Snow;
 
     public constructor() {
@@ -18,6 +27,13 @@ class TestWeather extends TestBase {
 
         this.snow = new Snow(this.renderer);
         this.scene.add(this.snow.container);
+
+        this.gui = new GUI();
+        const guiFolderSnow = this.gui.addFolder("Snow");
+        guiFolderSnow.add(this.parameters.snow, "count", 0, 65000, 1000).onChange(() => {
+            this.snow.setParticlesCount(this.parameters.snow.count);
+        });
+        this.snow.setParticlesCount(this.parameters.snow.count);
     }
 
     protected override update(): void {

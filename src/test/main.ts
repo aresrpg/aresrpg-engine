@@ -1,9 +1,9 @@
 import { ELogLevel, setVerbosity } from '../lib/index';
 
+import { VoxelMap } from './map/voxel-map';
+import { type TestBase } from './test-base';
 import { TestTerrain } from './test-terrain';
 import { TestTerrainAutonomous } from './test-terrain-autonomous';
-import { VoxelMap } from './map/voxel-map';
-import { TestBase } from './test-base';
 import { TestWeather } from './test-weather';
 
 setVerbosity(ELogLevel.WARN);
