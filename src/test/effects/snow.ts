@@ -55,6 +55,13 @@ return vec4(0.9, 0.9, 1, 1);
         }
         this.lastCameraPosition = cameraPosition;
 
+        // limit movement length to avoid floating-point precision issues
+        const maxMovementLength = 100;
+        const movementLength = movement.length();
+        if (movementLength > maxMovementLength) {
+            movement.multiplyScalar(maxMovementLength / movementLength);
+        }
+
         this.instancedBillboard.updatePositions(renderer, deltaTime / 20, {
             x: movement.x / this.instancedBillboard.positionsRange.x,
             y: movement.y / this.instancedBillboard.positionsRange.y,
