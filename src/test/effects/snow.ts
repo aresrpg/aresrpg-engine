@@ -16,6 +16,8 @@ class Snow {
 
         this.instancedBillboard = new GpuInstancedBillboard({
             maxInstancesCount: 65000,
+            size: { x: 0.2, y: 0.2 },
+            speed: 1,
             rendering: {
                 material: 'Basic',
                 shadows: {

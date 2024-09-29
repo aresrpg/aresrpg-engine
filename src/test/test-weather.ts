@@ -1,19 +1,25 @@
 import * as THREE from 'three-usage-test';
-import {GUI} from "lil-gui";
+import { GUI } from "lil-gui";
 
 import { TestBase } from "./test-base";
 import { Snow } from './effects/snow';
+import { Rain } from './effects/rain';
+
+enum EType {
+    RAIN = "rain",
+    SNOW = "snow",
+}
 
 class TestWeather extends TestBase {
     private readonly gui: GUI;
 
     private readonly parameters = {
-        snow: {
-            count: 10000,
-        },
+        type: EType.SNOW,
+        count: 10000,
     };
 
     private readonly snow: Snow;
+    private readonly rain: Rain;
 
     public constructor() {
         super();
@@ -28,16 +34,37 @@ class TestWeather extends TestBase {
         this.snow = new Snow(this.renderer);
         this.scene.add(this.snow.container);
 
+        this.rain = new Rain(this.renderer);
+        this.scene.add(this.rain.container);
+
         this.gui = new GUI();
-        const guiFolderSnow = this.gui.addFolder("Snow");
-        guiFolderSnow.add(this.parameters.snow, "count", 0, 65000, 1000).onChange(() => {
-            this.snow.setParticlesCount(this.parameters.snow.count);
+        this.gui.add(this.parameters, "type", Object.values(EType)).onChange(() => {
+            this.enforceType();
+            this.enforceCount();
         });
-        this.snow.setParticlesCount(this.parameters.snow.count);
+        this.gui.add(this.parameters, "count", 0, 65000, 1000).onChange(() => { this.enforceCount(); });
+        this.enforceCount();
+        this.enforceType();
     }
 
     protected override update(): void {
-        this.snow.update(this.renderer, this.camera);
+        if (this.parameters.type === EType.SNOW) {
+            this.snow.update(this.renderer, this.camera);
+        } else if (this.parameters.type === EType.RAIN) {
+            this.rain.update(this.renderer, this.camera);
+        } else {
+            throw new Error(`Unknown type "${this.parameters.type}".`);
+        }
+    }
+
+    private enforceType(): void {
+        this.snow.container.visible = this.parameters.type === EType.SNOW;
+        this.rain.container.visible = this.parameters.type === EType.RAIN;
+    }
+
+    private enforceCount(): void {
+        this.snow.setParticlesCount(this.parameters.type === EType.SNOW ? this.parameters.count : 0);
+        this.rain.setParticlesCount(this.parameters.type === EType.RAIN ? this.parameters.count : 0);
     }
 }
 

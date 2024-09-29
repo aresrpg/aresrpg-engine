@@ -24,7 +24,7 @@ import { LineOfSight } from './board/line-of-sight';
 import { PathFinder } from './board/path-finder';
 import { Fountain } from './effects/fire-fountain';
 import { Puff } from './effects/puff';
-import { Rain } from './effects/rain';
+import { Rain } from './effects/rain_old';
 import { Snow } from './effects/snow';
 import { type VoxelMap } from './map/voxel-map';
 import { TestTerrainBase, type ITerrainMap } from './test-terrain-base';

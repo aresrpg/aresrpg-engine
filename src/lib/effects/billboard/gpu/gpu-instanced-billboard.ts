@@ -21,6 +21,8 @@ type Parameters = {
         readonly uniforms: Record<string, THREE.IUniform<unknown> & { readonly type: UniformType }>;
         readonly fragmentCode: string;
     };
+    readonly size: THREE.Vector2Like;
+    readonly speed: number;
 };
 
 class GpuInstancedBillboard {
@@ -104,7 +106,7 @@ vec3 previousPosition = vec3(
     unpackRGBATo2Half(in_positionsTexture2).x
 );
 
-vec3 newPosition = previousPosition + vec3(0, -1, 0) * uDeltaTime + uUniformMovement;
+vec3 newPosition = previousPosition + vec3(0, -${params.speed}, 0) * uDeltaTime + uUniformMovement;
 newPosition = mod(newPosition, vec3(1,1,1));
 
 out_positionsTexture1 = pack2HalfToRGBA(newPosition.xy);
@@ -152,8 +154,8 @@ modelPosition = uPositionsRange * positionInBox;
 vec3 positionFromBoxCenter = positionInBox - 0.5;
 float distanceSqFromBoxCenter = dot(positionFromBoxCenter, positionFromBoxCenter);
 
-float size = 0.2 * (1.0 - smoothstep(0.23, 0.25, distanceSqFromBoxCenter));
-localTransform = mat2(size, 0, 0, size);`,
+vec2 size = vec2(${params.size.x.toFixed(2)}, ${params.size.y.toFixed(2)}) * (1.0 - smoothstep(0.23, 0.25, distanceSqFromBoxCenter));
+localTransform = mat2(size.x, 0, 0, size.y);`,
                     },
                     fragment: {
                         getColorCode: params.rendering.fragmentCode,
