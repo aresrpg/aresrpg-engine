@@ -1,3 +1,4 @@
+import { nextPowerOfTwo } from '../../../helpers/math';
 import * as THREE from '../../../libs/three-usage';
 import { createBillboardInstancedBufferGeometry, createBillboardMaterial, type UniformDefinition } from '../billboard-shader';
 
@@ -54,7 +55,7 @@ class GpuInstancedBillboard {
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
 
-        const textureSize = 256;
+        const textureSize = nextPowerOfTwo(Math.floor(Math.sqrt(params.maxInstancesCount)));
         if (params.maxInstancesCount > textureSize * textureSize) {
             throw new Error('Too many particles');
         }
