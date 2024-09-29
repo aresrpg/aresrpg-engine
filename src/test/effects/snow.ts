@@ -7,6 +7,8 @@ class Snow {
 
     private readonly instancedBillboard: GpuInstancedBillboard;
 
+    private lastCameraPosition: THREE.Vector3 | null = null;
+
     private lastUpdateTimestamp = performance.now();
 
     public constructor(renderer: THREE.WebGLRenderer) {
@@ -39,10 +41,19 @@ return vec4(0.9, 0.9, 1, 1);
         this.container.add(this.instancedBillboard.container);
     }
 
-    public update(renderer: THREE.WebGLRenderer, movement: THREE.Vector3Like): void {
+    public update(renderer: THREE.WebGLRenderer, camera: THREE.Object3D): void {
         const now = performance.now();
         const deltaTime = (now - this.lastUpdateTimestamp) / 1000;
         this.lastUpdateTimestamp = now;
+
+        const cameraPosition = camera.getWorldPosition(new THREE.Vector3());
+        this.container.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+
+        const movement = new THREE.Vector3(0, 0, 0);
+        if (this.lastCameraPosition) {
+            movement.subVectors(this.lastCameraPosition, cameraPosition);
+        }
+        this.lastCameraPosition = cameraPosition;
 
         this.instancedBillboard.updatePositions(renderer, deltaTime / 20, {
             x: movement.x / this.instancedBillboard.positionsRange.x,

@@ -38,8 +38,6 @@ class TestTerrain extends TestTerrainBase {
 
     private readonly map: VoxelmapWrapper;
 
-    private lastCameraPosition: THREE.Vector3Like;
-
     private readonly trees: {
         readonly perPatch: Map<string, THREE.Vector3Like[]>;
         readonly instancedBillboard: InstancedBillboard;
@@ -54,8 +52,6 @@ class TestTerrain extends TestTerrainBase {
 
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
         super(map);
-
-        this.lastCameraPosition = this.camera.getWorldPosition(new THREE.Vector3());
 
         this.puff1 = new Puff({
             texture: new THREE.TextureLoader().load('/resources/puff.png', texture => {
@@ -287,13 +283,7 @@ return vec4(sampled.rgb / sampled.a, 1);
         // this.rain.update();
         // this.heal.update();
 
-        const cameraPosition = this.camera.getWorldPosition(new THREE.Vector3());
-        const deltaCameraPosition = new THREE.Vector3().subVectors(this.lastCameraPosition, cameraPosition);
-        this.snow.update(this.renderer, deltaCameraPosition);
-        this.snow.container.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
-        // this.snow.container.position.set(0, 200, 0);
-
-        this.lastCameraPosition = cameraPosition;
+        this.snow.update(this.renderer, this.camera);
     }
 
     private applyVisibility(): void {
