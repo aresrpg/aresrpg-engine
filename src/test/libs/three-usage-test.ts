@@ -8,6 +8,7 @@ export {
     CameraHelper,
     DirectionalLight,
     Frustum,
+    GridHelper,
     Matrix4,
     PCFShadowMap,
     PerspectiveCamera,

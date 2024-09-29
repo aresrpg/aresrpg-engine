@@ -3,6 +3,8 @@ import { ELogLevel, setVerbosity } from '../lib/index';
 import { TestTerrain } from './test-terrain';
 import { TestTerrainAutonomous } from './test-terrain-autonomous';
 import { VoxelMap } from './map/voxel-map';
+import { TestBase } from './test-base';
+import { TestWeather } from './test-weather';
 
 setVerbosity(ELogLevel.WARN);
 
@@ -13,6 +15,16 @@ const includeTreesInLod = false;
 
 const voxelMap = new VoxelMap(mapScaleXZ, mapScaleY, mapSeed, includeTreesInLod);
 
-const testNewTerrain = true;
-const testScene = testNewTerrain ? new TestTerrain(voxelMap) : new TestTerrainAutonomous(voxelMap);
+let testScene: TestBase;
+const testTerrain = false;
+if (testTerrain) {
+    const testNewTerrain = true;
+    if (testNewTerrain) {
+        testScene = new TestTerrain(voxelMap);
+    } else {
+        testScene = new TestTerrainAutonomous(voxelMap);
+    }
+} else {
+    testScene = new TestWeather();
+}
 testScene.start();
