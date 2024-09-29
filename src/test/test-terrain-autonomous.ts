@@ -2,9 +2,9 @@ import type * as THREE from 'three-usage-test';
 
 import { HeightmapViewer, TerrainViewer, VoxelmapViewerAutonomous, type IHeightmap, type IVoxelMap } from '../lib';
 
-import { TestBase, type ITerrainMap } from './test-base';
+import { TestTerrainBase, type ITerrainMap } from './test-terrain-base';
 
-class TestTerrainAutonomous extends TestBase {
+class TestTerrainAutonomous extends TestTerrainBase {
     protected override readonly terrainViewer: TerrainViewer;
 
     private readonly voxelmapViewer: VoxelmapViewerAutonomous;

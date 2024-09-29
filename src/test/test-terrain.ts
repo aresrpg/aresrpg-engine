@@ -27,9 +27,9 @@ import { Puff } from './effects/puff';
 import { Rain } from './effects/rain';
 import { Snow } from './effects/snow';
 import { type VoxelMap } from './map/voxel-map';
-import { TestBase, type ITerrainMap } from './test-base';
+import { TestTerrainBase, type ITerrainMap } from './test-terrain-base';
 
-class TestTerrain extends TestBase {
+class TestTerrain extends TestTerrainBase {
     protected override readonly terrainViewer: TerrainViewer;
 
     private readonly voxelmapViewer: VoxelmapViewer;
@@ -37,6 +37,8 @@ class TestTerrain extends TestBase {
     private readonly promisesQueue: PromisesQueue;
 
     private readonly map: VoxelmapWrapper;
+
+    private lastCameraPosition: THREE.Vector3Like;
 
     private readonly trees: {
         readonly perPatch: Map<string, THREE.Vector3Like[]>;
@@ -52,6 +54,8 @@ class TestTerrain extends TestBase {
 
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
         super(map);
+
+        this.lastCameraPosition = this.camera.getWorldPosition(new THREE.Vector3());
 
         this.puff1 = new Puff({
             texture: new THREE.TextureLoader().load('/resources/puff.png', texture => {
@@ -116,23 +120,16 @@ class TestTerrain extends TestBase {
         //     setTimeout(() => this.heal.stop(), 3000);
         // }, 3000);
 
-        const previousCameraPosition = this.camera.getWorldPosition(new THREE.Vector3());
-        this.update = () => {
-            const cameraPosition = this.camera.getWorldPosition(new THREE.Vector3());
-
-            // this.puff1.update();
-            // this.puff2.update();
-            // // this.fountain.update();
-            // this.rain.update();
-            // this.heal.update();
-
-            const deltaCameraPosition = previousCameraPosition.clone().sub(cameraPosition);
-            this.snow.update(this.renderer, deltaCameraPosition);
-            this.snow.container.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
-            // this.snow.container.position.set(0, 200, 0);
-
-            previousCameraPosition.copy(cameraPosition);
-        };
+        const fakeCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const helper = new THREE.CameraHelper(fakeCamera);
+        this.scene.add(helper);
+        const fakeCameraControls = new THREE.TransformControls(fakeCamera, this.renderer.domElement);
+        fakeCameraControls.addEventListener('dragging-changed', event => {
+            this.cameraControl.enabled = !event.value;
+        });
+        fakeCameraControls.attach(fakeCamera);
+        this.scene.add(fakeCamera);
+        this.scene.add(fakeCameraControls);
 
         const testBoard = true;
         if (testBoard) {
@@ -279,6 +276,24 @@ return vec4(sampled.rgb / sampled.a, 1);
         this.voxelmapVisibilityComputer.reset();
         this.voxelmapVisibilityComputer.showMapAroundPosition(position, radius, frustum);
         this.applyVisibility();
+    }
+
+    protected override update(): void {
+        super.update();
+
+        // this.puff1.update();
+        // this.puff2.update();
+        // // this.fountain.update();
+        // this.rain.update();
+        // this.heal.update();
+
+        const cameraPosition = this.camera.getWorldPosition(new THREE.Vector3());
+        const deltaCameraPosition = new THREE.Vector3().subVectors(this.lastCameraPosition, cameraPosition);
+        this.snow.update(this.renderer, deltaCameraPosition);
+        this.snow.container.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+        // this.snow.container.position.set(0, 200, 0);
+
+        this.lastCameraPosition = cameraPosition;
     }
 
     private applyVisibility(): void {
