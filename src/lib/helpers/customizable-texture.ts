@@ -1,6 +1,6 @@
-import * as THREE from "../libs/three-usage";
+import * as THREE from '../libs/three-usage';
 
-import { createFullscreenQuad } from "./fullscreen-quad";
+import { createFullscreenQuad } from './fullscreen-quad';
 
 type Parameters = {
     readonly width: number;
@@ -22,12 +22,13 @@ class CustomizableTexture {
 
     private readonly renderTarget: THREE.WebGLRenderTarget;
     private readonly fakeCamera = new THREE.PerspectiveCamera();
-    private readonly fullscreenQuad = createFullscreenQuad("aPosition");
+    private readonly fullscreenQuad = createFullscreenQuad('aPosition');
     private readonly applyLayer: {
         readonly shader: THREE.RawShaderMaterial;
         readonly uniforms: {
             readonly layer: THREE.IUniform<THREE.Texture | null>;
             readonly color: THREE.IUniform<THREE.Color>;
+            readonly flipY: THREE.IUniform<number>;
         };
     };
 
@@ -36,11 +37,15 @@ class CustomizableTexture {
 
         const layers = new Map<string, TextureLayer>();
         for (const [name, texture] of params.additionalTextures.entries()) {
-            layers.set(name, { texture, color: new THREE.Color(0xFFFFFF) });
+            layers.set(name, { texture, color: new THREE.Color(0xffffff) });
         }
         this.layers = layers;
 
         this.renderTarget = new THREE.WebGLRenderTarget(params.width, params.height, {
+            wrapS: this.baseTexture.wrapS,
+            wrapT: this.baseTexture.wrapT,
+            magFilter: this.baseTexture.magFilter,
+            // minFilter: this.baseTexture.minFilter,
             depthBuffer: false,
         });
         const texture = this.renderTarget.textures[0];
@@ -51,23 +56,36 @@ class CustomizableTexture {
 
         const uniforms = {
             layer: { value: null },
-            color: { value: new THREE.Color(0xFFFFFF) },
+            color: { value: new THREE.Color(0xffffff) },
+            flipY: { value: 0 },
         };
 
         const shader = new THREE.RawShaderMaterial({
-            glslVersion: "300 es",
+            glslVersion: '300 es',
+            depthTest: false,
+            blending: THREE.CustomBlending,
+            blendSrc: THREE.SrcAlphaFactor,
+            blendDst: THREE.OneMinusSrcAlphaFactor,
+            blendSrcAlpha: THREE.ZeroFactor,
+            blendDstAlpha: THREE.OneFactor,
             uniforms: {
                 uLayerTexture: uniforms.layer,
                 uLayerColor: uniforms.color,
+                uFlipY: uniforms.flipY,
             },
             vertexShader: `
+uniform float uFlipY;
+
 in vec2 aPosition;
 
 out vec2 vUv;
 
 void main() {
-    vUv = aPosition;
     gl_Position = vec4(2.0 * aPosition - 1.0, 0, 1);
+    vUv = vec2(
+        aPosition.x,
+        mix(aPosition.y, 1.0 - aPosition.y, uFlipY)
+    );
 }`,
             fragmentShader: `
 precision mediump float;
@@ -77,15 +95,17 @@ uniform vec3 uLayerColor;
 
 in vec2 vUv;
 
-(layout location = 0) out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 void main() {
-    vec4 sample = texture(uLayerTexture, vUv);
-    // sample.rgb *= uLayerColor;
-    fragColor = sample + vec4(0, 1, 0, 1);
+    vec4 sampled = texture(uLayerTexture, vUv);
+    if (sampled.a < 0.5) discard;
+    sampled.rgb *= uLayerColor;
+    fragColor = sampled;
 }
 `,
         });
+        this.fullscreenQuad.material = shader;
 
         this.applyLayer = { shader, uniforms };
     }
@@ -94,7 +114,7 @@ void main() {
         const layer = this.layers.get(layerName);
         if (!layer) {
             const layerNames = Array.from(this.layers.keys());
-            throw new Error(`Unknown layer name "${layerName}". Layer names are: ${layerNames.join("; ")}.`);
+            throw new Error(`Unknown layer name "${layerName}". Layer names are: ${layerNames.join('; ')}.`);
         }
 
         if (layer.color.equals(color)) {
@@ -114,20 +134,24 @@ void main() {
         };
 
         renderer.setRenderTarget(this.renderTarget);
-        renderer.setClearColor(0xFF0000, 0);
+        renderer.setClearColor(0x000000, 0);
         renderer.autoClear = false;
         renderer.autoClearColor = false;
         renderer.clear(true);
 
         this.applyLayer.uniforms.layer.value = this.baseTexture;
-        this.applyLayer.uniforms.color.value = new THREE.Color(0xFFFFFF);
+        this.applyLayer.uniforms.color.value = new THREE.Color(0xffffff);
+        this.applyLayer.uniforms.flipY.value = Number(this.baseTexture.flipY);
+        this.applyLayer.shader.uniformsNeedUpdate = true;
         renderer.render(this.fullscreenQuad, this.fakeCamera);
 
-        // for (const layer of this.layers.values()) {
-        //     this.applyLayer.uniforms.layer.value = layer.texture;
-        //     this.applyLayer.uniforms.color.value = layer.color;
-        //     renderer.render(this.fullscreenQuad, this.fakeCamera);
-        // }
+        for (const layer of this.layers.values()) {
+            this.applyLayer.uniforms.layer.value = layer.texture;
+            this.applyLayer.uniforms.color.value = layer.color;
+            this.applyLayer.uniforms.flipY.value = Number(layer.texture.flipY);
+            this.applyLayer.shader.uniformsNeedUpdate = true;
+            renderer.render(this.fullscreenQuad, this.fakeCamera);
+        }
 
         renderer.setRenderTarget(previousState.renderTarget);
         renderer.setClearColor(previousState.clearColor);
@@ -137,7 +161,4 @@ void main() {
     }
 }
 
-export {
-    CustomizableTexture
-};
-
+export { CustomizableTexture };

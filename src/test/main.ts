@@ -14,7 +14,7 @@ function createVoxelMap(): VoxelMap {
     const mapScaleY = 200;
     const mapSeed = 'fixed_seed';
     const includeTreesInLod = false;
-    
+
     return new VoxelMap(mapScaleXZ, mapScaleY, mapSeed, includeTreesInLod);
 }
 
