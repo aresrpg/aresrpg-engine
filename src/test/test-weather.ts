@@ -1,9 +1,9 @@
-import * as THREE from 'three-usage-test';
 import { GUI } from "lil-gui";
+import * as THREE from 'three-usage-test';
+
+import { Rain, Snow } from '../lib';
 
 import { TestBase } from "./test-base";
-import { Snow } from './effects/snow';
-import { Rain } from './effects/rain';
 
 enum EType {
     RAIN = "rain",
@@ -69,3 +69,4 @@ class TestWeather extends TestBase {
 }
 
 export { TestWeather };
+

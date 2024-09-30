@@ -10,6 +10,7 @@ import {
     HeightmapViewer,
     InstancedBillboard,
     PromisesQueue,
+    Snow,
     TerrainViewer,
     VoxelmapViewer,
     VoxelmapVisibilityComputer,
@@ -24,8 +25,6 @@ import { LineOfSight } from './board/line-of-sight';
 import { PathFinder } from './board/path-finder';
 import { Fountain } from './effects/fire-fountain';
 import { Puff } from './effects/puff';
-import { Rain } from './effects/rain_old';
-import { Snow } from './effects/snow';
 import { type VoxelMap } from './map/voxel-map';
 import { TestTerrainBase, type ITerrainMap } from './test-terrain-base';
 
@@ -47,7 +46,6 @@ class TestTerrain extends TestTerrainBase {
     private readonly puff2: Puff;
     private readonly fountain: Fountain;
     private readonly snow: Snow;
-    private readonly rain: Rain;
     private readonly heal: BuffAscendEffect;
 
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
@@ -80,10 +78,6 @@ class TestTerrain extends TestTerrainBase {
         this.snow = new Snow(this.renderer);
         this.snow.container.position.set(40, 170, -40);
         this.scene.add(this.snow.container);
-
-        this.rain = new Rain();
-        this.rain.container.position.set(40, 170, 10);
-        this.scene.add(this.rain.container);
 
         this.heal = new BuffAscendEffect({
             size: { x: 2, y: 6, z: 2 },
@@ -279,8 +273,7 @@ return vec4(sampled.rgb / sampled.a, 1);
 
         // this.puff1.update();
         // this.puff2.update();
-        // // this.fountain.update();
-        // this.rain.update();
+        // this.fountain.update();
         // this.heal.update();
 
         this.snow.update(this.renderer, this.camera);

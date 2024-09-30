@@ -1,6 +1,5 @@
-import * as THREE from 'three-usage-test';
-
-import { GpuInstancedBillboard } from '../../lib';
+import * as THREE from '../../libs/three-usage';
+import { GpuInstancedBillboard } from './weather-particles-base';
 
 class Rain {
     public readonly container: THREE.Object3D;
@@ -74,3 +73,4 @@ return vec4(0.5, 0.5, 1, 1);
 }
 
 export { Rain };
+

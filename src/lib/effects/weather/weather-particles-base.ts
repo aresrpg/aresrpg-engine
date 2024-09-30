@@ -1,8 +1,7 @@
-import { nextPowerOfTwo } from '../../../helpers/math';
-import * as THREE from '../../../libs/three-usage';
-import { createBillboardInstancedBufferGeometry, createBillboardMaterial, type UniformDefinition } from '../billboard-shader';
-
-import { GpuTexturesState } from './gpu-textures-state';
+import { nextPowerOfTwo } from '../../helpers/math';
+import * as THREE from '../../libs/three-usage';
+import { createBillboardInstancedBufferGeometry, createBillboardMaterial, type UniformDefinition } from '../billboard/billboard-shader';
+import { GpuTexturesState } from '../billboard/gpu/gpu-textures-state';
 
 type UniformType = 'sampler2D' | 'float' | 'vec2' | 'vec3' | 'vec4';
 
@@ -208,3 +207,4 @@ localTransform = mat2(size.x, 0, 0, size.y);`,
 }
 
 export { GpuInstancedBillboard };
+

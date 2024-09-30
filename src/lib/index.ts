@@ -12,11 +12,11 @@ export {
     type ILocalMapData,
     type IVoxelMap,
     type IVoxelMaterial,
-    type VoxelsChunkSize,
+    type VoxelsChunkSize
 } from './terrain/voxelmap/i-voxelmap';
 export {
     VoxelmapViewerAutonomous,
-    type VoxelmapViewerAutonomousOptions,
+    type VoxelmapViewerAutonomousOptions
 } from './terrain/voxelmap/viewer/autonomous/voxelmap-viewer-autonomous';
 export {
     EComputationMethod,
@@ -24,12 +24,15 @@ export {
     type ComputationOptions,
     type ComputationStatus,
     type VoxelmapViewerOptions,
-    type VoxelsChunkData,
+    type VoxelsChunkData
 } from './terrain/voxelmap/viewer/simple/voxelmap-viewer';
 export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibility-computer';
 export { type CheckerboardType } from './terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
-export { GpuInstancedBillboard } from './effects/billboard/gpu/gpu-instanced-billboard';
 export { InstancedBillboard } from './effects/billboard/instanced-billboard';
 export { BuffAscendEffect } from './effects/particles/buff-ascend-effect';
 export { type Spritesheet } from './effects/spritesheet';
+export { Rain } from "./effects/weather/rain";
+export { Snow } from "./effects/weather/snow";
+export { GpuInstancedBillboard } from './effects/weather/weather-particles-base';
+
