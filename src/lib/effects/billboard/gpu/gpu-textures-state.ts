@@ -1,7 +1,7 @@
 import { createFullscreenQuad } from '../../../helpers/fullscreen-quad';
 import * as THREE from '../../../libs/three-usage';
 
-type UniformType = 'sampler2D' | 'float' | 'vec2' | 'vec3' | 'vec4';
+type UniformType = 'sampler2D' | 'float' | 'vec2' | 'vec3' | 'vec4' | "mat4";
 type Uniforms = Record<string, THREE.IUniform<unknown> & { readonly type: UniformType }>;
 type PipelineParameters = {
     readonly uniforms: Uniforms;

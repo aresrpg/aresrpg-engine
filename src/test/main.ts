@@ -25,7 +25,7 @@ enum ETest {
     TEXTURE_CUSTOMIZATION,
 }
 
-const test = ETest.TEXTURE_CUSTOMIZATION as ETest;
+const test = ETest.WEATHER as ETest;
 
 let testScene: TestBase;
 if (test === ETest.TERRAIN) {

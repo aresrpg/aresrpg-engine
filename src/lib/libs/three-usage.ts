@@ -23,6 +23,7 @@ export {
     OneMinusSrcAlphaFactor,
     PerspectiveCamera,
     PlaneGeometry,
+    Quaternion,
     RawShaderMaterial,
     RedFormat,
     RedIntegerFormat,
