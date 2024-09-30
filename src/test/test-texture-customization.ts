@@ -60,8 +60,6 @@ class TestTextureCustomization extends TestBase {
                     }
 
                     this.customizableTexture = new CustomizableTexture({
-                        width: 128,
-                        height: 256,
                         baseTexture: childTexture,
                         additionalTextures: new Map<string, THREE.Texture>([
                             ['color1', color1Texture],
