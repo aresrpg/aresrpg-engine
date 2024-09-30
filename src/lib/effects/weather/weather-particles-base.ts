@@ -207,4 +207,3 @@ localTransform = mat2(size.x, 0, 0, size.y);`,
 }
 
 export { GpuInstancedBillboard };
-

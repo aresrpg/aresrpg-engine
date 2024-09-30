@@ -1,4 +1,5 @@
 import * as THREE from '../../libs/three-usage';
+
 import { GpuInstancedBillboard } from './weather-particles-base';
 
 class Snow {
@@ -76,4 +77,3 @@ return vec4(0.9, 0.9, 1, 1);
 }
 
 export { Snow };
-

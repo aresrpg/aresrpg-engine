@@ -1,13 +1,13 @@
-import { GUI } from "lil-gui";
+import { GUI } from 'lil-gui';
 import * as THREE from 'three-usage-test';
 
 import { Rain, Snow } from '../lib';
 
-import { TestBase } from "./test-base";
+import { TestBase } from './test-base';
 
 enum EType {
-    RAIN = "rain",
-    SNOW = "snow",
+    RAIN = 'rain',
+    SNOW = 'snow',
 }
 
 class TestWeather extends TestBase {
@@ -38,11 +38,13 @@ class TestWeather extends TestBase {
         this.scene.add(this.rain.container);
 
         this.gui = new GUI();
-        this.gui.add(this.parameters, "type", Object.values(EType)).onChange(() => {
+        this.gui.add(this.parameters, 'type', Object.values(EType)).onChange(() => {
             this.enforceType();
             this.enforceCount();
         });
-        this.gui.add(this.parameters, "count", 0, 65000, 1000).onChange(() => { this.enforceCount(); });
+        this.gui.add(this.parameters, 'count', 0, 65000, 1000).onChange(() => {
+            this.enforceCount();
+        });
         this.enforceCount();
         this.enforceType();
     }
@@ -69,4 +71,3 @@ class TestWeather extends TestBase {
 }
 
 export { TestWeather };
-
