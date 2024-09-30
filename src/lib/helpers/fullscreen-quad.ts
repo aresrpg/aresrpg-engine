@@ -1,4 +1,4 @@
-import * as THREE from "../libs/three-usage";
+import * as THREE from '../libs/three-usage';
 
 function createFullscreenQuad(attributeName: string): THREE.Mesh {
     const fullscreenQuadGeometry = new THREE.BufferGeometry();
@@ -9,6 +9,4 @@ function createFullscreenQuad(attributeName: string): THREE.Mesh {
     return fullscreenQuad;
 }
 
-export {
-    createFullscreenQuad,
-};
+export { createFullscreenQuad };

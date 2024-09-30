@@ -11,7 +11,6 @@ class TestTextureCustomization extends TestBase {
     private readonly parameters = {
         color1: 0xff0000,
         color2: 0x00ff00,
-        color3: 0x0000ff,
     };
 
     private customizableTexture: CustomizableTexture | null = null;
@@ -26,14 +25,15 @@ class TestTextureCustomization extends TestBase {
         gridHelper.position.setY(-0.01);
         this.scene.add(gridHelper);
 
-        const ambientLight = new THREE.AmbientLight(0xCCCCCC);
+        const ambientLight = new THREE.AmbientLight(0xffffff);
         this.scene.add(ambientLight);
 
-        const enforceColors = () => { this.enforceColors(); };
+        const enforceColors = () => {
+            this.enforceColors();
+        };
         this.gui = new GUI();
-        this.gui.addColor(this.parameters, "color1").onChange(enforceColors);
-        this.gui.addColor(this.parameters, "color2").onChange(enforceColors);
-        this.gui.addColor(this.parameters, "color3").onChange(enforceColors);
+        this.gui.addColor(this.parameters, 'color1').onChange(enforceColors);
+        this.gui.addColor(this.parameters, 'color2').onChange(enforceColors);
         enforceColors();
 
         const gltfLoader = new THREE.GLTFLoader();
@@ -42,7 +42,11 @@ class TestTextureCustomization extends TestBase {
         dracoLoader.setDecoderConfig({ type: 'js' });
         gltfLoader.setDRACOLoader(dracoLoader);
 
-        gltfLoader.load("/resources/character/primemachin.glb", gltf => {
+        Promise.all([
+            gltfLoader.loadAsync('/resources/character/iop_male.glb'),
+            new THREE.TextureLoader().loadAsync('/resources/character/color_01.png'),
+            new THREE.TextureLoader().loadAsync('/resources/character/color_02.png'),
+        ]).then(([gltf, color1Texture, color2Texture]) => {
             this.scene.add(gltf.scene);
 
             gltf.scene.traverse(child => {
@@ -50,33 +54,33 @@ class TestTextureCustomization extends TestBase {
                     const childMesh = child as THREE.Mesh;
                     const childMaterial = childMesh.material as THREE.MeshPhongMaterial;
 
-                    setTimeout(() => {
-                        const childTexture = childMaterial.map;
-                        if (!childTexture) {
-                            throw new Error("No base texture");
-                        }
-                        this.customizableTexture = new CustomizableTexture({
-                            width: 100,
-                            height: 100,
-                            baseTexture: childTexture,
-                            additionalTextures: new Map<string, THREE.Texture>(),
-                        });
-                        this.customizableTexture.update(this.renderer);
-                        childMaterial.map = this.customizableTexture.texture;
-                    }, 2000);
+                    const childTexture = childMaterial.map;
+                    if (!childTexture) {
+                        throw new Error('No base texture');
+                    }
+
+                    this.customizableTexture = new CustomizableTexture({
+                        width: 128,
+                        height: 256,
+                        baseTexture: childTexture,
+                        additionalTextures: new Map<string, THREE.Texture>([
+                            ['color1', color1Texture],
+                            ['color2', color2Texture],
+                        ]),
+                    });
+                    this.enforceColors();
+                    childMaterial.map = this.customizableTexture.texture;
                 }
-            })
+            });
         });
     }
 
-    protected override update(): void {
-    }
+    protected override update(): void {}
 
     private enforceColors(): void {
         if (this.customizableTexture) {
-            // this.customizableTexture.setLayerColor("color1", new THREE.Color(this.parameters.color1));
-            // this.customizableTexture.setLayerColor("color2", new THREE.Color(this.parameters.color2));
-            // this.customizableTexture.setLayerColor("color3", new THREE.Color(this.parameters.color3));
+            this.customizableTexture.setLayerColor('color1', new THREE.Color(this.parameters.color1));
+            this.customizableTexture.setLayerColor('color2', new THREE.Color(this.parameters.color2));
             this.customizableTexture.update(this.renderer);
         }
     }

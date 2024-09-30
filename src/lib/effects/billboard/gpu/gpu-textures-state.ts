@@ -1,4 +1,4 @@
-import { createFullscreenQuad } from "../../../helpers/fullscreen-quad";
+import { createFullscreenQuad } from '../../../helpers/fullscreen-quad';
 import * as THREE from '../../../libs/three-usage';
 
 type UniformType = 'sampler2D' | 'float' | 'vec2' | 'vec3' | 'vec4';
@@ -39,7 +39,7 @@ class GpuTexturesState {
 
         this.textureNames = params.textureNames;
 
-        this.fullscreenQuad = createFullscreenQuad("aPosition");
+        this.fullscreenQuad = createFullscreenQuad('aPosition');
 
         const vertexShader = `
 in vec2 aPosition;
