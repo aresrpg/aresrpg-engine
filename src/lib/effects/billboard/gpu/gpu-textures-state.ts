@@ -1,3 +1,4 @@
+import { createFullscreenQuad } from "../../../helpers/fullscreen-quad";
 import * as THREE from '../../../libs/three-usage';
 
 type UniformType = 'sampler2D' | 'float' | 'vec2' | 'vec3' | 'vec4';
@@ -38,11 +39,7 @@ class GpuTexturesState {
 
         this.textureNames = params.textureNames;
 
-        const fullscreenQuadGeometry = new THREE.BufferGeometry();
-        fullscreenQuadGeometry.setAttribute('aPosition', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1], 2));
-        fullscreenQuadGeometry.setDrawRange(0, 6);
-        this.fullscreenQuad = new THREE.Mesh(fullscreenQuadGeometry);
-        this.fullscreenQuad.frustumCulled = false;
+        this.fullscreenQuad = createFullscreenQuad("aPosition");
 
         const vertexShader = `
 in vec2 aPosition;
