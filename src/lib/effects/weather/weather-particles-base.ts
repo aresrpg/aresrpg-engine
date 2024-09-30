@@ -53,6 +53,10 @@ class GpuInstancedBillboard {
 
     private readonly maxInstancesCount: number;
 
+    private lastCameraPosition: THREE.Vector3 | null = null;
+
+    private lastUpdateTimestamp = performance.now();
+
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
 
@@ -193,7 +197,33 @@ localTransform = mat2(size.x, 0, 0, size.y);`,
         this.enforceCurrentPositionTexture();
     }
 
-    public updatePositions(renderer: THREE.WebGLRenderer, deltaTime: number, uniformMovement: THREE.Vector3Like): void {
+    public updatePositions(renderer: THREE.WebGLRenderer, camera: THREE.Object3D): void {
+        const now = performance.now();
+        const deltaTime = (now - this.lastUpdateTimestamp) / 1000;
+        this.lastUpdateTimestamp = now;
+
+        const cameraPosition = camera.getWorldPosition(new THREE.Vector3());
+        this.container.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+
+        const movement = new THREE.Vector3(0, 0, 0);
+        if (this.lastCameraPosition) {
+            movement.subVectors(this.lastCameraPosition, cameraPosition);
+        }
+        this.lastCameraPosition = cameraPosition;
+
+        // limit movement length to avoid floating-point precision issues
+        const maxMovementLength = 100;
+        const movementLength = movement.length();
+        if (movementLength > maxMovementLength) {
+            movement.multiplyScalar(maxMovementLength / movementLength);
+        }
+
+        const uniformMovement = {
+            x: movement.x / this.positionsRange.x,
+            y: movement.y / this.positionsRange.y,
+            z: movement.z / this.positionsRange.z,
+        };
+
         this.updatePipeline.uniforms.uDeltaTime.value = deltaTime;
         this.updatePipeline.uniforms.uUniformMovement.value = uniformMovement;
         this.gpuTexturesState.runPipeline(renderer, 'update');
