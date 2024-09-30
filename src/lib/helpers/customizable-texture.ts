@@ -1,10 +1,9 @@
 import * as THREE from '../libs/three-usage';
 
 import { createFullscreenQuad } from './fullscreen-quad';
+import { logger } from './logger';
 
 type Parameters = {
-    readonly width: number;
-    readonly height: number;
     readonly baseTexture: THREE.Texture;
     readonly additionalTextures: ReadonlyMap<string, THREE.Texture>;
 };
@@ -35,13 +34,7 @@ class CustomizableTexture {
     public constructor(params: Parameters) {
         this.baseTexture = params.baseTexture;
 
-        const layers = new Map<string, TextureLayer>();
-        for (const [name, texture] of params.additionalTextures.entries()) {
-            layers.set(name, { texture, color: new THREE.Color(0xffffff) });
-        }
-        this.layers = layers;
-
-        this.renderTarget = new THREE.WebGLRenderTarget(params.width, params.height, {
+        this.renderTarget = new THREE.WebGLRenderTarget(this.baseTexture.image.width, this.baseTexture.image.height, {
             wrapS: this.baseTexture.wrapS,
             wrapT: this.baseTexture.wrapT,
             magFilter: this.baseTexture.magFilter,
@@ -53,6 +46,15 @@ class CustomizableTexture {
             throw new Error(`Cannot get texture from rendertarget`);
         }
         this.texture = texture;
+
+        const layers = new Map<string, TextureLayer>();
+        for (const [name, texture] of params.additionalTextures.entries()) {
+            if (texture.image.width !== this.renderTarget.width || texture.image.height !== this.renderTarget.height) {
+                logger.warn(`Invalid texture size: expected "${this.renderTarget.width}x${this.renderTarget.height}" but received "${texture.image.width}x${texture.image.height}".`);
+            }
+            layers.set(name, { texture, color: new THREE.Color(0xffffff) });
+        }
+        this.layers = layers;
 
         const uniforms = {
             layer: { value: null },
