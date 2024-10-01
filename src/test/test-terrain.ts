@@ -135,8 +135,10 @@ class TestTerrain extends TestTerrainBase {
             computationOptions: {
                 method: EComputationMethod.CPU_MULTITHREADED,
                 threadsCount: 4,
+                greedyMeshing: true,
             },
             checkerboardType: 'xz',
+            voxelsChunkOrdering: 'zyx',
         });
         this.voxelmapViewer.parameters.faces.checkerboardContrast = 0.01;
 

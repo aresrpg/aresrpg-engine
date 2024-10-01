@@ -1,19 +1,27 @@
-import * as THREE from '../../../../../libs/three-usage';
 import { PromisesQueue } from '../../../../../helpers/async/promises-queue';
-import { type VoxelsChunkSize, type IVoxelMap, type IVoxelMaterial } from '../../../i-voxelmap';
+import * as THREE from '../../../../../libs/three-usage';
+import { type IVoxelMap, type IVoxelMaterial, type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryGpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
 import { type CheckerboardType } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 import { PatchFactoryBase } from '../patch-factory-base';
 
+type Parameters = {
+    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly patchSize: VoxelsChunkSize;
+    readonly checkerboardType?: CheckerboardType;
+    readonly voxelsChunkOrdering: VoxelsChunkOrdering;
+};
+
 class PatchFactoryGpuSequential extends PatchFactoryBase {
     private readonly throttler = new PromisesQueue(1);
 
-    public constructor(voxelMaterialsList: ReadonlyArray<IVoxelMaterial>, patchSize: VoxelsChunkSize, checkerboardType?: CheckerboardType) {
+    public constructor(params: Parameters) {
         const voxelsRenderableFactory = new VoxelsRenderableFactoryGpu({
-            voxelMaterialsList,
-            voxelsChunkSize: patchSize,
-            checkerboardType,
+            voxelMaterialsList: params.voxelMaterialsList,
+            voxelsChunkSize: params.patchSize,
+            checkerboardType: params.checkerboardType,
+            voxelsChunkOrdering: params.voxelsChunkOrdering,
         });
         super(voxelsRenderableFactory);
     }

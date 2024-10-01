@@ -1,8 +1,8 @@
-import * as THREE from '../../../../libs/three-usage';
 import { AsyncTask } from '../../../../helpers/async/async-task';
 import { PromisesQueue } from '../../../../helpers/async/promises-queue';
 import { vec3ToString } from '../../../../helpers/string';
-import { type IVoxelMaterial, type VoxelsChunkSize } from '../../i-voxelmap';
+import * as THREE from '../../../../libs/three-usage';
+import { type VoxelsChunkOrdering, type IVoxelMaterial, type VoxelsChunkSize } from '../../i-voxelmap';
 import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-cpu';
 import { PatchFactoryCpuWorker } from '../../patch/patch-factory/merged/patch-factory-cpu-worker';
 import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
@@ -33,9 +33,10 @@ type ComputationOptions =
       };
 
 type VoxelmapViewerOptions = {
-    patchSize?: VoxelsChunkSize;
-    computationOptions?: ComputationOptions;
-    checkerboardType?: CheckerboardType;
+    readonly patchSize?: VoxelsChunkSize;
+    readonly computationOptions?: ComputationOptions;
+    readonly checkerboardType?: CheckerboardType;
+    readonly voxelsChunkOrdering?: VoxelsChunkOrdering;
 };
 
 type ComputationStatus = 'success' | 'skipped' | 'aborted';
@@ -93,12 +94,15 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             checkerboardType = options.checkerboardType;
         }
 
+        const voxelsChunkOrdering = options?.voxelsChunkOrdering ?? 'zyx';
+
         if (this.computationOptions.method === EComputationMethod.CPU_MONOTHREADED) {
             this.patchFactory = new PatchFactoryCpu({
                 voxelMaterialsList,
                 patchSize,
                 checkerboardType,
                 greedyMeshing: this.computationOptions.greedyMeshing ?? true,
+                voxelsChunkOrdering,
             });
             this.maxPatchesComputedInParallel = 1;
         } else if (this.computationOptions.method === EComputationMethod.CPU_MULTITHREADED) {
@@ -108,10 +112,16 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                 workersPoolSize: this.computationOptions.threadsCount,
                 checkerboardType,
                 greedyMeshing: this.computationOptions.greedyMeshing ?? true,
+                voxelsChunkOrdering,
             });
             this.maxPatchesComputedInParallel = this.computationOptions.threadsCount;
         } else {
-            this.patchFactory = new PatchFactoryGpuSequential(voxelMaterialsList, patchSize, checkerboardType);
+            this.patchFactory = new PatchFactoryGpuSequential({
+                voxelMaterialsList,
+                patchSize,
+                voxelsChunkOrdering,
+                checkerboardType,
+            });
             this.maxPatchesComputedInParallel = 1;
         }
 

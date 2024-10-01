@@ -21,6 +21,7 @@ class BoardRenderableFactory extends VoxelsRenderableFactoryCpuWorker {
             voxelMaterialsList: params.voxelMaterialsList,
             maxVoxelsChunkSize: { xz: 128, y: 16 },
             workersPoolSize: 1,
+            voxelsChunkOrdering: 'zyx',
         });
     }
 

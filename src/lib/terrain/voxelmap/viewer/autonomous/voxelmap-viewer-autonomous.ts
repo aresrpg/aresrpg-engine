@@ -2,7 +2,7 @@ import * as THREE from '../../../../libs/three-usage';
 import { DisposableMap } from '../../../../helpers/disposable-map';
 import { logger } from '../../../../helpers/logger';
 import { vec3ToString } from '../../../../helpers/string';
-import { type VoxelsChunkSize, type IVoxelMap } from '../../i-voxelmap';
+import { type VoxelsChunkSize, type IVoxelMap, type VoxelsChunkOrdering } from '../../i-voxelmap';
 import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-cpu';
 import { PatchFactoryGpuOptimized } from '../../patch/patch-factory/merged/patch-factory-gpu-optimized';
 import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
@@ -16,6 +16,7 @@ import { AsyncPatch } from './async-patch';
 type VoxelmapViewerAutonomousOptions = {
     patchSize?: VoxelsChunkSize;
     computingMode?: EPatchComputingMode;
+    voxelsChunkOrdering?: VoxelsChunkOrdering;
 };
 
 enum EPatchComputingMode {
@@ -48,16 +49,27 @@ class VoxelmapViewerAutonomous extends VoxelmapViewerBase {
             }
         }
 
+        const voxelsChunkOrdering = options?.voxelsChunkOrdering ?? 'zyx';
+
         let patchFactory: PatchFactoryBase;
         if (computingMode === EPatchComputingMode.CPU_CACHED) {
             patchFactory = new PatchFactoryCpu({
                 voxelMaterialsList: map.voxelMaterialsList,
                 patchSize: voxelsChunksSize,
+                voxelsChunkOrdering,
             });
         } else if (computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
-            patchFactory = new PatchFactoryGpuSequential(map.voxelMaterialsList, voxelsChunksSize);
+            patchFactory = new PatchFactoryGpuSequential({
+                voxelMaterialsList: map.voxelMaterialsList,
+                patchSize: voxelsChunksSize,
+                voxelsChunkOrdering,
+            });
         } else if (computingMode === EPatchComputingMode.GPU_OPTIMIZED) {
-            patchFactory = new PatchFactoryGpuOptimized(map.voxelMaterialsList, voxelsChunksSize);
+            patchFactory = new PatchFactoryGpuOptimized({
+                voxelMaterialsList: map.voxelMaterialsList,
+                patchSize: voxelsChunksSize,
+                voxelsChunkOrdering,
+            });
         } else {
             throw new Error(`Unsupported computing mode "${computingMode}".`);
         }

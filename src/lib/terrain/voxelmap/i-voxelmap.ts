@@ -20,6 +20,8 @@ type VoxelsChunkSize = {
     readonly y: number;
 };
 
+type VoxelsChunkOrdering = 'xyz' | 'xzy' | 'yxz' | 'yzx' | 'zxy' | 'zyx';
+
 /** Compact object storing a portion of the map data  */
 interface ILocalMapData {
     /** Compact array storing the voxel data.
@@ -66,4 +68,4 @@ interface IVoxelMap {
 
 const voxelmapDataPacking = new VoxelmapDataPacking();
 
-export { type ILocalMapData, type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize, voxelmapDataPacking };
+export { voxelmapDataPacking, type ILocalMapData, type IVoxelMap, type IVoxelMaterial, type VoxelsChunkOrdering, type VoxelsChunkSize };

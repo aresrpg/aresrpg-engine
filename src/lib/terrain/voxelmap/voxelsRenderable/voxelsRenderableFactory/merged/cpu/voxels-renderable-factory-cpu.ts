@@ -1,5 +1,5 @@
 import type * as THREE from '../../../../../../libs/three-usage';
-import { voxelmapDataPacking, type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
+import { voxelmapDataPacking, type VoxelsChunkOrdering, type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
 import {
     type CheckerboardType,
@@ -27,6 +27,7 @@ type VoxelsChunkCache = VoxelsChunkData & {
 type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly maxVoxelsChunkSize: VoxelsChunkSize;
+    readonly voxelsChunkOrdering: VoxelsChunkOrdering;
     readonly checkerboardType?: CheckerboardType | undefined;
     readonly greedyMeshing?: boolean | undefined;
 };
@@ -50,6 +51,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
         },
 
         greedyMeshing: true,
+        voxelsChunkOrdering: 'zyx' as VoxelsChunkOrdering,
 
         buildBuffer(voxelsChunkData: VoxelsChunkData): Uint32Array {
             if (voxelsChunkData.isEmpty) {
@@ -186,7 +188,34 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
         },
 
         buildLocalMapCache(voxelsChunkData: VoxelsChunkData): VoxelsChunkCache {
-            const indexFactor = { x: 1, y: voxelsChunkData.size.x, z: voxelsChunkData.size.x * voxelsChunkData.size.y };
+            type Component = 'x' | 'y' | 'z';
+            const buildIndexFactor2 = (component: Component): number => {
+                const sanitizeXYZ = (s: string | undefined): Component => {
+                    if (s === 'x' || s === 'y' || s === 'z') {
+                        return s;
+                    }
+                    throw new Error(`Invalid voxelsChunkOrdering "${this.voxelsChunkOrdering}".`);
+                };
+
+                const components0 = sanitizeXYZ(this.voxelsChunkOrdering[0]);
+                const components1 = sanitizeXYZ(this.voxelsChunkOrdering[1]);
+                const components2 = sanitizeXYZ(this.voxelsChunkOrdering[2]);
+                if (component === components2) {
+                    return 1;
+                } else if (component === components1) {
+                    return voxelsChunkData.size[components2];
+                } else if (component === components0) {
+                    return voxelsChunkData.size[components2] * voxelsChunkData.size[components1];
+                } else {
+                    throw new Error(`Invalid voxelsChunkOrdering "${this.voxelsChunkOrdering}".`);
+                }
+            };
+
+            const indexFactor = {
+                x: buildIndexFactor2('x'),
+                y: buildIndexFactor2('y'),
+                z: buildIndexFactor2('z'),
+            };
 
             const buildIndexUnsafe = (position: THREE.Vector3Like) => {
                 return position.x * indexFactor.x + position.y * indexFactor.y + position.z * indexFactor.z;
@@ -290,6 +319,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
         super(params);
 
         this.serializableFactory.greedyMeshing = params.greedyMeshing ?? true;
+        this.serializableFactory.voxelsChunkOrdering = params.voxelsChunkOrdering;
     }
 
     public async buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkData): Promise<GeometryAndMaterial[]> {
@@ -312,6 +342,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
     voxelmapDataPacking: ${this.serializableFactory.voxelmapDataPacking.serialize()},
     checkerboardPattern: ${JSON.stringify(this.serializableFactory.checkerboardPattern)},
     greedyMeshing: ${this.serializableFactory.greedyMeshing},
+    voxelsChunkOrdering: "${this.serializableFactory.voxelsChunkOrdering}",
     ${this.serializableFactory.buildBuffer},
     ${this.serializableFactory.buildLocalMapCache},
     ${this.serializableFactory.iterateOnVisibleFacesWithCache},

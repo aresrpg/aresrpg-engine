@@ -1,6 +1,6 @@
 import type * as THREE from '../../../../../libs/three-usage';
 import { PromisesQueue } from '../../../../../helpers/async/promises-queue';
-import { type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
+import { type VoxelsChunkOrdering, type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryCpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/cpu/voxels-renderable-factory-cpu';
 import { type CheckerboardType } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
@@ -11,6 +11,7 @@ type Parameters = {
     readonly patchSize: VoxelsChunkSize;
     readonly checkerboardType?: CheckerboardType;
     readonly greedyMeshing?: boolean;
+    readonly voxelsChunkOrdering: VoxelsChunkOrdering;
 };
 
 class PatchFactoryCpu extends PatchFactoryBase {
@@ -22,6 +23,7 @@ class PatchFactoryCpu extends PatchFactoryBase {
             maxVoxelsChunkSize: params.patchSize,
             checkerboardType: params.checkerboardType,
             greedyMeshing: params.greedyMeshing,
+            voxelsChunkOrdering: params.voxelsChunkOrdering,
         });
         super(voxelsRenderableFactory);
     }

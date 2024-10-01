@@ -5,7 +5,7 @@ import { PromisesQueue } from '../../../../../../helpers/async/promises-queue';
 import { logger } from '../../../../../../helpers/logger';
 import { vec3ToString } from '../../../../../../helpers/string';
 import { getGpuDevice } from '../../../../../../helpers/webgpu/webgpu-device';
-import { voxelmapDataPacking } from '../../../../i-voxelmap';
+import { voxelmapDataPacking, type VoxelsChunkOrdering } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
 import { type CheckerboardType, type VoxelsChunkData } from '../../voxels-renderable-factory-base';
 import { type VertexData1Encoder } from '../vertex-data1-encoder';
@@ -23,11 +23,19 @@ class VoxelsComputerGpu {
         maxVoxelsChunkSize: THREE.Vector3Like,
         vertexData1Encoder: VertexData1Encoder,
         vertexData2Encoder: VertexData2Encoder,
-        checkerboardType: CheckerboardType
+        checkerboardType: CheckerboardType,
+        voxelsChunkOrdering: VoxelsChunkOrdering
     ): Promise<VoxelsComputerGpu> {
         logger.debug('Requesting WebGPU device...');
         const device = await getGpuDevice();
-        return new VoxelsComputerGpu(device, maxVoxelsChunkSize, vertexData1Encoder, vertexData2Encoder, checkerboardType);
+        return new VoxelsComputerGpu(
+            device,
+            maxVoxelsChunkSize,
+            vertexData1Encoder,
+            vertexData2Encoder,
+            checkerboardType,
+            voxelsChunkOrdering
+        );
     }
 
     private readonly device: GPUDevice;
@@ -46,7 +54,8 @@ class VoxelsComputerGpu {
         maxVoxelsChunkSize: THREE.Vector3Like,
         vertexData1Encoder: VertexData1Encoder,
         vertexData2Encoder: VertexData2Encoder,
-        checkerboardType: CheckerboardType
+        checkerboardType: CheckerboardType,
+        voxelsChunkOrdering: VoxelsChunkOrdering
     ) {
         this.device = device;
 
@@ -81,7 +90,7 @@ class VoxelsComputerGpu {
             }
         }
         fn buildBufferIndex(coords: vec3i) -> i32 {
-            return coords.x + voxelsChunkBuffer.size.x * (coords.y + voxelsChunkBuffer.size.y * coords.z);
+            return coords.${voxelsChunkOrdering[2]} + voxelsChunkBuffer.size.${voxelsChunkOrdering[2]} * (coords.${voxelsChunkOrdering[1]} + voxelsChunkBuffer.size.${voxelsChunkOrdering[1]} * coords.${voxelsChunkOrdering[0]});
         }
         fn doesNeighbourExist(voxelCacheIndex: i32, neighbourRelativePosition: vec3i) -> bool {
             let neighbourCacheIndex = voxelCacheIndex + buildBufferIndex(neighbourRelativePosition);

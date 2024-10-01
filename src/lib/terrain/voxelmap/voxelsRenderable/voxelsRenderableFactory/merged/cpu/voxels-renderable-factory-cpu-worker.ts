@@ -1,6 +1,6 @@
 import { type WorkerDefinition } from '../../../../../../helpers/async/dedicatedWorkers/dedicated-worker';
 import { DedicatedWorkersPool } from '../../../../../../helpers/async/dedicatedWorkers/dedicated-workers-pool';
-import { type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
+import { type VoxelsChunkOrdering, type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
 import { type CheckerboardType, type VoxelsChunkData } from '../../voxels-renderable-factory-base';
 
 import { VoxelsRenderableFactoryCpu } from './voxels-renderable-factory-cpu';
@@ -11,6 +11,7 @@ type Parameters = {
     readonly workersPoolSize: number;
     readonly checkerboardType?: CheckerboardType | undefined;
     readonly greedyMeshing?: boolean | undefined;
+    readonly voxelsChunkOrdering: VoxelsChunkOrdering;
 };
 
 class VoxelsRenderableFactoryCpuWorker extends VoxelsRenderableFactoryCpu {

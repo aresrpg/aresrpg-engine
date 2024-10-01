@@ -12,6 +12,7 @@ export {
     type ILocalMapData,
     type IVoxelMap,
     type IVoxelMaterial,
+    type VoxelsChunkOrdering,
     type VoxelsChunkSize,
 } from './terrain/voxelmap/i-voxelmap';
 export {
