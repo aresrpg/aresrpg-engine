@@ -20,6 +20,7 @@ type FaceData = {
 };
 
 type VoxelsChunkCache = VoxelsChunkData & {
+    buildIndexUnsafe(position: THREE.Vector3Like): number;
     neighbourExists(voxelIndex: number, neighbourRelativePosition: THREE.Vector3): boolean;
 };
 
@@ -202,6 +203,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
             };
 
             return Object.assign(voxelsChunkData, {
+                buildIndexUnsafe,
                 neighbourExists,
             });
         },
@@ -211,11 +213,11 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                 return;
             }
 
-            let cacheIndex = 0;
             const localPosition = { x: 0, y: 0, z: 0 };
             for (localPosition.z = 0; localPosition.z < voxelsChunkCache.size.z; localPosition.z++) {
                 for (localPosition.y = 0; localPosition.y < voxelsChunkCache.size.y; localPosition.y++) {
                     for (localPosition.x = 0; localPosition.x < voxelsChunkCache.size.x; localPosition.x++) {
+                        const cacheIndex = voxelsChunkCache.buildIndexUnsafe(localPosition);
                         const cacheData = voxelsChunkCache.data[cacheIndex];
                         if (typeof cacheData === 'undefined') {
                             throw new Error();
@@ -278,7 +280,6 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                                 }
                             }
                         }
-                        cacheIndex++;
                     }
                 }
             }
