@@ -50,7 +50,9 @@ class CustomizableTexture {
         const layers = new Map<string, TextureLayer>();
         for (const [name, texture] of params.additionalTextures.entries()) {
             if (texture.image.width !== this.renderTarget.width || texture.image.height !== this.renderTarget.height) {
-                logger.warn(`Invalid texture size: expected "${this.renderTarget.width}x${this.renderTarget.height}" but received "${texture.image.width}x${texture.image.height}".`);
+                logger.warn(
+                    `Invalid texture size: expected "${this.renderTarget.width}x${this.renderTarget.height}" but received "${texture.image.width}x${texture.image.height}".`
+                );
             }
             layers.set(name, { texture, color: new THREE.Color(0xffffff) });
         }
