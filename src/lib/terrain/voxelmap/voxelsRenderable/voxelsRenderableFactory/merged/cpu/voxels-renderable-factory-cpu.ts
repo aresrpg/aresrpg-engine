@@ -21,7 +21,7 @@ type FaceData = {
 
 type VoxelsChunkCache = VoxelsChunkData & {
     buildIndexUnsafe(position: THREE.Vector3Like): number;
-    neighbourExists(voxelIndex: number, neighbourRelativePosition: THREE.Vector3): boolean;
+    neighbourExists(voxelIndex: number, neighbourRelativePosition: THREE.Vector3Like): boolean;
 };
 
 type Parameters = {

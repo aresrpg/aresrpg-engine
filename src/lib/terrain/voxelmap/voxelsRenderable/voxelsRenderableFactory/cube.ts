@@ -11,11 +11,11 @@ const vertices = {
     mmm: new THREE.Vector3(0, 0, 0),
 };
 type FaceVertex = {
-    readonly vertex: THREE.Vector3;
-    readonly shadowingNeighbourVoxels: [THREE.Vector3, THREE.Vector3, THREE.Vector3];
+    readonly vertex: THREE.Vector3Like;
+    readonly shadowingNeighbourVoxels: [THREE.Vector3Like, THREE.Vector3Like, THREE.Vector3Like];
     readonly edgeNeighbourVoxels: {
-        readonly x: [THREE.Vector3, THREE.Vector3];
-        readonly y: [THREE.Vector3, THREE.Vector3];
+        readonly x: [THREE.Vector3Like, THREE.Vector3Like];
+        readonly y: [THREE.Vector3Like, THREE.Vector3Like];
     };
 };
 
@@ -33,10 +33,10 @@ const normalsById = Object.values(normals);
 
 type Normal = {
     readonly id: number;
-    readonly vec: THREE.Vector3;
+    readonly vec: THREE.Vector3Like;
 };
 
-function buildNormal(vec: THREE.Vector3): Normal {
+function buildNormal(vec: THREE.Vector3Like): Normal {
     for (let i = 0; i < normalsById.length; i++) {
         if (normalsById[i]!.equals(vec)) {
             return {
@@ -61,7 +61,7 @@ const faceIndices: [number, number, number, number, number, number] = [0, 2, 1, 
 
 let iF = 0;
 
-function buildFace(type: FaceType, v00: THREE.Vector3, v01: THREE.Vector3, v10: THREE.Vector3, v11: THREE.Vector3): Face {
+function buildFace(type: FaceType, v00: THREE.Vector3Like, v01: THREE.Vector3Like, v10: THREE.Vector3Like, v11: THREE.Vector3Like): Face {
     const normal = normals[type];
     const uvUp = new THREE.Vector3().subVectors(v01, v00);
     const uvRight = new THREE.Vector3().subVectors(v10, v00);

@@ -15,7 +15,7 @@ type GeometryAndMaterial = {
 };
 
 type VertexData = {
-    readonly localPosition: THREE.Vector3;
+    readonly localPosition: THREE.Vector3Like;
     readonly ao: number;
     readonly roundnessX: boolean;
     readonly roundnessY: boolean;
