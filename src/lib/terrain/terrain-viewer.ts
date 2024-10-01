@@ -84,8 +84,6 @@ class TerrainViewer {
     }
 
     private updateHeightmap(): void {
-        const completeChunksColumns = this.voxelmapViewer.getCompleteChunksColumns();
-
         const heightmapContainer = this.heightmapViewer.container;
         if (this.parameters.lod.enabled) {
             if (!heightmapContainer.parent) {
@@ -95,6 +93,7 @@ class TerrainViewer {
             this.heightmapViewer.wireframe = this.parameters.lod.wireframe;
 
             if (this.heightmapViewerNeedsUpdate) {
+                const completeChunksColumns = this.voxelmapViewer.getCompleteChunksColumns();
                 this.heightmapViewer.setHiddenPatches(completeChunksColumns);
                 this.heightmapViewerNeedsUpdate = false;
             }
