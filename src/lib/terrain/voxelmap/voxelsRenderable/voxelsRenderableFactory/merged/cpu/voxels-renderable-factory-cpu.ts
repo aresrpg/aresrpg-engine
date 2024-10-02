@@ -326,6 +326,13 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
         if (voxelsChunkData.isEmpty) {
             return [];
         }
+
+        if (voxelsChunkData.dataOrdering !== this.serializableFactory.voxelsChunkOrdering) {
+            throw new Error(
+                `Invalid data ordering: expected "${this.serializableFactory.voxelsChunkOrdering}" but received "${voxelsChunkData.dataOrdering}".`
+            );
+        }
+
         const buffer = await this.buildBuffer(voxelsChunkData);
         return this.assembleGeometryAndMaterials(buffer);
     }

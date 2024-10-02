@@ -26,6 +26,7 @@ class Tree {
             size,
             isEmpty: false,
             data: new Uint16Array(size.x * size.y * size.z),
+            dataOrdering: 'zyx',
         };
         this.indexFactor = { x: 1, y: size.x, z: size.x * size.y };
         this.offset = new THREE.Vector3(-this.radiusXZ, 0, -this.radiusXZ);

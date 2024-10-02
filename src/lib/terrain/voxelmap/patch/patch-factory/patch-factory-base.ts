@@ -1,7 +1,7 @@
 import * as THREE from '../../../../libs/three-usage';
 import { processAsap } from '../../../../helpers/async/async-sync';
 import { vec3ToString } from '../../../../helpers/string';
-import { type IVoxelMap } from '../../i-voxelmap';
+import { type VoxelsChunkOrdering, type IVoxelMap } from '../../i-voxelmap';
 import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
 import {
     type VoxelsChunkData,
@@ -19,6 +19,7 @@ type VertexData = {
 type LocalMapData = {
     readonly size: THREE.Vector3;
     readonly data: Uint16Array;
+    readonly dataOrdering: VoxelsChunkOrdering;
     readonly isEmpty: boolean;
 };
 

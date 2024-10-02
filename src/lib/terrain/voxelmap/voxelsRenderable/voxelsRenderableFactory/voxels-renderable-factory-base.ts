@@ -1,8 +1,8 @@
-import * as THREE from '../../../../libs/three-usage';
 import { nextPowerOfTwo } from '../../../../helpers/math';
 import { vec3ToString } from '../../../../helpers/string';
 import { type PackedUintFragment } from '../../../../helpers/uint-packing';
-import { type IVoxelMaterial } from '../../i-voxelmap';
+import * as THREE from '../../../../libs/three-usage';
+import { type IVoxelMaterial, type VoxelsChunkOrdering } from '../../i-voxelmap';
 import { type VoxelsMaterialUniforms, type VoxelsMaterials } from '../voxels-material';
 import { VoxelsRenderable } from '../voxels-renderable';
 
@@ -24,6 +24,7 @@ type VertexData = {
 type VoxelsChunkData = {
     readonly size: THREE.Vector3;
     readonly data: Uint16Array;
+    readonly dataOrdering: VoxelsChunkOrdering;
     readonly isEmpty: boolean;
 };
 
@@ -185,9 +186,9 @@ abstract class VoxelsRenderableFactoryBase {
 
 export {
     VoxelsRenderableFactoryBase,
+    type CheckerboardType,
     type GeometryAndMaterial,
     type Parameters,
     type VertexData,
     type VoxelsChunkData,
-    type CheckerboardType,
 };

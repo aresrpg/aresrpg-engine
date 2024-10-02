@@ -109,6 +109,7 @@ class BoardRenderableFactory extends VoxelsRenderableFactoryCpuWorker {
             size: chunkSize,
             isEmpty: chunkIsEmpty,
             data: chunkData,
+            dataOrdering: 'zyx',
         };
     }
 

@@ -224,8 +224,9 @@ class VoxelMap implements IVoxelMap, IHeightmap {
             }
         }
 
-        const result = {
+        const result: ILocalMapData = {
             data,
+            dataOrdering: 'zyx',
             isEmpty,
         };
 

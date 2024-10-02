@@ -45,6 +45,8 @@ class VoxelsComputerGpu {
     private readonly localCacheBuffer: GPUBuffer;
     private readonly buffer: FaceBuffer;
 
+    private voxelsChunkOrdering: VoxelsChunkOrdering;
+
     private readonly workgroupSize = 256;
 
     private readonly promiseThrottler = new PromisesQueue(1);
@@ -58,6 +60,8 @@ class VoxelsComputerGpu {
         voxelsChunkOrdering: VoxelsChunkOrdering
     ) {
         this.device = device;
+
+        this.voxelsChunkOrdering = voxelsChunkOrdering;
 
         const checkerboardPattern = {
             x: +checkerboardType.includes('x'),
@@ -237,6 +241,12 @@ class VoxelsComputerGpu {
     }
 
     public async computeBuffer(voxelsChunkData: VoxelsChunkData): Promise<ComputationOutputs> {
+        if (voxelsChunkData.dataOrdering !== this.voxelsChunkOrdering) {
+            throw new Error(
+                `Invalid data ordering: expected "${this.voxelsChunkOrdering}" but received "${voxelsChunkData.dataOrdering}".`
+            );
+        }
+
         return this.promiseThrottler.run(async () => {
             this.device.queue.writeBuffer(
                 this.localCacheBuffer,

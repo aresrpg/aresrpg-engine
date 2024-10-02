@@ -31,11 +31,9 @@ interface ILocalMapData {
      * - bit 1: 1 if the voxel should be displayed as checkerboard, 0 otherwise
      * - bits 2-13: ID of the material
      * Use the helper "voxelmapDataPacking" to do this encoding and be future-proof.
-     *
-     * The elements should be ordered by coordinates as follow by Z first, then Y then X.
-     * For example, for a portion of the map between (0,0,0) and (2,2,2): (0,0,0) then (1,0,0) then (0,1,0) then (1,1,0) then (0,1,1) then (1,1,1)
      */
     readonly data: Uint16Array;
+    readonly dataOrdering: VoxelsChunkOrdering;
 
     /** Should be:
      * - true if there are no voxels in the data
