@@ -189,7 +189,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
 
         buildLocalMapCache(voxelsChunkData: VoxelsChunkData): VoxelsChunkCache {
             type Component = 'x' | 'y' | 'z';
-            const buildIndexFactor2 = (component: Component): number => {
+            const buildIndexFactorComponent = (component: Component): number => {
                 const sanitizeXYZ = (s: string | undefined): Component => {
                     if (s === 'x' || s === 'y' || s === 'z') {
                         return s;
@@ -212,9 +212,9 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
             };
 
             const indexFactor = {
-                x: buildIndexFactor2('x'),
-                y: buildIndexFactor2('y'),
-                z: buildIndexFactor2('z'),
+                x: buildIndexFactorComponent('x'),
+                y: buildIndexFactorComponent('y'),
+                z: buildIndexFactorComponent('z'),
             };
 
             const buildIndexUnsafe = (position: THREE.Vector3Like) => {

@@ -51,7 +51,7 @@ class VoxelmapCollider {
 
         const margins = 2;
         type Component = 'x' | 'y' | 'z';
-        const buildIndexFactor2 = (component: Component): number => {
+        const buildIndexFactorComponent = (component: Component): number => {
             const sanitizeXYZ = (s: string | undefined): Component => {
                 if (s === 'x' || s === 'y' || s === 'z') {
                     return s;
@@ -74,9 +74,9 @@ class VoxelmapCollider {
         };
 
         this.indexFactors = {
-            x: buildIndexFactor2('x'),
-            y: buildIndexFactor2('y'),
-            z: buildIndexFactor2('z'),
+            x: buildIndexFactorComponent('x'),
+            y: buildIndexFactorComponent('y'),
+            z: buildIndexFactorComponent('z'),
         };
     }
 
