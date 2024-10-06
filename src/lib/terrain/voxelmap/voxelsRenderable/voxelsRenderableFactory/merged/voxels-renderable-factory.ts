@@ -355,6 +355,7 @@ void main() {
         const interleavedBuffer = new THREE.InterleavedBuffer(buffer, 2);
         const data1Attribute = new THREE.InterleavedBufferAttribute(interleavedBuffer, 1, 0);
         const data2Attribute = new THREE.InterleavedBufferAttribute(interleavedBuffer, 1, 1);
+        // (interleavedBuffer as any).onUpload(() => { (interleavedBuffer.array as any) = undefined; })
         geometry.setAttribute(VoxelsRenderableFactory.data1AttributeName, data1Attribute);
         geometry.setAttribute(VoxelsRenderableFactory.data2AttributeName, data2Attribute);
         geometry.setDrawRange(0, verticesCount);
