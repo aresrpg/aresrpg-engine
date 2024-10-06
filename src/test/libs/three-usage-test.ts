@@ -6,6 +6,7 @@ export {
     AxesHelper,
     BoxGeometry,
     CameraHelper,
+    CylinderGeometry,
     DirectionalLight,
     Frustum,
     GridHelper,
@@ -13,6 +14,7 @@ export {
     PCFShadowMap,
     PerspectiveCamera,
     Scene,
+    SphereGeometry,
     SRGBColorSpace,
     WebGLRenderer,
 } from 'three';
