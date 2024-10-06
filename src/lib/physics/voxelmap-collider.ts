@@ -29,7 +29,7 @@ type ChunkCollider =
       }
     | {
           readonly isEmpty: false;
-          readonly type: 'compressed';
+          readonly type: 'compacted';
           readonly data: Uint8Array; // one bit per voxel
       };
 
@@ -47,22 +47,22 @@ class VoxelmapCollider {
 
     private readonly chunkCollidersMap: Record<string, ChunkCollider> = {};
 
-    private readonly compressorWorkersPool: DedicatedWorkersPool | null = null;
+    private readonly compactionWorkersPool: DedicatedWorkersPool | null = null;
 
-    private readonly compressor = {
+    private readonly compactor = {
         voxelmapDataPacking: this.voxelmapDataPacking,
 
-        compressChunk(rawData: Uint16Array): Uint8Array {
-            const compressedData = new Uint8Array(Math.ceil(rawData.length / 8));
+        compactChunk(rawData: Uint16Array): Uint8Array {
+            const compactedData = new Uint8Array(Math.ceil(rawData.length / 8));
             for (let iVoxelIndex = 0; iVoxelIndex < rawData.length; iVoxelIndex++) {
                 const voxelData = rawData[iVoxelIndex]!;
                 if (!this.voxelmapDataPacking.isEmpty(voxelData)) {
                     const uint8Index = Math.floor(iVoxelIndex / 8);
                     const bitIndex = iVoxelIndex - 8 * uint8Index;
-                    compressedData[uint8Index]! |= 1 << bitIndex;
+                    compactedData[uint8Index]! |= 1 << bitIndex;
                 }
             }
-            return compressedData;
+            return compactedData;
         },
     };
 
@@ -102,16 +102,16 @@ class VoxelmapCollider {
 
         const delegateCompressionToWorker = true as boolean;
         if (delegateCompressionToWorker) {
-            const compressorWorkerDefinition: WorkerDefinition = {
-                commonCode: `const compressor = {
-                voxelmapDataPacking: ${this.compressor.voxelmapDataPacking.serialize()},
-                ${this.compressor.compressChunk},
+            const compactionWorkerDefinition: WorkerDefinition = {
+                commonCode: `const compactor = {
+                voxelmapDataPacking: ${this.compactor.voxelmapDataPacking.serialize()},
+                ${this.compactor.compactChunk},
             };`,
                 tasks: {
-                    compressChunk: (rawData: Uint16Array) => {
+                    compactChunk: (rawData: Uint16Array) => {
                         // eslint-disable-next-line no-eval
-                        const compressor2 = eval('compressor') as VoxelmapCollider['compressor'];
-                        const buffer = compressor2.compressChunk(rawData);
+                        const compactor2 = eval('compactor') as VoxelmapCollider['compactor'];
+                        const buffer = compactor2.compactChunk(rawData);
                         return {
                             taskResult: buffer,
                             taskResultTransferablesList: [buffer.buffer],
@@ -120,7 +120,7 @@ class VoxelmapCollider {
                 },
             };
 
-            this.compressorWorkersPool = new DedicatedWorkersPool('voxelmap-collider-compression-worker', 1, compressorWorkerDefinition);
+            this.compactionWorkersPool = new DedicatedWorkersPool('voxelmap-collider-compaction-worker', 1, compactionWorkerDefinition);
         }
     }
 
@@ -137,14 +137,14 @@ class VoxelmapCollider {
         if (chunk.isEmpty) {
             this.chunkCollidersMap[patchId.asString] = { isEmpty: true };
         } else {
-            if (this.compressorWorkersPool) {
+            if (this.compactionWorkersPool) {
                 const rawChunkCollider: ChunkCollider = { isEmpty: false, type: 'raw', data: chunk.data };
                 this.chunkCollidersMap[patchId.asString] = rawChunkCollider;
-                this.compressorWorkersPool.submitTask<Uint8Array>('compressChunk', chunk.data).then(data => {
+                this.compactionWorkersPool.submitTask<Uint8Array>('compactChunk', chunk.data).then(data => {
                     if (this.chunkCollidersMap[patchId.asString] === rawChunkCollider) {
                         this.chunkCollidersMap[patchId.asString] = {
                             isEmpty: false,
-                            type: 'compressed',
+                            type: 'compacted',
                             data,
                         };
                     } else {
@@ -154,8 +154,8 @@ class VoxelmapCollider {
             } else {
                 this.chunkCollidersMap[patchId.asString] = {
                     isEmpty: false,
-                    type: 'compressed',
-                    data: this.compressor.compressChunk(chunk.data),
+                    type: 'compacted',
+                    data: this.compactor.compactChunk(chunk.data),
                 };
             }
         }
@@ -186,7 +186,7 @@ class VoxelmapCollider {
         const voxelIndex =
             localVoxelCoords.x * this.indexFactors.x + localVoxelCoords.y * this.indexFactors.y + localVoxelCoords.z * this.indexFactors.z;
 
-        if (chunk.type === 'compressed') {
+        if (chunk.type === 'compacted') {
             const uint8Index = Math.floor(voxelIndex / 8);
             const uint8 = chunk.data[uint8Index];
             if (typeof uint8 === 'undefined') {
