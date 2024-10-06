@@ -45,6 +45,23 @@ class VoxelmapCollider {
 
     private readonly chunkCollidersMap: Record<string, ChunkCollider> = {};
 
+    private readonly compressor = {
+        voxelmapDataPacking: this.voxelmapDataPacking,
+
+        compressChunk(rawData: Uint16Array): Uint8Array {
+            const compressedData = new Uint8Array(Math.ceil(rawData.length / 8));
+            for (let iVoxelIndex = 0; iVoxelIndex < rawData.length; iVoxelIndex++) {
+                const voxelData = rawData[iVoxelIndex]!;
+                if (!this.voxelmapDataPacking.isEmpty(voxelData)) {
+                    const uint8Index = Math.floor(iVoxelIndex / 8);
+                    const bitIndex = iVoxelIndex - 8 * uint8Index;
+                    compressedData[uint8Index]! |= 1 << bitIndex;
+                }
+            }
+            return compressedData;
+        },
+    };
+
     public constructor(params: Parameters) {
         this.chunkSize = params.chunkSize;
         this.voxelsChunkOrdering = params.voxelsChunkOrdering;
@@ -97,26 +114,12 @@ class VoxelmapCollider {
             this.chunkCollidersMap[patchId.asString] = rawChunkCollider;
 
             setTimeout(() => {
-                const data = new Uint8Array(Math.ceil(chunk.data.length / 8));
-                for (let iZ = 0; iZ < this.chunkSize.z; iZ++) {
-                    for (let iY = 0; iY < this.chunkSize.y; iY++) {
-                        for (let iX = 0; iX < this.chunkSize.x; iX++) {
-                            const voxelIndex = iX * this.indexFactors.x + iY * this.indexFactors.y + iZ * this.indexFactors.z;
-                            const voxelData = chunk.data[voxelIndex];
-                            if (typeof voxelData === 'undefined') {
-                                throw new Error();
-                            }
-                            if (!this.voxelmapDataPacking.isEmpty(voxelData)) {
-                                const uint8Index = Math.floor(voxelIndex / 8);
-                                const bitIndex = voxelIndex - 8 * uint8Index;
-                                data[uint8Index]! |= 1 << bitIndex;
-                            }
-                        }
-                    }
-                }
-
                 if (this.chunkCollidersMap[patchId.asString] === rawChunkCollider) {
-                    this.chunkCollidersMap[patchId.asString] = { isEmpty: false, type: 'compressed', data };
+                    this.chunkCollidersMap[patchId.asString] = {
+                        isEmpty: false,
+                        type: 'compressed',
+                        data: this.compressor.compressChunk(chunk.data),
+                    };
                 } else {
                     logger.warn(`Chunk collider "${patchId.asString}" changed unexpectedly.`);
                 }
