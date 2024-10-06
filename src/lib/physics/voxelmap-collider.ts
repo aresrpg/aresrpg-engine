@@ -1,3 +1,5 @@
+import { type WorkerDefinition } from '../helpers/async/dedicatedWorkers/dedicated-worker';
+import { DedicatedWorkersPool } from '../helpers/async/dedicatedWorkers/dedicated-workers-pool';
 import { logger } from '../helpers/logger';
 import type * as THREE from '../libs/three-usage';
 import { type VoxelsChunkOrdering } from '../terrain/voxelmap/i-voxelmap';
@@ -44,6 +46,8 @@ class VoxelmapCollider {
     private readonly voxelmapDataPacking = new VoxelmapDataPacking();
 
     private readonly chunkCollidersMap: Record<string, ChunkCollider> = {};
+
+    private readonly compressorWorkersPool: DedicatedWorkersPool | null = null;
 
     private readonly compressor = {
         voxelmapDataPacking: this.voxelmapDataPacking,
@@ -95,6 +99,29 @@ class VoxelmapCollider {
             y: buildIndexFactorComponent('y'),
             z: buildIndexFactorComponent('z'),
         };
+
+        const delegateCompressionToWorker = true as boolean;
+        if (delegateCompressionToWorker) {
+            const compressorWorkerDefinition: WorkerDefinition = {
+                commonCode: `const compressor = {
+                voxelmapDataPacking: ${this.compressor.voxelmapDataPacking.serialize()},
+                ${this.compressor.compressChunk},
+            };`,
+                tasks: {
+                    compressChunk: (rawData: Uint16Array) => {
+                        // eslint-disable-next-line no-eval
+                        const compressor2 = eval('compressor') as VoxelmapCollider['compressor'];
+                        const buffer = compressor2.compressChunk(rawData);
+                        return {
+                            taskResult: buffer,
+                            taskResultTransferablesList: [buffer.buffer],
+                        };
+                    },
+                },
+            };
+
+            this.compressorWorkersPool = new DedicatedWorkersPool('voxelmap-collider-compression-worker', 1, compressorWorkerDefinition);
+        }
     }
 
     public setChunk(chunkId: THREE.Vector3Like, chunk: ChunkData): void {
@@ -110,20 +137,27 @@ class VoxelmapCollider {
         if (chunk.isEmpty) {
             this.chunkCollidersMap[patchId.asString] = { isEmpty: true };
         } else {
-            const rawChunkCollider: ChunkCollider = { isEmpty: false, type: 'raw', data: chunk.data };
-            this.chunkCollidersMap[patchId.asString] = rawChunkCollider;
-
-            setTimeout(() => {
-                if (this.chunkCollidersMap[patchId.asString] === rawChunkCollider) {
-                    this.chunkCollidersMap[patchId.asString] = {
-                        isEmpty: false,
-                        type: 'compressed',
-                        data: this.compressor.compressChunk(chunk.data),
-                    };
-                } else {
-                    logger.warn(`Chunk collider "${patchId.asString}" changed unexpectedly.`);
-                }
-            });
+            if (this.compressorWorkersPool) {
+                const rawChunkCollider: ChunkCollider = { isEmpty: false, type: 'raw', data: chunk.data };
+                this.chunkCollidersMap[patchId.asString] = rawChunkCollider;
+                this.compressorWorkersPool.submitTask<Uint8Array>('compressChunk', chunk.data).then(data => {
+                    if (this.chunkCollidersMap[patchId.asString] === rawChunkCollider) {
+                        this.chunkCollidersMap[patchId.asString] = {
+                            isEmpty: false,
+                            type: 'compressed',
+                            data,
+                        };
+                    } else {
+                        logger.warn(`Chunk collider "${patchId.asString}" changed unexpectedly.`);
+                    }
+                });
+            } else {
+                this.chunkCollidersMap[patchId.asString] = {
+                    isEmpty: false,
+                    type: 'compressed',
+                    data: this.compressor.compressChunk(chunk.data),
+                };
+            }
         }
     }
 
