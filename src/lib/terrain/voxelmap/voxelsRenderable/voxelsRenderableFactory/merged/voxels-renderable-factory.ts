@@ -353,14 +353,8 @@ void main() {
 
         const geometry = new THREE.BufferGeometry();
         const interleavedBuffer = new THREE.InterleavedBuffer(buffer, 2);
-
         const data1Attribute = new THREE.InterleavedBufferAttribute(interleavedBuffer, 1, 0);
         const data2Attribute = new THREE.InterleavedBufferAttribute(interleavedBuffer, 1, 1);
-
-        // const faceTypeVerticesDataBuffer = new THREE.Uint32BufferAttribute(buffer, 1, false);
-        // faceTypeVerticesDataBuffer.onUpload(() => {
-        //     (faceTypeVerticesDataBuffer.array as THREE.TypedArray | null) = null;
-        // });
         geometry.setAttribute(VoxelsRenderableFactory.data1AttributeName, data1Attribute);
         geometry.setAttribute(VoxelsRenderableFactory.data2AttributeName, data2Attribute);
         geometry.setDrawRange(0, verticesCount);
