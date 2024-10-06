@@ -1,3 +1,4 @@
+import { logger } from '../helpers/logger';
 import type * as THREE from '../libs/three-usage';
 import { type VoxelsChunkOrdering } from '../terrain/voxelmap/i-voxelmap';
 import { PatchId } from '../terrain/voxelmap/patch/patch-id';
@@ -21,15 +22,19 @@ type ChunkCollider =
       }
     | {
           readonly isEmpty: false;
-          readonly data: Uint16Array;
+          readonly type: 'raw';
+          readonly data: Uint16Array; // one uint16 per voxel
+      }
+    | {
+          readonly isEmpty: false;
+          readonly type: 'compressed';
+          readonly data: Uint8Array; // one bit per voxel
       };
 
 type Parameters = {
     readonly chunkSize: THREE.Vector3Like;
     readonly voxelsChunkOrdering: VoxelsChunkOrdering;
 };
-
-// const cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0xFF0000 }));
 
 class VoxelmapCollider {
     private readonly chunkSize: THREE.Vector3Like;
@@ -88,17 +93,35 @@ class VoxelmapCollider {
         if (chunk.isEmpty) {
             this.chunkCollidersMap[patchId.asString] = { isEmpty: true };
         } else {
-            this.chunkCollidersMap[patchId.asString] = { isEmpty: false, data: chunk.data };
-        }
+            const rawChunkCollider: ChunkCollider = { isEmpty: false, type: 'raw', data: chunk.data };
+            this.chunkCollidersMap[patchId.asString] = rawChunkCollider;
 
-        this.chunkCollidersMap[patchId.asString] = chunk.isEmpty
-            ? {
-                  isEmpty: true,
-              }
-            : {
-                  isEmpty: false,
-                  data: new Uint16Array(chunk.data),
-              };
+            setTimeout(() => {
+                const data = new Uint8Array(Math.ceil(chunk.data.length / 8));
+                for (let iZ = 0; iZ < this.chunkSize.z; iZ++) {
+                    for (let iY = 0; iY < this.chunkSize.y; iY++) {
+                        for (let iX = 0; iX < this.chunkSize.x; iX++) {
+                            const voxelIndex = iX * this.indexFactors.x + iY * this.indexFactors.y + iZ * this.indexFactors.z;
+                            const voxelData = chunk.data[voxelIndex];
+                            if (typeof voxelData === 'undefined') {
+                                throw new Error();
+                            }
+                            if (!this.voxelmapDataPacking.isEmpty(voxelData)) {
+                                const uint8Index = Math.floor(voxelIndex / 8);
+                                const bitIndex = voxelIndex - 8 * uint8Index;
+                                data[uint8Index]! |= 1 << bitIndex;
+                            }
+                        }
+                    }
+                }
+
+                if (this.chunkCollidersMap[patchId.asString] === rawChunkCollider) {
+                    this.chunkCollidersMap[patchId.asString] = { isEmpty: false, type: 'compressed', data };
+                } else {
+                    logger.warn(`Chunk collider "${patchId.asString}" changed unexpectedly.`);
+                }
+            });
+        }
     }
 
     public getVoxel(worldVoxelCoords: THREE.Vector3Like): EVoxelStatus {
@@ -122,18 +145,33 @@ class VoxelmapCollider {
             y: worldVoxelCoords.y - patchId.y * this.chunkSize.y + 1,
             z: worldVoxelCoords.z - patchId.z * this.chunkSize.z + 1,
         };
-        // console.log(localVoxelCoords);
-        const index =
-            localVoxelCoords.x * this.indexFactors.x + localVoxelCoords.y * this.indexFactors.y + localVoxelCoords.z * this.indexFactors.z;
-        const voxel = chunk.data[index];
-        if (typeof voxel === 'undefined') {
-            throw new Error();
-        }
 
-        if (this.voxelmapDataPacking.isEmpty(voxel)) {
+        const voxelIndex =
+            localVoxelCoords.x * this.indexFactors.x + localVoxelCoords.y * this.indexFactors.y + localVoxelCoords.z * this.indexFactors.z;
+
+        if (chunk.type === 'compressed') {
+            const uint8Index = Math.floor(voxelIndex / 8);
+            const uint8 = chunk.data[uint8Index];
+            if (typeof uint8 === 'undefined') {
+                throw new Error();
+            }
+
+            const bitIndex = voxelIndex - 8 * uint8Index;
+            if (uint8 & (1 << bitIndex)) {
+                return EVoxelStatus.FULL;
+            }
             return EVoxelStatus.EMPTY;
+        } else {
+            const voxel = chunk.data[voxelIndex];
+            if (typeof voxel === 'undefined') {
+                throw new Error();
+            }
+
+            if (this.voxelmapDataPacking.isEmpty(voxel)) {
+                return EVoxelStatus.EMPTY;
+            }
+            return EVoxelStatus.FULL;
         }
-        return EVoxelStatus.FULL;
     }
 }
 
