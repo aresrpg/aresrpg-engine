@@ -1,6 +1,15 @@
 import * as THREE from 'three-usage-test';
 
-import { EComputationMethod, type IVoxelMap, PromisesQueue, VoxelmapViewer, VoxelmapVisibilityComputer } from '../lib';
+import {
+    EComputationMethod,
+    type IVoxelMap,
+    PromisesQueue,
+    VoxelmapCollider,
+    VoxelmapCollisions,
+    VoxelmapViewer,
+    VoxelmapVisibilityComputer,
+    type VoxelsChunkOrdering,
+} from '../lib';
 
 import { TestBase } from './test-base';
 
@@ -10,6 +19,9 @@ class TestPhysics extends TestBase {
     private readonly voxelmapViewer: VoxelmapViewer;
     private readonly voxelmapVisibilityComputer: VoxelmapVisibilityComputer;
     private readonly promisesQueue: PromisesQueue;
+
+    private readonly voxelmapCollider: VoxelmapCollider;
+    private readonly voxelmapCollisions: VoxelmapCollisions;
 
     private readonly ray: {
         readonly group: THREE.Object3D;
@@ -37,6 +49,8 @@ class TestPhysics extends TestBase {
         const minChunkIdY = Math.floor(map.minAltitude / chunkSize.y);
         const maxChunkIdY = Math.floor(map.maxAltitude / chunkSize.y);
 
+        const voxelsChunkOrdering: VoxelsChunkOrdering = 'zyx';
+
         this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, map.voxelMaterialsList, {
             patchSize: chunkSize,
             computationOptions: {
@@ -45,10 +59,16 @@ class TestPhysics extends TestBase {
                 greedyMeshing: true,
             },
             checkerboardType: 'xz',
-            voxelsChunkOrdering: 'zyx',
+            voxelsChunkOrdering,
         });
         this.scene.add(this.voxelmapViewer.container);
         this.promisesQueue = new PromisesQueue(this.voxelmapViewer.maxPatchesComputedInParallel + 5);
+
+        this.voxelmapCollider = new VoxelmapCollider({
+            chunkSize: { x: chunkSize.xz, y: chunkSize.y, z: chunkSize.xz },
+            voxelsChunkOrdering,
+        });
+        this.voxelmapCollisions = new VoxelmapCollisions({ voxelmapCollider: this.voxelmapCollider });
 
         this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(
             { x: chunkSize.xz, y: chunkSize.y, z: chunkSize.xz },
@@ -91,7 +111,13 @@ class TestPhysics extends TestBase {
     }
 
     protected override update(): void {
-        // throw new Error('Method not implemented.');
+        const maxDistance = 500;
+        const rayFrom = this.ray.group.getWorldPosition(new THREE.Vector3());
+        const rayDirection = new THREE.Vector3(0, 1, 0).transformDirection(this.ray.group.matrixWorld);
+        const rayTo = rayFrom.clone().addScaledVector(rayDirection, maxDistance);
+        const intersection = this.voxelmapCollisions.rayCast(rayFrom, rayTo);
+        const intersectionDistance = intersection?.distance ?? maxDistance;
+        this.setRayLength(intersectionDistance);
     }
 
     private async displayMap(): Promise<void> {
@@ -114,9 +140,8 @@ class TestPhysics extends TestBase {
                             const voxelsChunkData = Object.assign(patchMapData, {
                                 size: new THREE.Vector3().subVectors(blockEnd, blockStart),
                             });
-                            // const computationStatus =
+                            this.voxelmapCollider.setChunk(patchId, patchMapData);
                             await this.voxelmapViewer.enqueuePatch(patchId, voxelsChunkData);
-                            // console.log(`${patchId.asString} computation status: ${computationStatus}`);
                         }
                     },
                     () => {
