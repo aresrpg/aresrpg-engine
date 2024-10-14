@@ -13,6 +13,12 @@ import {
 
 import { TestBase } from './test-base';
 
+type SolidSphere = {
+    readonly mesh: THREE.Mesh;
+    readonly collider: THREE.Sphere;
+    readonly velocity: THREE.Vector3;
+};
+
 class TestPhysics extends TestBase {
     private readonly map: IVoxelMap;
 
@@ -28,6 +34,10 @@ class TestPhysics extends TestBase {
         readonly mesh: THREE.Mesh;
         readonly intersectionMesh: THREE.Mesh;
     };
+
+    private readonly spheres: SolidSphere[] = [];
+
+    private lastUpdate: number | null = null;
 
     public constructor(map: IVoxelMap) {
         super();
@@ -108,9 +118,32 @@ class TestPhysics extends TestBase {
         this.scene.add(rayControls);
 
         this.setRayLength(10);
+
+        const sphereRadius = 1.1;
+        const sphereMesh = new THREE.Mesh(new THREE.SphereGeometry(sphereRadius), new THREE.MeshPhongMaterial({ color: 0xdddddd }));
+
+        window.addEventListener("keyup", event => {
+            if (event.code === "Space") {
+                const direction = this.camera.getWorldDirection(new THREE.Vector3());
+                const position = this.camera.getWorldPosition(new THREE.Vector3()).addScaledVector(direction, 2);
+                const mesh = sphereMesh.clone();
+                mesh.position.copy(position);
+                const collider = new THREE.Sphere(position, sphereRadius);
+                const velocity = new THREE.Vector3().addScaledVector(direction, 80);
+
+                const solidSphere: SolidSphere = { mesh, collider, velocity };
+                this.scene.add(solidSphere.mesh);
+                this.spheres.push(solidSphere);
+            }
+        });
     }
 
     protected override update(): void {
+        this.updateRay();
+        this.updateSpheres();
+    }
+
+    private updateRay(): void {
         const maxDistance = 500;
         const rayFrom = this.ray.group.getWorldPosition(new THREE.Vector3());
         const rayDirection = new THREE.Vector3(0, 1, 0).transformDirection(this.ray.group.matrixWorld);
@@ -118,6 +151,31 @@ class TestPhysics extends TestBase {
         const intersection = this.voxelmapCollisions.rayCast(rayFrom, rayTo);
         const intersectionDistance = intersection?.distance ?? maxDistance;
         this.setRayLength(intersectionDistance);
+    }
+
+    private updateSpheres(): void {
+        const now = performance.now();
+        const lastUpdate = this.lastUpdate ?? now;
+        const deltaTime = (now - lastUpdate) / 1000;
+        this.lastUpdate = now;
+
+        const gravity = 80;
+
+        for (const sphere of this.spheres) {
+            sphere.collider.center.addScaledVector(sphere.velocity, deltaTime);
+            sphere.mesh.position.copy(sphere.collider.center);
+
+            const result = this.voxelmapCollisions.sphereIntersect(sphere.collider);
+            if (result) {
+                sphere.velocity.addScaledVector(result.normal, - result.normal.dot(sphere.velocity) * 1.5);
+                sphere.collider.center.add(result.normal.multiplyScalar(result.depth));
+            } else {
+                sphere.velocity.y -= gravity * deltaTime;
+            }
+
+            const damping = Math.exp(-0.5 * deltaTime) - 1;
+            sphere.velocity.addScaledVector(sphere.velocity, damping);
+        }
     }
 
     private async displayMap(): Promise<void> {
