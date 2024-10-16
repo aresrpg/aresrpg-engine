@@ -187,6 +187,18 @@ class TestPhysics extends TestBase {
         const deltaTime = (now - lastUpdate) / 1000;
         this.lastUpdate = now;
 
+        const maxDeltaTime = 10 / 1000;
+        let remainingDeltaTime = deltaTime;
+        while (remainingDeltaTime > 0) {
+            const localDeltaTime = Math.min(remainingDeltaTime, maxDeltaTime);
+            this.updateSpheres(localDeltaTime);
+            this.updatePlayer(localDeltaTime);
+            console.log(localDeltaTime);
+            remainingDeltaTime -= localDeltaTime;
+        }
+    }
+
+    private updateSpheres(deltaTime: number): void {
         const gravity = 80;
 
         for (const sphere of this.spheres) {
@@ -204,58 +216,60 @@ class TestPhysics extends TestBase {
             const damping = Math.exp(-0.5 * deltaTime) - 1;
             sphere.velocity.addScaledVector(sphere.velocity, damping);
         }
+    }
 
-        {
-            this.player.collider.center.addScaledVector(this.player.velocity, deltaTime);
-            this.player.mesh.position.copy(this.player.collider.center);
+    private updatePlayer(deltaTime: number): void {
+        const gravity = 80;
 
-            this.player.touchesFloor = false;
+        this.player.collider.center.addScaledVector(this.player.velocity, deltaTime);
+        this.player.mesh.position.copy(this.player.collider.center);
 
-            const result = this.voxelmapCollisions.sphereIntersect(this.player.collider);
-            if (result) {
-                // result.normal.x *= 0.5;
-                // result.normal.z *= 0.5;
-                this.player.velocity.addScaledVector(result.normal, - result.normal.dot(this.player.velocity) * 1.1);
-                this.player.collider.center.add(result.normal.multiplyScalar(result.depth));
-                if (result.normal.y > 0) {
-                    this.player.touchesFloor = true;
-                }
-            } else {
-                this.player.velocity.y -= gravity * deltaTime;
+        this.player.touchesFloor = false;
+
+        const result = this.voxelmapCollisions.sphereIntersect(this.player.collider);
+        if (result) {
+            // result.normal.x *= 0.5;
+            // result.normal.z *= 0.5;
+            this.player.velocity.addScaledVector(result.normal, - result.normal.dot(this.player.velocity) * 1.1);
+            this.player.collider.center.add(result.normal.multiplyScalar(result.depth));
+            if (result.normal.y > 0) {
+                this.player.touchesFloor = true;
+            }
+        } else {
+            this.player.velocity.y -= gravity * deltaTime;
+        }
+
+        const damping = Math.exp(-1 * deltaTime) - 1;
+        this.player.velocity.addScaledVector(this.player.velocity, damping);
+
+        if (this.player.touchesFloor) {
+            const directiond2d = new THREE.Vector2(0, 0);
+            if (this.keyDown.get("KeyW")) {
+                directiond2d.y++;
+            }
+            if (this.keyDown.get("KeyS")) {
+                directiond2d.y--;
+            }
+            if (this.keyDown.get("KeyA")) {
+                directiond2d.x--;
+            }
+            if (this.keyDown.get("KeyD")) {
+                directiond2d.x++;
             }
 
-            const damping = Math.exp(-1 * deltaTime) - 1;
-            this.player.velocity.addScaledVector(this.player.velocity, damping);
+            const cameraFront = new THREE.Vector3(0, 0, -1)
+                .applyQuaternion(this.camera.quaternion)
+                .setY(0)
+                .normalize();
+            const cameraRight = new THREE.Vector3(1, 0, 0)
+                .applyQuaternion(this.camera.quaternion)
+                .setY(0)
+                .normalize()
 
-            if (this.player.touchesFloor) {
-                const directiond2d = new THREE.Vector2(0, 0);
-                if (this.keyDown.get("KeyW")) {
-                    directiond2d.y++;
-                }
-                if (this.keyDown.get("KeyS")) {
-                    directiond2d.y--;
-                }
-                if (this.keyDown.get("KeyA")) {
-                    directiond2d.x--;
-                }
-                if (this.keyDown.get("KeyD")) {
-                    directiond2d.x++;
-                }
+            directiond2d.normalize().multiplyScalar(100 * deltaTime);
+            this.player.velocity.addScaledVector(cameraRight, directiond2d.x).addScaledVector(cameraFront, directiond2d.y);
 
-                const cameraFront = new THREE.Vector3(0, 0, -1)
-                    .applyQuaternion(this.camera.quaternion)
-                    .setY(0)
-                    .normalize();
-                const cameraRight = new THREE.Vector3(1, 0, 0)
-                    .applyQuaternion(this.camera.quaternion)
-                    .setY(0)
-                    .normalize()
-
-                directiond2d.normalize().multiplyScalar(100 * deltaTime);
-                this.player.velocity.addScaledVector(cameraRight, directiond2d.x).addScaledVector(cameraFront, directiond2d.y);
-
-                // this.cameraControl.target.copy(this.player.collider.center);
-            }
+            // this.cameraControl.target.copy(this.player.collider.center);
         }
     }
 
