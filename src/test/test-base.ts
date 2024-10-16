@@ -10,6 +10,8 @@ abstract class TestBase {
 
     private started: boolean = false;
 
+    protected maxFps: number = Infinity;
+
     public constructor() {
         this.stats = new THREE.Stats();
         document.body.appendChild(this.stats.dom);
@@ -46,12 +48,21 @@ abstract class TestBase {
         }
         this.started = true;
 
-        const render = () => {
-            this.stats.update();
+        let lastRenderTimestamp = performance.now();
 
-            this.cameraControl.update();
-            this.update();
-            this.renderer.render(this.scene, this.camera);
+        const render = () => {
+            const now = performance.now();
+            const minDeltaTime = 1000 / this.maxFps;
+            const deltaTime = now - lastRenderTimestamp;
+            
+            if (deltaTime >= minDeltaTime) {
+                this.stats.update();
+                
+                this.cameraControl.update();
+                this.update();
+                this.renderer.render(this.scene, this.camera);
+                lastRenderTimestamp = now;
+            }
             window.requestAnimationFrame(render);
         };
         window.requestAnimationFrame(render);

@@ -1,4 +1,5 @@
 import * as THREE from 'three-usage-test';
+import GUI from 'lil-gui';
 
 import {
     EComputationMethod,
@@ -12,7 +13,7 @@ import {
 } from '../lib';
 
 import { TestBase } from './test-base';
-import GUI from 'lil-gui';
+
 
 type SolidSphere = {
     readonly mesh: THREE.Mesh;
@@ -21,9 +22,6 @@ type SolidSphere = {
 };
 
 class TestPhysics extends TestBase {
-    private readonly parameters = {
-        playerMode: false,
-    };
     private readonly map: IVoxelMap;
 
     private readonly voxelmapViewer: VoxelmapViewer;
@@ -54,6 +52,9 @@ class TestPhysics extends TestBase {
 
     public constructor(map: IVoxelMap) {
         super();
+
+        const gui = new GUI();
+        gui.add(this, "maxFps", 1, 120, 1);
 
         this.camera.position.set(50, 200, 50);
         this.cameraControl.target.set(0, 170, 0);
