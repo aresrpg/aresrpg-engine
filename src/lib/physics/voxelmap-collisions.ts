@@ -120,18 +120,33 @@ class VoxelmapCollisions {
                     const sphereCenterLocalProjection2dY = this.pointSquareProjection({ x: localSphereCenter.x, y: localSphereCenter.z });
                     const sphereCenterLocalProjection2dZ = this.pointSquareProjection({ x: localSphereCenter.x, y: localSphereCenter.y });
 
-                    const sphereCenterProjection2dX = { x: sphereCenterLocalProjection2dX.x + voxel.z, y: sphereCenterLocalProjection2dX.y + voxel.y };
-                    const sphereCenterProjection2dY = { x: sphereCenterLocalProjection2dY.x + voxel.x, y: sphereCenterLocalProjection2dY.y + voxel.z };
-                    const sphereCenterProjection2dZ = { x: sphereCenterLocalProjection2dZ.x + voxel.x, y: sphereCenterLocalProjection2dZ.y + voxel.y };
+                    const sphereCenterProjection2dX = {
+                        x: sphereCenterLocalProjection2dX.x + voxel.z,
+                        y: sphereCenterLocalProjection2dX.y + voxel.y,
+                    };
+                    const sphereCenterProjection2dY = {
+                        x: sphereCenterLocalProjection2dY.x + voxel.x,
+                        y: sphereCenterLocalProjection2dY.y + voxel.z,
+                    };
+                    const sphereCenterProjection2dZ = {
+                        x: sphereCenterLocalProjection2dZ.x + voxel.x,
+                        y: sphereCenterLocalProjection2dZ.y + voxel.y,
+                    };
 
                     const voxelIsFull = this.voxelmapCollider.getVoxel(voxel) !== EVoxelStatus.EMPTY;
 
-                    const voxelBelowIsFull = this.voxelmapCollider.getVoxel({ x: voxel.x, y: voxel.y - 1, z: voxel.z }) !== EVoxelStatus.EMPTY;
-                    const voxelAboveIsFull = this.voxelmapCollider.getVoxel({ x: voxel.x, y: voxel.y + 1, z: voxel.z }) !== EVoxelStatus.EMPTY;
-                    const voxelLeftIsFull = this.voxelmapCollider.getVoxel({ x: voxel.x - 1, y: voxel.y, z: voxel.z }) !== EVoxelStatus.EMPTY;
-                    const voxelRightIsFull = this.voxelmapCollider.getVoxel({ x: voxel.x + 1, y: voxel.y, z: voxel.z }) !== EVoxelStatus.EMPTY;
-                    const voxelBackIsFull = this.voxelmapCollider.getVoxel({ x: voxel.x, y: voxel.y, z: voxel.z - 1 }) !== EVoxelStatus.EMPTY;
-                    const voxelFrontIsFull = this.voxelmapCollider.getVoxel({ x: voxel.x, y: voxel.y, z: voxel.z + 1 }) !== EVoxelStatus.EMPTY;
+                    const voxelBelowIsFull =
+                        this.voxelmapCollider.getVoxel({ x: voxel.x, y: voxel.y - 1, z: voxel.z }) !== EVoxelStatus.EMPTY;
+                    const voxelAboveIsFull =
+                        this.voxelmapCollider.getVoxel({ x: voxel.x, y: voxel.y + 1, z: voxel.z }) !== EVoxelStatus.EMPTY;
+                    const voxelLeftIsFull =
+                        this.voxelmapCollider.getVoxel({ x: voxel.x - 1, y: voxel.y, z: voxel.z }) !== EVoxelStatus.EMPTY;
+                    const voxelRightIsFull =
+                        this.voxelmapCollider.getVoxel({ x: voxel.x + 1, y: voxel.y, z: voxel.z }) !== EVoxelStatus.EMPTY;
+                    const voxelBackIsFull =
+                        this.voxelmapCollider.getVoxel({ x: voxel.x, y: voxel.y, z: voxel.z - 1 }) !== EVoxelStatus.EMPTY;
+                    const voxelFrontIsFull =
+                        this.voxelmapCollider.getVoxel({ x: voxel.x, y: voxel.y, z: voxel.z + 1 }) !== EVoxelStatus.EMPTY;
 
                     if (voxelIsFull !== voxelBelowIsFull) {
                         addDisplacementIfNeeded({ x: sphereCenterProjection2dY.x, y: voxel.y, z: sphereCenterProjection2dY.y });
@@ -173,10 +188,7 @@ class VoxelmapCollisions {
 
     /* Computes the projection of a point onto the {0,1}² square. */
     private pointSquareProjection(point: THREE.Vector2Like): THREE.Vector2 {
-        return new THREE.Vector2(
-            clamp(point.x, 0, 1),
-            clamp(point.y, 0, 1),
-        );
+        return new THREE.Vector2(clamp(point.x, 0, 1), clamp(point.y, 0, 1));
     }
 }
 

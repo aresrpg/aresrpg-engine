@@ -54,10 +54,10 @@ abstract class TestBase {
             const now = performance.now();
             const minDeltaTime = 1000 / this.maxFps;
             const deltaTime = now - lastRenderTimestamp;
-            
+
             if (deltaTime >= minDeltaTime) {
                 this.stats.update();
-                
+
                 this.cameraControl.update();
                 this.update();
                 this.renderer.render(this.scene, this.camera);
