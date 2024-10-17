@@ -27,7 +27,7 @@ enum ETest {
     PHYSICS,
 }
 
-const test = ETest.PHYSICS as ETest;
+const test = ETest.TEXTURE_CUSTOMIZATION as ETest;
 
 let testScene: TestBase;
 if (test === ETest.TERRAIN) {
