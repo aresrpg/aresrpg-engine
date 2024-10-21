@@ -16,6 +16,26 @@ type SphereIntersection = {
     readonly depth: number;
 };
 
+type EntityCollider = {
+    readonly radius: number;
+    readonly height: number;
+    readonly position: THREE.Vector3Like;
+    readonly velocity: THREE.Vector3Like;
+};
+
+type EntityCollisionOptions = {
+    readonly deltaTime: number;
+    readonly gravity: number;
+    readonly considerMissingVoxelAs: 'empty' | 'blocking';
+};
+
+type EntityCollisionOutput = {
+    computationStatus: 'ok' | 'partial';
+    position: THREE.Vector3;
+    velocity: THREE.Vector3;
+    isOnGround: boolean;
+};
+
 function clamp(x: number, min: number, max: number): number {
     if (x < min) {
         return min;
@@ -184,6 +204,195 @@ class VoxelmapCollisions {
         }
 
         return null;
+    }
+
+    public entityMovement(entityCollider: EntityCollider, options: EntityCollisionOptions): EntityCollisionOutput {
+        const ascendSpeed = 15;
+
+        let allVoxelmapDataIsAvailable = true;
+
+        const { deltaTime, gravity } = options;
+        if (gravity < 0) {
+            throw new Error(`Invert gravity not supported.`);
+        }
+
+        const playerPosition = new THREE.Vector3().copy(entityCollider.position);
+        const playerVelocity = new THREE.Vector3().copy(entityCollider.velocity);
+        const playerRadius = entityCollider.radius;
+        const playerRadiusSquared = playerRadius * playerRadius;
+        const playerHeight = entityCollider.height;
+        const previousPosition = playerPosition.clone();
+
+        const fromX = Math.floor(playerPosition.x - playerRadius);
+        const toX = Math.floor(playerPosition.x + playerRadius);
+        const fromZ = Math.floor(playerPosition.z - playerRadius);
+        const toZ = Math.floor(playerPosition.z + playerRadius);
+
+        playerPosition.addScaledVector(playerVelocity, deltaTime);
+
+        const closetPointFromVoxel = (voxelX: number, voxelZ: number) => {
+            const projection = {
+                x: clamp(playerPosition.x, voxelX, voxelX + 1),
+                z: clamp(playerPosition.z, voxelZ, voxelZ + 1),
+            };
+            return {
+                x: projection.x - playerPosition.x,
+                z: projection.z - playerPosition.z,
+            };
+        };
+
+        const isXZRelevant = (voxelX: number, voxelZ: number) => {
+            const fromVoxel = closetPointFromVoxel(voxelX, voxelZ);
+            const distanceSquared = fromVoxel.x ** 2 + fromVoxel.z ** 2;
+            return distanceSquared < playerRadiusSquared;
+        };
+
+        let isVoxelFull: (voxel: THREE.Vector3Like) => boolean;
+
+        if (options.considerMissingVoxelAs === 'blocking') {
+            isVoxelFull = (voxel: THREE.Vector3Like) => {
+                const voxelStatus = this.voxelmapCollider.getVoxel(voxel);
+                allVoxelmapDataIsAvailable &&= voxelStatus !== EVoxelStatus.NOT_LOADED;
+                return voxelStatus === EVoxelStatus.FULL || voxelStatus === EVoxelStatus.NOT_LOADED;
+            };
+        } else if (options.considerMissingVoxelAs === 'empty') {
+            isVoxelFull = (voxel: THREE.Vector3Like) => {
+                const voxelStatus = this.voxelmapCollider.getVoxel(voxel);
+                allVoxelmapDataIsAvailable &&= voxelStatus !== EVoxelStatus.NOT_LOADED;
+                return voxelStatus === EVoxelStatus.FULL;
+            };
+        } else {
+            throw new Error('Invalid parameter');
+        }
+
+        const isLevelFree = (y: number) => {
+            for (let iX = fromX; iX <= toX; iX++) {
+                for (let iZ = fromZ; iZ <= toZ; iZ++) {
+                    if (isXZRelevant(iX, iZ) && isVoxelFull({ x: iX, y, z: iZ })) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        };
+
+        const previousLevel = Math.floor(previousPosition.y);
+        const newLevel = Math.floor(playerPosition.y);
+
+        if (newLevel < previousLevel && !isLevelFree(previousLevel - 1)) {
+            // we just entered the ground -> rollback
+            playerVelocity.y = 0;
+            playerPosition.y = previousLevel;
+        }
+
+        let isOnGround = false;
+
+        const levelBelow = Number.isInteger(playerPosition.y) ? playerPosition.y - 1 : Math.floor(playerPosition.y);
+        const belowIsEmpty = isLevelFree(levelBelow);
+        if (belowIsEmpty) {
+            playerVelocity.y = -gravity;
+        } else {
+            playerVelocity.y = 0;
+            isOnGround = Number.isInteger(playerPosition.y);
+
+            let isAscending = false;
+            const currentLevel = Math.floor(playerPosition.y);
+            if (!isLevelFree(currentLevel)) {
+                // we are partially in the map
+                let aboveLevelsAreFree = true;
+                const aboveLevelsFrom = currentLevel + 1;
+                const aboveLevelsTo = Math.floor(aboveLevelsFrom + playerHeight);
+                for (let iY = aboveLevelsFrom; iY <= aboveLevelsTo && aboveLevelsAreFree; iY++) {
+                    if (!isLevelFree(iY)) {
+                        aboveLevelsAreFree = false;
+                    }
+                }
+
+                if (aboveLevelsAreFree) {
+                    isAscending = true;
+                }
+            }
+
+            if (isAscending) {
+                playerVelocity.y = ascendSpeed;
+            } else {
+                const displacements: THREE.Vector3Like[] = [];
+
+                type XZ = { readonly x: number; readonly z: number };
+                const addDisplacement = (normal: XZ, projection: XZ) => {
+                    const fromCenter = { x: projection.x - playerPosition.x, z: projection.z - playerPosition.z };
+                    const distanceSquared = fromCenter.x ** 2 + fromCenter.z ** 2;
+                    if (distanceSquared < playerRadiusSquared) {
+                        const distance = Math.sqrt(distanceSquared);
+                        let depth: number;
+                        if (fromCenter.x * normal.x + fromCenter.z * normal.z >= 0) {
+                            depth = playerRadius + distance;
+                        } else {
+                            depth = playerRadius - distance;
+                        }
+                        displacements.push({
+                            x: normal.x * depth,
+                            y: 0,
+                            z: normal.z * depth,
+                        });
+                    }
+                };
+
+                const levelFrom = Math.floor(playerPosition.y);
+                const levelTo = Math.floor(playerPosition.y + playerHeight);
+                const voxel = { x: 0, y: 0, z: 0 };
+                for (voxel.y = levelFrom; voxel.y <= levelTo; voxel.y++) {
+                    for (voxel.x = fromX; voxel.x <= toX; voxel.x++) {
+                        for (voxel.z = fromZ; voxel.z <= toZ; voxel.z++) {
+                            const isFull = isVoxelFull(voxel);
+                            const isLeftFull = isVoxelFull({ x: voxel.x - 1, y: voxel.y, z: voxel.z });
+                            const isRightFull = isVoxelFull({ x: voxel.x + 1, y: voxel.y, z: voxel.z });
+                            const isBackFull = isVoxelFull({ x: voxel.x, y: voxel.y, z: voxel.z - 1 });
+                            const isFrontFull = isVoxelFull({ x: voxel.x, y: voxel.y, z: voxel.z + 1 });
+
+                            if (isFull) {
+                                if (!isLeftFull) {
+                                    const normal = { x: -1, z: 0 };
+                                    const projection = { x: voxel.x, z: clamp(playerPosition.z, voxel.z, voxel.z + 1) };
+                                    addDisplacement(normal, projection);
+                                }
+                                if (!isRightFull) {
+                                    const normal = { x: 1, z: 0 };
+                                    const projection = { x: voxel.x + 1, z: clamp(playerPosition.z, voxel.z, voxel.z + 1) };
+                                    addDisplacement(normal, projection);
+                                }
+                                if (!isBackFull) {
+                                    const normal = { x: 0, z: -1 };
+                                    const projection = { x: clamp(playerPosition.x, voxel.x, voxel.x + 1), z: voxel.z };
+                                    addDisplacement(normal, projection);
+                                }
+                                if (!isFrontFull) {
+                                    const normal = { x: 0, z: 1 };
+                                    const projection = { x: clamp(playerPosition.x, voxel.x, voxel.x + 1), z: voxel.z + 1 };
+                                    addDisplacement(normal, projection);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (displacements.length > 0) {
+                    const averageDisplacement = new THREE.Vector3();
+                    for (const displacement of displacements) {
+                        averageDisplacement.add(displacement);
+                    }
+                    averageDisplacement.divideScalar(displacements.length);
+                    playerPosition.add(averageDisplacement);
+                }
+            }
+        }
+
+        return {
+            computationStatus: allVoxelmapDataIsAvailable ? 'ok' : 'partial',
+            position: playerPosition,
+            velocity: playerVelocity,
+            isOnGround,
+        };
     }
 
     /* Computes the projection of a point onto the {0,1}² square. */

@@ -3,7 +3,6 @@ import * as THREE from 'three-usage-test';
 
 import {
     EComputationMethod,
-    EVoxelStatus,
     type IVoxelMap,
     PromisesQueue,
     VoxelmapCollider,
@@ -47,7 +46,6 @@ class TestPhysics extends TestBase {
 
         readonly container: THREE.Object3D;
         readonly velocity: THREE.Vector3;
-        touchesFloor: boolean;
     };
 
     private lastUpdate: number | null = null;
@@ -140,7 +138,7 @@ class TestPhysics extends TestBase {
 
         const playerSize = {
             radius: 0.2,
-            height: 1.5,
+            height: 1.4,
         };
         const playerMesh = new THREE.Mesh(
             new THREE.CylinderGeometry(playerSize.radius, playerSize.radius, playerSize.height),
@@ -155,7 +153,6 @@ class TestPhysics extends TestBase {
             size: playerSize,
             container: playerContainer,
             velocity: new THREE.Vector3(0, 0, 0),
-            touchesFloor: false,
         };
         this.scene.add(this.player.container);
 
@@ -163,7 +160,7 @@ class TestPhysics extends TestBase {
         const sphereMesh = new THREE.Mesh(new THREE.SphereGeometry(sphereRadius), new THREE.MeshPhongMaterial({ color: 0xdddddd }));
 
         window.addEventListener('keyup', event => {
-            if (event.code === 'Space') {
+            if (event.code === 'KeyP') {
                 const direction = this.camera.getWorldDirection(new THREE.Vector3());
                 const position = this.camera.getWorldPosition(new THREE.Vector3()).addScaledVector(direction, 2);
                 const mesh = sphereMesh.clone();
@@ -235,92 +232,25 @@ class TestPhysics extends TestBase {
     }
 
     private updatePlayer(deltaTime: number): void {
-        const gravity = 20;
+        const entityCollisionOutput = this.voxelmapCollisions.entityMovement(
+            {
+                radius: this.player.size.radius,
+                height: this.player.size.height,
+                position: this.player.container.position,
+                velocity: this.player.velocity,
+            },
+            {
+                deltaTime,
+                gravity: 20,
+                considerMissingVoxelAs: 'blocking',
+            }
+        );
+
+        this.player.container.position.copy(entityCollisionOutput.position);
+        this.player.velocity.copy(entityCollisionOutput.velocity);
+
         const movementSpeed = 10;
-        const ascendSpeed = 10;
-
-        const playerPosition = this.player.container.position;
-        const playerVelocity = this.player.velocity;
-        const previousPosition = playerPosition.clone();
-
-        const fromX = Math.floor(playerPosition.x - this.player.size.radius);
-        const toX = Math.floor(playerPosition.x + this.player.size.radius);
-        const fromZ = Math.floor(playerPosition.z - this.player.size.radius);
-        const toZ = Math.floor(playerPosition.z + this.player.size.radius);
-
-        playerPosition.addScaledVector(playerVelocity, deltaTime);
-
-        const isXZRelevant = (voxelX: number, voxelZ: number) => {
-            const projection = {
-                x: THREE.clamp(playerPosition.x, voxelX, voxelX + 1),
-                z: THREE.clamp(playerPosition.z, voxelZ, voxelZ + 1),
-            };
-            const toCenter = {
-                x: projection.x - playerPosition.x,
-                z: projection.z - playerPosition.z,
-            };
-            const distance = Math.sqrt(toCenter.x ** 2 + toCenter.z ** 2);
-            return distance < this.player.size.radius;
-        };
-
-        const isLevelFree = (y: number) => {
-            for (let iX = fromX; iX <= toX; iX++) {
-                for (let iZ = fromZ; iZ <= toZ; iZ++) {
-                    if (isXZRelevant(iX, iZ)) {
-                        if (this.voxelmapCollider.getVoxel({ x: iX, y, z: iZ }) !== EVoxelStatus.EMPTY) {
-                            return false;
-                        }
-                    }
-                }
-            }
-            return true;
-        };
-
-        const previousLevel = Math.floor(previousPosition.y);
-        const newLevel = Math.floor(playerPosition.y);
-
-        if (newLevel < previousLevel && !isLevelFree(previousLevel - 1)) {
-            // we just entered the ground -> rollback
-            playerVelocity.y = 0;
-            playerPosition.y = previousLevel;
-        }
-
-        const levelBelow = Number.isInteger(playerPosition.y) ? playerPosition.y - 1 : Math.floor(playerPosition.y);
-        const belowIsEmpty = isLevelFree(levelBelow);
-        if (belowIsEmpty) {
-            playerVelocity.y = -gravity;
-        } else {
-            playerVelocity.y = 0;
-
-            let isAscending = false;
-            const currentLevel = Math.floor(playerPosition.y);
-            if (!isLevelFree(currentLevel)) {
-                // we are partially in the map
-
-                let aboveLevelsAreFree = true;
-                const aboveLevelsFrom = currentLevel + 1;
-                const aboveLevelsTo = Math.floor(aboveLevelsFrom + this.player.size.height);
-                for (let iY = aboveLevelsFrom; iY <= aboveLevelsTo; iY++) {
-                    if (!isLevelFree(iY)) {
-                        aboveLevelsAreFree = false;
-                        break;
-                    }
-                }
-
-                if (aboveLevelsAreFree) {
-                    isAscending = true;
-                }
-            }
-
-            if (isAscending) {
-                playerVelocity.y = ascendSpeed;
-            } else {
-                // TODO compute lateral collisions
-            }
-        }
-
-        this.player.touchesFloor = true;
-        if (this.player.touchesFloor) {
+        if (entityCollisionOutput.isOnGround) {
             let isMoving = false;
             const directiond2d = new THREE.Vector2(0, 0);
             if (this.keyDown.get('KeyW')) {
@@ -344,8 +274,12 @@ class TestPhysics extends TestBase {
                 const cameraFront = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion).setY(0).normalize();
                 const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion).setY(0).normalize();
 
-                directiond2d.normalize().multiplyScalar(movementSpeed * deltaTime);
-                this.player.container.position.addScaledVector(cameraRight, directiond2d.x).addScaledVector(cameraFront, directiond2d.y);
+                directiond2d.normalize().multiplyScalar(movementSpeed);
+                this.player.velocity.x = cameraRight.x * directiond2d.x + cameraFront.x * directiond2d.y;
+                this.player.velocity.z = cameraRight.z * directiond2d.x + cameraFront.z * directiond2d.y;
+            } else {
+                this.player.velocity.x = 0;
+                this.player.velocity.z = 0;
             }
         }
     }
