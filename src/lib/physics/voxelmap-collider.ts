@@ -6,11 +6,7 @@ import { type VoxelsChunkOrdering } from '../terrain/voxelmap/i-voxelmap';
 import { PatchId } from '../terrain/voxelmap/patch/patch-id';
 import { VoxelmapDataPacking } from '../terrain/voxelmap/voxelmap-data-packing';
 
-enum EVoxelStatus {
-    EMPTY,
-    FULL,
-    NOT_LOADED,
-}
+import { EVoxelStatus, type IVoxelmapCollider } from './i-voxelmap-collider';
 
 type ChunkData = {
     readonly data: Uint16Array;
@@ -38,7 +34,7 @@ type Parameters = {
     readonly voxelsChunkOrdering: VoxelsChunkOrdering;
 };
 
-class VoxelmapCollider {
+class VoxelmapCollider implements IVoxelmapCollider {
     private readonly chunkSize: THREE.Vector3Like;
     private readonly voxelsChunkOrdering: VoxelsChunkOrdering;
     private readonly indexFactors: THREE.Vector3Like;
@@ -212,4 +208,4 @@ class VoxelmapCollider {
     }
 }
 
-export { EVoxelStatus, VoxelmapCollider };
+export { VoxelmapCollider };

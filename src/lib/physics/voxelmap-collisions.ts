@@ -1,9 +1,10 @@
+import { EVoxelStatus } from '..';
 import * as THREE from '../libs/three-usage';
 
-import { EVoxelStatus, type VoxelmapCollider } from './voxelmap-collider';
+import { type IVoxelmapCollider } from './i-voxelmap-collider';
 
 type Parameters = {
-    readonly voxelmapCollider: VoxelmapCollider;
+    readonly voxelmapCollider: IVoxelmapCollider;
 };
 
 type RayIntersection = {
@@ -46,7 +47,7 @@ function clamp(x: number, min: number, max: number): number {
 }
 
 class VoxelmapCollisions {
-    private readonly voxelmapCollider: VoxelmapCollider;
+    private readonly voxelmapCollider: IVoxelmapCollider;
 
     public constructor(params: Parameters) {
         this.voxelmapCollider = params.voxelmapCollider;

@@ -30,7 +30,8 @@ export {
 export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibility-computer';
 export { type CheckerboardType } from './terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
-export { EVoxelStatus, VoxelmapCollider } from './physics/voxelmap-collider';
+export { EVoxelStatus, type IVoxelmapCollider } from './physics/i-voxelmap-collider';
+export { VoxelmapCollider } from './physics/voxelmap-collider';
 export { VoxelmapCollisions } from './physics/voxelmap-collisions';
 
 export { InstancedBillboard } from './effects/billboard/instanced-billboard';
