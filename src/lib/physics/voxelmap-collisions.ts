@@ -208,7 +208,46 @@ class VoxelmapCollisions {
     }
 
     public entityMovement(entityCollider: EntityCollider, options: EntityCollisionOptions): EntityCollisionOutput {
-        const ascendSpeed = 15;
+        const maxDeltaTime = 10 / 1000;
+
+        let currentState = entityCollider;
+        const output: EntityCollisionOutput = {
+            computationStatus: "ok",
+            position: new THREE.Vector3().copy(entityCollider.position),
+            velocity: new THREE.Vector3().copy(entityCollider.velocity),
+            isOnGround: false,
+        };
+
+        let remainingDeltaTime = options.deltaTime;
+        while (remainingDeltaTime > 0) {
+            const localDeltaTime = Math.min(remainingDeltaTime, maxDeltaTime);
+            remainingDeltaTime -= localDeltaTime;
+            const localOutput = this.entityMovementInternal(currentState, {
+                ...options,
+                deltaTime: localDeltaTime,
+            });
+
+            currentState = {
+                radius: currentState.radius,
+                height: currentState.height,
+                position: localOutput.position,
+                velocity: currentState.velocity,
+            };
+
+            if (localOutput.computationStatus === "partial") {
+                output.computationStatus = "partial";
+            }
+            output.position = localOutput.position;
+            output.velocity = localOutput.velocity;
+            output.isOnGround = localOutput.isOnGround;
+        }
+
+        return output;
+    }
+
+    private entityMovementInternal(entityCollider: EntityCollider, options: EntityCollisionOptions): EntityCollisionOutput {
+        const ascendSpeed = 10;
+        const epsilon = 1e-5;
 
         let allVoxelmapDataIsAvailable = true;
 
@@ -249,7 +288,6 @@ class VoxelmapCollisions {
         };
 
         let isVoxelFull: (voxel: THREE.Vector3Like) => boolean;
-
         if (options.considerMissingVoxelAs === 'blocking') {
             isVoxelFull = (voxel: THREE.Vector3Like) => {
                 const voxelStatus = this.voxelmapCollider.getVoxel(voxel);
@@ -327,17 +365,15 @@ class VoxelmapCollisions {
                     const distanceSquared = fromCenter.x ** 2 + fromCenter.z ** 2;
                     if (distanceSquared < playerRadiusSquared) {
                         const distance = Math.sqrt(distanceSquared);
-                        let depth: number;
-                        if (fromCenter.x * normal.x + fromCenter.z * normal.z >= 0) {
-                            depth = playerRadius + distance;
-                        } else {
-                            depth = playerRadius - distance;
+                        if (fromCenter.x * normal.x + fromCenter.z * normal.z < 0) {
+                            const depth = playerRadius - distance + epsilon;
+
+                            displacements.push({
+                                x: normal.x * depth,
+                                y: 0,
+                                z: normal.z * depth,
+                            });
                         }
-                        displacements.push({
-                            x: normal.x * depth,
-                            y: 0,
-                            z: normal.z * depth,
-                        });
                     }
                 };
 
@@ -386,6 +422,13 @@ class VoxelmapCollisions {
                     }
                     averageDisplacement.divideScalar(displacements.length);
                     playerPosition.add(averageDisplacement);
+
+                    if (averageDisplacement.x !== 0) {
+                        playerVelocity.x = 0;
+                    }
+                    if (averageDisplacement.z !== 0) {
+                        playerVelocity.z = 0;
+                    }
                 }
             }
         }

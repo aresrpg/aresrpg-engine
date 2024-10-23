@@ -206,9 +206,9 @@ class TestPhysics extends TestBase {
         while (remainingDeltaTime > 0) {
             const localDeltaTime = Math.min(remainingDeltaTime, maxDeltaTime);
             this.updateSpheres(localDeltaTime);
-            this.updatePlayer(localDeltaTime);
             remainingDeltaTime -= localDeltaTime;
         }
+        this.updatePlayer(deltaTime);
     }
 
     private updateSpheres(deltaTime: number): void {
@@ -249,7 +249,7 @@ class TestPhysics extends TestBase {
         this.player.container.position.copy(entityCollisionOutput.position);
         this.player.velocity.copy(entityCollisionOutput.velocity);
 
-        const movementSpeed = 10;
+        const movementSpeed = 5;
         if (entityCollisionOutput.isOnGround) {
             let isMoving = false;
             const directiond2d = new THREE.Vector2(0, 0);
