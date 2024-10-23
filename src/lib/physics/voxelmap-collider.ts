@@ -127,7 +127,7 @@ class VoxelmapCollider implements IVoxelmapCollider {
 
         const patchId = new PatchId(chunkId);
         if (this.chunkCollidersMap[patchId.asString]) {
-            throw new Error(`Chunk "${patchId.asString}" already exists.`);
+            logger.warn(`Chunk "${patchId.asString}" already exists.`);
         }
 
         if (chunk.isEmpty) {
