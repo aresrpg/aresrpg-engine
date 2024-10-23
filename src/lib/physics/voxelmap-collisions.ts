@@ -315,7 +315,9 @@ class VoxelmapCollisions {
             }
 
             if (isAscending) {
-                playerVelocity.y = ascendSpeed;
+                const upwardsMovement = ascendSpeed * options.deltaTime;
+                const boundary = Number.isInteger(playerPosition.y) ? playerPosition.y + 1 : Math.ceil(playerPosition.y);
+                playerPosition.y = Math.min(boundary, playerPosition.y + upwardsMovement);
             } else {
                 const displacements: THREE.Vector3Like[] = [];
 
