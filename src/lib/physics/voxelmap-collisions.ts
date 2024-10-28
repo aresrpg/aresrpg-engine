@@ -329,7 +329,8 @@ class VoxelmapCollisions {
         const levelBelow = Number.isInteger(playerPosition.y) ? playerPosition.y - 1 : Math.floor(playerPosition.y);
         const belowIsEmpty = isLevelFree(levelBelow);
         if (belowIsEmpty) {
-            playerVelocity.y = -gravity;
+            playerVelocity.y -= gravity * deltaTime;
+            playerVelocity.y = Math.max(-gravity, playerVelocity.y);
         } else {
             playerVelocity.y = 0;
             isOnGround = Number.isInteger(playerPosition.y);
