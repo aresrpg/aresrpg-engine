@@ -231,7 +231,7 @@ class VoxelmapCollisions {
                 radius: currentState.radius,
                 height: currentState.height,
                 position: localOutput.position,
-                velocity: currentState.velocity,
+                velocity: localOutput.velocity,
             };
 
             if (localOutput.computationStatus === "partial") {
