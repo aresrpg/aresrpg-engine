@@ -51,6 +51,7 @@ class TestPhysics extends TestBase {
     private lastUpdate: number | null = null;
 
     private readonly keyDown = new Map<string, boolean>();
+    private readonly keysPressed: Set<string> = new Set();
 
     public constructor(map: IVoxelMap) {
         super();
@@ -174,6 +175,7 @@ class TestPhysics extends TestBase {
             }
 
             this.keyDown.set(event.code, false);
+            this.keysPressed.add(event.code);
         });
         window.addEventListener('keydown', event => {
             this.keyDown.set(event.code, true);
@@ -181,6 +183,12 @@ class TestPhysics extends TestBase {
     }
 
     protected override update(): void {
+        for (const [keyCode, isPressed] of this.keyDown.entries()) {
+            if (isPressed && keyCode !== "Space") {
+                this.keysPressed.add(keyCode);
+            }
+        }
+
         this.updateRay();
         this.updateSpheresAndPlayer();
     }
@@ -241,7 +249,7 @@ class TestPhysics extends TestBase {
             },
             {
                 deltaTime,
-                gravity: 20,
+                gravity: 250,
                 considerMissingVoxelAs: 'blocking',
             }
         );
@@ -253,22 +261,26 @@ class TestPhysics extends TestBase {
         if (entityCollisionOutput.isOnGround) {
             let isMoving = false;
             const directiond2d = new THREE.Vector2(0, 0);
-            if (this.keyDown.get('KeyW')) {
+            if (this.keysPressed.has('KeyW')) {
                 isMoving = true;
                 directiond2d.y++;
             }
-            if (this.keyDown.get('KeyS')) {
+            if (this.keysPressed.has('KeyS')) {
                 isMoving = true;
                 directiond2d.y--;
             }
-            if (this.keyDown.get('KeyA')) {
+            if (this.keysPressed.has('KeyA')) {
                 isMoving = true;
                 directiond2d.x--;
             }
-            if (this.keyDown.get('KeyD')) {
+            if (this.keysPressed.has('KeyD')) {
                 isMoving = true;
                 directiond2d.x++;
             }
+            if (this.keysPressed.has("Space")) {
+                this.player.velocity.y = 20;
+            }
+            this.keysPressed.clear();
 
             if (isMoving) {
                 const cameraFront = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion).setY(0).normalize();
