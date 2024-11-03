@@ -341,7 +341,6 @@ class VoxelmapCollisions {
             playerVelocity.y -= gravity * deltaTime;
             playerVelocity.y = Math.max(-gravity, playerVelocity.y);
         } else {
-            playerVelocity.y = 0;
             isOnGround = Number.isInteger(playerPosition.y);
 
             let isAscending = false;
