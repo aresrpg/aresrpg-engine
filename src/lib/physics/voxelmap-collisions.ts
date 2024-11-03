@@ -218,13 +218,10 @@ class VoxelmapCollisions {
             isOnGround: false,
         };
 
-        let remainingDeltaTime = options.deltaTime;
-        while (remainingDeltaTime > 0) {
-            const localDeltaTime = Math.min(remainingDeltaTime, maxDeltaTime);
-            remainingDeltaTime -= localDeltaTime;
+        const applyAndMergeStep = (deltaTime: number) => {
             const localOutput = this.entityMovementInternal(currentState, {
                 ...options,
-                deltaTime: localDeltaTime,
+                deltaTime,
             });
 
             currentState = {
@@ -240,6 +237,18 @@ class VoxelmapCollisions {
             output.position = localOutput.position;
             output.velocity = localOutput.velocity;
             output.isOnGround = localOutput.isOnGround;
+        };
+
+        let remainingDeltaTime = options.deltaTime;
+        while (remainingDeltaTime > 0) {
+            const localDeltaTime = Math.min(remainingDeltaTime, maxDeltaTime);
+            remainingDeltaTime -= localDeltaTime;
+            applyAndMergeStep(localDeltaTime);
+        }
+
+        for (let i = 0; i < 3; i++) {
+            applyAndMergeStep(0);
+            applyAndMergeStep(0);
         }
 
         return output;
