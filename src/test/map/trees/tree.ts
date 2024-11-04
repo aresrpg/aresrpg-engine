@@ -80,6 +80,9 @@ class Tree {
 
     public getVoxel(position: THREE.Vector3Like): number | null {
         const index = this.buildIndex(position);
+        if (this.voxels.isEmpty) {
+            return null;
+        }
         const voxel = this.voxels.data[index];
         if (typeof voxel === 'undefined') {
             throw new Error();

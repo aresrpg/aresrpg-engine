@@ -1,5 +1,5 @@
-import { type VoxelsChunkOrdering, type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
-import { type CheckerboardType, type GeometryAndMaterial, type VoxelsChunkData } from '../../voxels-renderable-factory-base';
+import { type IVoxelMaterial, type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../../../i-voxelmap';
+import { type VoxelsChunkDataNotEmpty, type CheckerboardType, type GeometryAndMaterial } from '../../voxels-renderable-factory-base';
 import { VoxelsRenderableFactory } from '../voxels-renderable-factory';
 
 import { VoxelsComputerGpu } from './voxels-computer-gpu';
@@ -35,11 +35,7 @@ class VoxelsRenderableFactoryGpu extends VoxelsRenderableFactory {
         this.voxelsComputerGpuPromise?.then(computer => computer.dispose());
     }
 
-    public async buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkData): Promise<GeometryAndMaterial[]> {
-        if (voxelsChunkData.isEmpty) {
-            return [];
-        }
-
+    public async buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkDataNotEmpty): Promise<GeometryAndMaterial[]> {
         const voxelsComputerGpu = await this.getVoxelsComputerGpu();
         const buffer = await voxelsComputerGpu.computeBuffer(voxelsChunkData);
         return this.assembleGeometryAndMaterials(buffer);

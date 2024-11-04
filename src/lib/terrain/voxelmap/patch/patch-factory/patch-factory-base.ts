@@ -1,9 +1,10 @@
-import * as THREE from '../../../../libs/three-usage';
 import { processAsap } from '../../../../helpers/async/async-sync';
 import { vec3ToString } from '../../../../helpers/string';
-import { type VoxelsChunkOrdering, type IVoxelMap } from '../../i-voxelmap';
+import * as THREE from '../../../../libs/three-usage';
+import { type IVoxelMap } from '../../i-voxelmap';
 import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
 import {
+    type VoxelsChunkDataNotEmpty,
     type VoxelsChunkData,
     type VoxelsRenderableFactoryBase,
 } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
@@ -14,13 +15,6 @@ type VertexData = {
     readonly ao: number;
     readonly roundnessX: boolean;
     readonly roundnessY: boolean;
-};
-
-type LocalMapData = {
-    readonly size: THREE.Vector3;
-    readonly data: Uint16Array;
-    readonly dataOrdering: VoxelsChunkOrdering;
-    readonly isEmpty: boolean;
 };
 
 abstract class PatchFactoryBase {
@@ -55,7 +49,7 @@ abstract class PatchFactoryBase {
         patchId: PatchId,
         patchStart: THREE.Vector3,
         patchEnd: THREE.Vector3,
-        voxelsChunkData: VoxelsChunkData
+        voxelsChunkData: VoxelsChunkDataNotEmpty
     ): Promise<VoxelsRenderable | null> {
         patchStart = patchStart.clone();
         patchEnd = patchEnd.clone();
@@ -76,8 +70,8 @@ abstract class PatchFactoryBase {
         return this.finalizePatch(voxelsRenderable, patchId, patchStart);
     }
 
-    public async buildVoxelsRenderable(voxelsChunkData: VoxelsChunkData): Promise<VoxelsRenderable | null> {
-        return await this.voxelsRenderableFactory.buildVoxelsRenderable(voxelsChunkData);
+    public buildVoxelsRenderable(voxelsChunkData: VoxelsChunkData): null | Promise<VoxelsRenderable | null> {
+        return this.voxelsRenderableFactory.buildVoxelsRenderable(voxelsChunkData);
     }
 
     public dispose(): void {
@@ -90,7 +84,7 @@ abstract class PatchFactoryBase {
         map: IVoxelMap
     ): Promise<VoxelsRenderable | null>;
 
-    protected static async buildLocalMapData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3, map: IVoxelMap): Promise<LocalMapData> {
+    protected static async buildLocalMapData(patchStart: THREE.Vector3, patchEnd: THREE.Vector3, map: IVoxelMap): Promise<VoxelsChunkData> {
         const cacheStart = patchStart.clone().subScalar(1);
         const cacheEnd = patchEnd.clone().addScalar(1);
         const cacheSize = new THREE.Vector3().subVectors(cacheEnd, cacheStart);
@@ -124,4 +118,4 @@ abstract class PatchFactoryBase {
     }
 }
 
-export { PatchFactoryBase, type LocalMapData, type VertexData };
+export { PatchFactoryBase, type VertexData };

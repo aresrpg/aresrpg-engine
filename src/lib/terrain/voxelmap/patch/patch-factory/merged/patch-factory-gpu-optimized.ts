@@ -1,17 +1,18 @@
-import * as THREE from '../../../../../libs/three-usage';
 import { AsyncTask } from '../../../../../helpers/async/async-task';
-import { type VoxelsChunkOrdering, type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
+import * as THREE from '../../../../../libs/three-usage';
+import { type IVoxelMap, type IVoxelMaterial, type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryGpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
 import {
+    type VoxelsChunkData,
     type CheckerboardType,
     type GeometryAndMaterial,
 } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
-import { PatchFactoryBase, type LocalMapData } from '../patch-factory-base';
+import { PatchFactoryBase } from '../patch-factory-base';
 
 type PatchGenerationJob = {
     readonly patchId: number;
-    cpuTask: AsyncTask<LocalMapData>;
+    cpuTask: AsyncTask<VoxelsChunkData>;
     gpuTask?: Promise<GeometryAndMaterial[]>;
     readonly resolve: (value: GeometryAndMaterial[]) => void;
 };
@@ -60,11 +61,11 @@ class PatchFactoryGpuOptimized extends PatchFactoryBase {
 
             this.pendingJobs.push({
                 patchId,
-                cpuTask: new AsyncTask<LocalMapData>(async () => {
+                cpuTask: new AsyncTask<VoxelsChunkData>(() => {
                     // logger.diagnostic(`CPU ${patchId} start`);
-                    const result = await PatchFactoryBase.buildLocalMapData(patchStart, patchEnd, map);
+                    // const result = await PatchFactoryBase.buildLocalMapData(patchStart, patchEnd, map);
                     // logger.diagnostic(`CPU ${patchId} end`);
-                    return result;
+                    return PatchFactoryBase.buildLocalMapData(patchStart, patchEnd, map);
                 }),
                 resolve: onGeometryAndMaterialsListComputed,
             });
@@ -86,7 +87,11 @@ class PatchFactoryGpuOptimized extends PatchFactoryBase {
                 if (!currentJob.gpuTask) {
                     const localMapData = currentJob.cpuTask.getResultSync();
 
-                    currentJob.gpuTask = this.voxelsRenderableFactory.buildGeometryAndMaterials(localMapData);
+                    if (localMapData.isEmpty) {
+                        currentJob.gpuTask = Promise.resolve([]);
+                    } else {
+                        currentJob.gpuTask = this.voxelsRenderableFactory.buildGeometryAndMaterials(localMapData);
+                    }
 
                     currentJob.gpuTask.then(result => {
                         this.pendingJobs.shift();

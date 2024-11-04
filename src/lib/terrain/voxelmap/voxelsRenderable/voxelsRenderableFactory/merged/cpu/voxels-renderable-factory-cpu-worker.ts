@@ -1,7 +1,7 @@
 import { type WorkerDefinition } from '../../../../../../helpers/async/dedicatedWorkers/dedicated-worker';
 import { DedicatedWorkersPool } from '../../../../../../helpers/async/dedicatedWorkers/dedicated-workers-pool';
-import { type VoxelsChunkOrdering, type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
-import { type CheckerboardType, type VoxelsChunkData } from '../../voxels-renderable-factory-base';
+import { type IVoxelMaterial, type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../../../i-voxelmap';
+import { type CheckerboardType, type VoxelsChunkDataNotEmpty } from '../../voxels-renderable-factory-base';
 
 import { VoxelsRenderableFactoryCpu } from './voxels-renderable-factory-cpu';
 
@@ -28,12 +28,12 @@ class VoxelsRenderableFactoryCpuWorker extends VoxelsRenderableFactoryCpu {
         this.workersPoolSize = params.workersPoolSize;
     }
 
-    protected override buildBuffer(voxelsChunkData: VoxelsChunkData): Promise<Uint32Array> {
+    protected override buildBuffer(voxelsChunkData: VoxelsChunkDataNotEmpty): Promise<Uint32Array> {
         if (!this.workersPool) {
             const workerDefinition: WorkerDefinition = {
                 commonCode: `const factory = ${this.serialize()};`,
                 tasks: {
-                    buildBuffer: (voxelsChunkData: VoxelsChunkData) => {
+                    buildBuffer: (voxelsChunkData: VoxelsChunkDataNotEmpty) => {
                         // eslint-disable-next-line no-eval
                         const factory2 = eval('factory') as VoxelsRenderableFactoryCpu['serializableFactory'];
                         const buffer = factory2.buildBuffer(voxelsChunkData);

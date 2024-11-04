@@ -1,11 +1,12 @@
 import type * as THREE from '../../../../../../libs/three-usage';
-import { voxelmapDataPacking, type VoxelsChunkOrdering, type IVoxelMaterial, type VoxelsChunkSize } from '../../../../i-voxelmap';
+import { voxelmapDataPacking, type IVoxelMaterial, type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
 import {
     type CheckerboardType,
     type GeometryAndMaterial,
     type VertexData,
     type VoxelsChunkData,
+    type VoxelsChunkDataNotEmpty,
 } from '../../voxels-renderable-factory-base';
 import { type CheckerboardCellId } from '../vertex-data2-encoder';
 import { VoxelsRenderableFactory } from '../voxels-renderable-factory';
@@ -53,7 +54,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
         greedyMeshing: true,
         voxelsChunkOrdering: 'zyx' as VoxelsChunkOrdering,
 
-        buildBuffer(voxelsChunkData: VoxelsChunkData): Uint32Array {
+        buildBuffer(voxelsChunkData: VoxelsChunkDataNotEmpty): Uint32Array {
             if (voxelsChunkData.isEmpty) {
                 return new Uint32Array();
             }
@@ -187,7 +188,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
             return new Uint32Array(bufferData.buffer.subarray(0, uint32PerVertex * bufferData.verticesCount));
         },
 
-        buildLocalMapCache(voxelsChunkData: VoxelsChunkData): VoxelsChunkCache {
+        buildLocalMapCache(voxelsChunkData: VoxelsChunkDataNotEmpty): VoxelsChunkCache {
             type Component = 'x' | 'y' | 'z';
             const buildIndexFactorComponent = (component: Component): number => {
                 const sanitizeXYZ = (s: string | undefined): Component => {
@@ -322,11 +323,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
         this.serializableFactory.voxelsChunkOrdering = params.voxelsChunkOrdering;
     }
 
-    public async buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkData): Promise<GeometryAndMaterial[]> {
-        if (voxelsChunkData.isEmpty) {
-            return [];
-        }
-
+    public async buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkDataNotEmpty): Promise<GeometryAndMaterial[]> {
         if (voxelsChunkData.dataOrdering !== this.serializableFactory.voxelsChunkOrdering) {
             throw new Error(
                 `Invalid data ordering: expected "${this.serializableFactory.voxelsChunkOrdering}" but received "${voxelsChunkData.dataOrdering}".`
@@ -337,7 +334,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
         return this.assembleGeometryAndMaterials(buffer);
     }
 
-    protected async buildBuffer(voxelsChunkData: VoxelsChunkData): Promise<Uint32Array> {
+    protected async buildBuffer(voxelsChunkData: VoxelsChunkDataNotEmpty): Promise<Uint32Array> {
         return this.serializableFactory.buildBuffer(voxelsChunkData);
     }
 

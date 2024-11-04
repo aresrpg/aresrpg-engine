@@ -21,12 +21,17 @@ type VertexData = {
     readonly roundnessY: boolean;
 };
 
-type VoxelsChunkData = {
+type VoxelsChunkDataEmpty = {
+    readonly size: THREE.Vector3;
+    readonly isEmpty: true;
+};
+type VoxelsChunkDataNotEmpty = {
     readonly size: THREE.Vector3;
     readonly data: Uint16Array;
     readonly dataOrdering: VoxelsChunkOrdering;
-    readonly isEmpty: boolean;
+    readonly isEmpty: false;
 };
+type VoxelsChunkData = VoxelsChunkDataEmpty | VoxelsChunkDataNotEmpty;
 
 type CheckerboardType = 'x' | 'y' | 'z' | 'xy' | 'xz' | 'yz' | 'xyz';
 
@@ -83,7 +88,7 @@ abstract class VoxelsRenderableFactoryBase {
         this.uniformsTemplate.uTexture.value = this.texture;
     }
 
-    public async buildVoxelsRenderable(voxelsChunkData: VoxelsChunkData): Promise<VoxelsRenderable | null> {
+    public buildVoxelsRenderable(voxelsChunkData: VoxelsChunkData): null | Promise<VoxelsRenderable | null> {
         const innerChunkSize = voxelsChunkData.size.clone().subScalar(2);
         if (
             innerChunkSize.x > this.maxVoxelsChunkSize.x ||
@@ -97,8 +102,9 @@ abstract class VoxelsRenderableFactoryBase {
             return null;
         }
 
-        const geometryAndMaterialsList = await this.buildGeometryAndMaterials(voxelsChunkData);
-        return this.assembleVoxelsRenderable(innerChunkSize, geometryAndMaterialsList);
+        return this.buildGeometryAndMaterials(voxelsChunkData).then(geometryAndMaterialsList => {
+            return this.assembleVoxelsRenderable(innerChunkSize, geometryAndMaterialsList);
+        });
     }
 
     public dispose(): void {
@@ -142,7 +148,7 @@ abstract class VoxelsRenderableFactoryBase {
         return voxelsRenderable;
     }
 
-    public abstract buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkData): Promise<GeometryAndMaterial[]>;
+    public abstract buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkDataNotEmpty): Promise<GeometryAndMaterial[]>;
 
     private static buildMaterialsTexture(
         voxelMaterials: ReadonlyArray<IVoxelMaterial>,
@@ -191,4 +197,6 @@ export {
     type Parameters,
     type VertexData,
     type VoxelsChunkData,
+    type VoxelsChunkDataEmpty,
+    type VoxelsChunkDataNotEmpty,
 };

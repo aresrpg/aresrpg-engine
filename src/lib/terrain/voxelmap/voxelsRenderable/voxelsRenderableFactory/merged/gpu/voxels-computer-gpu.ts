@@ -1,13 +1,13 @@
 /// <reference types="@webgpu/types" />
 
-import type * as THREE from '../../../../../../libs/three-usage';
 import { PromisesQueue } from '../../../../../../helpers/async/promises-queue';
 import { logger } from '../../../../../../helpers/logger';
 import { vec3ToString } from '../../../../../../helpers/string';
 import { getGpuDevice } from '../../../../../../helpers/webgpu/webgpu-device';
+import type * as THREE from '../../../../../../libs/three-usage';
 import { voxelmapDataPacking, type VoxelsChunkOrdering } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
-import { type CheckerboardType, type VoxelsChunkData } from '../../voxels-renderable-factory-base';
+import { type VoxelsChunkDataNotEmpty, type CheckerboardType } from '../../voxels-renderable-factory-base';
 import { type VertexData1Encoder } from '../vertex-data1-encoder';
 import { type VertexData2Encoder } from '../vertex-data2-encoder';
 
@@ -240,7 +240,7 @@ class VoxelsComputerGpu {
         });
     }
 
-    public async computeBuffer(voxelsChunkData: VoxelsChunkData): Promise<ComputationOutputs> {
+    public async computeBuffer(voxelsChunkData: VoxelsChunkDataNotEmpty): Promise<ComputationOutputs> {
         if (voxelsChunkData.dataOrdering !== this.voxelsChunkOrdering) {
             throw new Error(
                 `Invalid data ordering: expected "${this.voxelsChunkOrdering}" but received "${voxelsChunkData.dataOrdering}".`

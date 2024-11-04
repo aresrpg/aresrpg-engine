@@ -2,7 +2,7 @@ import { AsyncTask } from '../../../../helpers/async/async-task';
 import { PromisesQueue } from '../../../../helpers/async/promises-queue';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../libs/three-usage';
-import { type VoxelsChunkOrdering, type IVoxelMaterial, type VoxelsChunkSize } from '../../i-voxelmap';
+import { type IVoxelMaterial, type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../i-voxelmap';
 import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-cpu';
 import { PatchFactoryCpuWorker } from '../../patch/patch-factory/merged/patch-factory-cpu-worker';
 import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
@@ -162,6 +162,9 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                 id: patchId,
                 status: 'in-queue',
                 computationTask: new AsyncTask<VoxelsRenderable | null>(async () => {
+                    if (voxelsChunkData.isEmpty) {
+                        return null;
+                    }
                     const patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
                     const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
                     return await this.patchFactory.buildPatchFromVoxelsChunk(patchId, patchStart, patchEnd, voxelsChunkData);
