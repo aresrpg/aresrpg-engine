@@ -212,7 +212,7 @@ class VoxelmapCollisions {
 
         let currentState = entityCollider;
         const output: EntityCollisionOutput = {
-            computationStatus: "ok",
+            computationStatus: 'ok',
             position: new THREE.Vector3().copy(entityCollider.position),
             velocity: new THREE.Vector3().copy(entityCollider.velocity),
             isOnGround: false,
@@ -231,8 +231,8 @@ class VoxelmapCollisions {
                 velocity: localOutput.velocity,
             };
 
-            if (localOutput.computationStatus === "partial") {
-                output.computationStatus = "partial";
+            if (localOutput.computationStatus === 'partial') {
+                output.computationStatus = 'partial';
             }
             output.position = localOutput.position;
             output.velocity = localOutput.velocity;

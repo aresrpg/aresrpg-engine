@@ -184,7 +184,7 @@ class TestPhysics extends TestBase {
 
     protected override update(): void {
         for (const [keyCode, isPressed] of this.keyDown.entries()) {
-            if (isPressed && keyCode !== "Space") {
+            if (isPressed && keyCode !== 'Space') {
                 this.keysPressed.add(keyCode);
             }
         }
@@ -277,7 +277,7 @@ class TestPhysics extends TestBase {
                 isMoving = true;
                 directiond2d.x++;
             }
-            if (this.keysPressed.has("Space")) {
+            if (this.keysPressed.has('Space')) {
                 this.player.velocity.y = 20;
             }
             this.keysPressed.clear();
