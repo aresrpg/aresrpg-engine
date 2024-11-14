@@ -5,14 +5,9 @@ import type * as THREE from '../libs/three-usage';
 import { type VoxelsChunkOrdering } from '../terrain/voxelmap/i-voxelmap';
 import { PatchId } from '../terrain/voxelmap/patch/patch-id';
 import { VoxelmapDataPacking } from '../terrain/voxelmap/voxelmap-data-packing';
+import { type VoxelsChunkData } from '../terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
 import { EVoxelStatus, type IVoxelmapCollider } from './i-voxelmap-collider';
-
-type ChunkData = {
-    readonly data: Uint16Array;
-    readonly dataOrdering: VoxelsChunkOrdering;
-    readonly isEmpty: boolean;
-};
 
 type ChunkCollider =
     | {
@@ -120,19 +115,19 @@ class VoxelmapCollider implements IVoxelmapCollider {
         }
     }
 
-    public setChunk(chunkId: THREE.Vector3Like, chunk: ChunkData): void {
-        if (chunk.dataOrdering !== this.voxelsChunkOrdering) {
-            throw new Error(`Invalid voxels chunk ordering: expected "${this.voxelsChunkOrdering}", received "${chunk.dataOrdering}".`);
-        }
-
+    public setChunk(chunkId: THREE.Vector3Like, chunk: VoxelsChunkData): void {
         const patchId = new PatchId(chunkId);
         if (this.chunkCollidersMap[patchId.asString]) {
-            logger.warn(`Chunk "${patchId.asString}" already exists.`);
+            logger.debug(`Chunk "${patchId.asString}" already exists.`);
         }
 
         if (chunk.isEmpty) {
             this.chunkCollidersMap[patchId.asString] = { isEmpty: true };
         } else {
+            if (chunk.dataOrdering !== this.voxelsChunkOrdering) {
+                throw new Error(`Invalid voxels chunk ordering: expected "${this.voxelsChunkOrdering}", received "${chunk.dataOrdering}".`);
+            }
+
             if (this.compactionWorkersPool) {
                 const rawChunkCollider: ChunkCollider = { isEmpty: false, type: 'raw', data: chunk.data };
                 this.chunkCollidersMap[patchId.asString] = rawChunkCollider;
