@@ -27,7 +27,10 @@ type EntityCollider = {
 type EntityCollisionOptions = {
     readonly deltaTime: number;
     readonly gravity: number;
-    readonly considerMissingVoxelAs: 'empty' | 'blocking';
+    readonly missingVoxels: {
+        readonly considerAsBlocking: boolean;
+        readonly exportAsList: boolean;
+    };
 };
 
 type EntityCollisionOutput = {
@@ -35,6 +38,7 @@ type EntityCollisionOutput = {
     position: THREE.Vector3;
     velocity: THREE.Vector3;
     isOnGround: boolean;
+    missingVoxels: THREE.Vector3Like[];
 };
 
 function clamp(x: number, min: number, max: number): number {
@@ -216,6 +220,7 @@ class VoxelmapCollisions {
             position: new THREE.Vector3().copy(entityCollider.position),
             velocity: new THREE.Vector3().copy(entityCollider.velocity),
             isOnGround: false,
+            missingVoxels: [],
         };
 
         const applyAndMergeStep = (deltaTime: number) => {
@@ -237,6 +242,7 @@ class VoxelmapCollisions {
             output.position = localOutput.position;
             output.velocity = localOutput.velocity;
             output.isOnGround = localOutput.isOnGround;
+            output.missingVoxels.push(...localOutput.missingVoxels);
         };
 
         let remainingDeltaTime = options.deltaTime;
@@ -264,6 +270,8 @@ class VoxelmapCollisions {
         if (gravity < 0) {
             throw new Error(`Invert gravity not supported.`);
         }
+
+        const missingVoxels: THREE.Vector3Like[] = [];
 
         const playerPosition = new THREE.Vector3().copy(entityCollider.position);
         const playerVelocity = new THREE.Vector3().copy(entityCollider.velocity);
@@ -300,10 +308,10 @@ class VoxelmapCollisions {
             const voxelStatus = this.voxelmapCollider.getVoxel(voxel);
             if (voxelStatus === EVoxelStatus.NOT_LOADED) {
                 allVoxelmapDataIsAvailable = false;
-                if (options.considerMissingVoxelAs === 'blocking') {
-                    return true;
+                if (options.missingVoxels.exportAsList) {
+                    missingVoxels.push({ ...voxel });
                 }
-                return false;
+                return options.missingVoxels.considerAsBlocking;
             }
             return voxelStatus === EVoxelStatus.FULL;
         };
@@ -442,6 +450,7 @@ class VoxelmapCollisions {
             position: playerPosition,
             velocity: playerVelocity,
             isOnGround,
+            missingVoxels,
         };
     }
 
