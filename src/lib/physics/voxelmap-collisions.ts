@@ -296,22 +296,17 @@ class VoxelmapCollisions {
             return distanceSquared < playerRadiusSquared;
         };
 
-        let isVoxelFull: (voxel: THREE.Vector3Like) => boolean;
-        if (options.considerMissingVoxelAs === 'blocking') {
-            isVoxelFull = (voxel: THREE.Vector3Like) => {
-                const voxelStatus = this.voxelmapCollider.getVoxel(voxel);
-                allVoxelmapDataIsAvailable &&= voxelStatus !== EVoxelStatus.NOT_LOADED;
-                return voxelStatus === EVoxelStatus.FULL || voxelStatus === EVoxelStatus.NOT_LOADED;
-            };
-        } else if (options.considerMissingVoxelAs === 'empty') {
-            isVoxelFull = (voxel: THREE.Vector3Like) => {
-                const voxelStatus = this.voxelmapCollider.getVoxel(voxel);
-                allVoxelmapDataIsAvailable &&= voxelStatus !== EVoxelStatus.NOT_LOADED;
-                return voxelStatus === EVoxelStatus.FULL;
-            };
-        } else {
-            throw new Error('Invalid parameter');
-        }
+        const isVoxelFull = (voxel: THREE.Vector3Like) => {
+            const voxelStatus = this.voxelmapCollider.getVoxel(voxel);
+            if (voxelStatus === EVoxelStatus.NOT_LOADED) {
+                allVoxelmapDataIsAvailable = false;
+                if (options.considerMissingVoxelAs === 'blocking') {
+                    return true;
+                }
+                return false;
+            }
+            return voxelStatus === EVoxelStatus.FULL;
+        };
 
         const isLevelFree = (y: number) => {
             for (let iX = fromX; iX <= toX; iX++) {
