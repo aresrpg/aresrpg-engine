@@ -250,7 +250,11 @@ class TestPhysics extends TestBase {
             {
                 deltaTime,
                 gravity: 250,
-                considerMissingVoxelAs: 'blocking',
+                ascendSpeed: 30,
+                missingVoxels: {
+                    considerAsBlocking: true,
+                    exportAsList: false,
+                },
             }
         );
 
@@ -316,7 +320,7 @@ class TestPhysics extends TestBase {
                             const voxelsChunkData = Object.assign(patchMapData, {
                                 size: new THREE.Vector3().subVectors(blockEnd, blockStart),
                             });
-                            this.voxelmapCollider.setChunk(patchId, patchMapData);
+                            this.voxelmapCollider.setChunk(patchId, voxelsChunkData);
                             await this.voxelmapViewer.enqueuePatch(patchId, voxelsChunkData);
                         }
                     },

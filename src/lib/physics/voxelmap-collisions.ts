@@ -27,6 +27,7 @@ type EntityCollider = {
 type EntityCollisionOptions = {
     readonly deltaTime: number;
     readonly gravity: number;
+    readonly ascendSpeed: number;
     readonly missingVoxels: {
         readonly considerAsBlocking: boolean;
         readonly exportAsList: boolean;
@@ -261,7 +262,6 @@ class VoxelmapCollisions {
     }
 
     private entityMovementInternal(entityCollider: EntityCollider, options: EntityCollisionOptions): EntityCollisionOutput {
-        const ascendSpeed = 10;
         const epsilon = 1e-5;
 
         let allVoxelmapDataIsAvailable = true;
@@ -365,7 +365,7 @@ class VoxelmapCollisions {
             }
 
             if (isAscending) {
-                const upwardsMovement = ascendSpeed * options.deltaTime;
+                const upwardsMovement = options.ascendSpeed * options.deltaTime;
                 const boundary = Number.isInteger(playerPosition.y) ? playerPosition.y + 1 : Math.ceil(playerPosition.y);
                 playerPosition.y = Math.min(boundary, playerPosition.y + upwardsMovement);
             } else {
