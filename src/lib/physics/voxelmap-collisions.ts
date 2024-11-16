@@ -7,9 +7,18 @@ type Parameters = {
     readonly voxelmapCollider: IVoxelmapCollider;
 };
 
-type RayIntersection = {
-    readonly distance: number;
-    readonly point: THREE.Vector3Like;
+type ComputationStatus = 'ok' | 'partial';
+
+type RaycastOptions = {
+    readonly missingVoxels: {
+        readonly considerAsBlocking: boolean;
+    };
+};
+
+type RaycastOutput = {
+    computationStatus: ComputationStatus;
+    distance: number;
+    point: THREE.Vector3Like;
 };
 
 type SphereIntersection = {
@@ -35,7 +44,7 @@ type EntityCollisionOptions = {
 };
 
 type EntityCollisionOutput = {
-    computationStatus: 'ok' | 'partial';
+    computationStatus: ComputationStatus;
     position: THREE.Vector3;
     velocity: THREE.Vector3;
     isOnGround: boolean;
@@ -58,7 +67,15 @@ class VoxelmapCollisions {
         this.voxelmapCollider = params.voxelmapCollider;
     }
 
-    public rayCast(from: THREE.Vector3Like, to: THREE.Vector3Like): RayIntersection | null {
+    public getVoxelStatus(point: THREE.Vector3Like): EVoxelStatus {
+        return this.voxelmapCollider.getVoxel({
+            x: Math.floor(point.x),
+            y: Math.floor(point.y),
+            z: Math.floor(point.z),
+        });
+    }
+
+    public rayCast(from: THREE.Vector3Like, to: THREE.Vector3Like, options: RaycastOptions): RaycastOutput | null {
         type Candidate = {
             readonly distance: number;
             readonly voxelId: THREE.Vector3Like;
@@ -112,11 +129,28 @@ class VoxelmapCollisions {
         addCandidates({ x: 0, y: 0, z: 1 });
         candidates.sort((a: Candidate, b: Candidate) => a.distance - b.distance);
 
+        const isVoxelFull = (voxelStatus: EVoxelStatus) => {
+            return (
+                voxelStatus === EVoxelStatus.FULL || (voxelStatus === EVoxelStatus.NOT_LOADED && options.missingVoxels.considerAsBlocking)
+            );
+        };
+
+        const sourceVoxelStatus = this.getVoxelStatus(from);
+        const isSourceVoxelFull = isVoxelFull(sourceVoxelStatus);
+
+        let computationStatus: ComputationStatus = 'ok';
         for (const candidate of candidates) {
-            if (this.voxelmapCollider.getVoxel(candidate.voxelId) === EVoxelStatus.FULL) {
+            const voxelStatus = this.voxelmapCollider.getVoxel(candidate.voxelId);
+            if (voxelStatus === EVoxelStatus.NOT_LOADED) {
+                computationStatus = 'partial';
+            }
+            const voxelIsFull = isVoxelFull(voxelStatus);
+
+            if (isSourceVoxelFull !== voxelIsFull) {
                 return {
                     distance: candidate.distance,
                     point: new THREE.Vector3().copy(from).addScaledVector(direction, candidate.distance),
+                    computationStatus,
                 };
             }
         }

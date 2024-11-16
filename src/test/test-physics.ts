@@ -198,7 +198,11 @@ class TestPhysics extends TestBase {
         const rayFrom = this.ray.group.getWorldPosition(new THREE.Vector3());
         const rayDirection = new THREE.Vector3(0, 1, 0).transformDirection(this.ray.group.matrixWorld);
         const rayTo = rayFrom.clone().addScaledVector(rayDirection, maxDistance);
-        const intersection = this.voxelmapCollisions.rayCast(rayFrom, rayTo);
+        const intersection = this.voxelmapCollisions.rayCast(rayFrom, rayTo, {
+            missingVoxels: {
+                considerAsBlocking: false,
+            },
+        });
         const intersectionDistance = intersection?.distance ?? maxDistance;
         this.setRayLength(intersectionDistance);
     }
