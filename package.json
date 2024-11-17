@@ -23,29 +23,29 @@
     "access": "public"
   },
   "peerDependencies": {
-    "three": ">=0.166.0"
+    "three": ">=0.170.0"
   },
   "devDependencies": {
-    "@types/three": "^0.166.0",
-    "@typescript-eslint/eslint-plugin": "^8.6.0",
-    "@typescript-eslint/parser": "^8.6.0",
-    "@webgpu/types": "^0.1.45",
+    "@types/three": "^0.170.0",
+    "@typescript-eslint/eslint-plugin": "^8.14.0",
+    "@typescript-eslint/parser": "^8.14.0",
+    "@webgpu/types": "^0.1.51",
     "alea": "^1.0.1",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
     "eslint-config-standard": "^17.1.0",
-    "eslint-plugin-import": "^2.30.0",
+    "eslint-plugin-import": "^2.31.0",
     "http-server": "^14.1.1",
     "husky": "^9.1.6",
-    "lil-gui": "^0.19.2",
+    "lil-gui": "^0.20.0",
     "lint-staged": "^15.2.10",
     "prettier": "^3.3.3",
     "shx": "^0.3.4",
     "simplex-noise": "^4.0.3",
-    "three": "^0.166.1",
+    "three": "^0.170.0",
     "ts-loader": "^9.5.1",
-    "typescript": "^5.6.2",
-    "webpack": "^5.94.0",
+    "typescript": "^5.6.3",
+    "webpack": "^5.96.1",
     "webpack-cli": "^5.1.4"
   },
   "husky": {

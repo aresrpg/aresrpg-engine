@@ -56,7 +56,7 @@ abstract class TestTerrainBase extends TestBase {
                 this.cameraControl.enabled = !event.value;
             });
             playerControls.attach(playerContainer);
-            this.scene.add(playerControls);
+            this.scene.add(playerControls.getHelper());
 
             const testPlayerVisilibityFrustum = true;
             if (testPlayerVisilibityFrustum) {
@@ -137,7 +137,7 @@ abstract class TestTerrainBase extends TestBase {
                 this.cameraControl.enabled = !event.value;
             });
             planeControls.attach(planeReceivingShadows);
-            this.scene.add(planeControls);
+            this.scene.add(planeControls.getHelper());
 
             // const sphereCastingShadows = new THREE.Mesh(new THREE.SphereGeometry(10), new THREE.MeshPhongMaterial());
             // sphereCastingShadows.position.set(20, 30, 20);

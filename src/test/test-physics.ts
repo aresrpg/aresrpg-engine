@@ -57,7 +57,7 @@ class TestPhysics extends TestBase {
         super();
 
         const gui = new GUI();
-        gui.add(this, 'maxFps', 1, 120, 1);
+        gui.add(this, 'maxFps' as keyof TestBase, 1, 120, 1);
 
         this.camera.position.set(-10, 170, 0);
         this.cameraControl.target.set(0, 150, 0);
@@ -133,7 +133,7 @@ class TestPhysics extends TestBase {
         });
         rayControls.mode = 'rotate';
         rayControls.attach(rayGroup);
-        this.scene.add(rayControls);
+        this.scene.add(rayControls.getHelper());
 
         this.setRayLength(10);
 
@@ -201,7 +201,7 @@ class TestPhysics extends TestBase {
         );
         const intersection = this.voxelmapCollisions.rayIntersect(ray, {
             maxDistance,
-            side: THREE.BackSide,
+            side: THREE.DoubleSide,
             missingVoxels: {
                 considerAsBlocking: false,
             },

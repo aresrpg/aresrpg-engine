@@ -119,7 +119,7 @@ class TestTerrain extends TestTerrainBase {
         });
         fakeCameraControls.attach(fakeCamera);
         this.scene.add(fakeCamera);
-        this.scene.add(fakeCameraControls);
+        this.scene.add(fakeCameraControls.getHelper());
 
         const testBoard = true;
         if (testBoard) {
