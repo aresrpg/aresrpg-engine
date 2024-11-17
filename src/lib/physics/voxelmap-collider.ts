@@ -29,6 +29,19 @@ type Parameters = {
     readonly voxelsChunkOrdering: VoxelsChunkOrdering;
 };
 
+type VoxelmapColliderStatistics = {
+    totalChunksCount: number;
+    totalMemoryBytes: number;
+    compactedChunks: {
+        count: number;
+        totalMemoryBytes: number;
+    };
+    rawChunks: {
+        count: number;
+        totalMemoryBytes: number;
+    };
+};
+
 class VoxelmapCollider implements IVoxelmapCollider {
     private readonly chunkSize: THREE.Vector3Like;
     private readonly voxelsChunkOrdering: VoxelsChunkOrdering;
@@ -200,6 +213,37 @@ class VoxelmapCollider implements IVoxelmapCollider {
             }
             return EVoxelStatus.FULL;
         }
+    }
+
+    public getStatistics(): VoxelmapColliderStatistics {
+        const statistics: VoxelmapColliderStatistics = {
+            totalChunksCount: 0,
+            totalMemoryBytes: 0,
+            compactedChunks: {
+                count: 0,
+                totalMemoryBytes: 0,
+            },
+            rawChunks: {
+                count: 0,
+                totalMemoryBytes: 0,
+            },
+        };
+
+        for (const chunk of Object.values(this.chunkCollidersMap)) {
+            statistics.totalChunksCount++;
+
+            if (!chunk.isEmpty) {
+                if (chunk.type === 'compacted') {
+                    statistics.compactedChunks.count++;
+                    statistics.compactedChunks.totalMemoryBytes += chunk.data.byteLength;
+                } else {
+                    statistics.rawChunks.count++;
+                    statistics.rawChunks.totalMemoryBytes += chunk.data.byteLength;
+                }
+                statistics.totalMemoryBytes += chunk.data.byteLength;
+            }
+        }
+        return statistics;
     }
 }
 
