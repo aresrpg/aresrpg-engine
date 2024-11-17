@@ -12,6 +12,7 @@ export {
     Matrix4,
     PCFShadowMap,
     PerspectiveCamera,
+    Ray,
     SRGBColorSpace,
     Scene,
     SphereGeometry,

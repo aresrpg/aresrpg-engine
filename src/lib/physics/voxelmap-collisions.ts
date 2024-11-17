@@ -9,7 +9,11 @@ type Parameters = {
 
 type ComputationStatus = 'ok' | 'partial';
 
+type FaceSide = typeof THREE.FrontSide | typeof THREE.BackSide | typeof THREE.DoubleSide;
+
 type RaycastOptions = {
+    readonly maxDistance: number;
+    readonly side: FaceSide;
     readonly missingVoxels: {
         readonly considerAsBlocking: boolean;
     };
@@ -19,6 +23,7 @@ type RaycastOutput = {
     computationStatus: ComputationStatus;
     distance: number;
     point: THREE.Vector3Like;
+    normal: THREE.Vector3Like;
 };
 
 type SphereIntersection = {
@@ -75,51 +80,68 @@ class VoxelmapCollisions {
         });
     }
 
-    public rayCast(from: THREE.Vector3Like, to: THREE.Vector3Like, options: RaycastOptions): RaycastOutput | null {
+    public rayIntersect(ray: THREE.Ray, options: RaycastOptions): RaycastOutput | null {
+        if (options.maxDistance <= 0) {
+            return null;
+        }
+
         type Candidate = {
             readonly distance: number;
-            readonly voxelId: THREE.Vector3Like;
+            readonly voxelId1: THREE.Vector3Like;
+            readonly voxelId2: THREE.Vector3Like;
+            readonly direction: THREE.Vector3Like;
         };
 
-        const delta = new THREE.Vector3().subVectors(to, from);
-        const maxDistance = delta.length();
-        const direction = new THREE.Vector3().copy(delta).normalize();
+        const from = ray.origin;
+        const delta = ray.direction.clone().multiplyScalar(options.maxDistance);
+        const to = new THREE.Vector3().addVectors(ray.origin, delta);
 
         const coords = new THREE.Vector3();
         const candidates: Candidate[] = [];
         const addCandidates = (direction: THREE.Vector3Like): void => {
-            const fromW = direction.x * from.x + direction.y * from.y + direction.z * from.z;
-            const toW = direction.x * to.x + direction.y * to.y + direction.z * to.z;
-            const deltaW = direction.x * delta.x + direction.y * delta.y + direction.z * delta.z;
+            const fromW = ray.origin.dot(direction);
+            const toW = to.dot(direction);
+            const deltaW = toW - fromW;
 
-            if (toW > fromW) {
-                const fromVoxelW = Math.ceil(fromW);
-                const toVoxelW = Math.floor(toW);
+            const fromVoxelW = Math.floor(fromW);
+            const toVoxelW = Math.floor(toW);
+
+            if (deltaW > 0) {
                 for (let voxelW = fromVoxelW; voxelW <= toVoxelW; voxelW++) {
-                    const progress = (voxelW - fromW) / deltaW;
-                    coords.copy(from).addScaledVector(delta, progress);
+                    const progress = (voxelW + 1 - fromW) / deltaW;
+                    coords.copy(from).addScaledVector(delta, progress).floor();
                     candidates.push({
-                        distance: maxDistance * progress,
-                        voxelId: {
-                            x: direction.x > 0 ? voxelW : Math.floor(coords.x),
-                            y: direction.y > 0 ? voxelW : Math.floor(coords.y),
-                            z: direction.z > 0 ? voxelW : Math.floor(coords.z),
+                        distance: options.maxDistance * progress,
+                        voxelId1: {
+                            x: direction.x === 0 ? coords.x : voxelW,
+                            y: direction.y === 0 ? coords.y : voxelW,
+                            z: direction.z === 0 ? coords.z : voxelW,
                         },
+                        voxelId2: {
+                            x: direction.x === 0 ? coords.x : voxelW + 1,
+                            y: direction.y === 0 ? coords.y : voxelW + 1,
+                            z: direction.z === 0 ? coords.z : voxelW + 1,
+                        },
+                        direction: { ...direction },
                     });
                 }
-            } else if (toW < fromW) {
-                const fromVoxelW = Math.floor(fromW);
-                const toVoxelW = Math.ceil(toW);
+            } else if (deltaW < 0) {
                 for (let voxelW = fromVoxelW; voxelW >= toVoxelW; voxelW--) {
                     const progress = (voxelW - fromW) / deltaW;
-                    coords.copy(from).addScaledVector(delta, progress);
+                    coords.copy(from).addScaledVector(delta, progress).floor();
                     candidates.push({
-                        distance: maxDistance * progress,
-                        voxelId: {
-                            x: (direction.x > 0 ? voxelW : Math.floor(coords.x)) - direction.x,
-                            y: (direction.y > 0 ? voxelW : Math.floor(coords.y)) - direction.y,
-                            z: (direction.z > 0 ? voxelW : Math.floor(coords.z)) - direction.z,
+                        distance: options.maxDistance * progress,
+                        voxelId1: {
+                            x: direction.x === 0 ? coords.x : voxelW,
+                            y: direction.y === 0 ? coords.y : voxelW,
+                            z: direction.z === 0 ? coords.z : voxelW,
                         },
+                        voxelId2: {
+                            x: direction.x === 0 ? coords.x : voxelW - 1,
+                            y: direction.y === 0 ? coords.y : voxelW - 1,
+                            z: direction.z === 0 ? coords.z : voxelW - 1,
+                        },
+                        direction: { ...direction },
                     });
                 }
             }
@@ -129,29 +151,40 @@ class VoxelmapCollisions {
         addCandidates({ x: 0, y: 0, z: 1 });
         candidates.sort((a: Candidate, b: Candidate) => a.distance - b.distance);
 
-        const isVoxelFull = (voxelStatus: EVoxelStatus) => {
-            return (
-                voxelStatus === EVoxelStatus.FULL || (voxelStatus === EVoxelStatus.NOT_LOADED && options.missingVoxels.considerAsBlocking)
-            );
-        };
-
-        const sourceVoxelStatus = this.getVoxelStatus(from);
-        const isSourceVoxelFull = isVoxelFull(sourceVoxelStatus);
-
         let computationStatus: ComputationStatus = 'ok';
-        for (const candidate of candidates) {
-            const voxelStatus = this.voxelmapCollider.getVoxel(candidate.voxelId);
+        const isVoxelFull = (voxelId: THREE.Vector3Like) => {
+            const voxelStatus = this.voxelmapCollider.getVoxel(voxelId);
             if (voxelStatus === EVoxelStatus.NOT_LOADED) {
                 computationStatus = 'partial';
+                return options.missingVoxels.considerAsBlocking;
             }
-            const voxelIsFull = isVoxelFull(voxelStatus);
+            return voxelStatus === EVoxelStatus.FULL;
+        };
 
-            if (isSourceVoxelFull !== voxelIsFull) {
-                return {
-                    distance: candidate.distance,
-                    point: new THREE.Vector3().copy(from).addScaledVector(direction, candidate.distance),
-                    computationStatus,
-                };
+        for (const candidate of candidates) {
+            const isVoxel1Full = isVoxelFull(candidate.voxelId1);
+            const isVoxel2Full = isVoxelFull(candidate.voxelId2);
+
+            if (isVoxel1Full !== isVoxel2Full) {
+                if (isVoxel1Full) {
+                    if (options.side === THREE.BackSide || options.side === THREE.DoubleSide) {
+                        return {
+                            computationStatus,
+                            distance: candidate.distance,
+                            point: ray.origin.clone().addScaledVector(ray.direction, candidate.distance),
+                            normal: new THREE.Vector3().copy(candidate.direction),
+                        };
+                    }
+                } else {
+                    if (options.side === THREE.FrontSide || options.side === THREE.DoubleSide) {
+                        return {
+                            computationStatus,
+                            distance: candidate.distance,
+                            point: ray.origin.clone().addScaledVector(ray.direction, candidate.distance),
+                            normal: new THREE.Vector3().copy(candidate.direction).multiplyScalar(-1),
+                        };
+                    }
+                }
             }
         }
 

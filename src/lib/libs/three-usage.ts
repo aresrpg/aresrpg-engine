@@ -1,4 +1,5 @@
 export {
+    BackSide,
     type Blending,
     Box2,
     Box3,
@@ -6,7 +7,9 @@ export {
     Color,
     CustomBlending,
     DataTexture,
+    DoubleSide,
     Float32BufferAttribute,
+    FrontSide,
     Group,
     InstancedBufferAttribute,
     InstancedBufferGeometry,
@@ -24,6 +27,7 @@ export {
     PerspectiveCamera,
     PlaneGeometry,
     RawShaderMaterial,
+    type Ray,
     RedFormat,
     RedIntegerFormat,
     RGBAFormat,
