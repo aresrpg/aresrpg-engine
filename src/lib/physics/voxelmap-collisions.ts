@@ -16,14 +16,18 @@ type RaycastOptions = {
     readonly side: FaceSide;
     readonly missingVoxels: {
         readonly considerAsBlocking: boolean;
+        readonly exportAsList: boolean;
     };
 };
 
 type RaycastOutput = {
     computationStatus: ComputationStatus;
-    distance: number;
-    point: THREE.Vector3Like;
-    normal: THREE.Vector3Like;
+    intersection?: {
+        distance: number;
+        point: THREE.Vector3Like;
+        normal: THREE.Vector3Like;
+    };
+    missingVoxels?: THREE.Vector3Like[];
 };
 
 type SphereIntersection = {
@@ -53,7 +57,7 @@ type EntityCollisionOutput = {
     position: THREE.Vector3;
     velocity: THREE.Vector3;
     isOnGround: boolean;
-    missingVoxels: THREE.Vector3Like[];
+    missingVoxels?: THREE.Vector3Like[];
 };
 
 function clamp(x: number, min: number, max: number): number {
@@ -63,6 +67,14 @@ function clamp(x: number, min: number, max: number): number {
         return max;
     }
     return x;
+}
+
+function removeVoxelIdDuplicates(list: THREE.Vector3Like[]): THREE.Vector3Like[] {
+    const map: Record<string, THREE.Vector3Like> = {};
+    for (const voxelId of list) {
+        map[`${voxelId.x}_${voxelId.y}_${voxelId.z}`] = voxelId;
+    }
+    return Object.values(map);
 }
 
 class VoxelmapCollisions {
@@ -151,15 +163,22 @@ class VoxelmapCollisions {
         addCandidates({ x: 0, y: 0, z: 1 });
         candidates.sort((a: Candidate, b: Candidate) => a.distance - b.distance);
 
+        const missingVoxels: THREE.Vector3Like[] | null = options.missingVoxels.exportAsList ? [] : null;
+
         let computationStatus: ComputationStatus = 'ok';
         const isVoxelFull = (voxelId: THREE.Vector3Like) => {
             const voxelStatus = this.voxelmapCollider.getVoxel(voxelId);
             if (voxelStatus === EVoxelStatus.NOT_LOADED) {
                 computationStatus = 'partial';
+                if (missingVoxels) {
+                    missingVoxels.push({ ...voxelId });
+                }
                 return options.missingVoxels.considerAsBlocking;
             }
             return voxelStatus === EVoxelStatus.FULL;
         };
+
+        let result: RaycastOutput | null = null;
 
         for (const candidate of candidates) {
             const isVoxel1Full = isVoxelFull(candidate.voxelId1);
@@ -168,27 +187,42 @@ class VoxelmapCollisions {
             if (isVoxel1Full !== isVoxel2Full) {
                 if (isVoxel1Full) {
                     if (options.side === THREE.BackSide || options.side === THREE.DoubleSide) {
-                        return {
+                        result = {
                             computationStatus,
-                            distance: candidate.distance,
-                            point: ray.origin.clone().addScaledVector(ray.direction, candidate.distance),
-                            normal: new THREE.Vector3().copy(candidate.direction),
+                            intersection: {
+                                distance: candidate.distance,
+                                point: ray.origin.clone().addScaledVector(ray.direction, candidate.distance),
+                                normal: new THREE.Vector3().copy(candidate.direction),
+                            },
                         };
+                        break;
                     }
                 } else {
                     if (options.side === THREE.FrontSide || options.side === THREE.DoubleSide) {
-                        return {
+                        result = {
                             computationStatus,
-                            distance: candidate.distance,
-                            point: ray.origin.clone().addScaledVector(ray.direction, candidate.distance),
-                            normal: new THREE.Vector3().copy(candidate.direction).multiplyScalar(-1),
+                            intersection: {
+                                distance: candidate.distance,
+                                point: ray.origin.clone().addScaledVector(ray.direction, candidate.distance),
+                                normal: new THREE.Vector3().copy(candidate.direction).multiplyScalar(-1),
+                            },
                         };
+                        break;
                     }
                 }
             }
         }
 
-        return null;
+        if (!result) {
+            result = {
+                computationStatus,
+            };
+        }
+        if (missingVoxels) {
+            result.missingVoxels = removeVoxelIdDuplicates(missingVoxels);
+        }
+
+        return result;
     }
 
     public sphereIntersect(sphere: THREE.Sphere): SphereIntersection | null {
@@ -282,13 +316,14 @@ class VoxelmapCollisions {
     public entityMovement(entityCollider: EntityCollider, options: EntityCollisionOptions): EntityCollisionOutput {
         const maxDeltaTime = 10 / 1000;
 
+        const missingVoxels: THREE.Vector3Like[] | null = options.missingVoxels.exportAsList ? [] : null;
+
         let currentState = entityCollider;
         const output: EntityCollisionOutput = {
             computationStatus: 'ok',
             position: new THREE.Vector3().copy(entityCollider.position),
             velocity: new THREE.Vector3().copy(entityCollider.velocity),
             isOnGround: false,
-            missingVoxels: [],
         };
 
         const applyAndMergeStep = (deltaTime: number) => {
@@ -310,7 +345,10 @@ class VoxelmapCollisions {
             output.position = localOutput.position;
             output.velocity = localOutput.velocity;
             output.isOnGround = localOutput.isOnGround;
-            output.missingVoxels.push(...localOutput.missingVoxels);
+
+            if (missingVoxels && localOutput.missingVoxels) {
+                missingVoxels.push(...localOutput.missingVoxels);
+            }
         };
 
         let remainingDeltaTime = options.deltaTime;
@@ -325,6 +363,9 @@ class VoxelmapCollisions {
             applyAndMergeStep(0);
         }
 
+        if (missingVoxels) {
+            output.missingVoxels = removeVoxelIdDuplicates(missingVoxels);
+        }
         return output;
     }
 
@@ -338,7 +379,7 @@ class VoxelmapCollisions {
             throw new Error(`Invert gravity not supported.`);
         }
 
-        const missingVoxels: THREE.Vector3Like[] = [];
+        const missingVoxels: THREE.Vector3Like[] | null = options.missingVoxels.exportAsList ? [] : null;
 
         const playerPosition = new THREE.Vector3().copy(entityCollider.position);
         const playerVelocity = new THREE.Vector3().copy(entityCollider.velocity);
@@ -375,7 +416,7 @@ class VoxelmapCollisions {
             const voxelStatus = this.voxelmapCollider.getVoxel(voxel);
             if (voxelStatus === EVoxelStatus.NOT_LOADED) {
                 allVoxelmapDataIsAvailable = false;
-                if (options.missingVoxels.exportAsList) {
+                if (missingVoxels) {
                     missingVoxels.push({ ...voxel });
                 }
                 return options.missingVoxels.considerAsBlocking;
@@ -512,13 +553,16 @@ class VoxelmapCollisions {
             }
         }
 
-        return {
+        const result: EntityCollisionOutput = {
             computationStatus: allVoxelmapDataIsAvailable ? 'ok' : 'partial',
             position: playerPosition,
             velocity: playerVelocity,
             isOnGround,
-            missingVoxels,
         };
+        if (missingVoxels) {
+            result.missingVoxels = missingVoxels;
+        }
+        return result;
     }
 
     /* Computes the projection of a point onto the {0,1}² square. */

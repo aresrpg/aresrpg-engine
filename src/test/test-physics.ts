@@ -199,14 +199,15 @@ class TestPhysics extends TestBase {
             this.ray.group.getWorldPosition(new THREE.Vector3()),
             new THREE.Vector3(0, 1, 0).transformDirection(this.ray.group.matrixWorld)
         );
-        const intersection = this.voxelmapCollisions.rayIntersect(ray, {
+        const intersectionResult = this.voxelmapCollisions.rayIntersect(ray, {
             maxDistance,
             side: THREE.DoubleSide,
             missingVoxels: {
                 considerAsBlocking: false,
+                exportAsList: true,
             },
         });
-        const intersectionDistance = intersection?.distance ?? maxDistance;
+        const intersectionDistance = intersectionResult?.intersection?.distance ?? maxDistance;
         this.setRayLength(intersectionDistance);
     }
 
@@ -260,7 +261,7 @@ class TestPhysics extends TestBase {
                 ascendSpeed: 30,
                 missingVoxels: {
                     considerAsBlocking: true,
-                    exportAsList: false,
+                    exportAsList: true,
                 },
             }
         );
