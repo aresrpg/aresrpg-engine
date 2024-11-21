@@ -8,6 +8,7 @@ import { PatchFactoryCpuWorker } from '../../patch/patch-factory/merged/patch-fa
 import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
 import { type PatchFactoryBase } from '../../patch/patch-factory/patch-factory-base';
 import { PatchId } from '../../patch/patch-id';
+import { EVoxelMaterialQuality } from '../../voxelsRenderable/voxels-material';
 import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
 import { type CheckerboardType, type VoxelsChunkData } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 import { VoxelmapViewerBase, type ComputedPatch, type PatchRenderable } from '../voxelmap-viewer-base';
@@ -65,9 +66,16 @@ type EnqueuedPatchRenderable = {
     invalidated: boolean;
 };
 
+type AdaptativeQualityParameters = {
+    readonly distanceThreshold: number;
+    readonly cameraPosition: THREE.Vector3Like;
+};
+
 class VoxelmapViewer extends VoxelmapViewerBase {
     public readonly computationOptions: ComputationOptions;
     public readonly maxPatchesComputedInParallel: number;
+
+    private adaptativeQuality: AdaptativeQualityParameters | null = null;
 
     private readonly promiseThrottler: PromisesQueue;
     private readonly patchFactory: PatchFactoryBase;
@@ -221,9 +229,13 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                     invalidated: enqueuedPatch.invalidated,
                 };
 
-                if (voxelsRenderable && storedPatch.isVisible) {
-                    this.container.add(voxelsRenderable.container);
-                    this.notifyChange();
+                if (voxelsRenderable) {
+                    this.updateVoxelsRenderableQuality(voxelsRenderable);
+
+                    if (storedPatch.isVisible) {
+                        this.container.add(voxelsRenderable.container);
+                        this.notifyChange();
+                    }
                 }
 
                 resolve('success');
@@ -319,6 +331,37 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         const voxelFrom = new THREE.Vector3().multiplyVectors(id, this.patchSize).subScalar(1);
         const voxelTo = voxelFrom.clone().add(this.patchSize).addScalar(2);
         return new THREE.Box3(voxelFrom, voxelTo);
+    }
+
+    public setAdaptativeQuality(parameters: AdaptativeQualityParameters): void {
+        this.adaptativeQuality = {
+            distanceThreshold: parameters.distanceThreshold,
+            cameraPosition: {
+                x: parameters.cameraPosition.x,
+                y: parameters.cameraPosition.y,
+                z: parameters.cameraPosition.z,
+            },
+        };
+
+        for (const storedPatch of Object.values(this.patchesStore)) {
+            if (storedPatch.status === 'ready' && storedPatch.renderable) {
+                this.updateVoxelsRenderableQuality(storedPatch.renderable);
+            }
+        }
+    }
+
+    private updateVoxelsRenderableQuality(voxelsRenderable: VoxelsRenderable): void {
+        let quality = EVoxelMaterialQuality.HIGH;
+
+        if (this.adaptativeQuality) {
+            const cameraPosition = new THREE.Vector3().copy(this.adaptativeQuality.cameraPosition);
+            const distance = voxelsRenderable.boundingBox.distanceToPoint(cameraPosition);
+            if (distance > this.adaptativeQuality.distanceThreshold) {
+                quality = EVoxelMaterialQuality.LOW;
+            }
+        }
+
+        voxelsRenderable.quality = quality;
     }
 
     protected override get allLoadedPatches(): ComputedPatch[] {

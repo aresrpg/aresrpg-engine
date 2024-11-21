@@ -1,6 +1,6 @@
 import * as THREE from '../../../libs/three-usage';
 
-import { EVoxelsDisplayMode, type VoxelsMaterials } from './voxels-material';
+import { EVoxelMaterialQuality, EVoxelsDisplayMode, type VoxelsMaterials } from './voxels-material';
 
 type PatchMesh = {
     readonly mesh: THREE.Mesh;
@@ -46,6 +46,21 @@ class VoxelsRenderable {
     public readonly trianglesCount: number;
     public readonly gpuMemoryBytes: number;
 
+    public readonly boundingBox: THREE.Box3;
+
+    private currentQuality: EVoxelMaterialQuality = EVoxelMaterialQuality.LOW;
+    public get quality(): EVoxelMaterialQuality {
+        return this.currentQuality;
+    }
+
+    public set quality(value: EVoxelMaterialQuality) {
+        if (this.currentQuality !== value) {
+            this.currentQuality = value;
+            this.enforceMaterials();
+            this.updateUniforms();
+        }
+    }
+
     public constructor(patchMeshes: PatchMesh[]) {
         this.gpuResources = { patchMeshes };
 
@@ -68,13 +83,19 @@ class VoxelsRenderable {
             this.gpuMemoryBytes = gpuMemoryBytes;
         }
 
+        this.boundingBox = new THREE.Box3();
+        for (const patchMesh of patchMeshes) {
+            this.boundingBox.union(patchMesh.mesh.geometry.boundingBox!);
+        }
+
+        this.enforceMaterials();
         this.updateUniforms();
     }
 
     public updateUniforms(): void {
         if (this.gpuResources) {
             for (const patchMesh of this.gpuResources.patchMeshes) {
-                const material = patchMesh.materials.material;
+                const material = patchMesh.materials.materials[this.currentQuality];
                 const uniforms = material.userData.uniforms;
 
                 uniforms.uAoStrength.value = +this.parameters.ao.enabled * this.parameters.ao.strength;
@@ -101,11 +122,22 @@ class VoxelsRenderable {
             for (const patchMesh of this.gpuResources.patchMeshes) {
                 patchMesh.mesh.removeFromParent();
                 patchMesh.mesh.geometry.dispose();
-                patchMesh.materials.material.dispose();
+
+                for (const material of Object.values(patchMesh.materials.materials)) {
+                    material.dispose();
+                }
                 patchMesh.materials.shadowMaterial.dispose();
             }
 
             this.gpuResources = null;
+        }
+    }
+
+    private enforceMaterials(): void {
+        if (this.gpuResources) {
+            for (const patchMesh of this.gpuResources.patchMeshes) {
+                patchMesh.mesh.material = patchMesh.materials.materials[this.currentQuality];
+            }
         }
     }
 }

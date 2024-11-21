@@ -329,14 +329,23 @@ void main() {
     }
 
     private buildVoxelsMaterials(): VoxelsMaterials {
-        const material = this.buildThreeJsVoxelsMaterial({
-            enableAo: true,
-            enableNoise: true,
-            enableRoundedCorners: true,
-            enableGrid: false,
-        });
-        const shadowMaterial = this.buildShadowMaterial();
-        return { material, shadowMaterial };
+        return {
+            materials: {
+                0: this.buildThreeJsVoxelsMaterial({
+                    enableAo: false,
+                    enableNoise: false,
+                    enableRoundedCorners: false,
+                    enableGrid: false,
+                }),
+                1: this.buildThreeJsVoxelsMaterial({
+                    enableAo: true,
+                    enableNoise: true,
+                    enableRoundedCorners: true,
+                    enableGrid: false,
+                }),
+            },
+            shadowMaterial: this.buildShadowMaterial(),
+        };
     }
 
     public constructor(params: Parameters) {
@@ -361,7 +370,9 @@ void main() {
 
     public override dispose(): void {
         super.dispose();
-        this.materialsTemplates.material.dispose();
+        for (const material of Object.values(this.materialsTemplates.materials)) {
+            material.dispose();
+        }
         this.materialsTemplates.shadowMaterial.dispose();
     }
 

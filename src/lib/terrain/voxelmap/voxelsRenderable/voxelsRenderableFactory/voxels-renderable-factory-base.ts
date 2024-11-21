@@ -129,20 +129,14 @@ abstract class VoxelsRenderableFactoryBase {
                 geometry.boundingBox = boundingBox.clone();
                 geometry.boundingSphere = boundingSphere.clone();
 
-                const material = geometryAndMaterial.materials.material;
-                const shadowMaterial = geometryAndMaterial.materials.shadowMaterial;
-                const mesh = new THREE.Mesh(geometryAndMaterial.geometry, material);
+                const mesh = new THREE.Mesh(geometryAndMaterial.geometry);
                 mesh.name = geometryAndMaterial.id;
-                mesh.customDepthMaterial = shadowMaterial;
+                mesh.customDepthMaterial = geometryAndMaterial.materials.shadowMaterial;
                 mesh.castShadow = true;
                 mesh.receiveShadow = true;
                 mesh.frustumCulled = true;
 
-                const materials = {
-                    material,
-                    shadowMaterial,
-                };
-                return { mesh, materials, trianglesCount, gpuMemoryBytes };
+                return { mesh, materials: geometryAndMaterial.materials, trianglesCount, gpuMemoryBytes };
             })
         );
         return voxelsRenderable;

@@ -141,6 +141,12 @@ class TestTerrain extends TestTerrainBase {
             voxelsChunkOrdering: 'zyx',
         });
         this.voxelmapViewer.parameters.faces.checkerboardContrast = 0.01;
+        setInterval(() => {
+            this.voxelmapViewer.setAdaptativeQuality({
+                distanceThreshold: 100,
+                cameraPosition: this.camera.getWorldPosition(new THREE.Vector3()),
+            });
+        }, 150);
 
         const heightmapViewer = new HeightmapViewer(map, {
             basePatchSize: chunkSize.xz,

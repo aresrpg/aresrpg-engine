@@ -25,9 +25,14 @@ type VoxelsMaterial = THREE.Material & {
     };
 };
 
+enum EVoxelMaterialQuality {
+    LOW = 0,
+    HIGH = 1,
+}
+
 type VoxelsMaterials = {
-    readonly material: VoxelsMaterial;
+    readonly materials: Record<EVoxelMaterialQuality, VoxelsMaterial>;
     readonly shadowMaterial: THREE.Material;
 };
 
-export { EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterialUniforms, type VoxelsMaterials };
+export { EVoxelMaterialQuality, EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterialUniforms, type VoxelsMaterials };

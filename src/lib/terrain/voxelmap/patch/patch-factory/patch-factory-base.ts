@@ -113,6 +113,7 @@ abstract class PatchFactoryBase {
             voxelsRenderable.container.name = `Voxels patch ${patchId.asString}`;
             voxelsRenderable.container.position.set(patchStart.x, patchStart.y, patchStart.z);
             voxelsRenderable.container.updateWorldMatrix(false, true);
+            voxelsRenderable.boundingBox.translate(new THREE.Vector3().copy(patchStart));
         }
         return voxelsRenderable;
     }
