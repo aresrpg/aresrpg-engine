@@ -10,7 +10,7 @@ export {
     Frustum,
     GridHelper,
     Matrix4,
-    PCFShadowMap,
+    PCFSoftShadowMap,
     PerspectiveCamera,
     Ray,
     SRGBColorSpace,

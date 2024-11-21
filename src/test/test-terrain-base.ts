@@ -154,7 +154,7 @@ abstract class TestTerrainBase extends TestBase {
             dirLight.shadow.mapSize.height = 1024;
 
             this.renderer.shadowMap.enabled = true;
-            this.renderer.shadowMap.type = THREE.PCFShadowMap;
+            this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         }
 
         const lightColor = new THREE.Color(0xffffff);
