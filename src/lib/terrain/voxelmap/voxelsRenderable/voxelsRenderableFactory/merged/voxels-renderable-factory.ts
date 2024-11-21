@@ -14,6 +14,13 @@ type VoxelsMaterialTemp = THREE.Material & {
     };
 };
 
+type VoxelsMaterialParameters = {
+    readonly enableAo: boolean;
+    readonly enableNoise: boolean;
+    readonly enableRoundedCorners: boolean;
+    readonly enableGrid: boolean;
+};
+
 type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly maxVoxelsChunkSize: VoxelsChunkSize;
@@ -35,7 +42,7 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
 
     private readonly materialsTemplates: VoxelsMaterials;
 
-    private buildThreeJsVoxelsMaterial(): VoxelsMaterial {
+    private buildThreeJsVoxelsMaterial(parameters: VoxelsMaterialParameters): VoxelsMaterial {
         function applyReplacements(source: string, replacements: Record<string, string>): string {
             let result = source;
 
@@ -57,10 +64,18 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
         material.userData.uniforms = this.uniformsTemplate;
         material.customProgramCacheKey = () => `voxels-factory-merged_${this.instanceId}`;
         material.defines = material.defines || {};
-        material.defines[cstVoxelAo] = 1;
-        material.defines[cstVoxelNoise] = 1;
-        material.defines[cstVoxelRounded] = 1;
-        material.defines[cstVoxelGrid] = 1;
+        if (parameters.enableAo) {
+            material.defines[cstVoxelAo] = 1;
+        }
+        if (parameters.enableNoise) {
+            material.defines[cstVoxelNoise] = 1;
+        }
+        if (parameters.enableRoundedCorners) {
+            material.defines[cstVoxelRounded] = 1;
+        }
+        if (parameters.enableGrid) {
+            material.defines[cstVoxelGrid] = 1;
+        }
         material.onBeforeCompile = parameters => {
             parameters.uniforms = {
                 ...parameters.uniforms,
@@ -314,7 +329,12 @@ void main() {
     }
 
     private buildVoxelsMaterials(): VoxelsMaterials {
-        const material = this.buildThreeJsVoxelsMaterial();
+        const material = this.buildThreeJsVoxelsMaterial({
+            enableAo: true,
+            enableNoise: true,
+            enableRoundedCorners: true,
+            enableGrid: false,
+        });
         const shadowMaterial = this.buildShadowMaterial();
         return { material, shadowMaterial };
     }
