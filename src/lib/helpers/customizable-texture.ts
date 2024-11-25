@@ -16,6 +16,11 @@ type TextureLayer = {
 class CustomizableTexture {
     public readonly texture: THREE.Texture;
 
+    public needsUpdate: boolean = true;
+    public get layerNames(): ReadonlyArray<string> {
+        return Array.from(this.layers.keys());
+    }
+
     private readonly baseTexture: THREE.Texture;
     private readonly layers: ReadonlyMap<string, TextureLayer>;
 
@@ -117,8 +122,7 @@ void main() {
     public setLayerColor(layerName: string, color: THREE.Color): void {
         const layer = this.layers.get(layerName);
         if (!layer) {
-            const layerNames = Array.from(this.layers.keys());
-            throw new Error(`Unknown layer name "${layerName}". Layer names are: ${layerNames.join('; ')}.`);
+            throw new Error(`Unknown layer name "${layerName}". Layer names are: ${this.layerNames.join('; ')}.`);
         }
 
         if (layer.color.equals(color)) {
@@ -126,6 +130,16 @@ void main() {
         }
 
         layer.color.set(color);
+        this.needsUpdate = true;
+    }
+
+    public getLayerColor(layerName: string): THREE.Color {
+        const layer = this.layers.get(layerName);
+        if (!layer) {
+            throw new Error(`Unknown layer name "${layerName}". Layer names are: ${this.layerNames.join('; ')}.`);
+        }
+
+        return layer.color.clone();
     }
 
     public update(renderer: THREE.WebGLRenderer): void {
@@ -162,6 +176,8 @@ void main() {
         renderer.setClearAlpha(previousState.clearAlpha);
         renderer.autoClear = previousState.autoClear;
         renderer.autoClearColor = previousState.autoClearColor;
+
+        this.needsUpdate = false;
     }
 }
 
