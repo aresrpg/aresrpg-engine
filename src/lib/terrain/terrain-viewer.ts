@@ -15,10 +15,6 @@ class TerrainViewer {
     public readonly container: THREE.Object3D;
 
     public readonly parameters = {
-        shadows: {
-            cast: true,
-            receive: true,
-        },
         lod: {
             enabled: true,
             wireframe: false,

@@ -86,8 +86,8 @@ class TestTerrain extends TestTerrainBase {
         });
 
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
-        this.terrainViewer.parameters.shadows.cast = true;
-        this.terrainViewer.parameters.shadows.receive = true;
+        this.voxelmapViewer.parameters.shadows.cast = this.enableShadows;
+        this.voxelmapViewer.parameters.shadows.receive = this.enableShadows;
         // this.terrainViewer.parameters.lod.enabled = false;
         // this.terrainViewer.parameters.lod.wireframe = true;
         this.scene.add(this.terrainViewer.container);
