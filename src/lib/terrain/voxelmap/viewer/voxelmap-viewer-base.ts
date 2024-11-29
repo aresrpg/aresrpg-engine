@@ -52,6 +52,9 @@ abstract class VoxelmapViewerBase {
             thickness: 0.02,
             color: new THREE.Vector3(-0.1, -0.1, -0.1),
         },
+        specular: {
+            strength: 1,
+        },
     };
 
     public readonly minChunkIdY: number;
@@ -93,11 +96,13 @@ abstract class VoxelmapViewerBase {
             voxelsRenderable.parameters.ao.strength = voxelsSettings.ao.strength;
             voxelsRenderable.parameters.ao.spread = voxelsSettings.ao.spread;
 
-            voxelsRenderable.parameters.shadows = this.parameters.shadows;
+            voxelsRenderable.parameters.shadows = voxelsSettings.shadows;
 
             voxelsRenderable.parameters.grid.enabled = voxelsSettings.grid.enabled;
             voxelsRenderable.parameters.grid.thickness = voxelsSettings.grid.thickness;
             voxelsRenderable.parameters.grid.color = voxelsSettings.grid.color;
+
+            voxelsRenderable.parameters.specular.strength = Math.max(0.0001, voxelsSettings.specular.strength);
 
             voxelsRenderable.updateUniforms();
         }

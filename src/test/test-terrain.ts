@@ -192,6 +192,7 @@ return vec4(sampled.rgb / sampled.a, 1);
                 },
                 edgeSmoothness: this.voxelmapViewer.parameters.smoothEdges.radius,
                 ao: { ...this.voxelmapViewer.parameters.ao },
+                specular: { ...this.voxelmapViewer.parameters.specular },
             };
             voxelsFolder
                 .add(parameters, 'shadows')
@@ -242,6 +243,13 @@ return vec4(sampled.rgb / sampled.a, 1);
                 .name('AO strength')
                 .onChange(() => {
                     this.voxelmapViewer.parameters.ao.strength = parameters.ao.strength;
+                });
+
+            voxelsFolder
+                .add(parameters.specular, 'strength', 0, 1)
+                .name('Specular strength')
+                .onChange(() => {
+                    this.voxelmapViewer.parameters.specular.strength = parameters.specular.strength;
                 });
         }
     }

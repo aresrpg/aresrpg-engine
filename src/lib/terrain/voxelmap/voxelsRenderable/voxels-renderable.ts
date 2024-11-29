@@ -27,6 +27,9 @@ class VoxelsRenderable {
             radius: 0.1,
             quality: 2,
         },
+        specular: {
+            strength: 1,
+        },
         ao: {
             enabled: true,
             strength: 0.4,
@@ -108,6 +111,8 @@ class VoxelsRenderable {
 
                 uniforms.uGridThickness.value = +this.parameters.grid.enabled * this.parameters.grid.thickness;
                 uniforms.uGridColor.value = this.parameters.grid.color;
+
+                uniforms.uShininessStrength.value = this.parameters.specular.strength;
 
                 material.needsUpdate = true;
 

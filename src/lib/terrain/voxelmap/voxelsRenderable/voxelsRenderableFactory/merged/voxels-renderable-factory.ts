@@ -179,6 +179,8 @@ uniform vec3 uGridColor;
 uniform float uGridThickness;
 #endif // ${cstVoxelGrid}
 
+uniform float uShininessStrength;
+
 uniform uint uDisplayMode;
 
 uniform mat3 normalMatrix; // from three.js
@@ -258,7 +260,7 @@ VoxelMaterial getVoxelMaterial(const vec3 modelNormal) {
         ivec2 texelCoords = ivec2(voxelMaterialId % ${this.texture.image.width}u, voxelMaterialId / ${this.texture.image.width}u);
         vec4 fetchedTexel = texelFetch(uTexture, texelCoords, 0);
         voxelMaterial.color = fetchedTexel.rgb + noise;
-        voxelMaterial.shininess = ${VoxelsRenderableFactoryBase.maxShininess.toFixed(1)} * fetchedTexel.a * (1.0 + 10.0 * noise);
+        voxelMaterial.shininess = uShininessStrength * ${VoxelsRenderableFactoryBase.maxShininess.toFixed(1)} * fetchedTexel.a * (1.0 + 10.0 * noise);
     }
 
     if (uDisplayMode == ${EVoxelsDisplayMode.GREY}u) {
