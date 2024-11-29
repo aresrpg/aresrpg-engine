@@ -1,10 +1,11 @@
-import * as THREE from '../../../libs/three-usage';
 import { logger } from '../../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../../helpers/meshes-statistics';
+import * as THREE from '../../../libs/three-usage';
 import { type VoxelsChunkSize } from '../i-voxelmap';
 import { PatchId } from '../patch/patch-id';
 import { EVoxelsDisplayMode } from '../voxelsRenderable/voxels-material';
 import { type VoxelsRenderable } from '../voxelsRenderable/voxels-renderable';
+import { VoxelsRenderableFactoryBase } from '../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
 type VoxelmapStatistics = MeshesStatistics & {
     patchSize: THREE.Vector3Like;
@@ -21,6 +22,9 @@ type ComputedPatch = {
 };
 
 abstract class VoxelmapViewerBase {
+    public readonly maxSmoothEdgeRadius = VoxelsRenderableFactoryBase.maxSmoothEdgeRadius;
+    public readonly maxShininess = VoxelsRenderableFactoryBase.maxShininess;
+
     public readonly container: THREE.Group;
 
     public readonly parameters = {

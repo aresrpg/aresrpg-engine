@@ -13,13 +13,13 @@ enum EVoxelType {
 }
 
 const voxelMaterials: Record<EVoxelType, IVoxelMaterial> = [
-    { color: new THREE.Color('#ABABAB') },
-    { color: new THREE.Color('#00B920') },
-    { color: new THREE.Color('#E5E5E5') },
-    { color: new THREE.Color('#0055E2') },
-    { color: new THREE.Color('#DCBE28') },
-    { color: new THREE.Color('#692D00') },
-    { color: new THREE.Color('#007A00') },
+    { color: new THREE.Color('#ABABAB'), shininess: 0 },
+    { color: new THREE.Color('#00B920'), shininess: 1 },
+    { color: new THREE.Color('#E5E5E5'), shininess: 10 },
+    { color: new THREE.Color('#0055E2'), shininess: 30 },
+    { color: new THREE.Color('#DCBE28'), shininess: 10 },
+    { color: new THREE.Color('#692D00'), shininess: 0 },
+    { color: new THREE.Color('#007A00'), shininess: 5 },
 ];
 
 export { EVoxelType, voxelMaterials };

@@ -16,7 +16,7 @@ class ColorMapping {
             for (leveled.g = 0; leveled.g < this.valuesCountPerChannel; leveled.g++) {
                 for (leveled.r = 0; leveled.r < this.valuesCountPerChannel; leveled.r++) {
                     const color = this.buildColorFromLeveled(leveled);
-                    this.materialsList.push({ color });
+                    this.materialsList.push({ color, shininess: 200 * Math.random() });
                 }
             }
         }

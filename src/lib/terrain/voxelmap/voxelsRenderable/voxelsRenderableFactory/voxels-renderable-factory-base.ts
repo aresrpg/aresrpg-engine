@@ -44,6 +44,7 @@ type Parameters = {
 
 abstract class VoxelsRenderableFactoryBase {
     public static readonly maxSmoothEdgeRadius = 0.3;
+    public static readonly maxShininess = 400;
 
     public abstract readonly maxVoxelsChunkSize: THREE.Vector3;
 
@@ -164,7 +165,8 @@ abstract class VoxelsRenderableFactoryBase {
             textureData[4 * materialId + 0] = 255 * material.color.r;
             textureData[4 * materialId + 1] = 255 * material.color.g;
             textureData[4 * materialId + 2] = 255 * material.color.b;
-            textureData[4 * materialId + 3] = 255;
+            const shininess = material.shininess ?? 0;
+            textureData[4 * materialId + 3] = (255 * shininess) / VoxelsRenderableFactoryBase.maxShininess;
         });
         const texture = new THREE.DataTexture(textureData, textureWidth, textureHeight);
         texture.needsUpdate = true;

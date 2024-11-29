@@ -13,6 +13,7 @@ type Color = {
 
 interface IVoxelMaterial {
     readonly color: Color;
+    readonly shininess?: number;
 }
 
 type VoxelsChunkSize = {

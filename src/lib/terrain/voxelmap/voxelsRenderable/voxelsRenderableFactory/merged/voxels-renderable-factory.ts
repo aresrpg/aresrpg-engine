@@ -1,5 +1,5 @@
-import * as THREE from '../../../../../libs/three-usage';
 import { vec3ToString } from '../../../../../helpers/string';
+import * as THREE from '../../../../../libs/three-usage';
 import { type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterialUniforms, type VoxelsMaterials } from '../../voxels-material';
 import * as Cube from '../cube';
@@ -237,26 +237,45 @@ float computeNoise() {
 }
 #endif // ${cstVoxelNoise}
 
+struct VoxelMaterial {
+    vec3 color;
+    float shininess;
+};
+
+VoxelMaterial getVoxelMaterial(const vec3 modelNormal) {
+    VoxelMaterial voxelMaterial;
+
+    if (uDisplayMode == ${EVoxelsDisplayMode.NORMALS}u) {
+        voxelMaterial.color = 0.5 + 0.5 * modelNormal;
+        voxelMaterial.shininess = 0.0;
+    } else {
+        float noise = 0.0;
+        #ifdef ${cstVoxelNoise}
+        noise = computeNoise();
+        #endif // ${cstVoxelNoise}
+
+        uint voxelMaterialId = ${VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId.glslDecode('vData2')};
+        ivec2 texelCoords = ivec2(voxelMaterialId % ${this.texture.image.width}u, voxelMaterialId / ${this.texture.image.width}u);
+        vec4 fetchedTexel = texelFetch(uTexture, texelCoords, 0);
+        voxelMaterial.color = fetchedTexel.rgb + noise;
+        voxelMaterial.shininess = ${VoxelsRenderableFactoryBase.maxShininess.toFixed(1)} * fetchedTexel.a * (1.0 + 10.0 * noise);
+    }
+
+    if (uDisplayMode == ${EVoxelsDisplayMode.GREY}u) {
+        voxelMaterial.color = vec3(0.75);
+    }
+
+    return voxelMaterial;
+}
+
 void main() {
     vec3 modelNormal = computeModelNormal();
+    VoxelMaterial voxelMaterial = getVoxelMaterial(modelNormal);
 `,
                 '#include <normal_fragment_begin>': `
     vec3 normal = normalMatrix * modelNormal;`,
                 '#include <map_fragment>': `
-    vec3 materialColor = vec3(0.75);
-    if (uDisplayMode == ${EVoxelsDisplayMode.TEXTURED}u) {
-        uint voxelMaterialId = ${VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId.glslDecode('vData2')};
-        ivec2 texelCoords = ivec2(voxelMaterialId % ${this.texture.image.width}u, voxelMaterialId / ${this.texture.image.width}u);
-        materialColor = texelFetch(uTexture, texelCoords, 0).rgb;
-    } else if (uDisplayMode == ${EVoxelsDisplayMode.NORMALS}u) {
-        materialColor = 0.5 + 0.5 * modelNormal;
-    }
-
-    diffuseColor.rgb = materialColor;
-
-#ifdef ${cstVoxelNoise}
-    diffuseColor.rgb += computeNoise();
-#endif // ${cstVoxelNoise}
+    diffuseColor.rgb = voxelMaterial.color;
 
 #ifdef ${cstVoxelGrid}
     if (uGridThickness > 0.0) {
@@ -275,6 +294,10 @@ void main() {
     float ao = (1.0 - uAoStrength) + uAoStrength * (smoothstep(0.0, uAoSpread, 1.0 - vAo));
     diffuseColor.rgb *= ao;
 #endif // ${cstVoxelAo}
+    `,
+                '#include <lights_phong_fragment>': `
+    #include <lights_phong_fragment>
+    material.specularShininess = voxelMaterial.shininess;
     `,
             });
         };

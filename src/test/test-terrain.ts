@@ -90,7 +90,7 @@ class TestTerrain extends TestTerrainBase {
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
         this.voxelmapViewer.parameters.shadows.cast = this.enableShadows;
         this.voxelmapViewer.parameters.shadows.receive = this.enableShadows;
-        // this.terrainViewer.parameters.lod.enabled = false;
+        this.terrainViewer.parameters.lod.enabled = false;
         // this.terrainViewer.parameters.lod.wireframe = true;
         this.scene.add(this.terrainViewer.container);
 
@@ -213,7 +213,7 @@ return vec4(sampled.rgb / sampled.a, 1);
                     this.voxelmapViewer.parameters.faces.noiseContrast = parameters.face.noise;
                 });
             voxelsFolder
-                .add(parameters.face, 'checkerboard', 0, 0.2, 0.001)
+                .add(parameters.face, 'checkerboard', 0, this.voxelmapViewer.maxSmoothEdgeRadius, 0.001)
                 .name('Checkerboard contrast')
                 .onChange(() => {
                     this.voxelmapViewer.parameters.faces.checkerboardContrast = parameters.face.checkerboard;
