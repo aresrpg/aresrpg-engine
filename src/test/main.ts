@@ -2,6 +2,7 @@ import { ELogLevel, setVerbosity } from '../lib/index';
 
 import { VoxelMap } from './map/voxel-map';
 import { type TestBase } from './test-base';
+import { TestParticles } from './test-particles';
 import { TestPhysics } from './test-physics';
 import { TestTerrain } from './test-terrain';
 import { TestTerrainAutonomous } from './test-terrain-autonomous';
@@ -25,9 +26,10 @@ enum ETest {
     WEATHER,
     TEXTURE_CUSTOMIZATION,
     PHYSICS,
+    PARTICLES,
 }
 
-const test = ETest.PHYSICS as ETest;
+const test = ETest.TERRAIN as ETest;
 
 let testScene: TestBase;
 if (test === ETest.TERRAIN) {
@@ -40,6 +42,8 @@ if (test === ETest.TERRAIN) {
     testScene = new TestTextureCustomization();
 } else if (test === ETest.PHYSICS) {
     testScene = new TestPhysics(createVoxelMap());
+} else if (test === ETest.PARTICLES) {
+    testScene = new TestParticles(createVoxelMap());
 } else {
     throw new Error(`Unknown test "${test}".`);
 }
