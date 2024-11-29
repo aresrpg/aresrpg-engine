@@ -28,6 +28,7 @@ export {
     type VoxelsChunkData,
 } from './terrain/voxelmap/viewer/simple/voxelmap-viewer';
 export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibility-computer';
+export { EVoxelsDisplayMode } from './terrain/voxelmap/voxelsRenderable/voxels-material';
 export { type CheckerboardType } from './terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
 export { EVoxelStatus, type IVoxelmapCollider } from './physics/i-voxelmap-collider';

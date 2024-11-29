@@ -1,3 +1,4 @@
+import GUI from 'lil-gui';
 import * as THREE from 'three-usage-test';
 
 import {
@@ -6,6 +7,7 @@ import {
     computeBoard,
     EBoardSquareType,
     EComputationMethod,
+    EVoxelsDisplayMode,
     HeightmapViewer,
     InstancedBillboard,
     PromisesQueue,
@@ -170,6 +172,78 @@ return vec4(sampled.rgb / sampled.a, 1);
             }
         });
         this.promisesQueue = new PromisesQueue(this.voxelmapViewer.maxPatchesComputedInParallel + 5);
+
+        const gui = new GUI();
+        {
+            const texturingOptions = {
+                textured: EVoxelsDisplayMode.TEXTURED,
+                normals: EVoxelsDisplayMode.NORMALS,
+                grey: EVoxelsDisplayMode.GREY,
+            };
+
+            const voxelsFolder = gui.addFolder('Voxels');
+            voxelsFolder.open();
+            const parameters = {
+                shadows: this.enableShadows,
+                face: {
+                    texturing: Object.entries(texturingOptions).find(a => a[1] === this.voxelmapViewer.parameters.faces.displayMode)![0],
+                    noise: this.voxelmapViewer.parameters.faces.noiseContrast,
+                    checkerboard: this.voxelmapViewer.parameters.faces.checkerboardContrast,
+                },
+                edgeSmoothness: this.voxelmapViewer.parameters.smoothEdges.radius,
+                ao: { ...this.voxelmapViewer.parameters.ao },
+            };
+            voxelsFolder
+                .add(parameters, 'shadows')
+                .name('Enable shadows')
+                .onChange(() => {
+                    this.voxelmapViewer.parameters.shadows.cast = parameters.shadows;
+                    this.voxelmapViewer.parameters.shadows.receive = parameters.shadows;
+                });
+            voxelsFolder
+                .add(parameters.face, 'texturing', texturingOptions)
+                .name('Display mode')
+                .onChange(() => {
+                    this.voxelmapViewer.parameters.faces.displayMode = Number(parameters.face.texturing);
+                });
+            voxelsFolder
+                .add(parameters.face, 'noise', 0, 0.1, 0.001)
+                .name('Noise contrast')
+                .onChange(() => {
+                    this.voxelmapViewer.parameters.faces.noiseContrast = parameters.face.noise;
+                });
+            voxelsFolder
+                .add(parameters.face, 'checkerboard', 0, 0.2, 0.001)
+                .name('Checkerboard contrast')
+                .onChange(() => {
+                    this.voxelmapViewer.parameters.faces.checkerboardContrast = parameters.face.checkerboard;
+                });
+            voxelsFolder
+                .add(parameters, 'edgeSmoothness', 0, 0.2, 0.01)
+                .name('Edge smoothness')
+                .onChange(() => {
+                    this.voxelmapViewer.parameters.smoothEdges.radius = parameters.edgeSmoothness;
+                });
+
+            voxelsFolder
+                .add(parameters.ao, 'enabled')
+                .name('AO enabled')
+                .onChange(() => {
+                    this.voxelmapViewer.parameters.ao.enabled = parameters.ao.enabled;
+                });
+            voxelsFolder
+                .add(parameters.ao, 'spread', 0, 1)
+                .name('AO spread')
+                .onChange(() => {
+                    this.voxelmapViewer.parameters.ao.spread = parameters.ao.spread;
+                });
+            voxelsFolder
+                .add(parameters.ao, 'strength', 0, 1)
+                .name('AO strength')
+                .onChange(() => {
+                    this.voxelmapViewer.parameters.ao.strength = parameters.ao.strength;
+                });
+        }
     }
 
     private updateTreeBillboards(): void {
