@@ -167,7 +167,8 @@ abstract class VoxelsRenderableFactoryBase {
             textureData[4 * materialId + 1] = 255 * material.color.g;
             textureData[4 * materialId + 2] = 255 * material.color.b;
             const shininess = material.shininess ?? 0;
-            textureData[4 * materialId + 3] = (255 * shininess) / VoxelsRenderableFactoryBase.maxShininess;
+            // shininess cannot be 0 or it creates visual artifacts. Clamp it.
+            textureData[4 * materialId + 3] = Math.max(1, (255 * shininess) / VoxelsRenderableFactoryBase.maxShininess);
         });
         const texture = new THREE.DataTexture(textureData, textureWidth, textureHeight);
         texture.needsUpdate = true;
