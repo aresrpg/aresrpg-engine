@@ -1,3 +1,4 @@
+import GUI from 'lil-gui';
 import * as THREE from 'three-usage-test';
 
 import {
@@ -32,8 +33,12 @@ class TestBoard extends TestBase {
 
     private readonly map: VoxelmapWrapper;
 
+    private readonly gui: GUI;
+
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
         super();
+
+        this.gui = new GUI();
 
         this.camera.position.y = 150;
         this.cameraControl.target.y = this.camera.position.y - 10;
@@ -139,8 +144,11 @@ class TestBoard extends TestBase {
             voxelMaterialsList: voxelMap.voxelMaterialsList,
         });
 
-        const testLineOfSight = false;
-        const testPathFinding = true;
+        const parameters = {
+            boardRadius: 31,
+            testLineOfSight: false,
+            testPathFinding: true,
+        };
 
         const boardContainer = new THREE.Group();
         this.scene.add(boardContainer);
@@ -151,13 +159,19 @@ class TestBoard extends TestBase {
 
         const boardOverlaysHandler = new BoardOverlaysHandler({ board: { size: { x: 1, z: 1 }, origin: { x: 0, y: 0, z: 0 } } });
 
+        const boardCenterContainer = new THREE.Group();
+        const boardCenter = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0xffffff }));
+        boardCenter.position.set(0.5, 0.5, 0.5);
+        boardCenterContainer.add(boardCenter);
+
         let lastBoardRequestId = -1;
-        const requestBoard = async (origin: THREE.Vector3Like) => {
+        const requestBoard = async () => {
             lastBoardRequestId++;
             const requestId = lastBoardRequestId;
 
-            const boardRadius = 31;
-            const board = await computeBoard(voxelMap, origin, boardRadius);
+            const origin = boardCenterContainer.position.clone();
+
+            const board = await computeBoard(voxelMap, origin, parameters.boardRadius);
             const renderable = await factory.buildBoardRenderable(board);
             boardOverlaysHandler.reset(board);
 
@@ -181,14 +195,14 @@ class TestBoard extends TestBase {
 
             boardOverlaysHandler.clearSquares();
 
-            if (testLineOfSight) {
+            if (parameters.testLineOfSight) {
                 const lineOfSight = new LineOfSight({
                     grid: {
                         size: board.size,
                         cells: board.squares.map(square => square.type === EBoardSquareType.OBSTACLE),
                     },
                 });
-                const gridVisibility = lineOfSight.computeCellsVisibility({ x: boardRadius, z: boardRadius }, 10);
+                const gridVisibility = lineOfSight.computeCellsVisibility({ x: parameters.boardRadius, z: parameters.boardRadius }, 10);
                 const cellsVisibilities = gridVisibility.cells.filter(cell => {
                     return board.squares[cell.x + cell.z * board.size.x]!.type === EBoardSquareType.FLAT;
                 });
@@ -196,7 +210,7 @@ class TestBoard extends TestBase {
                 const obstructedSquares = cellsVisibilities.filter(cell => cell.visibility === 'hidden');
                 boardOverlaysHandler.displaySquares(visibleSquares, new THREE.Color(0x00ff00));
                 boardOverlaysHandler.displaySquares(obstructedSquares, new THREE.Color(0xff0000));
-            } else if (testPathFinding) {
+            } else if (parameters.testPathFinding) {
                 const pathFinder = new PathFinder({
                     grid: {
                         size: board.size,
@@ -205,7 +219,7 @@ class TestBoard extends TestBase {
                 });
 
                 {
-                    pathFinder.setOrigin({ x: boardRadius, z: boardRadius });
+                    pathFinder.setOrigin({ x: parameters.boardRadius, z: parameters.boardRadius });
                     const reachableCells = pathFinder.getReachableCells(10);
                     boardOverlaysHandler.displayBlob(0, reachableCells, new THREE.Color(0x88dd88), 0.5);
                     const path = pathFinder.findPathTo({ x: 31, z: 35 });
@@ -215,17 +229,12 @@ class TestBoard extends TestBase {
                 }
 
                 {
-                    pathFinder.setOrigin({ x: boardRadius - 5, z: boardRadius - 5 });
+                    pathFinder.setOrigin({ x: parameters.boardRadius - 5, z: parameters.boardRadius - 5 });
                     const reachableCells = pathFinder.getReachableCells(7);
                     boardOverlaysHandler.displayBlob(1, reachableCells, new THREE.Color(0xdd8888), 0.5);
                 }
             }
         };
-
-        const boardCenterContainer = new THREE.Group();
-        const boardCenter = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0xffffff }));
-        boardCenter.position.set(0.5, 0.5, 0.5);
-        boardCenterContainer.add(boardCenter);
 
         const updateAltitude = () => {
             const terrainSample = voxelMap.sampleHeightmapBaseTerrain(
@@ -233,7 +242,7 @@ class TestBoard extends TestBase {
                 Math.floor(boardCenterContainer.position.z)
             );
             boardCenterContainer.position.setY(terrainSample.altitude + 1);
-            requestBoard(boardCenterContainer.position.clone());
+            requestBoard();
         };
         updateAltitude();
 
@@ -260,6 +269,10 @@ class TestBoard extends TestBase {
 
         this.scene.add(boardCenterContainer);
         this.scene.add(boardCenterControls.getHelper());
+
+        this.gui.add(parameters, 'boardRadius', 30, 60, 1).name('board radius').onChange(requestBoard);
+        this.gui.add(parameters, 'testLineOfSight').name('line of sight').onChange(requestBoard);
+        this.gui.add(parameters, 'testPathFinding').name('path finding').onChange(requestBoard);
     }
 }
 
