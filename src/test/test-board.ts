@@ -15,7 +15,7 @@ import {
     type Board,
     type BoardRenderable,
     type IHeightmap,
-    type IVoxelMap
+    type IVoxelMap,
 } from '../lib';
 
 import { LineOfSight } from './board/line-of-sight';
@@ -244,6 +244,19 @@ class TestBoard extends TestBase {
         });
         boardCenterControls.addEventListener('change', updateAltitude);
         boardCenterControls.attach(boardCenterContainer);
+
+        const rayCaster = new THREE.Raycaster();
+        window.addEventListener('click', event => {
+            const mouse = new THREE.Vector2(
+                (event.clientX / this.renderer.domElement.clientWidth) * 2 - 1,
+                -(event.clientY / this.renderer.domElement.clientHeight) * 2 + 1
+            );
+            rayCaster.setFromCamera(mouse, this.camera);
+            const intersection = boardOverlaysHandler.rayIntersection(rayCaster.ray);
+            if (intersection) {
+                boardOverlaysHandler.displaySquares([intersection.cellId], new THREE.Color(0x7777ff));
+            }
+        });
 
         this.scene.add(boardCenterContainer);
         this.scene.add(boardCenterControls.getHelper());

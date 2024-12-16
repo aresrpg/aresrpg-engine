@@ -13,6 +13,7 @@ export {
     PCFSoftShadowMap,
     PerspectiveCamera,
     Ray,
+    Raycaster,
     SRGBColorSpace,
     Scene,
     SphereGeometry,

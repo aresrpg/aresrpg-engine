@@ -13,10 +13,17 @@ type Parameters = {
     readonly board: InputBoard;
 };
 
+type RayIntersection = {
+    distance: number;
+    point: THREE.Vector3;
+    cellId: GridCoord;
+};
+
 class BoardOverlaysHandler {
     private static readonly yShift = 0.001;
 
     public readonly container: THREE.Object3D;
+    private boardProperties: InputBoard;
 
     private overlaySquares: BoardOverlaySquares;
     private overlayBlob: BoardOverlayBlob;
@@ -31,6 +38,11 @@ class BoardOverlaysHandler {
         this.container.add(this.overlaySquares.container);
         this.container.add(this.overlayBlob.container);
         this.container.position.set(params.board.origin.x, params.board.origin.y, params.board.origin.z);
+
+        this.boardProperties = {
+            size: { ...params.board.size },
+            origin: new THREE.Vector3().copy(params.board.origin),
+        };
     }
 
     public clearSquares(): void {
@@ -60,6 +72,32 @@ class BoardOverlaysHandler {
         }
     }
 
+    public rayIntersection(ray: THREE.Ray): RayIntersection | null {
+        if (ray.direction.y === 0) {
+            return null;
+        }
+        const delta = (this.boardProperties.origin.y - ray.origin.y) / ray.direction.y;
+        if (delta <= 0) {
+            return null;
+        }
+
+        const toIntersection = ray.direction.clone().multiplyScalar(delta);
+        const intersectionPoint = new THREE.Vector3().addVectors(ray.origin, toIntersection);
+        const cellId = {
+            x: Math.floor(intersectionPoint.x) - this.boardProperties.origin.x,
+            z: Math.floor(intersectionPoint.z) - this.boardProperties.origin.z,
+        };
+        if (cellId.x < 0 || cellId.z < 0 || cellId.x >= this.boardProperties.size.x || cellId.z >= this.boardProperties.size.z) {
+            return null;
+        }
+
+        return {
+            distance: toIntersection.length(),
+            point: intersectionPoint,
+            cellId,
+        };
+    }
+
     public dispose(): void {
         this.overlayBlob.dispose();
         this.overlaySquares.dispose();
@@ -76,6 +114,11 @@ class BoardOverlaysHandler {
         this.container.add(this.overlaySquares.container);
         this.container.add(this.overlayBlob.container);
         this.container.position.set(board.origin.x, board.origin.y, board.origin.z);
+
+        this.boardProperties = {
+            size: { ...board.size },
+            origin: new THREE.Vector3().copy(board.origin),
+        };
     }
 
     private buildOverlays(gridSize: InputBoard['size']): { squares: BoardOverlaySquares; blob: BoardOverlayBlob } {

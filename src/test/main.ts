@@ -1,7 +1,7 @@
 import { ELogLevel, setVerbosity } from '../lib/index';
 
 import { VoxelMap } from './map/voxel-map';
-import { TestBase } from './test-base';
+import { type TestBase } from './test-base';
 import { TestBoard } from './test-board';
 import { TestParticles } from './test-particles';
 import { TestPhysics } from './test-physics';
