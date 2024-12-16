@@ -1,7 +1,8 @@
 import { ELogLevel, setVerbosity } from '../lib/index';
 
 import { VoxelMap } from './map/voxel-map';
-import { type TestBase } from './test-base';
+import { TestBase } from './test-base';
+import { TestBoard } from './test-board';
 import { TestParticles } from './test-particles';
 import { TestPhysics } from './test-physics';
 import { TestTerrain } from './test-terrain';
@@ -15,7 +16,7 @@ function createVoxelMap(): VoxelMap {
     const mapScaleXZ = 800;
     const mapScaleY = 200;
     const mapSeed = 'fixed_seed';
-    const includeTreesInLod = false;
+    const includeTreesInLod = true;
 
     return new VoxelMap(mapScaleXZ, mapScaleY, mapSeed, includeTreesInLod);
 }
@@ -27,9 +28,10 @@ enum ETest {
     TEXTURE_CUSTOMIZATION,
     PHYSICS,
     PARTICLES,
+    BOARD,
 }
 
-const test = ETest.TERRAIN as ETest;
+const test = ETest.BOARD as ETest;
 
 let testScene: TestBase;
 if (test === ETest.TERRAIN) {
@@ -44,6 +46,8 @@ if (test === ETest.TERRAIN) {
     testScene = new TestPhysics(createVoxelMap());
 } else if (test === ETest.PARTICLES) {
     testScene = new TestParticles(createVoxelMap());
+} else if (test === ETest.BOARD) {
+    testScene = new TestBoard(createVoxelMap());
 } else {
     throw new Error(`Unknown test "${test}".`);
 }
