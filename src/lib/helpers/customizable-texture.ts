@@ -179,6 +179,11 @@ void main() {
 
         this.needsUpdate = false;
     }
+
+    public dispose() {
+        this.renderTarget.dispose();
+        this.fullscreenQuad.geometry.dispose();
+    }
 }
 
 export { CustomizableTexture };
