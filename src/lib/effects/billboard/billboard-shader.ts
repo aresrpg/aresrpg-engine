@@ -1,15 +1,5 @@
-import { vec3ToString } from '../../helpers/string';
+import { applyReplacements, vec3ToString } from '../../helpers/string';
 import * as THREE from '../../libs/three-usage';
-
-function applyReplacements(source: string, replacements: Record<string, string>): string {
-    let result = source;
-
-    for (const [source, replacement] of Object.entries(replacements)) {
-        result = result.replace(source, replacement);
-    }
-
-    return result;
-}
 
 type UniformType = 'sampler2D' | 'float' | 'vec2' | 'vec3' | 'vec4';
 type UniformDefinition<T> = THREE.IUniform<T> & { readonly type: UniformType };
