@@ -1,4 +1,4 @@
-import { vec3ToString } from '../../../../../helpers/string';
+import { applyReplacements, vec3ToString } from '../../../../../helpers/string';
 import * as THREE from '../../../../../libs/three-usage';
 import { type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterialUniforms, type VoxelsMaterials } from '../../voxels-material';
@@ -43,16 +43,6 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
     private readonly materialsTemplates: VoxelsMaterials;
 
     private buildThreeJsVoxelsMaterial(parameters: VoxelsMaterialParameters): VoxelsMaterial {
-        function applyReplacements(source: string, replacements: Record<string, string>): string {
-            let result = source;
-
-            for (const [source, replacement] of Object.entries(replacements)) {
-                result = result.replace(source, replacement);
-            }
-
-            return result;
-        }
-
         const cstVoxelAo = 'VOXELS_AO';
         const cstVoxelNoise = 'VOXELS_NOISE';
         const cstVoxelRounded = 'VOXELS_ROUNDED';
