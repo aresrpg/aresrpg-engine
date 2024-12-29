@@ -12,15 +12,6 @@ import { TestWeather } from './test-weather';
 
 setVerbosity(ELogLevel.WARN);
 
-function createVoxelMap(): VoxelMap {
-    const mapScaleXZ = 800;
-    const mapScaleY = 200;
-    const mapSeed = 'fixed_seed';
-    const includeTreesInLod = true;
-
-    return new VoxelMap(mapScaleXZ, mapScaleY, mapSeed, includeTreesInLod);
-}
-
 enum ETest {
     TERRAIN,
     TERRAIN_OLD,
@@ -31,25 +22,33 @@ enum ETest {
     BOARD,
 }
 
-const test = ETest.BOARD as ETest;
-
-let testScene: TestBase;
-if (test === ETest.TERRAIN) {
-    testScene = new TestTerrain(createVoxelMap());
-} else if (test === ETest.TERRAIN_OLD) {
-    testScene = new TestTerrainAutonomous(createVoxelMap());
-} else if (test === ETest.WEATHER) {
-    testScene = new TestWeather();
-} else if (test === ETest.TEXTURE_CUSTOMIZATION) {
-    testScene = new TestTextureCustomization();
-} else if (test === ETest.PHYSICS) {
-    testScene = new TestPhysics(createVoxelMap());
-} else if (test === ETest.PARTICLES) {
-    testScene = new TestParticles(createVoxelMap());
-} else if (test === ETest.BOARD) {
-    testScene = new TestBoard(createVoxelMap());
-} else {
-    throw new Error(`Unknown test "${test}".`);
+function createVoxelMap(): VoxelMap {
+    const mapScaleXZ = 800;
+    const mapScaleY = 200;
+    const mapSeed = 'fixed_seed';
+    const includeTreesInLod = true;
+    return new VoxelMap(mapScaleXZ, mapScaleY, mapSeed, includeTreesInLod);
 }
 
+function buildTestScene(test: ETest): TestBase {
+    if (test === ETest.TERRAIN) {
+        return new TestTerrain(createVoxelMap());
+    } else if (test === ETest.TERRAIN_OLD) {
+        return new TestTerrainAutonomous(createVoxelMap());
+    } else if (test === ETest.WEATHER) {
+        return new TestWeather();
+    } else if (test === ETest.TEXTURE_CUSTOMIZATION) {
+        return new TestTextureCustomization();
+    } else if (test === ETest.PHYSICS) {
+        return new TestPhysics(createVoxelMap());
+    } else if (test === ETest.PARTICLES) {
+        return new TestParticles(createVoxelMap());
+    } else if (test === ETest.BOARD) {
+        return new TestBoard(createVoxelMap());
+    } else {
+        throw new Error(`Unknown test "${test}".`);
+    }
+}
+
+const testScene = buildTestScene(ETest.BOARD);
 testScene.start();
