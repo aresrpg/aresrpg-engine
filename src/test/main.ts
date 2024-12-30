@@ -3,6 +3,7 @@ import { ELogLevel, setVerbosity } from '../lib/index';
 import { VoxelMap } from './map/voxel-map';
 import { type TestBase } from './test-base';
 import { TestBoard } from './test-board';
+import { TestGrass } from './test-grass';
 import { TestParticles } from './test-particles';
 import { TestPhysics } from './test-physics';
 import { TestTerrain } from './test-terrain';
@@ -20,6 +21,7 @@ enum ETest {
     PHYSICS,
     PARTICLES,
     BOARD,
+    GRASS,
 }
 
 function createVoxelMap(): VoxelMap {
@@ -30,7 +32,7 @@ function createVoxelMap(): VoxelMap {
     return new VoxelMap(mapScaleXZ, mapScaleY, mapSeed, includeTreesInLod);
 }
 
-function buildTestScene(test: ETest): TestBase {
+async function buildTestScene(test: ETest): Promise<TestBase> {
     if (test === ETest.TERRAIN) {
         return new TestTerrain(createVoxelMap());
     } else if (test === ETest.TERRAIN_OLD) {
@@ -45,10 +47,16 @@ function buildTestScene(test: ETest): TestBase {
         return new TestParticles(createVoxelMap());
     } else if (test === ETest.BOARD) {
         return new TestBoard(createVoxelMap());
+    } else if (test === ETest.GRASS) {
+        return TestGrass.instanciate();
     } else {
         throw new Error(`Unknown test "${test}".`);
     }
 }
 
-const testScene = buildTestScene(ETest.BOARD);
-testScene.start();
+async function start(): Promise<void> {
+    const testScene = await buildTestScene(ETest.GRASS);
+    testScene.start();
+}
+
+void start();
