@@ -3,7 +3,7 @@ export { ELogLevel, setVerbosity } from './helpers/logger';
 export { HeightmapViewer } from './terrain/heightmap/heightmap-viewer';
 export type { IHeightmap, IHeightmapCoords, IHeightmapSample } from './terrain/heightmap/i-heightmap';
 export { TerrainViewer } from './terrain/terrain-viewer';
-export { EBoardSquareType, computeBoard, type Board, type BoardSquare } from './terrain/voxelmap/board/board';
+export { computeBoard, EBoardSquareType, type Board, type BoardSquare } from './terrain/voxelmap/board/board';
 export { BoardRenderableFactory, type BoardRenderable } from './terrain/voxelmap/board/board-renderable-factory';
 export { BoardOverlaysHandler } from './terrain/voxelmap/board/overlay/board-overlays-handler';
 export { VoxelmapWrapper } from './terrain/voxelmap/board/voxelmap-wrapper';
@@ -43,3 +43,5 @@ export { Snow } from './effects/weather/snow';
 export { GpuInstancedBillboard } from './effects/weather/weather-particles-base';
 
 export { CustomizableTexture } from './helpers/customizable-texture';
+
+export { GrassPatchesBatch } from './effects/grass/grass-patches';
