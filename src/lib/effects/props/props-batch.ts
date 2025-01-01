@@ -1,13 +1,7 @@
 import { logger } from '../../helpers/logger';
+import { copyMap } from "../../helpers/misc";
 import { applyReplacements } from '../../helpers/string';
 import * as THREE from '../../libs/three-usage';
-
-function copyMap<T, U>(source: ReadonlyMap<T, U>, destination: Map<T, U>): void {
-    destination.clear();
-    for (const [key, value] of source.entries()) {
-        destination.set(key, value);
-    }
-}
 
 type PropsMaterial = {
     readonly material: THREE.MeshPhongMaterial;
