@@ -272,12 +272,11 @@ class TestGrass extends TestBase {
     }
 
     protected override update(): void {
-        this.fakeCamera.getWorldPosition(this.grass2D.playerWorldPosition);
-        this.fakeCamera.getWorldPosition(this.grass3D.playerWorldPosition);
+        const playerViewPosition = this.fakeCamera.getWorldPosition(new THREE.Vector3()).applyMatrix4(this.camera.matrixWorldInverse);
 
-        this.grass2D.update();
-        this.grass3D.update();
-        this.rocks.update();
+        this.grass2D.playerViewPosition.copy(playerViewPosition);
+        this.grass3D.playerViewPosition.copy(playerViewPosition);
+        this.rocks.playerViewPosition.copy(playerViewPosition);
     }
 }
 

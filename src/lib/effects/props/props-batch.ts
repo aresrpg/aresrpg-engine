@@ -1,12 +1,12 @@
 import { logger } from '../../helpers/logger';
-import { copyMap } from "../../helpers/misc";
+import { copyMap } from '../../helpers/misc';
 import { applyReplacements } from '../../helpers/string';
 import * as THREE from '../../libs/three-usage';
 
 type PropsMaterial = {
     readonly material: THREE.MeshPhongMaterial;
     readonly uniforms: {
-        uPlayerModelPosition: THREE.IUniform<THREE.Vector3>;
+        uPlayerViewPosition: THREE.IUniform<THREE.Vector3>;
         uViewRadius: THREE.IUniform<number>;
         uViewRadiusMargin: THREE.IUniform<number>;
     };
@@ -37,7 +37,7 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
 
     const customUniforms = {
         uNoiseTexture: { value: noiseTexture },
-        uPlayerModelPosition: { value: new THREE.Vector3(Infinity, Infinity, Infinity) },
+        uPlayerViewPosition: { value: new THREE.Vector3(Infinity, Infinity, Infinity) },
         uViewRadius: { value: 10 },
         uViewRadiusMargin: { value: 2 },
     };
@@ -57,7 +57,7 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
         parameters.vertexShader = applyReplacements(parameters.vertexShader, {
             'void main() {': `
                 #ifdef ${playerReactiveKey}
-                uniform vec3 uPlayerModelPosition;
+                uniform vec3 uPlayerViewPosition;
                 #endif
 
                 uniform float uViewRadius;
@@ -79,16 +79,23 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
                     mvPosition = instanceMatrix * mvPosition;
                 #endif
 
+                float canBeDisplaced = step(0.2, mvPosition.y);
+                
+                mvPosition = modelViewMatrix * mvPosition;
+
+                vec4 viewX = viewMatrix * vec4(1, 0, 0, 0);
+                vec4 viewZ = viewMatrix * vec4(0, 0, 1, 0);
+
                 #ifdef ${playerReactiveKey}
-                vec3 fromPlayer = mvPosition.xyz - uPlayerModelPosition;
+                vec3 fromPlayer = mvPosition.xyz - uPlayerViewPosition;
                 float fromPlayerLength = length(fromPlayer) + 0.00001;
                 const float playerRadius = 0.6;
-                vec3 displacement = fromPlayer / fromPlayerLength * (playerRadius - fromPlayerLength)
-                    * step(fromPlayerLength, playerRadius) * step(0.2, mvPosition.y);
-                mvPosition.xz += displacement.xz;
+                vec3 displacementViewspace = fromPlayer / fromPlayerLength * (playerRadius - fromPlayerLength)
+                    * step(fromPlayerLength, playerRadius) * canBeDisplaced;
+                mvPosition.xyz += 
+                    viewX.xyz * dot(displacementViewspace, viewX.xyz) +
+                    viewZ.xyz * dot(displacementViewspace, viewZ.xyz);
                 #endif
-
-                mvPosition = modelViewMatrix * mvPosition;
 
                 vDissolveRatio = smoothstep(uViewRadius - uViewRadiusMargin, uViewRadius, length(mvPosition.xyz));
 
@@ -133,7 +140,7 @@ class PropsBatch {
         return this.instancedMesh;
     }
 
-    public readonly playerWorldPosition = new THREE.Vector3();
+    public readonly playerViewPosition = new THREE.Vector3();
 
     private readonly maxInstancesCount: number;
     private readonly instancedMesh: THREE.InstancedMesh;
@@ -145,16 +152,11 @@ class PropsBatch {
         this.maxInstancesCount = params.maxInstancesCount;
 
         this.material = customizeMaterial(params.material, params.reactToPlayer);
+        this.playerViewPosition = this.material.uniforms.uPlayerViewPosition.value;
         this.groupsDefinitions = new Map();
 
         this.instancedMesh = new THREE.InstancedMesh(params.bufferGeometry, this.material.material, this.maxInstancesCount);
         this.instancedMesh.count = 0;
-    }
-
-    public update(): void {
-        this.material.uniforms.uPlayerModelPosition.value
-            .copy(this.playerWorldPosition)
-            .applyMatrix4(this.instancedMesh.matrixWorld.clone().invert());
     }
 
     public setInstancesGroup(groupName: string, matricesList: ReadonlyArray<THREE.Matrix4>): void {
