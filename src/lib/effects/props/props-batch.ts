@@ -1,5 +1,13 @@
+import { logger } from '../../helpers/logger';
 import { applyReplacements } from '../../helpers/string';
 import * as THREE from '../../libs/three-usage';
+
+function copyMap<T, U>(source: ReadonlyMap<T, U>, destination: Map<T, U>): void {
+    destination.clear();
+    for (const [key, value] of source.entries()) {
+        destination.set(key, value);
+    }
+}
 
 type PropsMaterial = {
     readonly material: THREE.MeshPhongMaterial;
@@ -47,7 +55,7 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
         };
 
         parameters.defines = parameters.defines || {};
-        const playerReactiveKey = "PLAYER_REACTIVE";
+        const playerReactiveKey = 'PLAYER_REACTIVE';
         if (playerReactive) {
             parameters.defines[playerReactiveKey] = true;
         }
@@ -66,7 +74,7 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
                 void main() {
             `,
             // https://github.com/mrdoob/three.js/blob/dev/src/renderers/shaders/ShaderChunk/project_vertex.glsl.js
-            "#include <project_vertex>": `
+            '#include <project_vertex>': `
                 vec4 mvPosition = vec4( transformed, 1.0 );
 
                 #ifdef USE_BATCHING
@@ -115,45 +123,119 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
 }
 
 type Paramerers = {
-    readonly count: number;
+    readonly maxInstancesCount: number;
     readonly reactToPlayer: boolean;
     readonly bufferGeometry: THREE.BufferGeometry;
     readonly material: THREE.MeshPhongMaterial;
 };
 
+type GroupDefinition = {
+    readonly startIndex: number;
+    readonly count: number;
+};
+
 class PropsBatch {
-    public get object3D() {
+    public get container(): THREE.Object3D {
         return this.instancedMesh;
     }
 
     public readonly playerWorldPosition = new THREE.Vector3();
 
+    private readonly maxInstancesCount: number;
     private readonly instancedMesh: THREE.InstancedMesh;
+
     private readonly material: PropsMaterial;
+    private readonly groupsDefinitions: Map<string, GroupDefinition>;
 
     public constructor(params: Paramerers) {
+        this.maxInstancesCount = params.maxInstancesCount;
+
         this.material = customizeMaterial(params.material, params.reactToPlayer);
-        this.instancedMesh = new THREE.InstancedMesh(params.bufferGeometry, this.material.material, params.count);
-        this.instancedMesh.count = params.count;
+        this.groupsDefinitions = new Map();
+
+        this.instancedMesh = new THREE.InstancedMesh(params.bufferGeometry, this.material.material, this.maxInstancesCount);
+        this.instancedMesh.count = 0;
     }
 
     public update(): void {
-        this.material.uniforms.uPlayerModelPosition.value.copy(this.playerWorldPosition).applyMatrix4(
-            this.object3D.matrixWorld.clone().invert()
-        );
+        this.material.uniforms.uPlayerModelPosition.value
+            .copy(this.playerWorldPosition)
+            .applyMatrix4(this.instancedMesh.matrixWorld.clone().invert());
     }
 
-    public setMatrix(index: number, matrix: THREE.Matrix4): void {
-        this.instancedMesh.setMatrixAt(index, matrix);
+    public setInstancesGroup(groupName: string, matricesList: ReadonlyArray<THREE.Matrix4>): void {
+        if (this.groupsDefinitions.has(groupName)) {
+            this.groupsDefinitions.delete(groupName);
+            this.reorderMatricesBuffer();
+        }
+
+        if (matricesList.length === 0) {
+            return;
+        }
+
+        const spareInstancesLeft = this.spareInstancesLeft;
+        if (matricesList.length > spareInstancesLeft) {
+            throw new Error(
+                `Props batch don't have enough space to store "${matricesList.length}" more instances ("${spareInstancesLeft}" left)`
+            );
+        }
+
+        const newGroup: GroupDefinition = {
+            startIndex: this.instancedMesh.count,
+            count: matricesList.length,
+        };
+        this.groupsDefinitions.set(groupName, newGroup);
+        matricesList.forEach((matrix: THREE.Matrix4, index: number) => {
+            this.instancedMesh.setMatrixAt(newGroup.startIndex + index, matrix);
+        });
+        this.instancedMesh.count += matricesList.length;
+    }
+
+    public removeInstancesGroup(groupName: string): void {
+        if (this.groupsDefinitions.has(groupName)) {
+            this.groupsDefinitions.delete(groupName);
+            this.reorderMatricesBuffer();
+        } else {
+            logger.warn(`Unknown props batch group "${groupName}".`);
+        }
     }
 
     public setViewDistance(distance: number): void {
         this.material.uniforms.uViewRadius.value = distance;
     }
+
     public setViewDistanceMargin(margin: number): void {
         this.material.uniforms.uViewRadiusMargin.value = margin;
+    }
+
+    public get spareInstancesLeft(): number {
+        return this.maxInstancesCount - this.instancedMesh.count;
+    }
+
+    private reorderMatricesBuffer(): void {
+        const reorderedMatrices = new Float32Array(this.instancedMesh.instanceMatrix.array.length);
+
+        let instancesCount = 0;
+        const newGroupDefinitions = new Map<string, GroupDefinition>();
+        for (const [groupName, groupDefinition] of this.groupsDefinitions.entries()) {
+            const newGroupDefinition: GroupDefinition = {
+                startIndex: instancesCount,
+                count: groupDefinition.count,
+            };
+            newGroupDefinitions.set(groupName, newGroupDefinition);
+            instancesCount += groupDefinition.count;
+
+            for (let iM = 0; iM < groupDefinition.count; iM++) {
+                const oldMatrixStart = 16 * (groupDefinition.startIndex + iM);
+                const matrix = this.instancedMesh.instanceMatrix.array.subarray(oldMatrixStart, oldMatrixStart + 16);
+                reorderedMatrices.set(matrix, 16 * (newGroupDefinition.startIndex + iM));
+            }
+        }
+        copyMap(newGroupDefinitions, this.groupsDefinitions);
+
+        this.instancedMesh.instanceMatrix.array.set(reorderedMatrices.subarray(0, 16 * instancesCount), 0);
+        this.instancedMesh.count = instancesCount;
     }
 }
 
 export { PropsBatch };
-
