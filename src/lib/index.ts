@@ -13,11 +13,11 @@ export {
     type IVoxelMap,
     type IVoxelMaterial,
     type VoxelsChunkOrdering,
-    type VoxelsChunkSize,
+    type VoxelsChunkSize
 } from './terrain/voxelmap/i-voxelmap';
 export {
     VoxelmapViewerAutonomous,
-    type VoxelmapViewerAutonomousOptions,
+    type VoxelmapViewerAutonomousOptions
 } from './terrain/voxelmap/viewer/autonomous/voxelmap-viewer-autonomous';
 export {
     EComputationMethod,
@@ -25,7 +25,7 @@ export {
     type ComputationOptions,
     type ComputationStatus,
     type VoxelmapViewerOptions,
-    type VoxelsChunkData,
+    type VoxelsChunkData
 } from './terrain/voxelmap/viewer/simple/voxelmap-viewer';
 export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibility-computer';
 export { EVoxelsDisplayMode } from './terrain/voxelmap/voxelsRenderable/voxels-material';
@@ -44,4 +44,5 @@ export { GpuInstancedBillboard } from './effects/weather/weather-particles-base'
 
 export { CustomizableTexture } from './helpers/customizable-texture';
 
-export { GrassPatchesBatch } from './effects/grass/grass-patches';
+export { PropsBatch } from './effects/props/props-batch';
+
