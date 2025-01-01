@@ -13,7 +13,7 @@ import {
 } from '../../lib/index';
 
 import { colorMapping } from './color-mapping';
-import { TreeRepartition } from './trees/repartition';
+import { RepeatableBluenoise } from './repeatable-bluenoise';
 import { Tree } from './trees/tree';
 
 type TreesTextureSample = {
@@ -52,7 +52,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
     private readonly tree = new Tree();
     private readonly treesDensityNoise: NoiseFunction2D;
     private readonly treesDensityFrequency = 0.002;
-    private readonly treesRepartition = new TreeRepartition('seed_trees', 150, 2 * this.tree.radiusXZ);
+    private readonly treesRepartition = new RepeatableBluenoise('seed_trees', 150, 2 * this.tree.radiusXZ);
     private readonly treesTexture: TreesTexture;
 
     private readonly colorVariationNoise: NoiseFunction2D;
@@ -97,7 +97,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         }
         const treeSearchFrom = { x: -this.tree.radiusXZ, y: -this.tree.radiusXZ };
         const treeSearchTo = { x: this.treesTexture.size + this.tree.radiusXZ, y: this.treesTexture.size + this.tree.radiusXZ };
-        for (const tree of this.treesRepartition.getAllTrees(treeSearchFrom, treeSearchTo)) {
+        for (const tree of this.treesRepartition.getAllItems(treeSearchFrom, treeSearchTo)) {
             const treeRootTexturePos = {
                 x: tree.position.x + this.tree.offset.x,
                 y: tree.position.y + this.tree.offset.z,
@@ -364,7 +364,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
 
         const treeSearchFrom = { x: blockStart.x - this.tree.radiusXZ, y: blockStart.y - this.tree.radiusXZ };
         const treeSearchTo = { x: blockEnd.x + this.tree.radiusXZ, y: blockEnd.y + this.tree.radiusXZ };
-        for (const tree of this.treesRepartition.getAllTrees(treeSearchFrom, treeSearchTo)) {
+        for (const tree of this.treesRepartition.getAllItems(treeSearchFrom, treeSearchTo)) {
             const worldPos = { x: tree.position.x, y: 0, z: tree.position.y };
             const sample = this.sampleHeightmapBaseTerrain(worldPos.x, worldPos.z);
             worldPos.y = sample.altitude;
