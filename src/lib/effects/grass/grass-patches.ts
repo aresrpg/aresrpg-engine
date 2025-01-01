@@ -8,6 +8,7 @@ const params = {
 type ClutterMaterial = {
     readonly material: THREE.MeshPhongMaterial;
     readonly uniforms: {
+        uPlayerModelPosition: THREE.IUniform<THREE.Vector3>;
         uDissolveThreshold: THREE.IUniform<number>;
     };
 };
@@ -26,8 +27,7 @@ function buildNoiseTexture(resolution: number): THREE.DataTexture {
     return texture;
 }
 
-function buildMaterial(): ClutterMaterial {
-    const phongMaterial = new THREE.MeshPhongMaterial({ color: 0xffffff });
+function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial): ClutterMaterial {
     phongMaterial.customProgramCacheKey = () => `prop_phong_material`;
 
     const noiseTextureSize = 64;
@@ -40,6 +40,7 @@ function buildMaterial(): ClutterMaterial {
     const customUniforms = {
         uNoiseTexture: { value: noiseTexture },
         uDissolveThreshold: dissolveUniform,
+        uPlayerModelPosition: { value: new THREE.Vector3(Infinity, Infinity, Infinity) },
     };
 
     phongMaterial.onBeforeCompile = parameters => {
@@ -51,11 +52,36 @@ function buildMaterial(): ClutterMaterial {
         parameters.vertexShader = applyReplacements(parameters.vertexShader, {
             'void main() {': `
 
+                uniform vec3 uPlayerModelPosition;
+
                 in float aDissolveRatio;
                 out float vDissolveRatio;
                    
                 void main() {
                     vDissolveRatio = aDissolveRatio;
+            `,
+            // https://github.com/mrdoob/three.js/blob/dev/src/renderers/shaders/ShaderChunk/project_vertex.glsl.js
+            "#include <project_vertex>": `
+                    vec4 mvPosition = vec4( transformed, 1.0 );
+
+                    #ifdef USE_BATCHING
+                        mvPosition = batchingMatrix * mvPosition;
+                    #endif
+
+                    #ifdef USE_INSTANCING
+                        mvPosition = instanceMatrix * mvPosition;
+                    #endif
+
+                    vec3 fromPlayer = mvPosition.xyz - uPlayerModelPosition;
+                    float fromPlayerLength = length(fromPlayer) + 0.00001;
+                    const float playerRadius = 0.6;
+                    vec3 displacement = fromPlayer / fromPlayerLength * (playerRadius - fromPlayerLength)
+                        * step(fromPlayerLength, playerRadius) * step(0.2, mvPosition.y);
+                    mvPosition.xz += displacement.xz;
+
+                    mvPosition = modelViewMatrix * mvPosition;
+
+                    gl_Position = projectionMatrix * mvPosition;
             `,
         });
 
@@ -83,6 +109,7 @@ function buildMaterial(): ClutterMaterial {
 type Paramerers = {
     count: number;
     bufferGeometry: THREE.BufferGeometry;
+    material: THREE.MeshPhongMaterial;
 };
 
 class GrassPatchesBatch {
@@ -91,6 +118,8 @@ class GrassPatchesBatch {
     }
 
     public minDissolve: number = 0;
+    public readonly playerPosition: THREE.Vector3;
+
     private readonly instancedMesh: THREE.InstancedMesh;
     private readonly material: ClutterMaterial;
     private readonly dissolveAttribute: THREE.InstancedBufferAttribute;
@@ -99,9 +128,11 @@ class GrassPatchesBatch {
         this.dissolveAttribute = new THREE.InstancedBufferAttribute(new Float32Array(params.count), 1);
         params.bufferGeometry.setAttribute('aDissolveRatio', this.dissolveAttribute);
 
-        this.material = buildMaterial();
+        this.material = customizeMaterial(params.material);
         this.instancedMesh = new THREE.InstancedMesh(params.bufferGeometry, this.material.material, params.count);
         this.instancedMesh.count = params.count;
+        
+        this.playerPosition = this.material.uniforms.uPlayerModelPosition.value;
     }
 
     public update(): void {

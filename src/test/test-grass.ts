@@ -28,7 +28,7 @@ class TestGrass extends TestBase {
     public static async instanciate(): Promise<TestGrass> {
         const gltfLoader = new THREE.GLTFLoader();
 
-        const scene = await gltfLoader.loadAsync('resources/grass2.glb');
+        const scene = await gltfLoader.loadAsync('resources/grass-2d.glb');
 
         let bufferGeometry: THREE.BufferGeometry | null = null;
         scene.scene.traverse(object => {
@@ -41,10 +41,19 @@ class TestGrass extends TestBase {
             throw new Error('Failed to load buffer geometry');
         }
 
-        return new TestGrass(bufferGeometry);
+        const texture = new THREE.TextureLoader().load("resources/grass-2d.png");
+        texture.magFilter = THREE.NearestFilter;
+        texture.minFilter = THREE.NearestFilter;
+        const material = new THREE.MeshPhongMaterial({
+            map: texture,
+            side: THREE.DoubleSide,
+            alphaTest: 0.5,
+        })
+
+        return new TestGrass(bufferGeometry, material);
     }
 
-    private constructor(bufferGeometry: THREE.BufferGeometry) {
+    private constructor(bufferGeometry: THREE.BufferGeometry, material: THREE.MeshPhongMaterial) {
         super();
 
         this.camera.position.set(5, 5, 5);
@@ -61,7 +70,8 @@ class TestGrass extends TestBase {
         const count = 10000;
         this.grass = new GrassPatchesBatch({
             count,
-            bufferGeometry, // : new THREE.SphereGeometry(1),
+            bufferGeometry,
+            material,
         });
         this.scene.add(this.grass.object3D);
 
@@ -81,7 +91,7 @@ class TestGrass extends TestBase {
         this.particles.forEach((particle: GrassParticle, index: number) => {
             const matrix = new THREE.Matrix4().multiplyMatrices(
                 new THREE.Matrix4().makeTranslation(new THREE.Vector3(particle.position.x, 0, particle.position.y)),
-                new THREE.Matrix4().makeRotationY(Math.PI / 2 * Math.floor(4 * Math.random())),
+                new THREE.Matrix4().makeRotationY(Math.PI / 2 * Math.random()),//Math.floor(4 * Math.random())),
             );
             this.grass.setMatrix(index, matrix);
         });
@@ -93,7 +103,7 @@ class TestGrass extends TestBase {
         boardCenterControls.addEventListener('dragging-changed', event => {
             this.cameraControl.enabled = !event.value;
         });
-        const fakePlayer = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true }));
+        const fakePlayer = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 12), new THREE.MeshPhongMaterial({ color: 0xffffff, wireframe: false }));
         this.fakeCamera.add(fakePlayer);
         boardCenterControls.attach(this.fakeCamera);
         this.scene.add(this.fakeCamera);
@@ -133,6 +143,7 @@ class TestGrass extends TestBase {
     }
 
     protected override update(): void {
+        this.fakeCamera.getWorldPosition(this.grass.playerPosition);
         this.grass.update();
 
         const camera = this.parameters.centerOnPlayer ? this.fakeCamera : this.camera;
