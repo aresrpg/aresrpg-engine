@@ -22,7 +22,7 @@ class TestGrass extends TestBase {
     private readonly parameters = {
         viewRadius: 20,
         transitionTime: 0.25,
-        useFakeCamera: true,
+        centerOnPlayer: true,
     };
 
     public static async instanciate(): Promise<TestGrass> {
@@ -47,12 +47,12 @@ class TestGrass extends TestBase {
     private constructor(bufferGeometry: THREE.BufferGeometry) {
         super();
 
-        this.camera.position.set(10, 10, 10);
+        this.camera.position.set(5, 5, 5);
         this.cameraControl.target.set(0, 1, 0);
 
         const dirLight = new THREE.DirectionalLight(0xffffff, 1);
         dirLight.target.position.set(0, 0, 0);
-        dirLight.position.set(100, 50, 100);
+        dirLight.position.set(100, 50, 80);
         this.scene.add(dirLight);
 
         const ambientLight = new THREE.AmbientLight(0xffffff);
@@ -79,15 +79,22 @@ class TestGrass extends TestBase {
         this.particles = particles;
 
         this.particles.forEach((particle: GrassParticle, index: number) => {
-            this.grass.setPosition(index, particle.position);
+            const matrix = new THREE.Matrix4().multiplyMatrices(
+                new THREE.Matrix4().makeTranslation(new THREE.Vector3(particle.position.x, 0, particle.position.y)),
+                new THREE.Matrix4().makeRotationY(Math.PI / 2 * Math.floor(4 * Math.random())),
+            );
+            this.grass.setMatrix(index, matrix);
         });
 
         this.fakeCamera = new THREE.Object3D();
+        this.fakeCamera.position.set(0, 0.5, 0);
         const boardCenterControls = new THREE.TransformControls(this.camera, this.renderer.domElement);
         boardCenterControls.showY = false;
         boardCenterControls.addEventListener('dragging-changed', event => {
             this.cameraControl.enabled = !event.value;
         });
+        const fakePlayer = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true }));
+        this.fakeCamera.add(fakePlayer);
         boardCenterControls.attach(this.fakeCamera);
         this.scene.add(this.fakeCamera);
         this.scene.add(boardCenterControls.getHelper());
@@ -122,13 +129,13 @@ class TestGrass extends TestBase {
         this.gui.add(this.parameters, 'viewRadius', 0, 200, 1).name('View distance');
         this.gui.add(this.parameters, 'transitionTime', 0, 2, 0.01).name('Transition time');
         this.gui.add(ground, 'visible').name('Show ground');
-        this.gui.add(this.parameters, 'useFakeCamera').name('Fake camera');
+        this.gui.add(this.parameters, 'centerOnPlayer').name('Center on player');
     }
 
     protected override update(): void {
         this.grass.update();
 
-        const camera = this.parameters.useFakeCamera ? this.fakeCamera : this.camera;
+        const camera = this.parameters.centerOnPlayer ? this.fakeCamera : this.camera;
         const cameraPosition = camera.getWorldPosition(new THREE.Vector3());
         cameraPosition.setY(0);
 
