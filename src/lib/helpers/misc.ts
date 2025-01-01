@@ -5,7 +5,4 @@ function copyMap<T, U>(source: ReadonlyMap<T, U>, destination: Map<T, U>): void 
     }
 }
 
-export {
-    copyMap
-};
-
+export { copyMap };
