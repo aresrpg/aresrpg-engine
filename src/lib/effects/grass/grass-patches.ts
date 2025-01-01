@@ -112,9 +112,10 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
 }
 
 type Paramerers = {
-    count: number;
-    bufferGeometry: THREE.BufferGeometry;
-    material: THREE.MeshPhongMaterial;
+    readonly count: number;
+    readonly reactToPlayer: boolean;
+    readonly bufferGeometry: THREE.BufferGeometry;
+    readonly material: THREE.MeshPhongMaterial;
 };
 
 class GrassPatchesBatch {
@@ -133,7 +134,7 @@ class GrassPatchesBatch {
         this.dissolveAttribute = new THREE.InstancedBufferAttribute(new Float32Array(params.count), 1);
         params.bufferGeometry.setAttribute('aDissolveRatio', this.dissolveAttribute);
 
-        this.material = customizeMaterial(params.material, true);
+        this.material = customizeMaterial(params.material, params.reactToPlayer);
         this.instancedMesh = new THREE.InstancedMesh(params.bufferGeometry, this.material.material, params.count);
         this.instancedMesh.count = params.count;
     }
