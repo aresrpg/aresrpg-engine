@@ -136,14 +136,15 @@ class TestGrass extends TestBase {
         this.gui = new GUI();
         this.gui.show();
         this.gui.add(this.grass, 'minDissolve', 0, 1, 0.01).name('Min dissolve');
-        this.gui.add(this.parameters, 'viewRadius', 0, 200, 1).name('View distance');
         this.gui.add(this.parameters, 'transitionTime', 0, 2, 0.01).name('Transition time');
+        this.gui.add(this.parameters, 'viewRadius', 0, 200, 1).name('View distance');
+        this.gui.add(this.parameters, 'centerOnPlayer').name('Center view on player');
         this.gui.add(ground, 'visible').name('Show ground');
-        this.gui.add(this.parameters, 'centerOnPlayer').name('Center on player');
+        this.gui.add(this.grass.object3D, 'visible').name('Show grass');
     }
 
     protected override update(): void {
-        this.fakeCamera.getWorldPosition(this.grass.playerPosition);
+        this.fakeCamera.getWorldPosition(this.grass.playerWorldPosition);
         this.grass.update();
 
         const camera = this.parameters.centerOnPlayer ? this.fakeCamera : this.camera;
