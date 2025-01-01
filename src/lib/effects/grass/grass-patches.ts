@@ -1,15 +1,12 @@
 import { applyReplacements } from '../../helpers/string';
 import * as THREE from '../../libs/three-usage';
 
-const params = {
-    minDissolve: 0,
-};
-
 type ClutterMaterial = {
     readonly material: THREE.MeshPhongMaterial;
     readonly uniforms: {
         uPlayerModelPosition: THREE.IUniform<THREE.Vector3>;
-        uDissolveThreshold: THREE.IUniform<number>;
+        uViewRadius: THREE.IUniform<number>;
+        uViewRadiusMargin: THREE.IUniform<number>;
     };
 };
 
@@ -35,12 +32,12 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
     noiseTexture.wrapS = THREE.RepeatWrapping;
     noiseTexture.wrapT = THREE.RepeatWrapping;
     noiseTexture.magFilter = THREE.LinearFilter;
-    const dissolveUniform: THREE.IUniform<number> = { value: params.minDissolve };
 
     const customUniforms = {
         uNoiseTexture: { value: noiseTexture },
-        uDissolveThreshold: dissolveUniform,
         uPlayerModelPosition: { value: new THREE.Vector3(Infinity, Infinity, Infinity) },
+        uViewRadius: { value: 10 },
+        uViewRadiusMargin: { value: 2 },
     };
 
     phongMaterial.onBeforeCompile = parameters => {
@@ -49,60 +46,66 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
             ...customUniforms,
         };
 
+        parameters.defines = parameters.defines || {};
+        const playerReactiveKey = "PLAYER_REACTIVE";
+        if (playerReactive) {
+            parameters.defines[playerReactiveKey] = true;
+        }
+
         parameters.vertexShader = applyReplacements(parameters.vertexShader, {
             'void main() {': `
-
+                #ifdef ${playerReactiveKey}
                 uniform vec3 uPlayerModelPosition;
+                #endif
 
-                in float aDissolveRatio;
+                uniform float uViewRadius;
+                uniform float uViewRadiusMargin;
+
                 out float vDissolveRatio;
                    
                 void main() {
-                    vDissolveRatio = aDissolveRatio;
             `,
-        });
+            // https://github.com/mrdoob/three.js/blob/dev/src/renderers/shaders/ShaderChunk/project_vertex.glsl.js
+            "#include <project_vertex>": `
+                vec4 mvPosition = vec4( transformed, 1.0 );
 
-        if (playerReactive) {
-            parameters.vertexShader = applyReplacements(parameters.vertexShader, {
-                // https://github.com/mrdoob/three.js/blob/dev/src/renderers/shaders/ShaderChunk/project_vertex.glsl.js
-                "#include <project_vertex>": `
-                        vec4 mvPosition = vec4( transformed, 1.0 );
-    
-                        #ifdef USE_BATCHING
-                            mvPosition = batchingMatrix * mvPosition;
-                        #endif
-    
-                        #ifdef USE_INSTANCING
-                            mvPosition = instanceMatrix * mvPosition;
-                        #endif
-    
-                        vec3 fromPlayer = mvPosition.xyz - uPlayerModelPosition;
-                        float fromPlayerLength = length(fromPlayer) + 0.00001;
-                        const float playerRadius = 0.6;
-                        vec3 displacement = fromPlayer / fromPlayerLength * (playerRadius - fromPlayerLength)
-                            * step(fromPlayerLength, playerRadius) * step(0.2, mvPosition.y);
-                        mvPosition.xz += displacement.xz;
-    
-                        mvPosition = modelViewMatrix * mvPosition;
-    
-                        gl_Position = projectionMatrix * mvPosition;
+                #ifdef USE_BATCHING
+                    mvPosition = batchingMatrix * mvPosition;
+                #endif
+
+                #ifdef USE_INSTANCING
+                    mvPosition = instanceMatrix * mvPosition;
+                #endif
+
+                #ifdef ${playerReactiveKey}
+                vec3 fromPlayer = mvPosition.xyz - uPlayerModelPosition;
+                float fromPlayerLength = length(fromPlayer) + 0.00001;
+                const float playerRadius = 0.6;
+                vec3 displacement = fromPlayer / fromPlayerLength * (playerRadius - fromPlayerLength)
+                    * step(fromPlayerLength, playerRadius) * step(0.2, mvPosition.y);
+                mvPosition.xz += displacement.xz;
+                #endif
+
+                mvPosition = modelViewMatrix * mvPosition;
+
+                vDissolveRatio = smoothstep(uViewRadius - uViewRadiusMargin, uViewRadius, length(mvPosition.xyz));
+
+                gl_Position = projectionMatrix * mvPosition;
                 `,
-            });
-        }
+        });
 
         parameters.fragmentShader = applyReplacements(parameters.fragmentShader, {
             'void main() {': `
-                    uniform sampler2D uNoiseTexture;
-                    uniform float uDissolveThreshold;
-    
-                    in float vDissolveRatio;
+                uniform sampler2D uNoiseTexture;
 
-                    void main() {
-                        float noise = texture(uNoiseTexture, gl_FragCoord.xy / ${noiseTextureSize.toFixed(1)}).r;
-                        if (noise < max(vDissolveRatio,uDissolveThreshold)) {
-                            discard;
-                        }
-                    `,
+                in float vDissolveRatio;
+
+                void main() {
+                    float noise = texture(uNoiseTexture, gl_FragCoord.xy / ${noiseTextureSize.toFixed(1)}).r;
+                    if (noise < vDissolveRatio) {
+                        discard;
+                    }
+                `,
         });
     };
     return {
@@ -123,17 +126,12 @@ class GrassPatchesBatch {
         return this.instancedMesh;
     }
 
-    public minDissolve: number = 0;
     public readonly playerWorldPosition = new THREE.Vector3();
 
     private readonly instancedMesh: THREE.InstancedMesh;
     private readonly material: ClutterMaterial;
-    private readonly dissolveAttribute: THREE.InstancedBufferAttribute;
 
     public constructor(params: Paramerers) {
-        this.dissolveAttribute = new THREE.InstancedBufferAttribute(new Float32Array(params.count), 1);
-        params.bufferGeometry.setAttribute('aDissolveRatio', this.dissolveAttribute);
-
         this.material = customizeMaterial(params.material, params.reactToPlayer);
         this.instancedMesh = new THREE.InstancedMesh(params.bufferGeometry, this.material.material, params.count);
         this.instancedMesh.count = params.count;
@@ -143,18 +141,19 @@ class GrassPatchesBatch {
         this.material.uniforms.uPlayerModelPosition.value.copy(this.playerWorldPosition).applyMatrix4(
             this.object3D.matrixWorld.clone().invert()
         );
-
-        this.material.uniforms.uDissolveThreshold.value = this.minDissolve;
-    }
-
-    public setDissolve(index: number, dissolveRatio: number): void {
-        this.dissolveAttribute.array[index] = dissolveRatio;
-        this.dissolveAttribute.needsUpdate = true;
     }
 
     public setMatrix(index: number, matrix: THREE.Matrix4): void {
         this.instancedMesh.setMatrixAt(index, matrix);
     }
+
+    public setViewDistance(distance: number): void {
+        this.material.uniforms.uViewRadius.value = distance;
+    }
+    public setViewDistanceMargin(margin: number): void {
+        this.material.uniforms.uViewRadiusMargin.value = margin;
+    }
 }
 
-export { GrassPatchesBatch, params };
+export { GrassPatchesBatch };
+
