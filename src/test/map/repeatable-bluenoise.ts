@@ -1,14 +1,15 @@
 import alea from 'alea';
 import type * as THREE from 'three-usage-test';
 
-import { safeModulo } from '../../../lib/helpers/math';
+import { safeModulo } from '../../lib/helpers/math';
 
-type TreePosition = {
+type ItemPosition = {
     position: THREE.Vector2Like;
     probability: number;
 };
 
-class TreeRepartition {
+/** Only works with integer coordinates */
+class RepeatableBluenoise {
     public readonly size: number;
     private readonly data: Uint8Array;
     private readonly prng: () => number;
@@ -53,12 +54,12 @@ class TreeRepartition {
         }
     }
 
-    public getAllTrees(from: THREE.Vector2Like, to: THREE.Vector2Like): TreePosition[] {
-        const result: TreePosition[] = [];
+    public getAllItems(from: THREE.Vector2Like, to: THREE.Vector2Like): ItemPosition[] {
+        const result: ItemPosition[] = [];
 
         for (let iZ = from.y; iZ < to.y; iZ++) {
             for (let iX = from.x; iX < to.x; iX++) {
-                const probability = this.getTreeProbability(iX, iZ);
+                const probability = this.getItemProbability(iX, iZ);
                 if (probability > 0) {
                     result.push({
                         position: { x: iX, y: iZ },
@@ -71,7 +72,7 @@ class TreeRepartition {
         return result;
     }
 
-    private getTreeProbability(x: number, z: number): number {
+    private getItemProbability(x: number, z: number): number {
         x = safeModulo(x, this.size);
         z = safeModulo(z, this.size);
 
@@ -88,4 +89,4 @@ class TreeRepartition {
     }
 }
 
-export { TreeRepartition, type TreePosition };
+export { RepeatableBluenoise };

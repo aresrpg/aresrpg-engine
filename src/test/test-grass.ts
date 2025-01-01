@@ -4,6 +4,8 @@ import * as THREE from 'three-usage-test';
 import { GrassPatchesBatch } from '../lib';
 
 import { TestBase } from './test-base';
+import { RepeatableBluenoise } from './map/repeatable-bluenoise';
+import { logger } from '../lib/helpers/logger';
 
 type GrassParticle = {
     readonly position: THREE.Vector2Like;
@@ -57,6 +59,11 @@ enum EGrassMode {
     GRASS_3D = "3d",
 };
 
+type PositionsList = { position: THREE.Vector2Like }[];
+interface IRepartition {
+    getAllItems(from: THREE.Vector2Like, to: THREE.Vector2Like): PositionsList;
+}
+
 class TestGrass extends TestBase {
     private readonly gui: GUI;
 
@@ -80,10 +87,49 @@ class TestGrass extends TestBase {
             getGrass3D(gltfLoader),
         ]);
 
-        return new TestGrass(grass2D, grass3D);
+        const density = 2;
+        const whitenoiseRepartition: IRepartition = {
+            getAllItems(from: THREE.Vector2Like, to: THREE.Vector2Like): PositionsList {
+                const result: PositionsList = [];
+                const areaSize = new THREE.Vector2().subVectors(to, from);
+                const totalArea = areaSize.x * areaSize.y;
+                const totalItemsCount = totalArea * density;
+
+                for (let i = 0; i < totalItemsCount; i++) {
+                    result.push({
+                        position: {
+                            x: from.x + areaSize.x * Math.random(),
+                            y: from.y + areaSize.y * Math.random(),
+                        },
+                    });
+                }
+
+                return result;
+            },
+        };
+
+        const repeatableBluenoise = new RepeatableBluenoise("seed", 150, 2);
+        const bluenoiseScaling = Math.ceil(density / 0.6); // arbitrary factor to match the same visual density as whitenoise
+        const bluenoiseRepartition: IRepartition = {
+            getAllItems(from: THREE.Vector2Like, to: THREE.Vector2Like): PositionsList {
+                const rawItems = repeatableBluenoise.getAllItems(
+                    new THREE.Vector2().addScaledVector(from, bluenoiseScaling),
+                    new THREE.Vector2().addScaledVector(to, bluenoiseScaling),
+                );
+                return rawItems.map(item => {
+                    return {
+                        position: new THREE.Vector2().addScaledVector(item.position, 1 / bluenoiseScaling),
+                    };
+                });
+            }
+        }
+
+        const useBluenoise = true;
+
+        return new TestGrass(grass2D, grass3D, useBluenoise ? bluenoiseRepartition : whitenoiseRepartition);
     }
 
-    private constructor(grass2D: ClutterDefinition, grass3D: ClutterDefinition) {
+    private constructor(grass2D: ClutterDefinition, grass3D: ClutterDefinition, repartition: IRepartition) {
         super();
 
         this.camera.position.set(5, 5, 5);
@@ -99,27 +145,26 @@ class TestGrass extends TestBase {
 
         const grassContainer = new THREE.Object3D();
         this.scene.add(grassContainer);
-        const count = 10000;
+
+        const allItemsPositions = repartition.getAllItems({ x: -100, y: -100 }, { x: 100, y: 100 });
+        console.log(`${allItemsPositions.length} grass items`);
         this.grass2D = new GrassPatchesBatch({
-            count,
+            count: allItemsPositions.length,
             bufferGeometry: grass2D.bufferGeometry,
             material: grass2D.material,
         });
         grassContainer.add(this.grass2D.object3D);
         this.grass3D = new GrassPatchesBatch({
-            count,
+            count: allItemsPositions.length,
             bufferGeometry: grass3D.bufferGeometry,
             material: grass3D.material,
         });
         grassContainer.add(this.grass3D.object3D);
 
         const particles: GrassParticle[] = [];
-        for (let i = 0; i < count; i++) {
+        for (const itemPosition of allItemsPositions) {
             particles.push({
-                position: {
-                    x: 100 * (Math.random() - 0.5),
-                    y: 100 * (Math.random() - 0.5),
-                },
+                position: itemPosition.position,
                 visible: false,
                 lastChangeTimestamp: -Infinity,
             });
