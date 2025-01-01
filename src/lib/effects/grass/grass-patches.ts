@@ -27,7 +27,7 @@ function buildNoiseTexture(resolution: number): THREE.DataTexture {
     return texture;
 }
 
-function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial): ClutterMaterial {
+function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactive: boolean): ClutterMaterial {
     phongMaterial.customProgramCacheKey = () => `prop_phong_material`;
 
     const noiseTextureSize = 64;
@@ -60,30 +60,35 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial): ClutterMater
                 void main() {
                     vDissolveRatio = aDissolveRatio;
             `,
-            // https://github.com/mrdoob/three.js/blob/dev/src/renderers/shaders/ShaderChunk/project_vertex.glsl.js
-            "#include <project_vertex>": `
-                    vec4 mvPosition = vec4( transformed, 1.0 );
-
-                    #ifdef USE_BATCHING
-                        mvPosition = batchingMatrix * mvPosition;
-                    #endif
-
-                    #ifdef USE_INSTANCING
-                        mvPosition = instanceMatrix * mvPosition;
-                    #endif
-
-                    vec3 fromPlayer = mvPosition.xyz - uPlayerModelPosition;
-                    float fromPlayerLength = length(fromPlayer) + 0.00001;
-                    const float playerRadius = 0.6;
-                    vec3 displacement = fromPlayer / fromPlayerLength * (playerRadius - fromPlayerLength)
-                        * step(fromPlayerLength, playerRadius) * step(0.2, mvPosition.y);
-                    mvPosition.xz += displacement.xz;
-
-                    mvPosition = modelViewMatrix * mvPosition;
-
-                    gl_Position = projectionMatrix * mvPosition;
-            `,
         });
+
+        if (playerReactive) {
+            parameters.vertexShader = applyReplacements(parameters.vertexShader, {
+                // https://github.com/mrdoob/three.js/blob/dev/src/renderers/shaders/ShaderChunk/project_vertex.glsl.js
+                "#include <project_vertex>": `
+                        vec4 mvPosition = vec4( transformed, 1.0 );
+    
+                        #ifdef USE_BATCHING
+                            mvPosition = batchingMatrix * mvPosition;
+                        #endif
+    
+                        #ifdef USE_INSTANCING
+                            mvPosition = instanceMatrix * mvPosition;
+                        #endif
+    
+                        vec3 fromPlayer = mvPosition.xyz - uPlayerModelPosition;
+                        float fromPlayerLength = length(fromPlayer) + 0.00001;
+                        const float playerRadius = 0.6;
+                        vec3 displacement = fromPlayer / fromPlayerLength * (playerRadius - fromPlayerLength)
+                            * step(fromPlayerLength, playerRadius) * step(0.2, mvPosition.y);
+                        mvPosition.xz += displacement.xz;
+    
+                        mvPosition = modelViewMatrix * mvPosition;
+    
+                        gl_Position = projectionMatrix * mvPosition;
+                `,
+            });
+        }
 
         parameters.fragmentShader = applyReplacements(parameters.fragmentShader, {
             'void main() {': `
@@ -118,7 +123,7 @@ class GrassPatchesBatch {
     }
 
     public minDissolve: number = 0;
-    public readonly playerPosition: THREE.Vector3;
+    public readonly playerWorldPosition = new THREE.Vector3();
 
     private readonly instancedMesh: THREE.InstancedMesh;
     private readonly material: ClutterMaterial;
@@ -128,14 +133,16 @@ class GrassPatchesBatch {
         this.dissolveAttribute = new THREE.InstancedBufferAttribute(new Float32Array(params.count), 1);
         params.bufferGeometry.setAttribute('aDissolveRatio', this.dissolveAttribute);
 
-        this.material = customizeMaterial(params.material);
+        this.material = customizeMaterial(params.material, true);
         this.instancedMesh = new THREE.InstancedMesh(params.bufferGeometry, this.material.material, params.count);
         this.instancedMesh.count = params.count;
-        
-        this.playerPosition = this.material.uniforms.uPlayerModelPosition.value;
     }
 
     public update(): void {
+        this.material.uniforms.uPlayerModelPosition.value.copy(this.playerWorldPosition).applyMatrix4(
+            this.object3D.matrixWorld.clone().invert()
+        );
+
         this.material.uniforms.uDissolveThreshold.value = this.minDissolve;
     }
 
