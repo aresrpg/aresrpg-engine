@@ -11,11 +11,58 @@ type GrassParticle = {
     lastChangeTimestamp: number;
 };
 
+type ClutterDefinition = {
+    readonly bufferGeometry: THREE.BufferGeometry;
+    readonly material: THREE.MeshPhongMaterial;
+};
+
+function extractBufferGeometry(object: THREE.Object3D): THREE.BufferGeometry {
+    let bufferGeometry: THREE.BufferGeometry | null = null;
+    object.traverse(child => {
+        if ((child as THREE.Mesh).isMesh) {
+            bufferGeometry = (child as THREE.Mesh).geometry;
+        }
+    });
+
+    if (!bufferGeometry) {
+        throw new Error('Failed to load buffer geometry');
+    }
+    return bufferGeometry;
+}
+
+async function getGrass2D(gltfLoader: THREE.GLTFLoader): Promise<ClutterDefinition> {
+    const glb = await gltfLoader.loadAsync('resources/grass-2d.glb');
+    const bufferGeometry = extractBufferGeometry(glb.scene);
+
+    const texture = new THREE.TextureLoader().load("resources/grass-2d.png");
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    const material = new THREE.MeshPhongMaterial({
+        map: texture,
+        side: THREE.DoubleSide,
+        alphaTest: 0.5,
+    });
+    return { bufferGeometry, material };
+}
+
+async function getGrass3D(gltfLoader: THREE.GLTFLoader): Promise<ClutterDefinition> {
+    const glb = await gltfLoader.loadAsync('resources/grass-3d.glb');
+    const bufferGeometry = extractBufferGeometry(glb.scene);
+    const material = new THREE.MeshPhongMaterial({ color: 0xffffff });
+    return { bufferGeometry, material };
+}
+
+enum EGrassMode {
+    GRASS_2D = "2d",
+    GRASS_3D = "3d",
+};
+
 class TestGrass extends TestBase {
     private readonly gui: GUI;
 
-    private readonly grass: GrassPatchesBatch;
-    private readonly particles: ReadonlyArray<GrassParticle>;
+    private readonly grass2D: GrassPatchesBatch;
+    private readonly grass3D: GrassPatchesBatch;
+    private readonly grassParticles: ReadonlyArray<GrassParticle>;
 
     private readonly fakeCamera: THREE.Object3D;
 
@@ -23,37 +70,20 @@ class TestGrass extends TestBase {
         viewRadius: 20,
         transitionTime: 0.25,
         centerOnPlayer: true,
+        grassMode: EGrassMode.GRASS_2D,
     };
 
     public static async instanciate(): Promise<TestGrass> {
         const gltfLoader = new THREE.GLTFLoader();
+        const [grass2D, grass3D] = await Promise.all([
+            getGrass2D(gltfLoader),
+            getGrass3D(gltfLoader),
+        ]);
 
-        const scene = await gltfLoader.loadAsync('resources/grass-2d.glb');
-
-        let bufferGeometry: THREE.BufferGeometry | null = null;
-        scene.scene.traverse(object => {
-            if ((object as THREE.Mesh).isMesh) {
-                bufferGeometry = (object as THREE.Mesh).geometry;
-            }
-        });
-
-        if (!bufferGeometry) {
-            throw new Error('Failed to load buffer geometry');
-        }
-
-        const texture = new THREE.TextureLoader().load("resources/grass-2d.png");
-        texture.magFilter = THREE.NearestFilter;
-        texture.minFilter = THREE.NearestFilter;
-        const material = new THREE.MeshPhongMaterial({
-            map: texture,
-            side: THREE.DoubleSide,
-            alphaTest: 0.5,
-        })
-
-        return new TestGrass(bufferGeometry, material);
+        return new TestGrass(grass2D, grass3D);
     }
 
-    private constructor(bufferGeometry: THREE.BufferGeometry, material: THREE.MeshPhongMaterial) {
+    private constructor(grass2D: ClutterDefinition, grass3D: ClutterDefinition) {
         super();
 
         this.camera.position.set(5, 5, 5);
@@ -67,13 +97,21 @@ class TestGrass extends TestBase {
         const ambientLight = new THREE.AmbientLight(0xffffff);
         this.scene.add(ambientLight);
 
+        const grassContainer = new THREE.Object3D();
+        this.scene.add(grassContainer);
         const count = 10000;
-        this.grass = new GrassPatchesBatch({
+        this.grass2D = new GrassPatchesBatch({
             count,
-            bufferGeometry,
-            material,
+            bufferGeometry: grass2D.bufferGeometry,
+            material: grass2D.material,
         });
-        this.scene.add(this.grass.object3D);
+        grassContainer.add(this.grass2D.object3D);
+        this.grass3D = new GrassPatchesBatch({
+            count,
+            bufferGeometry: grass3D.bufferGeometry,
+            material: grass3D.material,
+        });
+        grassContainer.add(this.grass3D.object3D);
 
         const particles: GrassParticle[] = [];
         for (let i = 0; i < count; i++) {
@@ -86,14 +124,15 @@ class TestGrass extends TestBase {
                 lastChangeTimestamp: -Infinity,
             });
         }
-        this.particles = particles;
+        this.grassParticles = particles;
 
-        this.particles.forEach((particle: GrassParticle, index: number) => {
+        this.grassParticles.forEach((particle: GrassParticle, index: number) => {
             const matrix = new THREE.Matrix4().multiplyMatrices(
                 new THREE.Matrix4().makeTranslation(new THREE.Vector3(particle.position.x, 0, particle.position.y)),
                 new THREE.Matrix4().makeRotationY(Math.PI / 2 * Math.random()),//Math.floor(4 * Math.random())),
             );
-            this.grass.setMatrix(index, matrix);
+            this.grass2D.setMatrix(index, matrix);
+            this.grass3D.setMatrix(index, matrix);
         });
 
         this.fakeCamera = new THREE.Object3D();
@@ -133,26 +172,36 @@ class TestGrass extends TestBase {
         ground.scale.set(groundSize, groundSize, 1);
         this.scene.add(ground);
 
+        const applyGrassMode = () => {
+            this.grass2D.object3D.visible = this.parameters.grassMode === EGrassMode.GRASS_2D;
+            this.grass3D.object3D.visible = this.parameters.grassMode === EGrassMode.GRASS_3D;
+        };
+        applyGrassMode();
+
         this.gui = new GUI();
         this.gui.show();
-        this.gui.add(this.grass, 'minDissolve', 0, 1, 0.01).name('Min dissolve');
+        this.gui.add(this.grass2D, 'minDissolve', 0, 1, 0.01).name('Min dissolve');
         this.gui.add(this.parameters, 'transitionTime', 0, 2, 0.01).name('Transition time');
         this.gui.add(this.parameters, 'viewRadius', 0, 200, 1).name('View distance');
         this.gui.add(this.parameters, 'centerOnPlayer').name('Center view on player');
+        this.gui.add(fakePlayer, 'visible').name('Show player');
         this.gui.add(ground, 'visible').name('Show ground');
-        this.gui.add(this.grass.object3D, 'visible').name('Show grass');
+        this.gui.add(grassContainer, 'visible').name('Show grass');
+        this.gui.add(this.parameters, "grassMode", Object.values(EGrassMode)).name("Grass type").onChange(applyGrassMode);
     }
 
     protected override update(): void {
-        this.fakeCamera.getWorldPosition(this.grass.playerWorldPosition);
-        this.grass.update();
+        this.fakeCamera.getWorldPosition(this.grass2D.playerWorldPosition);
+        this.fakeCamera.getWorldPosition(this.grass3D.playerWorldPosition);
+        this.grass2D.update();
+        this.grass3D.update();
 
         const camera = this.parameters.centerOnPlayer ? this.fakeCamera : this.camera;
         const cameraPosition = camera.getWorldPosition(new THREE.Vector3());
         cameraPosition.setY(0);
 
         const particlePosition = new THREE.Vector3();
-        this.particles.forEach((particle: GrassParticle, index: number) => {
+        this.grassParticles.forEach((particle: GrassParticle, index: number) => {
             particlePosition.set(particle.position.x, 0, particle.position.y);
 
             const shouldBeVisible = cameraPosition.distanceTo(particlePosition) < this.parameters.viewRadius;
@@ -161,7 +210,9 @@ class TestGrass extends TestBase {
                 particle.lastChangeTimestamp = performance.now();
             }
 
-            this.grass.setDissolve(index, this.getParticleDissolveRatio(particle));
+            const particleDissolveRatio = this.getParticleDissolveRatio(particle);
+            this.grass2D.setDissolve(index, particleDissolveRatio);
+            this.grass3D.setDissolve(index, particleDissolveRatio);
         });
     }
 
@@ -183,3 +234,4 @@ class TestGrass extends TestBase {
 }
 
 export { TestGrass };
+
