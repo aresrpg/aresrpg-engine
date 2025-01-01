@@ -113,8 +113,8 @@ class GrassPatchesBatch {
         this.dissolveAttribute.needsUpdate = true;
     }
 
-    public setPosition(index: number, position: THREE.Vector2Like): void {
-        this.instancedMesh.setMatrixAt(index, new THREE.Matrix4().makeTranslation(new THREE.Vector3(position.x, 0, position.y)));
+    public setMatrix(index: number, matrix: THREE.Matrix4): void {
+        this.instancedMesh.setMatrixAt(index, matrix);
     }
 }
 
