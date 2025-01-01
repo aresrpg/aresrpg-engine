@@ -1,7 +1,7 @@
 import { applyReplacements } from '../../helpers/string';
 import * as THREE from '../../libs/three-usage';
 
-type ClutterMaterial = {
+type PropsMaterial = {
     readonly material: THREE.MeshPhongMaterial;
     readonly uniforms: {
         uPlayerModelPosition: THREE.IUniform<THREE.Vector3>;
@@ -24,7 +24,7 @@ function buildNoiseTexture(resolution: number): THREE.DataTexture {
     return texture;
 }
 
-function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactive: boolean): ClutterMaterial {
+function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactive: boolean): PropsMaterial {
     phongMaterial.customProgramCacheKey = () => `prop_phong_material`;
 
     const noiseTextureSize = 64;
@@ -121,7 +121,7 @@ type Paramerers = {
     readonly material: THREE.MeshPhongMaterial;
 };
 
-class GrassPatchesBatch {
+class PropsBatch {
     public get object3D() {
         return this.instancedMesh;
     }
@@ -129,7 +129,7 @@ class GrassPatchesBatch {
     public readonly playerWorldPosition = new THREE.Vector3();
 
     private readonly instancedMesh: THREE.InstancedMesh;
-    private readonly material: ClutterMaterial;
+    private readonly material: PropsMaterial;
 
     public constructor(params: Paramerers) {
         this.material = customizeMaterial(params.material, params.reactToPlayer);
@@ -155,5 +155,5 @@ class GrassPatchesBatch {
     }
 }
 
-export { GrassPatchesBatch };
+export { PropsBatch };
 

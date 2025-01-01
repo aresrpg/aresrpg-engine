@@ -1,12 +1,12 @@
 import GUI from 'lil-gui';
 import * as THREE from 'three-usage-test';
 
-import { GrassPatchesBatch } from '../lib';
+import { PropsBatch } from '../lib';
 
 import { RepeatableBluenoise } from './map/repeatable-bluenoise';
 import { TestBase } from './test-base';
 
-type ClutterDefinition = {
+type PropsDefinition = {
     readonly bufferGeometry: THREE.BufferGeometry;
     readonly material: THREE.MeshPhongMaterial;
 };
@@ -25,7 +25,7 @@ function extractBufferGeometry(object: THREE.Object3D): THREE.BufferGeometry {
     return bufferGeometry;
 }
 
-async function getGrass2D(gltfLoader: THREE.GLTFLoader): Promise<ClutterDefinition> {
+async function getGrass2D(gltfLoader: THREE.GLTFLoader): Promise<PropsDefinition> {
     const glb = await gltfLoader.loadAsync('resources/grass-2d.glb');
     const bufferGeometry = extractBufferGeometry(glb.scene);
 
@@ -40,14 +40,14 @@ async function getGrass2D(gltfLoader: THREE.GLTFLoader): Promise<ClutterDefiniti
     return { bufferGeometry, material };
 }
 
-async function getGrass3D(gltfLoader: THREE.GLTFLoader): Promise<ClutterDefinition> {
+async function getGrass3D(gltfLoader: THREE.GLTFLoader): Promise<PropsDefinition> {
     const glb = await gltfLoader.loadAsync('resources/grass-3d.glb');
     const bufferGeometry = extractBufferGeometry(glb.scene);
     const material = new THREE.MeshPhongMaterial({ color: 0xffffff });
     return { bufferGeometry, material };
 }
 
-async function getRocks(gltfLoader: THREE.GLTFLoader): Promise<ClutterDefinition> {
+async function getRocks(gltfLoader: THREE.GLTFLoader): Promise<PropsDefinition> {
     const glb = await gltfLoader.loadAsync('resources/props-rocks.glb');
     const bufferGeometry = extractBufferGeometry(glb.scene);
     const material = new THREE.MeshPhongMaterial({ color: 0xdddddd });
@@ -66,9 +66,9 @@ interface IRepartition {
 
 type Parameters = {
     readonly propDefinitions: {
-        readonly grass2D: ClutterDefinition;
-        readonly grass3D: ClutterDefinition;
-        readonly rocks: ClutterDefinition;
+        readonly grass2D: PropsDefinition;
+        readonly grass3D: PropsDefinition;
+        readonly rocks: PropsDefinition;
     };
     readonly repartitions: {
         readonly bluenoise: IRepartition;
@@ -79,9 +79,9 @@ type Parameters = {
 class TestGrass extends TestBase {
     private readonly gui: GUI;
 
-    private readonly grass2D: GrassPatchesBatch;
-    private readonly grass3D: GrassPatchesBatch;
-    private readonly rocks: GrassPatchesBatch;
+    private readonly grass2D: PropsBatch;
+    private readonly grass3D: PropsBatch;
+    private readonly rocks: PropsBatch;
 
     private readonly fakeCamera: THREE.Object3D;
 
@@ -160,25 +160,25 @@ class TestGrass extends TestBase {
         const ambientLight = new THREE.AmbientLight(0xffffff);
         this.scene.add(ambientLight);
 
-        const grassContainer = new THREE.Object3D();
-        this.scene.add(grassContainer);
+        const propsContainer = new THREE.Object3D();
+        this.scene.add(propsContainer);
 
         const allGrassParticlesPositions = params.repartitions.bluenoise.getAllItems({ x: -100, y: -100 }, { x: 100, y: 100 });
         console.log(`${allGrassParticlesPositions.length} grass items`);
-        this.grass2D = new GrassPatchesBatch({
+        this.grass2D = new PropsBatch({
             count: allGrassParticlesPositions.length,
             bufferGeometry: params.propDefinitions.grass2D.bufferGeometry,
             material: params.propDefinitions.grass2D.material,
             reactToPlayer: true,
         });
-        grassContainer.add(this.grass2D.object3D);
-        this.grass3D = new GrassPatchesBatch({
+        propsContainer.add(this.grass2D.object3D);
+        this.grass3D = new PropsBatch({
             count: allGrassParticlesPositions.length,
             bufferGeometry: params.propDefinitions.grass3D.bufferGeometry,
             material: params.propDefinitions.grass3D.material,
             reactToPlayer: true,
         });
-        grassContainer.add(this.grass3D.object3D);
+        propsContainer.add(this.grass3D.object3D);
         allGrassParticlesPositions.forEach((particle: { position: THREE.Vector2Like }, index: number) => {
             const matrix = new THREE.Matrix4().multiplyMatrices(
                 new THREE.Matrix4().makeTranslation(new THREE.Vector3(particle.position.x, 0, particle.position.y)),
@@ -190,13 +190,13 @@ class TestGrass extends TestBase {
 
         const allRockParticlesPositions = params.repartitions.whitenoise.getAllItems({ x: -100, y: -100 }, { x: 100, y: 100 });
         console.log(`${allRockParticlesPositions.length} rock items`);
-        this.rocks = new GrassPatchesBatch({
+        this.rocks = new PropsBatch({
             count: allRockParticlesPositions.length,
             bufferGeometry: params.propDefinitions.rocks.bufferGeometry,
             material: params.propDefinitions.rocks.material,
             reactToPlayer: false,
         });
-        grassContainer.add(this.rocks.object3D);
+        propsContainer.add(this.rocks.object3D);
         allRockParticlesPositions.forEach((particle: { position: THREE.Vector2Like }, index: number) => {
             const matrix = new THREE.Matrix4().multiplyMatrices(
                 new THREE.Matrix4().makeTranslation(new THREE.Vector3(particle.position.x, 0, particle.position.y)),
@@ -268,7 +268,7 @@ class TestGrass extends TestBase {
         this.gui.add(this.parameters, 'viewRadiusMargin', 0, 50, 0.1).name('View distance margin').onChange(applyViewDistanceMargin);
         this.gui.add(fakePlayer, 'visible').name('Show player');
         this.gui.add(ground, 'visible').name('Show ground');
-        this.gui.add(grassContainer, 'visible').name('Show props');
+        this.gui.add(propsContainer, 'visible').name('Show props');
         this.gui.add(this.parameters, "grassMode", Object.values(EGrassMode)).name("Grass type").onChange(applyGrassMode);
     }
 
