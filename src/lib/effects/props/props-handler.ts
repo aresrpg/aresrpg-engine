@@ -50,6 +50,7 @@ class PropsHandler {
         if (this.hasGroup(groupName)) {
             this.deleteGroup(groupName);
         }
+        this.batchesPerGroup.set(groupName, new Set());
 
         let remainingMatricesList = matricesList.slice(0);
 
@@ -65,8 +66,7 @@ class PropsHandler {
 
             let batches = this.batchesPerGroup.get(groupName);
             if (!batches) {
-                batches = new Set();
-                this.batchesPerGroup.set(groupName, batches);
+                throw new Error("should not happen");
             }
             batches.add(batch);
         };
