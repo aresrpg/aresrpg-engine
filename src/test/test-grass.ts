@@ -1,7 +1,7 @@
 import GUI from 'lil-gui';
 import * as THREE from 'three-usage-test';
 
-import { PropsBatch } from '../lib';
+import { PropsHandler } from '../lib';
 
 import { RepeatableBluenoise } from './map/repeatable-bluenoise';
 import { TestBase } from './test-base';
@@ -79,9 +79,9 @@ type Parameters = {
 class TestGrass extends TestBase {
     private readonly gui: GUI;
 
-    private readonly grass2D: PropsBatch;
-    private readonly grass3D: PropsBatch;
-    private readonly rocks: PropsBatch;
+    private readonly grass2D: PropsHandler;
+    private readonly grass3D: PropsHandler;
+    private readonly rocks: PropsHandler;
 
     private readonly fakeCamera: THREE.Object3D;
 
@@ -161,15 +161,13 @@ class TestGrass extends TestBase {
 
         const allGrassParticlesPositions = params.repartitions.bluenoise.getAllItems({ x: -100, y: -100 }, { x: 100, y: 100 });
         console.log(`${allGrassParticlesPositions.length} grass items`);
-        this.grass2D = new PropsBatch({
-            maxInstancesCount: allGrassParticlesPositions.length,
+        this.grass2D = new PropsHandler({
             bufferGeometry: params.propDefinitions.grass2D.bufferGeometry,
             material: params.propDefinitions.grass2D.material,
             reactToPlayer: true,
         });
         propsContainer.add(this.grass2D.container);
-        this.grass3D = new PropsBatch({
-            maxInstancesCount: allGrassParticlesPositions.length,
+        this.grass3D = new PropsHandler({
             bufferGeometry: params.propDefinitions.grass3D.bufferGeometry,
             material: params.propDefinitions.grass3D.material,
             reactToPlayer: true,
@@ -181,13 +179,12 @@ class TestGrass extends TestBase {
                 new THREE.Matrix4().makeRotationY((Math.PI / 2) * Math.random()) // Math.floor(4 * Math.random())),
             )
         );
-        this.grass2D.setInstancesGroup('haha', grassParticlesMatrices);
-        this.grass3D.setInstancesGroup('haha', grassParticlesMatrices);
+        this.grass2D.setGroup('haha', grassParticlesMatrices);
+        this.grass3D.setGroup('haha', grassParticlesMatrices);
 
         const allRockParticlesPositions = params.repartitions.whitenoise.getAllItems({ x: -100, y: -100 }, { x: 100, y: 100 });
         console.log(`${allRockParticlesPositions.length} rock items`);
-        this.rocks = new PropsBatch({
-            maxInstancesCount: allRockParticlesPositions.length,
+        this.rocks = new PropsHandler({
             bufferGeometry: params.propDefinitions.rocks.bufferGeometry,
             material: params.propDefinitions.rocks.material,
             reactToPlayer: false,
@@ -199,7 +196,7 @@ class TestGrass extends TestBase {
                 new THREE.Matrix4().makeRotationY((Math.PI / 2) * Math.random())
             )
         );
-        this.rocks.setInstancesGroup('haha', rockParticlesMatrices);
+        this.rocks.setGroup('haha', rockParticlesMatrices);
 
         this.fakeCamera = new THREE.Object3D();
         this.fakeCamera.position.set(0, 0.5, 0);
@@ -274,9 +271,9 @@ class TestGrass extends TestBase {
     protected override update(): void {
         const playerViewPosition = this.fakeCamera.getWorldPosition(new THREE.Vector3()).applyMatrix4(this.camera.matrixWorldInverse);
 
-        this.grass2D.playerViewPosition.copy(playerViewPosition);
-        this.grass3D.playerViewPosition.copy(playerViewPosition);
-        this.rocks.playerViewPosition.copy(playerViewPosition);
+        this.grass2D.setPlayerViewPosition(playerViewPosition);
+        this.grass3D.setPlayerViewPosition(playerViewPosition);
+        this.rocks.setPlayerViewPosition(playerViewPosition);
     }
 }
 
