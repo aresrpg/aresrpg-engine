@@ -3,6 +3,13 @@ import * as THREE from '../../libs/three-usage';
 
 import { PropsBatch } from './props-batch';
 
+type PropsHandlerStatistics = {
+    batchesCount: number;
+    batchesSize: number;
+    totalInstancesCapacity: number;
+    totalInstancesUsed: number;
+};
+
 type Parameters = {
     readonly batchSize?: number;
     readonly minGroupPartSize?: number;
@@ -65,9 +72,9 @@ class PropsHandler {
 
             batch.setInstancesGroup(groupName, batchMatrices);
 
-            let batches = this.batchesPerGroup.get(groupName);
+            const batches = this.batchesPerGroup.get(groupName);
             if (!batches) {
-                throw new Error("should not happen");
+                throw new Error('should not happen');
             }
             batches.add(batch);
         };
@@ -157,6 +164,20 @@ class PropsHandler {
         logger.debug(`PropsHandler: garbage collected ${garbageCollectedBatchesCount} batches.`);
     }
 
+    public getStatistics(): PropsHandlerStatistics {
+        let totalInstancesUsed = 0;
+        for (const batch of this.batches) {
+            totalInstancesUsed += this.batchSize - batch.spareInstancesLeft;
+        }
+
+        return {
+            batchesCount: this.batches.length,
+            batchesSize: this.batchSize,
+            totalInstancesCapacity: this.batches.length * this.batchSize,
+            totalInstancesUsed,
+        };
+    }
+
     public setViewDistance(distance: number): void {
         this.viewDistance = distance;
         for (const batch of this.batches) {
@@ -179,4 +200,4 @@ class PropsHandler {
     }
 }
 
-export { PropsHandler };
+export { PropsHandler, type PropsHandlerStatistics };
