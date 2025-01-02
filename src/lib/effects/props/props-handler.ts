@@ -1,3 +1,4 @@
+import { logger } from '../../helpers/logger';
 import * as THREE from '../../libs/three-usage';
 
 import { PropsBatch } from './props-batch';
@@ -130,6 +131,30 @@ class PropsHandler {
         }
         this.batches = [];
         this.container.clear();
+    }
+
+    public garbageCollect(): void {
+        const usedBatches = new Set<PropsBatch>();
+        for (const usedBatchesForGroup of this.batchesPerGroup.values()) {
+            usedBatchesForGroup.forEach(usedBatchForGroup => usedBatches.add(usedBatchForGroup));
+        }
+
+        let garbageCollectedBatchesCount = 0;
+        const usedBatchesList: PropsBatch[] = [];
+        for (const batch of this.batches) {
+            if (usedBatches.has(batch)) {
+                usedBatchesList.push(batch);
+            } else {
+                if (batch.spareInstancesLeft !== this.batchSize) {
+                    throw new Error(`No group registered for batch, yet the batch is not empty.`);
+                }
+                batch.dispose();
+                this.container.remove(batch.container);
+                garbageCollectedBatchesCount++;
+            }
+        }
+        this.batches = usedBatchesList;
+        logger.debug(`PropsHandler: garbage collected ${garbageCollectedBatchesCount} batches.`);
     }
 
     public setViewDistance(distance: number): void {
