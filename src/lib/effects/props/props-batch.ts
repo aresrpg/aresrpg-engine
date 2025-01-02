@@ -190,6 +190,7 @@ class PropsBatch {
         matricesList.forEach((matrix: THREE.Matrix4, index: number) => {
             this.instancedMesh.setMatrixAt(newGroup.startIndex + index, matrix);
         });
+        this.instancedMesh.instanceMatrix.needsUpdate = true;
         this.instancedMesh.count += matricesList.length;
     }
 
