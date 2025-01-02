@@ -123,6 +123,12 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
     };
 }
 
+type PropsBatchStatistics = {
+    instancesCapacity: number;
+    instancesUsed: number;
+    groupsCount: number;
+};
+
 type Paramerers = {
     readonly maxInstancesCount: number;
     readonly reactToPlayer: boolean;
@@ -210,6 +216,14 @@ class PropsBatch {
 
     public dispose(): void {
         this.instancedMesh.geometry.dispose();
+    }
+
+    public getStatistics(): PropsBatchStatistics {
+        return {
+            instancesCapacity: this.maxInstancesCount,
+            instancesUsed: this.instancedMesh.count,
+            groupsCount: this.groupsDefinitions.size,
+        };
     }
 
     private reorderMatricesBuffer(): void {
