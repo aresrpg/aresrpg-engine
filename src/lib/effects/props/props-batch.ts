@@ -175,10 +175,9 @@ class PropsBatch {
             return;
         }
 
-        const spareInstancesLeft = this.spareInstancesLeft;
-        if (matricesList.length > spareInstancesLeft) {
+        if (matricesList.length > this.spareInstancesLeft) {
             throw new Error(
-                `Props batch don't have enough space to store "${matricesList.length}" more instances ("${spareInstancesLeft}" left)`
+                `Props batch don't have enough space to store "${matricesList.length}" more instances ("${this.spareInstancesLeft}" left)`
             );
         }
 
