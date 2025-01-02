@@ -190,6 +190,8 @@ class PropsBatch {
             this.instancedMesh.setMatrixAt(newGroup.startIndex + index, matrix);
         });
         this.instancedMesh.instanceMatrix.needsUpdate = true;
+        this.instancedMesh.computeBoundingBox();
+        this.instancedMesh.computeBoundingSphere();
         this.instancedMesh.count += matricesList.length;
     }
 
