@@ -160,7 +160,6 @@ class TestGrass extends TestBase {
         this.scene.add(propsContainer);
 
         const allGrassParticlesPositions = params.repartitions.bluenoise.getAllItems({ x: -100, y: -100 }, { x: 100, y: 100 });
-        console.log(`${allGrassParticlesPositions.length} grass items`);
         this.grass2D = new PropsHandler({
             bufferGeometry: params.propDefinitions.grass2D.bufferGeometry,
             material: params.propDefinitions.grass2D.material,
@@ -183,7 +182,6 @@ class TestGrass extends TestBase {
         this.grass3D.setGroup('haha', grassParticlesMatrices);
 
         const allRockParticlesPositions = params.repartitions.whitenoise.getAllItems({ x: -100, y: -100 }, { x: 100, y: 100 });
-        console.log(`${allRockParticlesPositions.length} rock items`);
         this.rocks = new PropsHandler({
             bufferGeometry: params.propDefinitions.rocks.bufferGeometry,
             material: params.propDefinitions.rocks.material,
