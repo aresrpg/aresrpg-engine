@@ -1,3 +1,4 @@
+import { logger } from '../lib/helpers/logger';
 import { ELogLevel, setVerbosity } from '../lib/index';
 
 import { VoxelMap } from './map/voxel-map';
@@ -48,6 +49,7 @@ async function buildTestScene(test: ETest): Promise<TestBase> {
     } else if (test === ETest.BOARD) {
         return new TestBoard(createVoxelMap());
     } else if (test === ETest.GRASS) {
+        logger.verbosity = ELogLevel.DEBUG;
         return TestGrass.instanciate();
     } else {
         throw new Error(`Unknown test "${test}".`);
