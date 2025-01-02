@@ -187,7 +187,7 @@ class PropsBatch {
         this.instancedMesh.count += matricesList.length;
     }
 
-    public removeInstancesGroup(groupName: string): void {
+    public deleteInstancesGroup(groupName: string): void {
         if (this.groupsDefinitions.has(groupName)) {
             this.groupsDefinitions.delete(groupName);
             this.reorderMatricesBuffer();
@@ -206,6 +206,10 @@ class PropsBatch {
 
     public get spareInstancesLeft(): number {
         return this.maxInstancesCount - this.instancedMesh.count;
+    }
+
+    public dispose(): void {
+        this.instancedMesh.geometry.dispose();
     }
 
     private reorderMatricesBuffer(): void {

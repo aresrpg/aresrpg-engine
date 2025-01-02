@@ -44,4 +44,4 @@ export { GpuInstancedBillboard } from './effects/weather/weather-particles-base'
 
 export { CustomizableTexture } from './helpers/customizable-texture';
 
-export { PropsBatch } from './effects/props/props-batch';
+export { PropsHandler } from './effects/props/props-handler';
