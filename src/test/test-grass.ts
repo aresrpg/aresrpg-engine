@@ -1,7 +1,7 @@
 import GUI from 'lil-gui';
 import * as THREE from 'three-usage-test';
 
-import { PropsHandler } from '../lib';
+import { PropsHandler, PropsViewer } from '../lib';
 
 import { RepeatableBluenoise } from './map/repeatable-bluenoise';
 import { TestBase } from './test-base';
@@ -78,14 +78,16 @@ type Parameters = {
 class TestGrass extends TestBase {
     private readonly gui: GUI;
 
-    private readonly grass2D: PropsHandler;
-    private readonly grass3D: PropsHandler;
+    private readonly grass2D: PropsViewer;
+    private readonly grass3D: PropsViewer;
     private readonly rocks: PropsHandler;
 
-    readonly grassRepartition: IRepartition;
-    readonly rocksRepartition: IRepartition;
+    private readonly grassRepartition: IRepartition;
+    private readonly rocksRepartition: IRepartition;
 
     private readonly fakePlayer: THREE.Object3D;
+
+    private readonly patchSize = 64;
 
     private readonly parameters = {
         viewRadius: 20,
@@ -158,16 +160,18 @@ class TestGrass extends TestBase {
         this.grassRepartition = params.repartitions.bluenoise;
         this.rocksRepartition = params.repartitions.whitenoise;
 
-        this.grass2D = new PropsHandler({
+        this.grass2D = new PropsViewer({
             bufferGeometry: params.propDefinitions.grass2D.bufferGeometry,
             material: params.propDefinitions.grass2D.material,
             reactToPlayer: true,
+            patchSize: new THREE.Vector3(this.patchSize, this.patchSize, this.patchSize),
         });
         propsContainer.add(this.grass2D.container);
-        this.grass3D = new PropsHandler({
+        this.grass3D = new PropsViewer({
             bufferGeometry: params.propDefinitions.grass3D.bufferGeometry,
             material: params.propDefinitions.grass3D.material,
             reactToPlayer: true,
+            patchSize: new THREE.Vector3(this.patchSize, this.patchSize, this.patchSize),
         });
         propsContainer.add(this.grass3D.container);
 
@@ -250,40 +254,50 @@ class TestGrass extends TestBase {
 
     protected override update(): void {
         const cameraWorldPosition3d = this.camera.getWorldPosition(new THREE.Vector3());
+        const cameraWorldFloorPosition = new THREE.Vector3(cameraWorldPosition3d.x, 0, cameraWorldPosition3d.z);
 
-        const patchSize = 64;
-        const fromPatch = new THREE.Vector2(cameraWorldPosition3d.x, cameraWorldPosition3d.z).subScalar(this.parameters.viewRadius).divideScalar(patchSize).floor();
-        const toPatch = new THREE.Vector2(cameraWorldPosition3d.x, cameraWorldPosition3d.z).addScalar(this.parameters.viewRadius).divideScalar(patchSize).floor();
+        const fromPatch = cameraWorldFloorPosition.clone().subScalar(this.parameters.viewRadius).divideScalar(this.patchSize).floor();
+        const toPatch = cameraWorldFloorPosition.clone().addScalar(this.parameters.viewRadius).divideScalar(this.patchSize).floor();
 
-        for (let iX = fromPatch.x; iX <= toPatch.x; iX++) {
-            for (let iY = fromPatch.y; iY <= toPatch.y; iY++) {
-                if ((iX + iY) % 2 === 0) {
-                    continue;
-                }
+        const patchId = new THREE.Vector3();
+        for (patchId.x = fromPatch.x; patchId.x <= toPatch.x; patchId.x++) {
+            for (patchId.z = fromPatch.z; patchId.z <= toPatch.z; patchId.z++) {
+                const patchStart = patchId.clone().multiplyScalar(this.patchSize);
+                const patchEnd = patchStart.clone().addScalar(this.patchSize);
 
-                const patchId = `${iX}_${iY}`;
-                if (!this.grass2D.hasGroup(patchId)) {
-                    const patchStart = new THREE.Vector2(iX, iY).multiplyScalar(patchSize);
-                    const patchEnd = new THREE.Vector2(iX, iY).addScalar(1).multiplyScalar(patchSize);
-
-                    const grassParticlesPositions = this.grassRepartition.getAllItems(patchStart, patchEnd);
-                    const grassParticlesMatrices = grassParticlesPositions.map(position =>
+                if ((patchId.x + patchId.z) % 2 === 0 && !this.grass2D.hasPatchProps(patchId)) {
+                    const grassParticlesPositions = this.grassRepartition.getAllItems(
+                        { x: patchStart.x, y: patchStart.z },
+                        { x: patchEnd.x, y: patchEnd.z }
+                    );
+                    const grassParticlesMatricesWorld = grassParticlesPositions.map(position =>
                         new THREE.Matrix4().multiplyMatrices(
-                            new THREE.Matrix4().makeTranslation(new THREE.Vector3(position.x, 0, position.y)),
+                            new THREE.Matrix4().makeTranslation(position.x, 0, position.y),
                             new THREE.Matrix4().makeRotationY((Math.PI / 2) * Math.random()) // Math.floor(4 * Math.random())),
                         )
                     );
-                    this.grass2D.setGroup(patchId, grassParticlesMatrices);
-                    this.grass3D.setGroup(patchId, grassParticlesMatrices);
+                    this.grass2D.setPatchPropsFromWorldMatrices(patchId, grassParticlesMatricesWorld);
 
-                    const rockParticlesPositions = this.rocksRepartition.getAllItems(patchStart, patchEnd);
+                    const worldToLocal = new THREE.Matrix4().makeTranslation(-patchStart.x, -patchStart.y, -patchStart.z);
+                    const grassParticlesMatricesLocal = grassParticlesMatricesWorld.map(matrixWorld =>
+                        new THREE.Matrix4().multiplyMatrices(worldToLocal, matrixWorld)
+                    );
+                    this.grass3D.setPatchPropsFromLocalMatrices(patchId, grassParticlesMatricesLocal);
+                }
+
+                const patchIdString = `${patchId.x}_${patchId.y}_${patchId.z}`;
+                if (!this.rocks.hasGroup(patchIdString)) {
+                    const rockParticlesPositions = this.rocksRepartition.getAllItems(
+                        { x: patchStart.x, y: patchStart.z },
+                        { x: patchEnd.x, y: patchEnd.z }
+                    );
                     const rockParticlesMatrices = rockParticlesPositions.map(position =>
                         new THREE.Matrix4().multiplyMatrices(
                             new THREE.Matrix4().makeTranslation(new THREE.Vector3(position.x, 0, position.y)),
                             new THREE.Matrix4().makeRotationY((Math.PI / 2) * Math.random())
                         )
                     );
-                    this.rocks.setGroup(patchId, rockParticlesMatrices);
+                    this.rocks.setGroup(patchIdString, rockParticlesMatrices);
                 }
             }
         }
@@ -292,7 +306,6 @@ class TestGrass extends TestBase {
 
         this.grass2D.setPlayerViewPosition(playerViewPosition);
         this.grass3D.setPlayerViewPosition(playerViewPosition);
-        this.rocks.setPlayerViewPosition(playerViewPosition);
     }
 }
 
