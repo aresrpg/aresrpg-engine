@@ -1,7 +1,9 @@
 import * as THREE from 'three-usage-test';
 
 abstract class TestBase {
-    private readonly stats: THREE.Stats;
+    private readonly statsFps: THREE.Stats;
+    private readonly statsDrawCalls: THREE.Stats;
+    private readonly statsDrawCallsPanel: THREE.Stats.Panel;
 
     protected readonly renderer: THREE.WebGLRenderer;
     protected readonly camera: THREE.PerspectiveCamera;
@@ -13,8 +15,15 @@ abstract class TestBase {
     protected maxFps: number = Infinity;
 
     public constructor() {
-        this.stats = new THREE.Stats();
-        document.body.appendChild(this.stats.dom);
+        this.statsFps = new THREE.Stats();
+        document.body.appendChild(this.statsFps.dom);
+
+        this.statsDrawCalls = new THREE.Stats();
+        document.body.appendChild(this.statsDrawCalls.dom);
+        this.statsDrawCallsPanel = new THREE.Stats.Panel('draw calls', '#f8f', '#212');
+        this.statsDrawCalls.addPanel(this.statsDrawCallsPanel);
+        this.statsDrawCalls.showPanel(3);
+        this.statsDrawCalls.dom.style.cssText = 'position:fixed;top:50px;left:0px;cursor:pointer;z-index:10000';
 
         this.renderer = new THREE.WebGLRenderer();
         document.body.appendChild(this.renderer.domElement);
@@ -48,6 +57,10 @@ abstract class TestBase {
         }
         this.started = true;
 
+        setInterval(() => {
+            this.statsDrawCallsPanel.update(this.renderer.info.render.calls, 200);
+        }, 100);
+
         let lastRenderTimestamp = performance.now();
 
         const render = () => {
@@ -56,7 +69,7 @@ abstract class TestBase {
             const deltaTime = now - lastRenderTimestamp;
 
             if (deltaTime >= minDeltaTime) {
-                this.stats.update();
+                this.statsFps.update();
 
                 this.cameraControl.update();
                 this.update();
