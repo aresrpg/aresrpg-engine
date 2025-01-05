@@ -228,10 +228,20 @@ class TestGrass extends TestBase {
         };
         applyGrassMode();
 
+        const updateAllVisibilities = () => {
+            const cameraWorldPosition = this.camera.getWorldPosition(new THREE.Vector3());
+            this.grass2D.updateVisibilities(cameraWorldPosition);
+            this.grass3D.updateVisibilities(cameraWorldPosition);
+            this.rocks.updateVisibilities(cameraWorldPosition);
+        };
+        setInterval(updateAllVisibilities, 150);
+        updateAllVisibilities();
+
         const applyViewDistance = () => {
             this.grass2D.setViewDistance(this.parameters.viewRadius);
             this.grass3D.setViewDistance(this.parameters.viewRadius);
             this.rocks.setViewDistance(this.parameters.viewRadius);
+            updateAllVisibilities();
         };
         applyViewDistance();
 

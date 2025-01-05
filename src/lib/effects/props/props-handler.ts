@@ -35,6 +35,8 @@ class PropsHandler {
     private readonly batchesPerGroup: Map<string, Set<PropsBatch>>;
     private batches: PropsBatch[];
 
+    private lastCameraPositionWorld: THREE.Vector3 | null = null;
+
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
         this.container.name = 'props-handler';
@@ -71,6 +73,7 @@ class PropsHandler {
             remainingMatricesList = remainingMatricesList.slice(instancesCount);
 
             batch.setInstancesGroup(groupName, batchMatrices);
+            this.updateBatchVisibility(batch);
 
             const batches = this.batchesPerGroup.get(groupName);
             if (!batches) {
@@ -123,6 +126,7 @@ class PropsHandler {
         }
         for (const batch of batchesForThisGroup) {
             batch.deleteInstancesGroup(groupName);
+            this.updateBatchVisibility(batch);
         }
         this.batchesPerGroup.delete(groupName);
     }
@@ -197,6 +201,30 @@ class PropsHandler {
         for (const batch of this.batches) {
             batch.playerViewPosition.copy(this.playerViewPosition);
         }
+    }
+
+    public updateVisibilities(cameraWorldPosition: THREE.Vector3Like): void {
+        if (!this.lastCameraPositionWorld) {
+            this.lastCameraPositionWorld = new THREE.Vector3();
+        }
+        this.lastCameraPositionWorld.copy(cameraWorldPosition);
+
+        for (const batch of this.batches) {
+            this.updateBatchVisibility(batch);
+        }
+    }
+
+    private updateBatchVisibility(batch: PropsBatch): void {
+        let distanceFromCamera = 0;
+        if (this.lastCameraPositionWorld) {
+            if (batch.container.boundingSphere) {
+                distanceFromCamera = batch.container.boundingSphere.distanceToPoint(this.lastCameraPositionWorld);
+            } else {
+                logger.warn(`Batch does not have a bounding sphere.`);
+            }
+        }
+
+        batch.container.visible = distanceFromCamera < this.viewDistance + 50;
     }
 }
 

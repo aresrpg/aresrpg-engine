@@ -142,7 +142,7 @@ type GroupDefinition = {
 };
 
 class PropsBatch {
-    public get container(): THREE.Object3D {
+    public get container(): THREE.InstancedMesh {
         return this.instancedMesh;
     }
 
