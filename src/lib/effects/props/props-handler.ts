@@ -4,10 +4,12 @@ import * as THREE from '../../libs/three-usage';
 import { PropsBatch } from './props-batch';
 
 type PropsHandlerStatistics = {
-    batchesCount: number;
     batchesSize: number;
+    batchesCount: number;
+    batchesVisibleCount: number;
     totalInstancesCapacity: number;
     totalInstancesUsed: number;
+    buffersSizeInBytes: number;
 };
 
 type Parameters = {
@@ -41,8 +43,8 @@ class PropsHandler {
         this.container = new THREE.Group();
         this.container.name = 'props-handler';
 
-        this.batchSize = params.batchSize ?? 20000;
-        this.minGroupPartSize = params.minGroupPartSize ?? 1000;
+        this.batchSize = params.batchSize ?? 5000;
+        this.minGroupPartSize = params.minGroupPartSize ?? 200;
 
         this.reactToPlayer = params.reactToPlayer ?? false;
         this.bufferGeometry = params.bufferGeometry;
@@ -169,16 +171,24 @@ class PropsHandler {
     }
 
     public getStatistics(): PropsHandlerStatistics {
+        let batchesVisibleCount = 0;
         let totalInstancesUsed = 0;
+        let buffersSizeInBytes = 0;
         for (const batch of this.batches) {
             totalInstancesUsed += this.batchSize - batch.spareInstancesLeft;
+            buffersSizeInBytes += batch.getStatistics().buffersSizeInBytes;
+            if (batch.container.visible) {
+                batchesVisibleCount++;
+            }
         }
 
         return {
-            batchesCount: this.batches.length,
             batchesSize: this.batchSize,
+            batchesCount: this.batches.length,
+            batchesVisibleCount,
             totalInstancesCapacity: this.batches.length * this.batchSize,
             totalInstancesUsed,
+            buffersSizeInBytes,
         };
     }
 

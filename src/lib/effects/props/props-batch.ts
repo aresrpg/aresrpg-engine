@@ -127,6 +127,8 @@ type PropsBatchStatistics = {
     instancesCapacity: number;
     instancesUsed: number;
     groupsCount: number;
+    boundingSphereRadius: number;
+    buffersSizeInBytes: number;
 };
 
 type Paramerers = {
@@ -190,7 +192,6 @@ class PropsBatch {
             this.instancedMesh.setMatrixAt(newGroup.startIndex + index, matrix);
         });
         this.instancedMesh.instanceMatrix.needsUpdate = true;
-        this.instancedMesh.computeBoundingSphere();
         this.instancedMesh.count += matricesList.length;
         this.updateFrustumCulling();
     }
@@ -222,10 +223,19 @@ class PropsBatch {
     }
 
     public getStatistics(): PropsBatchStatistics {
+        let buffersSizeInBytes = 0;
+        for (const attributeBuffer of Object.values(this.instancedMesh.geometry.attributes)) {
+            buffersSizeInBytes += attributeBuffer.array.byteLength;
+        }
+        buffersSizeInBytes += this.instancedMesh.instanceColor?.array.byteLength ?? 0;
+        buffersSizeInBytes += this.instancedMesh.instanceMatrix?.array.byteLength ?? 0;
+
         return {
             instancesCapacity: this.maxInstancesCount,
             instancesUsed: this.instancedMesh.count,
             groupsCount: this.groupsDefinitions.size,
+            boundingSphereRadius: this.instancedMesh.boundingSphere?.radius ?? Infinity,
+            buffersSizeInBytes,
         };
     }
 

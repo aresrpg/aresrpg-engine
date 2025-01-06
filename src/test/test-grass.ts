@@ -203,7 +203,7 @@ class TestGrass extends TestBase {
         const groundTextureSize = 5 * voxelsInGroundTexture;
         const groundTextureBuffer = new Uint8Array(groundTextureSize * groundTextureSize * 4);
         for (let i = 0; i < groundTextureSize * groundTextureSize; i++) {
-            const rand = 255 * (Math.random() - 0.5) * 0.2;
+            const rand = 255 * (Math.random() - 0.5) * 0.1;
             groundTextureBuffer[4 * i + 0] = THREE.clamp(0 + rand, 0, 255);
             groundTextureBuffer[4 * i + 1] = THREE.clamp(185 + rand, 0, 255);
             groundTextureBuffer[4 * i + 2] = THREE.clamp(20 + rand, 0, 255);
@@ -221,6 +221,10 @@ class TestGrass extends TestBase {
         ground.rotateX(-Math.PI / 2);
         ground.scale.set(groundSize, groundSize, 1);
         this.scene.add(ground);
+
+        setInterval(() => {
+            console.log(JSON.stringify(this.grass2D.getStatistics()));
+        }, 1000);
 
         const applyGrassMode = () => {
             this.grass2D.container.visible = this.parameters.grassMode === EGrassMode.GRASS_2D;
