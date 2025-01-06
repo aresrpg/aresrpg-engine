@@ -190,15 +190,16 @@ class PropsBatch {
             this.instancedMesh.setMatrixAt(newGroup.startIndex + index, matrix);
         });
         this.instancedMesh.instanceMatrix.needsUpdate = true;
-        this.instancedMesh.computeBoundingBox();
         this.instancedMesh.computeBoundingSphere();
         this.instancedMesh.count += matricesList.length;
+        this.updateFrustumCulling();
     }
 
     public deleteInstancesGroup(groupName: string): void {
         if (this.groupsDefinitions.has(groupName)) {
             this.groupsDefinitions.delete(groupName);
             this.reorderMatricesBuffer();
+            this.updateFrustumCulling();
         } else {
             logger.warn(`Unknown props batch group "${groupName}".`);
         }
@@ -251,6 +252,11 @@ class PropsBatch {
 
         this.instancedMesh.instanceMatrix.array.set(reorderedMatrices.subarray(0, 16 * instancesCount), 0);
         this.instancedMesh.count = instancesCount;
+    }
+
+    private updateFrustumCulling(): void {
+        this.instancedMesh.computeBoundingBox();
+        this.instancedMesh.computeBoundingSphere();
     }
 }
 
