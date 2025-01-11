@@ -14,6 +14,7 @@ type PropsHandlerStatistics = {
 
 type PropsGroupProperties = {
     readonly batches: Set<PropsBatch>;
+    readonly boundingSphere: THREE.Sphere;
 };
 
 type Parameters = {
@@ -33,6 +34,8 @@ class PropsHandler {
     private readonly reactToPlayer: boolean;
     private readonly bufferGeometry: THREE.BufferGeometry;
     private readonly material: THREE.MeshPhongMaterial;
+
+    private readonly bufferGeometryBoundingSphere: THREE.Sphere;
 
     private viewDistance: number = 20;
     private viewDistanceMargin: number = 2;
@@ -56,6 +59,11 @@ class PropsHandler {
         this.bufferGeometry = params.bufferGeometry;
         this.material = params.material;
 
+        if (!this.bufferGeometry.boundingSphere) {
+            this.bufferGeometry.computeBoundingSphere();
+        }
+        this.bufferGeometryBoundingSphere = this.bufferGeometry.boundingSphere!.clone();
+
         if (this.batchSize === 0 || this.minGroupPartSize >= this.batchSize) {
             throw new Error(`Invalid parameters: minGroupPartSize="${this.minGroupPartSize}", batchSize="${this.batchSize}"`);
         }
@@ -72,9 +80,17 @@ class PropsHandler {
         if (this.hasGroup(groupName)) {
             this.deleteGroup(groupName);
         }
-        this.groups.set(groupName, {
+        const groupProperties: PropsGroupProperties = {
             batches: new Set(),
-        });
+            boundingSphere: new THREE.Sphere(),
+        };
+        const tempSphere = new THREE.Sphere();
+        for (const matrix of matricesList) {
+            tempSphere.copy(this.bufferGeometryBoundingSphere).applyMatrix4(matrix);
+            groupProperties.boundingSphere.union(tempSphere);
+        }
+
+        this.groups.set(groupName, groupProperties);
 
         let remainingMatricesList = matricesList.slice(0);
 
