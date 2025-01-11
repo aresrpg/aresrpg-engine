@@ -39,6 +39,8 @@ class PropsHandler {
 
     private lastCameraPositionWorld: THREE.Vector3 | null = null;
 
+    private automaticGarbageCollectHandle: number | null = null;
+
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
         this.container.name = 'props-handler';
@@ -56,6 +58,8 @@ class PropsHandler {
 
         this.batchesPerGroup = new Map();
         this.batches = [];
+
+        this.automaticGarbageCollectHandle = window.setInterval(() => { this.garbageCollect() }, 30000);
     }
 
     public setGroup(groupName: string, matricesList: ReadonlyArray<THREE.Matrix4>): void {
@@ -144,6 +148,11 @@ class PropsHandler {
         }
         this.batches = [];
         this.container.clear();
+
+        if (this.automaticGarbageCollectHandle) {
+            window.clearInterval(this.automaticGarbageCollectHandle);
+            this.automaticGarbageCollectHandle = null;
+        }
     }
 
     public garbageCollect(): void {
