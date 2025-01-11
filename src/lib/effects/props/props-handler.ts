@@ -12,6 +12,10 @@ type PropsHandlerStatistics = {
     buffersSizeInBytes: number;
 };
 
+type PropsGroupProperties = {
+    readonly batches: Set<PropsBatch>;
+};
+
 type Parameters = {
     readonly batchSize?: number;
     readonly minGroupPartSize?: number;
@@ -34,7 +38,7 @@ class PropsHandler {
     private viewDistanceMargin: number = 2;
     private playerViewPosition: THREE.Vector3Like = new THREE.Vector3(Infinity, Infinity, Infinity);
 
-    private readonly batchesPerGroup: Map<string, Set<PropsBatch>>;
+    private readonly groups: Map<string, PropsGroupProperties>;
     private batches: PropsBatch[];
 
     private lastCameraPositionWorld: THREE.Vector3 | null = null;
@@ -56,17 +60,21 @@ class PropsHandler {
             throw new Error(`Invalid parameters: minGroupPartSize="${this.minGroupPartSize}", batchSize="${this.batchSize}"`);
         }
 
-        this.batchesPerGroup = new Map();
+        this.groups = new Map();
         this.batches = [];
 
-        this.automaticGarbageCollectHandle = window.setInterval(() => { this.garbageCollect() }, 30000);
+        this.automaticGarbageCollectHandle = window.setInterval(() => {
+            this.garbageCollect();
+        }, 30000);
     }
 
     public setGroup(groupName: string, matricesList: ReadonlyArray<THREE.Matrix4>): void {
         if (this.hasGroup(groupName)) {
             this.deleteGroup(groupName);
         }
-        this.batchesPerGroup.set(groupName, new Set());
+        this.groups.set(groupName, {
+            batches: new Set(),
+        });
 
         let remainingMatricesList = matricesList.slice(0);
 
@@ -81,11 +89,11 @@ class PropsHandler {
             batch.setInstancesGroup(groupName, batchMatrices);
             this.updateBatchVisibility(batch);
 
-            const batches = this.batchesPerGroup.get(groupName);
+            const batches = this.groups.get(groupName);
             if (!batches) {
                 throw new Error('should not happen');
             }
-            batches.add(batch);
+            batches.batches.add(batch);
         };
 
         // First, try to fit this group in existing batches
@@ -126,23 +134,23 @@ class PropsHandler {
     }
 
     public deleteGroup(groupName: string): void {
-        const batchesForThisGroup = this.batchesPerGroup.get(groupName);
-        if (!batchesForThisGroup) {
+        const groupProperties = this.groups.get(groupName);
+        if (!groupProperties) {
             throw new Error(`Unknown props group "${groupName}".`);
         }
-        for (const batch of batchesForThisGroup) {
+        for (const batch of groupProperties.batches) {
             batch.deleteInstancesGroup(groupName);
             this.updateBatchVisibility(batch);
         }
-        this.batchesPerGroup.delete(groupName);
+        this.groups.delete(groupName);
     }
 
     public hasGroup(groupName: string): boolean {
-        return this.batchesPerGroup.has(groupName);
+        return this.groups.has(groupName);
     }
 
     public dispose(): void {
-        this.batchesPerGroup.clear();
+        this.groups.clear();
         for (const batch of this.batches) {
             batch.dispose();
         }
@@ -157,8 +165,8 @@ class PropsHandler {
 
     public garbageCollect(): void {
         const usedBatches = new Set<PropsBatch>();
-        for (const usedBatchesForGroup of this.batchesPerGroup.values()) {
-            usedBatchesForGroup.forEach(usedBatchForGroup => usedBatches.add(usedBatchForGroup));
+        for (const groupProperties of this.groups.values()) {
+            groupProperties.batches.forEach(usedBatchForGroup => usedBatches.add(usedBatchForGroup));
         }
 
         let garbageCollectedBatchesCount = 0;
