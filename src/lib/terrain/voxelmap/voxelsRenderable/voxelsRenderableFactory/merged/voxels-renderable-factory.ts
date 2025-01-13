@@ -232,6 +232,7 @@ float computeNoise() {
 struct VoxelMaterial {
     vec3 color;
     float shininess;
+    vec3 emissive;
 };
 
 VoxelMaterial getVoxelMaterial(const vec3 modelNormal) {
@@ -240,6 +241,7 @@ VoxelMaterial getVoxelMaterial(const vec3 modelNormal) {
     if (uDisplayMode == ${EVoxelsDisplayMode.NORMALS}u) {
         voxelMaterial.color = 0.5 + 0.5 * modelNormal;
         voxelMaterial.shininess = 0.0;
+        voxelMaterial.emissive = vec3(0);
     } else {
         float noise = 0.0;
         #ifdef ${cstVoxelNoise}
@@ -250,11 +252,16 @@ VoxelMaterial getVoxelMaterial(const vec3 modelNormal) {
         ivec2 texelCoords = ivec2(voxelMaterialId % ${this.texture.image.width}u, voxelMaterialId / ${this.texture.image.width}u);
         vec4 fetchedTexel = texelFetch(uTexture, texelCoords, 0);
         voxelMaterial.color = fetchedTexel.rgb + noise;
-        voxelMaterial.shininess = uShininessStrength * ${VoxelsRenderableFactoryBase.maxShininess.toFixed(1)} * fetchedTexel.a * (1.0 + 10.0 * noise);
+
+        float emissive = step(0.5, fetchedTexel.a) * (2.0 * fetchedTexel.a - 1.0);
+        voxelMaterial.shininess = 0.0001 + step(fetchedTexel.a, 0.5) * uShininessStrength * ${VoxelsRenderableFactoryBase.maxShininess.toFixed(1)} * 2.0 * fetchedTexel.a * (1.0 + 10.0 * noise);
+        voxelMaterial.emissive = emissive * voxelMaterial.color;
+        voxelMaterial.color *= (1.0 - emissive);
     }
 
     if (uDisplayMode == ${EVoxelsDisplayMode.GREY}u) {
         voxelMaterial.color = vec3(0.75);
+        voxelMaterial.emissive = vec3(0);
     }
 
     return voxelMaterial;
@@ -290,6 +297,9 @@ void main() {
                 '#include <lights_phong_fragment>': `
     #include <lights_phong_fragment>
     material.specularShininess = voxelMaterial.shininess;
+    `,
+                '#include <emissivemap_fragment>': `
+    totalEmissiveRadiance = voxelMaterial.emissive;
     `,
             });
         };
