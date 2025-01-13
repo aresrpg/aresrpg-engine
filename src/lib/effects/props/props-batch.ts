@@ -252,11 +252,11 @@ class PropsBatch {
             newGroupDefinitions.set(groupName, newGroupDefinition);
             instancesCount += groupDefinition.count;
 
-            for (let iM = 0; iM < groupDefinition.count; iM++) {
-                const oldMatrixStart = 16 * (groupDefinition.startIndex + iM);
-                const matrix = this.instancedMesh.instanceMatrix.array.subarray(oldMatrixStart, oldMatrixStart + 16);
-                reorderedMatrices.set(matrix, 16 * (newGroupDefinition.startIndex + iM));
-            }
+            const groupMatrices = this.instancedMesh.instanceMatrix.array.subarray(
+                16 * groupDefinition.startIndex,
+                16 * (groupDefinition.startIndex + groupDefinition.count),
+            );
+            reorderedMatrices.set(groupMatrices, 16 * newGroupDefinition.startIndex);
         }
         copyMap(newGroupDefinitions, this.groupsDefinitions);
 
