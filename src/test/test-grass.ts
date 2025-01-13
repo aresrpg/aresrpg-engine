@@ -223,7 +223,9 @@ class TestGrass extends TestBase {
         this.scene.add(ground);
 
         setInterval(() => {
-            console.log(JSON.stringify(this.grass2D.getStatistics()));
+            const statistics = this.grass2D.getStatistics();
+            const occupationPercentage = statistics.totalInstancesUsed / statistics.totalInstancesCapacity;
+            console.log(`${(100 * occupationPercentage).toFixed(1)} % `, JSON.stringify(statistics));
         }, 1000);
 
         const applyGrassMode = () => {
