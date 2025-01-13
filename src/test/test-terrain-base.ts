@@ -1,4 +1,5 @@
 import * as THREE from 'three-usage-test';
+import GUI from 'lil-gui';
 
 import { type IHeightmap, type IHeightmapSample, type IVoxelMap, type TerrainViewer } from '../lib';
 
@@ -18,6 +19,8 @@ abstract class TestTerrainBase extends TestBase {
         readonly fakeCameraHelper: THREE.CameraHelper;
         readonly visibilityFrustum: THREE.Frustum;
     } = null;
+
+    protected readonly gui = new GUI();
 
     public constructor(voxelMap: IHeightmap & IVoxelMap & ITerrainMap) {
         super();
@@ -121,9 +124,11 @@ abstract class TestTerrainBase extends TestBase {
         dirLight.target.position.set(0, 0, 0);
         dirLight.position.set(100, 50, 100);
         this.scene.add(dirLight);
+        this.gui.add(dirLight, 'intensity', 0, 3).name('Directional light');
 
         const ambientLight = new THREE.AmbientLight(0xffffff);
         this.scene.add(ambientLight);
+        this.gui.add(ambientLight, 'intensity', 0, 3).name('Ambient light');
 
         if (this.enableShadows) {
             const planeReceivingShadows = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial());
