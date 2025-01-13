@@ -131,6 +131,7 @@ class PropsHandler {
         }
 
         // If there are more matrices to fit, create new batches
+        let countOfCreatedBatches = 0;
         while (remainingMatricesList.length > 0) {
             const newBatch = new PropsBatch({
                 maxInstancesCount: this.batchSize,
@@ -142,10 +143,15 @@ class PropsHandler {
             newBatch.setViewDistanceMargin(this.viewDistanceMargin);
             newBatch.playerViewPosition.copy(this.playerViewPosition);
             this.container.add(newBatch.container);
+            countOfCreatedBatches++;
 
             this.batches.push(newBatch);
             const instancesCountForNewBatch = Math.min(newBatch.spareInstancesLeft, remainingMatricesList.length);
             addInstancesToBatch(newBatch, instancesCountForNewBatch);
+        }
+
+        if (countOfCreatedBatches > 0) {
+            logger.debug(`PropsHandler: created "${countOfCreatedBatches}" new batches of size "${this.batchSize}".`);
         }
     }
 
