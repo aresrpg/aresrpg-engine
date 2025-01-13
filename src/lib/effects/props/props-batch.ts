@@ -173,10 +173,6 @@ class PropsBatch {
             this.reorderMatricesBuffer();
         }
 
-        if (matricesList.length === 0) {
-            return;
-        }
-
         if (matricesList.length > this.spareInstancesLeft) {
             throw new Error(
                 `Props batch don't have enough space to store "${matricesList.length}" more instances ("${this.spareInstancesLeft}" left)`
