@@ -164,6 +164,7 @@ class TestGrass extends TestBase {
             bufferGeometry: params.propDefinitions.grass2D.bufferGeometry,
             material: params.propDefinitions.grass2D.material,
             reactToPlayer: true,
+            reactToWind: true,
             patchSize: new THREE.Vector3(this.patchSize, this.patchSize, this.patchSize),
             garbageCollect: {
                 interval: 5000,
@@ -327,6 +328,8 @@ class TestGrass extends TestBase {
 
         this.grass2D.setPlayerViewPosition(playerViewPosition);
         this.grass3D.setPlayerViewPosition(playerViewPosition);
+
+        this.grass2D.update();
     }
 }
 

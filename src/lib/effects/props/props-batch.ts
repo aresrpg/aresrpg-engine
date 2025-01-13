@@ -9,6 +9,8 @@ type PropsMaterial = {
         uPlayerViewPosition: THREE.IUniform<THREE.Vector3>;
         uViewRadius: THREE.IUniform<number>;
         uViewRadiusMargin: THREE.IUniform<number>;
+        uTime: THREE.IUniform<number>;
+        uWindStrength: THREE.IUniform<number>;
     };
 };
 
@@ -26,7 +28,7 @@ function buildNoiseTexture(resolution: number): THREE.DataTexture {
     return texture;
 }
 
-function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactive: boolean): PropsMaterial {
+function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactive: boolean, windReactive: boolean): PropsMaterial {
     phongMaterial.customProgramCacheKey = () => `prop_phong_material`;
 
     const noiseTextureSize = 64;
@@ -40,6 +42,8 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
         uPlayerViewPosition: { value: new THREE.Vector3(Infinity, Infinity, Infinity) },
         uViewRadius: { value: 10 },
         uViewRadiusMargin: { value: 2 },
+        uTime: { value: 0 },
+        uWindStrength: { value: 0.03 },
     };
 
     phongMaterial.onBeforeCompile = parameters => {
@@ -53,6 +57,10 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
         if (playerReactive) {
             parameters.defines[playerReactiveKey] = true;
         }
+        const windReactiveKey = 'WIND_REACTIVE';
+        if (windReactive) {
+            parameters.defines[windReactiveKey] = true;
+        }
 
         parameters.vertexShader = applyReplacements(parameters.vertexShader, {
             'void main() {': `
@@ -62,6 +70,11 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
 
                 uniform float uViewRadius;
                 uniform float uViewRadiusMargin;
+
+                #ifdef ${windReactiveKey}
+                uniform float uTime; // in [0, 1000]
+                uniform float uWindStrength;
+                #endif
 
                 out float vDissolveRatio;
                    
@@ -75,12 +88,18 @@ function customizeMaterial(phongMaterial: THREE.MeshPhongMaterial, playerReactiv
                     mvPosition = batchingMatrix * mvPosition;
                 #endif
 
+                float canBeDisplaced = step(0.2, mvPosition.y);
+
+                #ifdef ${windReactiveKey}
+                mvPosition.x += canBeDisplaced * uWindStrength * cos(
+                    0.5 * float(gl_InstanceID % 100) + uTime / 1000.0 * ${2 * Math.PI}
+                );
+                #endif
+
                 #ifdef USE_INSTANCING
                     mvPosition = instanceMatrix * mvPosition;
                 #endif
 
-                float canBeDisplaced = step(0.2, mvPosition.y);
-                
                 mvPosition = modelViewMatrix * mvPosition;
 
                 vec4 viewX = viewMatrix * vec4(1, 0, 0, 0);
@@ -134,6 +153,7 @@ type PropsBatchStatistics = {
 type Paramerers = {
     readonly maxInstancesCount: number;
     readonly reactToPlayer: boolean;
+    readonly reactToWind: boolean;
     readonly bufferGeometry: THREE.BufferGeometry;
     readonly material: THREE.MeshPhongMaterial;
 };
@@ -159,7 +179,7 @@ class PropsBatch {
     public constructor(params: Paramerers) {
         this.maxInstancesCount = params.maxInstancesCount;
 
-        this.material = customizeMaterial(params.material, params.reactToPlayer);
+        this.material = customizeMaterial(params.material, params.reactToPlayer, params.reactToWind);
         this.playerViewPosition = this.material.uniforms.uPlayerViewPosition.value;
         this.groupsDefinitions = new Map();
 
@@ -233,6 +253,10 @@ class PropsBatch {
             boundingSphereRadius: this.instancedMesh.boundingSphere?.radius ?? Infinity,
             buffersSizeInBytes,
         };
+    }
+
+    public update(): void {
+        this.material.uniforms.uTime.value = (performance.now() / 4) % 1000;
     }
 
     private reorderMatricesBuffer(): void {

@@ -23,6 +23,7 @@ type Parameters = {
     readonly batchSize?: number;
     readonly minGroupPartSize?: number;
     readonly reactToPlayer?: boolean;
+    readonly reactToWind?: boolean;
     readonly bufferGeometry: THREE.BufferGeometry;
     readonly material: THREE.MeshPhongMaterial;
     readonly garbageCollect?: {
@@ -38,6 +39,7 @@ class PropsHandler {
     private readonly minGroupPartSize: number;
 
     private readonly reactToPlayer: boolean;
+    private readonly reactToWind: boolean;
     private readonly bufferGeometry: THREE.BufferGeometry;
     private readonly material: THREE.MeshPhongMaterial;
 
@@ -63,6 +65,7 @@ class PropsHandler {
         this.minGroupPartSize = params.minGroupPartSize ?? 200;
 
         this.reactToPlayer = params.reactToPlayer ?? false;
+        this.reactToWind = params.reactToWind ?? false;
         this.bufferGeometry = params.bufferGeometry;
         this.material = params.material;
 
@@ -152,6 +155,7 @@ class PropsHandler {
             const newBatch = new PropsBatch({
                 maxInstancesCount: this.batchSize,
                 reactToPlayer: this.reactToPlayer,
+                reactToWind: this.reactToWind,
                 bufferGeometry: this.bufferGeometry,
                 material: this.material,
             });
@@ -261,6 +265,12 @@ class PropsHandler {
         }
 
         this.updateGroupsVisibilities();
+    }
+
+    public update(): void {
+        for (const batch of this.batches) {
+            batch.update();
+        }
     }
 
     private garbageCollectGroups(): void {
