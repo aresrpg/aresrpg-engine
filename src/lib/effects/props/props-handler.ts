@@ -15,6 +15,8 @@ type PropsHandlerStatistics = {
 type PropsGroupProperties = {
     readonly batches: Set<PropsBatch>;
     readonly boundingSphere: THREE.Sphere;
+    readonly instancesCount: number;
+    invisibleSince: number | null;
 };
 
 type Parameters = {
@@ -23,6 +25,10 @@ type Parameters = {
     readonly reactToPlayer?: boolean;
     readonly bufferGeometry: THREE.BufferGeometry;
     readonly material: THREE.MeshPhongMaterial;
+    readonly garbageCollect?: {
+        readonly interval?: number;
+        readonly invisibleGroupsCacheSize?: number;
+    };
 };
 
 class PropsHandler {
@@ -47,6 +53,7 @@ class PropsHandler {
     private lastCameraPositionWorld: THREE.Vector3 | null = null;
 
     private automaticGarbageCollectHandle: number | null = null;
+    private readonly invisibleGroupsCacheSize: number;
 
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
@@ -71,9 +78,16 @@ class PropsHandler {
         this.groups = new Map();
         this.batches = [];
 
+        const garbageCollectInterval = params.garbageCollect?.interval ?? 30000;
         this.automaticGarbageCollectHandle = window.setInterval(() => {
             this.garbageCollect();
-        }, 30000);
+        }, garbageCollectInterval);
+
+        this.invisibleGroupsCacheSize = params.garbageCollect?.invisibleGroupsCacheSize ?? 150;
+
+        if (this.invisibleGroupsCacheSize < 0) {
+            throw new Error(`Invisible groups cache size must be positive (received ${this.invisibleGroupsCacheSize})`);
+        }
     }
 
     public setGroup(groupName: string, matricesList: ReadonlyArray<THREE.Matrix4>): void {
@@ -83,6 +97,8 @@ class PropsHandler {
         const groupProperties: PropsGroupProperties = {
             batches: new Set(),
             boundingSphere: new THREE.Sphere(),
+            instancesCount: matricesList.length,
+            invisibleSince: null,
         };
         const tempSphere = new THREE.Sphere();
         for (const matrix of matricesList) {
@@ -186,27 +202,8 @@ class PropsHandler {
     }
 
     public garbageCollect(): void {
-        const usedBatches = new Set<PropsBatch>();
-        for (const groupProperties of this.groups.values()) {
-            groupProperties.batches.forEach(usedBatchForGroup => usedBatches.add(usedBatchForGroup));
-        }
-
-        let garbageCollectedBatchesCount = 0;
-        const usedBatchesList: PropsBatch[] = [];
-        for (const batch of this.batches) {
-            if (usedBatches.has(batch)) {
-                usedBatchesList.push(batch);
-            } else {
-                if (batch.spareInstancesLeft !== this.batchSize) {
-                    throw new Error(`No group registered for batch, yet the batch is not empty.`);
-                }
-                batch.dispose();
-                this.container.remove(batch.container);
-                garbageCollectedBatchesCount++;
-            }
-        }
-        this.batches = usedBatchesList;
-        logger.debug(`PropsHandler: garbage collected ${garbageCollectedBatchesCount} batches.`);
+        this.garbageCollectGroups();
+        this.garbageCollectBatches();
     }
 
     public getStatistics(): PropsHandlerStatistics {
@@ -236,6 +233,7 @@ class PropsHandler {
         for (const batch of this.batches) {
             batch.setViewDistance(this.viewDistance);
         }
+        this.updateGroupsVisibilities();
     }
 
     public setViewDistanceMargin(margin: number): void {
@@ -261,6 +259,56 @@ class PropsHandler {
         for (const batch of this.batches) {
             this.updateBatchVisibility(batch);
         }
+
+        this.updateGroupsVisibilities();
+    }
+
+    private garbageCollectGroups(): void {
+        const invisibleGroups: [string, number][] = [];
+        for (const [name, properties] of this.groups.entries()) {
+            if (properties.invisibleSince !== null && properties.instancesCount > 0) {
+                invisibleGroups.push([name, properties.invisibleSince]);
+            }
+        }
+        invisibleGroups.sort((group1, group2) => group1[1] - group2[1]);
+
+        let garbageCollectedGroupsCount = 0;
+        while (invisibleGroups.length > this.invisibleGroupsCacheSize) {
+            const oldestGroup = invisibleGroups.shift()!;
+            const oldestGroupId = oldestGroup[0];
+            this.deleteGroup(oldestGroupId);
+            garbageCollectedGroupsCount++;
+        }
+        if (garbageCollectedGroupsCount > 0) {
+            logger.debug(`PropsHandler: garbage collected ${garbageCollectedGroupsCount} groups.`);
+        }
+    }
+
+    private garbageCollectBatches(): void {
+        const usedBatches = new Set<PropsBatch>();
+        for (const groupProperties of this.groups.values()) {
+            groupProperties.batches.forEach(usedBatchForGroup => usedBatches.add(usedBatchForGroup));
+        }
+
+        let garbageCollectedBatchesCount = 0;
+        const usedBatchesList: PropsBatch[] = [];
+        for (const batch of this.batches) {
+            if (usedBatches.has(batch)) {
+                usedBatchesList.push(batch);
+            } else {
+                if (batch.spareInstancesLeft !== this.batchSize) {
+                    throw new Error(`No group registered for batch, yet the batch is not empty.`);
+                }
+                batch.dispose();
+                this.container.remove(batch.container);
+                garbageCollectedBatchesCount++;
+            }
+        }
+        this.batches = usedBatchesList;
+
+        if (garbageCollectedBatchesCount > 0) {
+            logger.debug(`PropsHandler: garbage collected ${garbageCollectedBatchesCount} batches.`);
+        }
     }
 
     private updateBatchVisibility(batch: PropsBatch): void {
@@ -275,6 +323,22 @@ class PropsHandler {
 
         batch.container.visible = distanceFromCamera < this.viewDistance + 50;
     }
+
+    private updateGroupsVisibilities(): void {
+        for (const groupProperties of this.groups.values()) {
+            let isVisible = true;
+            if (this.lastCameraPositionWorld) {
+                const distance = groupProperties.boundingSphere.distanceToPoint(this.lastCameraPositionWorld);
+                isVisible = distance < this.viewDistance;
+            }
+
+            if (isVisible) {
+                groupProperties.invisibleSince = null;
+            } else if (groupProperties.invisibleSince === null) {
+                groupProperties.invisibleSince = performance.now();
+            }
+        }
+    }
 }
 
-export { PropsHandler, type PropsHandlerStatistics };
+export { PropsHandler, type Parameters, type PropsHandlerStatistics };

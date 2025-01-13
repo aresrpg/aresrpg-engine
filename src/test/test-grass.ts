@@ -165,6 +165,10 @@ class TestGrass extends TestBase {
             material: params.propDefinitions.grass2D.material,
             reactToPlayer: true,
             patchSize: new THREE.Vector3(this.patchSize, this.patchSize, this.patchSize),
+            garbageCollect: {
+                interval: 5000,
+                invisibleGroupsCacheSize: 5,
+            },
         });
         propsContainer.add(this.grass2D.container);
         this.grass3D = new PropsViewer({
