@@ -1,4 +1,5 @@
 import { EVoxelStatus } from '..';
+import { clamp } from '../helpers/math';
 import * as THREE from '../libs/three-usage';
 
 import { type IVoxelmapCollider } from './i-voxelmap-collider';
@@ -59,15 +60,6 @@ type EntityCollisionOutput = {
     isOnGround: boolean;
     missingVoxels?: THREE.Vector3Like[];
 };
-
-function clamp(x: number, min: number, max: number): number {
-    if (x < min) {
-        return min;
-    } else if (x > max) {
-        return max;
-    }
-    return x;
-}
 
 function removeVoxelIdDuplicates(list: THREE.Vector3Like[]): THREE.Vector3Like[] {
     const map: Record<string, THREE.Vector3Like> = {};

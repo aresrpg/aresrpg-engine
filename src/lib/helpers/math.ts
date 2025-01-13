@@ -19,4 +19,13 @@ function safeModulo(n: number, m: number): number {
     return ((n % m) + m) % m;
 }
 
-export { nextPowerOfTwo, safeModulo };
+function clamp(x: number, min: number, max: number): number {
+    if (x < min) {
+        return min;
+    } else if (x > max) {
+        return max;
+    }
+    return x;
+}
+
+export { clamp, nextPowerOfTwo, safeModulo };
