@@ -257,6 +257,7 @@ class PropsBatch {
         copyMap(newGroupDefinitions, this.groupsDefinitions);
 
         this.instancedMesh.instanceMatrix.array.set(reorderedMatrices.subarray(0, 16 * instancesCount), 0);
+        this.instancedMesh.instanceMatrix.needsUpdate = true;
         this.instancedMesh.count = instancesCount;
     }
 
