@@ -1,4 +1,4 @@
-import { nextPowerOfTwo } from '../../../../helpers/math';
+import { clamp, nextPowerOfTwo } from '../../../../helpers/math';
 import { vec3ToString } from '../../../../helpers/string';
 import { type PackedUintFragment } from '../../../../helpers/uint-packing';
 import * as THREE from '../../../../libs/three-usage';
@@ -167,8 +167,25 @@ abstract class VoxelsRenderableFactoryBase {
             textureData[4 * materialId + 1] = 255 * material.color.g;
             textureData[4 * materialId + 2] = 255 * material.color.b;
             const shininess = material.shininess ?? 0;
-            // shininess cannot be 0 or it creates visual artifacts. Clamp it.
-            textureData[4 * materialId + 3] = Math.max(1, (255 * shininess) / VoxelsRenderableFactoryBase.maxShininess);
+            const emissiveness = material.emissiveness ?? 0;
+
+            if (shininess < 0) {
+                throw new Error(`A material cannot have negative shininess.`);
+            }
+            if (emissiveness < 0) {
+                throw new Error(`A material cannot have negative emissiveness.`);
+            }
+            if (emissiveness > 0 && shininess > 0) {
+                throw new Error(`A material cannot both have shininess and emissiveness`);
+            }
+
+            if (emissiveness > 0) {
+                // store emissiveness
+                textureData[4 * materialId + 3] = 128 + clamp(127 * emissiveness, 0, 127);
+            } else {
+                // store shininess
+                textureData[4 * materialId + 3] = clamp((127 * shininess) / VoxelsRenderableFactoryBase.maxShininess, 0, 127);
+            }
         });
         const texture = new THREE.DataTexture(textureData, textureWidth, textureHeight);
         texture.needsUpdate = true;
