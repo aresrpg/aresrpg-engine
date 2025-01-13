@@ -99,6 +99,9 @@ async function computeBoard(map: IVoxelMap, originWorld: THREE.Vector3Like, radi
         ) {
             throw new Error();
         }
+        if (data.isEmpty) {
+            return 0;
+        }
         const index = dataPos.x + dataPos.y * dataSize.x + dataPos.z * dataSize.x * dataSize.y;
         return data.data[index]!;
     };

@@ -8,8 +8,8 @@ import {
     type IHeightmap,
     type IHeightmapCoords,
     type IHeightmapSample,
-    type ILocalMapData,
     type IVoxelMap,
+    type LocalMapData,
 } from '../../lib/index';
 
 import { colorMapping } from './color-mapping';
@@ -133,7 +133,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         }
     }
 
-    public getLocalMapData(blockStart: THREE.Vector3, blockEnd: THREE.Vector3): ILocalMapData | Promise<ILocalMapData> {
+    public getLocalMapData(blockStart: THREE.Vector3, blockEnd: THREE.Vector3): LocalMapData | Promise<LocalMapData> {
         const blockSize = new THREE.Vector3().subVectors(blockEnd, blockStart);
         const data = new Uint16Array(blockSize.x * blockSize.y * blockSize.z);
 
@@ -224,11 +224,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
             }
         }
 
-        const result: ILocalMapData = {
-            data,
-            dataOrdering: 'zyx',
-            isEmpty,
-        };
+        const result: LocalMapData = isEmpty ? { isEmpty } : { data, dataOrdering: 'zyx', isEmpty };
 
         const synchronous = false;
         if (synchronous) {
