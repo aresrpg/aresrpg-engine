@@ -1,6 +1,6 @@
 import * as THREE from '../../../libs/three-usage';
 import { processAsap } from '../../../helpers/async/async-sync';
-import { voxelmapDataPacking, type ILocalMapData, type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../i-voxelmap';
+import { voxelmapDataPacking, type IVoxelMap, type IVoxelMaterial, type LocalMapData, type VoxelsChunkSize } from '../i-voxelmap';
 import { PatchId } from '../patch/patch-id';
 
 import { EBoardSquareType, type Board } from './board';
@@ -52,11 +52,15 @@ class VoxelmapWrapper implements IVoxelMap {
         this.includeBoard = includeBoard;
     }
 
-    public getLocalMapData(blockStart: THREE.Vector3Like, blockEnd: THREE.Vector3Like): ILocalMapData | Promise<ILocalMapData> {
+    public getLocalMapData(blockStart: THREE.Vector3Like, blockEnd: THREE.Vector3Like): LocalMapData | Promise<LocalMapData> {
         const blockSize = new THREE.Vector3().subVectors(blockEnd, blockStart);
 
         const originalLocalMapData = this.originGetLocalMapData(blockStart, blockEnd);
         return processAsap(originalLocalMapData, localMapData => {
+            if (localMapData.isEmpty) {
+                return localMapData;
+            }
+
             const columnWorld = { x: 0, y: 0, z: 0 };
             for (columnWorld.z = blockStart.z; columnWorld.z < blockEnd.z; columnWorld.z++) {
                 for (columnWorld.x = blockStart.x; columnWorld.x < blockEnd.x; columnWorld.x++) {

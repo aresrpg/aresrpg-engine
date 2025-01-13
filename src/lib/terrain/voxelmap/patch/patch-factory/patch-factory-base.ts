@@ -91,6 +91,13 @@ abstract class PatchFactoryBase {
 
         const queriedLocalMapData = map.getLocalMapData(cacheStart, cacheEnd);
         return processAsap(queriedLocalMapData, localMapData => {
+            if (localMapData.isEmpty) {
+                return {
+                    size: cacheSize,
+                    isEmpty: true,
+                };
+            }
+
             const expectedCacheItemsCount = cacheSize.x * cacheSize.y * cacheSize.z;
             if (localMapData.data.length !== expectedCacheItemsCount) {
                 throw new Error(
