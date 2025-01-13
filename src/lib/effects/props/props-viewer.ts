@@ -1,14 +1,8 @@
 import * as THREE from '../../libs/three-usage';
 
-import { PropsHandler } from './props-handler';
+import { PropsHandler, type Parameters as PropshandlerParameters } from './props-handler';
 
-type Parameters = {
-    readonly batchSize?: number;
-    readonly minGroupPartSize?: number;
-    readonly reactToPlayer?: boolean;
-    readonly bufferGeometry: THREE.BufferGeometry;
-    readonly material: THREE.MeshPhongMaterial;
-
+type Parameters = PropshandlerParameters & {
     readonly patchSize: THREE.Vector3Like;
 };
 
