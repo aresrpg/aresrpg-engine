@@ -4,6 +4,8 @@ abstract class TestBase {
     private readonly statsFps: THREE.Stats;
     private readonly statsDrawCalls: THREE.Stats;
     private readonly statsDrawCallsPanel: THREE.Stats.Panel;
+    private readonly statsTriangles: THREE.Stats;
+    private readonly statsTrianglesPanel: THREE.Stats.Panel;
 
     protected readonly renderer: THREE.WebGLRenderer;
     protected readonly camera: THREE.PerspectiveCamera;
@@ -24,6 +26,13 @@ abstract class TestBase {
         this.statsDrawCalls.addPanel(this.statsDrawCallsPanel);
         this.statsDrawCalls.showPanel(3);
         this.statsDrawCalls.dom.style.cssText = 'position:fixed;top:50px;left:0px;cursor:pointer;z-index:10000';
+
+        this.statsTriangles = new THREE.Stats();
+        document.body.appendChild(this.statsTriangles.dom);
+        this.statsTrianglesPanel = new THREE.Stats.Panel('triangles', '#f8f', '#212');
+        this.statsTriangles.addPanel(this.statsTrianglesPanel);
+        this.statsTriangles.showPanel(3);
+        this.statsTriangles.dom.style.cssText = 'position:fixed;top:100px;left:0px;cursor:pointer;z-index:10000';
 
         this.renderer = new THREE.WebGLRenderer();
         document.body.appendChild(this.renderer.domElement);
@@ -58,7 +67,9 @@ abstract class TestBase {
         this.started = true;
 
         setInterval(() => {
-            this.statsDrawCallsPanel.update(this.renderer.info.render.calls, 200);
+            const rendererInfos = this.renderer.info;
+            this.statsDrawCallsPanel.update(rendererInfos.render.calls, 200);
+            this.statsTrianglesPanel.update(rendererInfos.render.triangles, 200);
         }, 100);
 
         let lastRenderTimestamp = performance.now();
