@@ -265,6 +265,7 @@ class TestGrass extends TestBase {
         this.gui.add(fakePlayerMesh, 'visible').name('Show player');
         this.gui.add(ground, 'visible').name('Show ground');
         this.gui.add(propsContainer, 'visible').name('Show props');
+        this.gui.add(this.rocks.container, 'visible').name('Show rocks');
         this.gui.add(this.parameters, 'grassMode', Object.values(EGrassMode)).name('Grass type').onChange(applyGrassMode);
     }
 
