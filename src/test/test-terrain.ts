@@ -1,4 +1,3 @@
-import GUI from 'lil-gui';
 import * as THREE from 'three-usage-test';
 
 import {
@@ -173,7 +172,6 @@ return vec4(sampled.rgb / sampled.a, 1);
         });
         this.promisesQueue = new PromisesQueue(this.voxelmapViewer.maxPatchesComputedInParallel + 5);
 
-        const gui = new GUI();
         {
             const texturingOptions = {
                 textured: EVoxelsDisplayMode.TEXTURED,
@@ -181,7 +179,7 @@ return vec4(sampled.rgb / sampled.a, 1);
                 grey: EVoxelsDisplayMode.GREY,
             };
 
-            const voxelsFolder = gui.addFolder('Voxels');
+            const voxelsFolder = this.gui.addFolder('Voxels');
             voxelsFolder.open();
             const parameters = {
                 shadows: this.enableShadows,
