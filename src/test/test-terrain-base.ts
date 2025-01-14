@@ -36,7 +36,7 @@ abstract class TestTerrainBase extends TestBase {
                 );
             }, 0);
         } else {
-            const playerViewRadius = 10;
+            const playerViewRadius = 700;
 
             const playerContainer = new THREE.Group();
             playerContainer.position.x = 0;

@@ -1,3 +1,4 @@
+import { logger } from '../../../../helpers/logger';
 import { nextPowerOfTwo } from '../../../../helpers/math';
 import { vec3ToString } from '../../../../helpers/string';
 import { type PackedUintFragment } from '../../../../helpers/uint-packing';
@@ -41,6 +42,120 @@ type Parameters = {
     readonly noiseResolution?: number | undefined;
     readonly checkerboardType?: undefined | CheckerboardType;
 };
+
+async function compressBuffer(buffer: ArrayBuffer): Promise<ArrayBuffer> {
+    const stream = new ReadableStream({
+        type: "bytes",
+        start(controller) {
+            controller.enqueue(new Uint8Array(buffer));
+            controller.close();
+        }
+    });
+    const readableCompressionStream = stream.pipeThrough(new CompressionStream("gzip"));
+    const response = new Response(readableCompressionStream);
+    return await response.arrayBuffer();
+}
+
+async function decompressBuffer(buffer: ArrayBuffer): Promise<ArrayBuffer> {
+    const stream = new ReadableStream({
+        type: "bytes",
+        start(controller) {
+            controller.enqueue(new Uint8Array(buffer));
+            controller.close();
+        }
+    });
+    const readableDecompressionStream = stream.pipeThrough(new DecompressionStream("gzip"));
+    const response = new Response(readableDecompressionStream);
+    return await response.arrayBuffer();
+}
+
+function bytesToString(bytes: number): string {
+    if (bytes < 1024) {
+        return `${bytes.toLocaleString()}B`;
+    }
+    bytes /= 1024;
+    if (bytes < 1024) {
+        return `${bytes.toLocaleString()}KB`;
+    }
+    bytes /= 1024;
+    if (bytes < 1024) {
+        return `${bytes.toLocaleString()}MB`;
+    }
+    return `${bytes.toLocaleString()}GB`;
+}
+
+const compressionStats = {
+    totalUncompressedSize: 0,
+    totalCompressedSize: 0,
+    totalTestedArraybuffersCount: 0,
+    minUncompressedSize: Infinity,
+    maxUncompressedSize: -Infinity,
+    minCompressedSize: Infinity,
+    maxCompressedSize: -Infinity,
+    maxCompressionRatio: Infinity,
+    minCompressionRatio: -Infinity,
+};
+
+window.setInterval(() => {
+    const uncompressed = {
+        average: compressionStats.totalUncompressedSize / compressionStats.totalTestedArraybuffersCount,
+        min: compressionStats.minUncompressedSize,
+        max: compressionStats.maxUncompressedSize,
+    };
+    const compressed = {
+        average: compressionStats.totalCompressedSize / compressionStats.totalTestedArraybuffersCount,
+        min: compressionStats.minCompressedSize,
+        max: compressionStats.maxCompressedSize,
+    };
+
+    logger.warn(`Compression stats:
+- tested ${compressionStats.totalTestedArraybuffersCount} arraybuffers
+- uncompressed:
+    - average size: ${bytesToString(uncompressed.average)}
+    - min size:     ${bytesToString(uncompressed.min)}
+    - max size:     ${bytesToString(uncompressed.max)}
+- compressed:
+    - average size: ${bytesToString(compressed.average)}\t${(100 * compressed.average / uncompressed.average).toFixed(1)} %
+    - min size:     ${bytesToString(compressed.min)}\t${(100 * compressed.min / uncompressed.min).toFixed(1)} %
+    - max size:     ${bytesToString(compressed.max)}\t${(100 * compressed.max / uncompressed.max).toFixed(1)} %
+`);
+}, 1000);
+
+async function testBuffer(sourceBuffer: ArrayBuffer): Promise<void> {
+    const uncompressedByteLength = sourceBuffer.byteLength;
+    compressionStats.minUncompressedSize = Math.min(uncompressedByteLength, compressionStats.minUncompressedSize);
+    compressionStats.maxUncompressedSize = Math.max(uncompressedByteLength, compressionStats.maxUncompressedSize);
+    compressionStats.totalUncompressedSize += uncompressedByteLength
+
+    const compressedArrayBuffer = await compressBuffer(sourceBuffer.slice(0, sourceBuffer.byteLength));
+    const compressedByteLength = compressedArrayBuffer.byteLength;
+    compressionStats.minCompressedSize = Math.min(compressedByteLength, compressionStats.minCompressedSize);
+    compressionStats.maxCompressedSize = Math.max(compressedByteLength, compressionStats.maxCompressedSize);
+    compressionStats.totalCompressedSize += compressedByteLength;
+
+    const compressionRatio = compressionStats.totalCompressedSize / compressionStats.totalUncompressedSize;
+    compressionStats.maxCompressionRatio = Math.min(compressionRatio, compressionStats.maxCompressionRatio);
+    compressionStats.minCompressionRatio = Math.max(compressionRatio, compressionStats.minCompressionRatio);
+
+    const decompressedBuffer = await decompressBuffer(compressedArrayBuffer);
+    const decompressedByteLength = decompressedBuffer.byteLength;
+
+    if (decompressedByteLength !== uncompressedByteLength) {
+        throw new Error(`Compression/decompression went wrong: Decompressed length = ${decompressedByteLength} (expected ${uncompressedByteLength})`);
+    }
+    const sourceUint8 = new Uint8Array(sourceBuffer);
+    const decompressedUint8 = new Uint8Array(decompressedBuffer);
+    if (sourceUint8.length !== decompressedUint8.length) {
+        throw new Error();
+    }
+    for (let i = 0; i < sourceUint8.length; i++) {
+        if (sourceUint8[i] !== decompressedUint8[i]) {
+            throw new Error(`Compression/decompression went wrong: data changed`);
+        }
+    }
+
+    compressionStats.totalTestedArraybuffersCount++;
+}
 
 abstract class VoxelsRenderableFactoryBase {
     public static readonly maxSmoothEdgeRadius = 0.3;
@@ -104,7 +219,20 @@ abstract class VoxelsRenderableFactoryBase {
             return null;
         }
 
-        return this.buildGeometryAndMaterials(voxelsChunkData).then(geometryAndMaterialsList => {
+        return this.buildGeometryAndMaterials(voxelsChunkData).then(async geometryAndMaterialsList => {
+            for (const geometryAndMaterial of geometryAndMaterialsList) {
+                for (const attribute of Object.values(geometryAndMaterial.geometry.attributes)) {
+                    if (attribute instanceof THREE.InterleavedBufferAttribute) {
+                        const array = attribute.data.array.buffer;
+                        if (array instanceof ArrayBuffer) {
+                            void testBuffer(array.slice(0, array.byteLength)); // tsignore
+                            continue;
+                        }
+                    }
+                    throw new Error();
+                }
+            }
+
             return this.assembleVoxelsRenderable(innerChunkSize, geometryAndMaterialsList);
         });
     }
