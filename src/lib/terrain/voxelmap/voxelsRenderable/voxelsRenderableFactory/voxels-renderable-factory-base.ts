@@ -45,43 +45,43 @@ type Parameters = {
 
 async function compressBuffer(buffer: ArrayBuffer): Promise<ArrayBuffer> {
     const stream = new ReadableStream({
-        type: "bytes",
+        type: 'bytes',
         start(controller) {
             controller.enqueue(new Uint8Array(buffer));
             controller.close();
-        }
+        },
     });
-    const readableCompressionStream = stream.pipeThrough(new CompressionStream("gzip"));
+    const readableCompressionStream = stream.pipeThrough(new CompressionStream('gzip'));
     const response = new Response(readableCompressionStream);
     return await response.arrayBuffer();
 }
 
 async function decompressBuffer(buffer: ArrayBuffer): Promise<ArrayBuffer> {
     const stream = new ReadableStream({
-        type: "bytes",
+        type: 'bytes',
         start(controller) {
             controller.enqueue(new Uint8Array(buffer));
             controller.close();
-        }
+        },
     });
-    const readableDecompressionStream = stream.pipeThrough(new DecompressionStream("gzip"));
+    const readableDecompressionStream = stream.pipeThrough(new DecompressionStream('gzip'));
     const response = new Response(readableDecompressionStream);
     return await response.arrayBuffer();
 }
 
 function bytesToString(bytes: number): string {
     if (bytes < 1024) {
-        return `${bytes.toLocaleString()}B`;
+        return `${bytes}B`;
     }
     bytes /= 1024;
     if (bytes < 1024) {
-        return `${bytes.toLocaleString()}KB`;
+        return `${bytes}KB`;
     }
     bytes /= 1024;
     if (bytes < 1024) {
-        return `${bytes.toLocaleString()}MB`;
+        return `${bytes}MB`;
     }
-    return `${bytes.toLocaleString()}GB`;
+    return `${bytes}GB`;
 }
 
 const compressionStats = {
@@ -96,7 +96,13 @@ const compressionStats = {
     minCompressionRatio: -Infinity,
 };
 
-window.setInterval(() => {
+logger.warn("Running voxels-renderable-factory-base");
+
+setInterval(() => {
+    if (compressionStats.totalTestedArraybuffersCount === 0) {
+        return;
+    }
+
     const uncompressed = {
         average: compressionStats.totalUncompressedSize / compressionStats.totalTestedArraybuffersCount,
         min: compressionStats.minUncompressedSize,
@@ -115,9 +121,9 @@ window.setInterval(() => {
     - min size:     ${bytesToString(uncompressed.min)}
     - max size:     ${bytesToString(uncompressed.max)}
 - compressed:
-    - average size: ${bytesToString(compressed.average)}\t${(100 * compressed.average / uncompressed.average).toFixed(1)} %
-    - min size:     ${bytesToString(compressed.min)}\t${(100 * compressed.min / uncompressed.min).toFixed(1)} %
-    - max size:     ${bytesToString(compressed.max)}\t${(100 * compressed.max / uncompressed.max).toFixed(1)} %
+    - average size: ${bytesToString(compressed.average)}\t${((100 * compressed.average) / uncompressed.average).toFixed(1)} %
+    - min size:     ${bytesToString(compressed.min)}\t${((100 * compressed.min) / uncompressed.min).toFixed(1)} %
+    - max size:     ${bytesToString(compressed.max)}\t${((100 * compressed.max) / uncompressed.max).toFixed(1)} %
 `);
 }, 1000);
 
@@ -125,7 +131,7 @@ async function testBuffer(sourceBuffer: ArrayBuffer): Promise<void> {
     const uncompressedByteLength = sourceBuffer.byteLength;
     compressionStats.minUncompressedSize = Math.min(uncompressedByteLength, compressionStats.minUncompressedSize);
     compressionStats.maxUncompressedSize = Math.max(uncompressedByteLength, compressionStats.maxUncompressedSize);
-    compressionStats.totalUncompressedSize += uncompressedByteLength
+    compressionStats.totalUncompressedSize += uncompressedByteLength;
 
     const compressedArrayBuffer = await compressBuffer(sourceBuffer.slice(0, sourceBuffer.byteLength));
     const compressedByteLength = compressedArrayBuffer.byteLength;
@@ -141,7 +147,9 @@ async function testBuffer(sourceBuffer: ArrayBuffer): Promise<void> {
     const decompressedByteLength = decompressedBuffer.byteLength;
 
     if (decompressedByteLength !== uncompressedByteLength) {
-        throw new Error(`Compression/decompression went wrong: Decompressed length = ${decompressedByteLength} (expected ${uncompressedByteLength})`);
+        throw new Error(
+            `Compression/decompression went wrong: Decompressed length = ${decompressedByteLength} (expected ${uncompressedByteLength})`
+        );
     }
     const sourceUint8 = new Uint8Array(sourceBuffer);
     const decompressedUint8 = new Uint8Array(decompressedBuffer);
