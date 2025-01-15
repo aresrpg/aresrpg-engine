@@ -274,7 +274,7 @@ class TestGrass extends TestBase {
         this.gui.add(this.parameters, 'grassMode', Object.values(EGrassMode)).name('Grass type').onChange(applyGrassMode);
     }
 
-    protected override update(): void {
+    protected override update(deltaMilliseconds: number): void {
         const cameraWorldPosition3d = this.camera.getWorldPosition(new THREE.Vector3());
         const cameraWorldFloorPosition = new THREE.Vector3(cameraWorldPosition3d.x, 0, cameraWorldPosition3d.z);
 
@@ -329,7 +329,7 @@ class TestGrass extends TestBase {
         this.grass2D.setPlayerViewPosition(playerViewPosition);
         this.grass3D.setPlayerViewPosition(playerViewPosition);
 
-        this.grass2D.update();
+        this.grass2D.update(deltaMilliseconds);
     }
 }
 

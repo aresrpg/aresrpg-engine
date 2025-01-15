@@ -255,8 +255,9 @@ class PropsBatch {
         };
     }
 
-    public update(): void {
-        this.material.uniforms.uTime.value = (performance.now() / 4) % 1000;
+    public update(deltaMilliseconds: number): void {
+        this.material.uniforms.uTime.value += deltaMilliseconds / 4;
+        this.material.uniforms.uTime.value %= 1000;
     }
 
     private reorderMatricesBuffer(): void {
@@ -274,7 +275,7 @@ class PropsBatch {
 
             const groupMatrices = this.instancedMesh.instanceMatrix.array.subarray(
                 16 * groupDefinition.startIndex,
-                16 * (groupDefinition.startIndex + groupDefinition.count),
+                16 * (groupDefinition.startIndex + groupDefinition.count)
             );
             reorderedMatrices.set(groupMatrices, 16 * newGroupDefinition.startIndex);
         }

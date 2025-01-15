@@ -13,6 +13,7 @@ abstract class TestBase {
     protected readonly scene: THREE.Scene;
 
     private started: boolean = false;
+    private lastUpdateTimestamp: number | null = null;
 
     protected maxFps: number = Infinity;
 
@@ -83,7 +84,13 @@ abstract class TestBase {
                 this.statsFps.update();
 
                 this.cameraControl.update();
-                this.update();
+
+                const now = performance.now();
+                if (this.lastUpdateTimestamp === null) {
+                    this.lastUpdateTimestamp = now;
+                }
+                this.update(now - this.lastUpdateTimestamp);
+                this.lastUpdateTimestamp = now;
                 this.renderer.render(this.scene, this.camera);
                 lastRenderTimestamp = now;
             }
@@ -92,7 +99,7 @@ abstract class TestBase {
         window.requestAnimationFrame(render);
     }
 
-    protected abstract update(): void;
+    protected abstract update(deltaMilliseconds: number): void;
 }
 
 export { TestBase };

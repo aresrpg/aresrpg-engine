@@ -267,9 +267,9 @@ class PropsHandler {
         this.updateGroupsVisibilities();
     }
 
-    public update(): void {
+    public update(deltaMilliseconds: number): void {
         for (const batch of this.batches) {
-            batch.update();
+            batch.update(deltaMilliseconds);
         }
     }
 
