@@ -1,6 +1,6 @@
 {
   "name": "@aresrpg/aresrpg-engine",
-  "version": "2.6.8",
+  "version": "2.6.9",
   "main": "dist/index.js",
   "files": [
     "dist"
