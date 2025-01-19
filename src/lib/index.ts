@@ -9,9 +9,9 @@ export { BoardOverlaysHandler } from './terrain/voxelmap/board/overlay/board-ove
 export { VoxelmapWrapper } from './terrain/voxelmap/board/voxelmap-wrapper';
 export {
     voxelmapDataPacking,
-    type ILocalMapData,
     type IVoxelMap,
     type IVoxelMaterial,
+    type LocalMapData,
     type VoxelsChunkOrdering,
     type VoxelsChunkSize,
 } from './terrain/voxelmap/i-voxelmap';

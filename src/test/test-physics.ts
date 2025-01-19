@@ -328,7 +328,11 @@ class TestPhysics extends TestBase {
                             const voxelsChunkData = Object.assign(patchMapData, {
                                 size: new THREE.Vector3().subVectors(blockEnd, blockStart),
                             });
-                            this.voxelmapCollider.setChunk(patchId, voxelsChunkData);
+
+                            this.voxelmapCollider.setChunk(patchId, {
+                                ...voxelsChunkData,
+                                isFull: false,
+                            });
                             await this.voxelmapViewer.enqueuePatch(patchId, voxelsChunkData);
                         }
                     },
