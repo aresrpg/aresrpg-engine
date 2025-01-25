@@ -1,8 +1,9 @@
-import * as THREE from '../../libs/three-usage';
 import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
+import * as THREE from '../../libs/three-usage';
 
-import { HeightmapNodeGeometry } from './heightmap-node-geometry';
+import { GeometryProcessor } from './geometry-processor';
 import { HeightmapNode } from './heightmap-node';
+import { HeightmapNodeGeometry } from './heightmap-node-geometry';
 import { HeightmapNodeId } from './heightmap-node-id';
 import { type IHeightmap } from './i-heightmap';
 
@@ -21,7 +22,7 @@ class HeightmapRoot {
     public readonly basePatchSize: number;
     public readonly nodeGeometry: HeightmapNodeGeometry;
 
-    public readonly useIndexedGeometry: boolean;
+    public readonly geometryProcessor: GeometryProcessor;
 
     private readonly sampler: IHeightmap;
     private readonly maxLevel: number;
@@ -41,7 +42,10 @@ class HeightmapRoot {
         this.sampler = sampler;
         this.maxLevel = options.maxLevel;
         this.maxLevelSizeInVoxels = HeightmapNodeId.getLevelSizeInVoxels(this.basePatchSize, this.maxLevel);
-        this.useIndexedGeometry = !(options.flatShading ?? false);
+
+        this.geometryProcessor = new GeometryProcessor({
+            outputIndexedGeometry: !(options.flatShading ?? false),
+        });
     }
 
     public getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {

@@ -1,9 +1,10 @@
-import * as THREE from '../../libs/three-usage';
 import { processAsap, type SyncOrPromise } from '../../helpers/async/async-sync';
 import { DisposableMap } from '../../helpers/disposable-map';
 import { logger } from '../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
+import * as THREE from '../../libs/three-usage';
 
+import { type GeometryProcessor } from './geometry-processor';
 import { EEdgeResolution, type HeightmapNodeGeometry } from './heightmap-node-geometry';
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapNodeMesh } from './heightmap-node-mesh';
@@ -49,7 +50,7 @@ interface IHeightmapRoot {
     readonly basePatchSize: number;
     readonly material: THREE.Material;
     readonly nodeGeometry: HeightmapNodeGeometry;
-    readonly useIndexedGeometry: boolean;
+    readonly geometryProcessor: GeometryProcessor;
 
     getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
     getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
@@ -396,19 +397,11 @@ class HeightmapNode {
                 positionsBuffer[3 * i + 1]! += sampleAltitude;
             }
 
-            if (this.root.useIndexedGeometry) {
-                return { positions: positionsBuffer, indices: indices.buffer, colors: samples.colorsBuffer };
-            } else {
-                const unindexedPositions = new Float32Array(3 * indices.buffer.length);
-                const unindexedColors = new Float32Array(3 * indices.buffer.length);
-
-                for (let indexId = 0; indexId < indices.buffer.length; indexId++) {
-                    const index = indices.buffer[indexId]!;
-                    unindexedPositions.set(positionsBuffer.subarray(3 * index, 3 * index + 3), 3 * indexId);
-                    unindexedColors.set(samples.colorsBuffer.subarray(3 * index, 3 * index + 3), 3 * indexId);
-                }
-                return { positions: unindexedPositions, colors: unindexedColors };
-            }
+            return this.root.geometryProcessor.process({
+                positions: positionsBuffer,
+                indices: indices.buffer,
+                colors: samples.colorsBuffer,
+            });
         });
     }
 
