@@ -250,6 +250,12 @@ return vec4(sampled.rgb / sampled.a, 1);
                     this.voxelmapViewer.parameters.specular.strength = parameters.specular.strength;
                 });
         }
+        {
+            const lodFolder = this.gui.addFolder('LOD');
+            lodFolder.add(this.terrainViewer.parameters.lod, 'enabled');
+            lodFolder.add(this.terrainViewer.parameters.lod, 'wireframe');
+            lodFolder.open();
+        }
     }
 
     private updateTreeBillboards(): void {
