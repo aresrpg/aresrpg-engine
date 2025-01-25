@@ -4,7 +4,7 @@ import { logger } from '../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../libs/three-usage';
 
-import { type GeometryProcessor } from './geometry-processor';
+import { type ProcessedGeometryData, type GeometryProcessor } from './geometry-processor';
 import { EEdgeResolution, type HeightmapNodeGeometry } from './heightmap-node-geometry';
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapNodeMesh } from './heightmap-node-mesh';
@@ -15,12 +15,6 @@ type Children = {
     readonly mp: HeightmapNode;
     readonly pm: HeightmapNode;
     readonly pp: HeightmapNode;
-};
-
-type GeometryData = {
-    readonly positions: Float32Array;
-    readonly colors: Float32Array;
-    readonly indices?: number[];
 };
 
 enum EEdgeType {
@@ -289,10 +283,10 @@ class HeightmapNode {
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(geometryData.positions, 3));
             geometry.setAttribute('color', new THREE.Float32BufferAttribute(geometryData.colors, 3));
+            geometry.setAttribute('normal', new THREE.Float32BufferAttribute(geometryData.normals, 3));
             if (geometryData.indices) {
                 geometry.setIndex(geometryData.indices);
             }
-            geometry.computeVertexNormals();
 
             for (const attribute of Object.values(geometry.attributes)) {
                 this.selfGpuMemoryBytes += attribute.array.byteLength;
@@ -315,7 +309,7 @@ class HeightmapNode {
         });
     }
 
-    private buildGeometryData(edgesType: EdgesType): SyncOrPromise<GeometryData> {
+    private buildGeometryData(edgesType: EdgesType): SyncOrPromise<ProcessedGeometryData> {
         const scaling = this.root.nodeGeometry.baseScaling << this.id.level;
 
         let template = this.template;
