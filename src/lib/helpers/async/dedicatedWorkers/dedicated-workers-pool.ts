@@ -20,14 +20,14 @@ class DedicatedWorkersPool {
         }
     }
 
-    public submitTask<T>(taskName: string, taskInput: unknown): Promise<T> {
+    public submitTask<T>(taskName: string, taskInput: unknown, transfer?: Transferable[]): Promise<T> {
         const worker = this.findLessBusyWorker();
         if (!worker) {
             throw new Error(`No available worker in pool "${this.name}".`);
         }
 
         worker.pendingPromisesCount++;
-        const promise = worker.dedicatedWorker.submitTask<T>(taskName, taskInput);
+        const promise = worker.dedicatedWorker.submitTask<T>(taskName, taskInput, transfer);
         promise.finally(() => worker.pendingPromisesCount--);
         return promise;
     }

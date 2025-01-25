@@ -104,7 +104,7 @@ class DedicatedWorker {
         };
     }
 
-    public submitTask<T>(taskName: string, taskInput: unknown): Promise<T> {
+    public submitTask<T>(taskName: string, taskInput: unknown, transfer?: Transferable[]): Promise<T> {
         if (!this.worker) {
             throw new Error('Worker has been terminated.');
         }
@@ -128,7 +128,7 @@ class DedicatedWorker {
                 taskInput,
                 taskId,
             };
-            worker.postMessage(taskRequestMessage);
+            worker.postMessage(taskRequestMessage, transfer ?? []);
         });
     }
 

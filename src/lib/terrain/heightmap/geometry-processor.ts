@@ -203,7 +203,7 @@ class GeometryProcessor {
                     return { ...input, normals };
                 });
             } else {
-                return this.workersPool.submitTask('desindexAndComputeNormals', input);
+                return this.workersPool.submitTask('desindexAndComputeNormals', input, [input.indices.buffer, input.positions.buffer]);
             }
         } else {
             if (this.outputIndexedGeometry) {
