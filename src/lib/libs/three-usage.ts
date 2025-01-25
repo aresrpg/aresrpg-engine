@@ -39,6 +39,7 @@ export {
     SRGBColorSpace,
     Texture,
     TextureLoader,
+    Uint16BufferAttribute,
     Uint32BufferAttribute,
     UnsignedIntType,
     Vector2,

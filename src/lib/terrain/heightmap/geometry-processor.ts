@@ -4,14 +4,14 @@ import { DedicatedWorkersPool } from '../../helpers/async/dedicatedWorkers/dedic
 type IndexedGeometryData = {
     readonly positions: Float32Array;
     readonly colors: Float32Array;
-    readonly indices: number[];
+    readonly indices: Uint16Array;
 };
 
 type ProcessedGeometryData = {
     readonly positions: Float32Array;
     readonly colors: Float32Array;
     readonly normals: Float32Array;
-    readonly indices?: number[];
+    readonly indices?: Uint16Array;
 };
 
 type Parameters = {
@@ -21,12 +21,10 @@ type Parameters = {
 
 class GeometryProcessor {
     private readonly processor = {
-        outputIndexedGeometry: true,
-
         desindexBuffers(
             positions: Float32Array,
             colors: Float32Array,
-            indices: ReadonlyArray<number>
+            indices: Uint16Array
         ): { positions: Float32Array; colors: Float32Array } {
             const unindexedPositions = new Float32Array(3 * indices.length);
             const unindexedColors = new Float32Array(3 * indices.length);
@@ -40,7 +38,9 @@ class GeometryProcessor {
             return { positions: unindexedPositions, colors: unindexedColors };
         },
 
-        computeVertexNormals(positions: Float32Array, indices?: ReadonlyArray<number>): Float32Array {
+        computeVertexNormals(params: { positions: Float32Array; indices?: Uint16Array }): Float32Array {
+            const { positions, indices } = params;
+
             const verticesCount = positions.length / 3;
 
             const normal = new Float32Array(3 * verticesCount);
@@ -142,26 +142,22 @@ class GeometryProcessor {
             return normal;
         },
 
-        process(input: IndexedGeometryData): ProcessedGeometryData {
-            if (this.outputIndexedGeometry) {
-                const normals = this.computeVertexNormals(input.positions, input.indices);
-                return { ...input, normals };
-            } else {
-                const unindexed = this.desindexBuffers(input.positions, input.colors, input.indices);
-                const normals = this.computeVertexNormals(unindexed.positions);
-                return {
-                    ...unindexed,
-                    normals,
-                };
-            }
+        desindexAndComputeNormals(input: IndexedGeometryData): ProcessedGeometryData {
+            const unindexed = this.desindexBuffers(input.positions, input.colors, input.indices);
+            const normals = this.computeVertexNormals(unindexed);
+            return {
+                ...unindexed,
+                normals,
+            };
         },
     };
 
+    private readonly outputIndexedGeometry: boolean;
     private readonly dedicatedThreadsCount: number; // 0 for main thread; 1 or more for 1 or more dedicated threads
     private workersPool: DedicatedWorkersPool | null = null;
 
     public constructor(params: Parameters) {
-        this.processor.outputIndexedGeometry = params.outputIndexedGeometry;
+        this.outputIndexedGeometry = params.outputIndexedGeometry;
         this.dedicatedThreadsCount = params.dedicatedThreadsCount;
 
         if (!Number.isInteger(this.dedicatedThreadsCount) || this.dedicatedThreadsCount < 0) {
@@ -174,16 +170,24 @@ class GeometryProcessor {
             if (!this.workersPool) {
                 this.workersPool = new DedicatedWorkersPool('geometry-processor', this.dedicatedThreadsCount, {
                     commonCode: `const processor = {
-                        outputIndexedGeometry: ${this.processor.outputIndexedGeometry},
                         ${this.processor.desindexBuffers},
                         ${this.processor.computeVertexNormals},
-                        ${this.processor.process},
+                        ${this.processor.desindexAndComputeNormals},
                     };`,
                     tasks: {
-                        process: (taskInput: IndexedGeometryData) => {
+                        computeIndexedNormals: (taskInput: { positions: Float32Array; index: Uint16Array }) => {
                             // eslint-disable-next-line no-eval
-                            const factory2 = eval('processor') as GeometryProcessor['processor'];
-                            const result = factory2.process(taskInput);
+                            const processor2 = eval('processor') as GeometryProcessor['processor'];
+                            const normals = processor2.computeVertexNormals(taskInput);
+                            return {
+                                taskResult: normals,
+                                taskResultTransferablesList: [normals.buffer],
+                            };
+                        },
+                        desindexAndComputeNormals: (taskInput: IndexedGeometryData) => {
+                            // eslint-disable-next-line no-eval
+                            const processor2 = eval('processor') as GeometryProcessor['processor'];
+                            const result = processor2.desindexAndComputeNormals(taskInput);
                             return {
                                 taskResult: result,
                                 taskResultTransferablesList: [result.positions.buffer, result.colors.buffer, result.normals.buffer],
@@ -192,9 +196,22 @@ class GeometryProcessor {
                     },
                 });
             }
-            return this.workersPool.submitTask('process', input);
+
+            if (this.outputIndexedGeometry) {
+                return this.workersPool.submitTask('computeIndexedNormals', input).then(taskResult => {
+                    const normals = taskResult as Float32Array;
+                    return { ...input, normals };
+                });
+            } else {
+                return this.workersPool.submitTask('desindexAndComputeNormals', input);
+            }
         } else {
-            return this.processor.process(input);
+            if (this.outputIndexedGeometry) {
+                const normals = this.processor.computeVertexNormals({ positions: input.positions, indices: input.indices });
+                return { ...input, normals };
+            } else {
+                return this.processor.desindexAndComputeNormals(input);
+            }
         }
     }
 }

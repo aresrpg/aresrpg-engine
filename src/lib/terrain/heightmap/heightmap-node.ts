@@ -285,7 +285,7 @@ class HeightmapNode {
             geometry.setAttribute('color', new THREE.Float32BufferAttribute(geometryData.colors, 3));
             geometry.setAttribute('normal', new THREE.Float32BufferAttribute(geometryData.normals, 3));
             if (geometryData.indices) {
-                geometry.setIndex(geometryData.indices);
+                geometry.setIndex(new THREE.Uint16BufferAttribute(geometryData.indices, 1));
             }
 
             for (const attribute of Object.values(geometry.attributes)) {
@@ -393,7 +393,7 @@ class HeightmapNode {
 
             return this.root.geometryProcessor.process({
                 positions: positionsBuffer,
-                indices: indices.buffer,
+                indices: new Uint16Array(indices.buffer),
                 colors: samples.colorsBuffer,
             });
         });
