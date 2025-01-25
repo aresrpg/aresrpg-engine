@@ -19,7 +19,7 @@ type Children = {
 type GeometryData = {
     readonly positions: Float32Array;
     readonly colors: Float32Array;
-    readonly indices: number[];
+    readonly indices?: number[];
 };
 
 enum EEdgeType {
@@ -49,6 +49,7 @@ interface IHeightmapRoot {
     readonly basePatchSize: number;
     readonly material: THREE.Material;
     readonly nodeGeometry: HeightmapNodeGeometry;
+    readonly useIndexedGeometry: boolean;
 
     getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
     getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
@@ -287,14 +288,20 @@ class HeightmapNode {
             const geometry = new THREE.BufferGeometry();
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(geometryData.positions, 3));
             geometry.setAttribute('color', new THREE.Float32BufferAttribute(geometryData.colors, 3));
-            geometry.setIndex(geometryData.indices);
+            if (geometryData.indices) {
+                geometry.setIndex(geometryData.indices);
+            }
             geometry.computeVertexNormals();
 
-            this.selfTrianglesCount += geometryData.indices.length / 3;
             for (const attribute of Object.values(geometry.attributes)) {
                 this.selfGpuMemoryBytes += attribute.array.byteLength;
             }
-            this.selfGpuMemoryBytes += geometry.getIndex()!.array.byteLength;
+            if (geometryData.indices) {
+                this.selfGpuMemoryBytes += geometry.getIndex()!.array.byteLength;
+                this.selfTrianglesCount += geometryData.indices.length / 3;
+            } else {
+                this.selfTrianglesCount += geometryData.positions.length / 3;
+            }
 
             const mesh = new THREE.Mesh(geometry, this.root.material);
             mesh.name = `Heightmap node mesh ${this.id.asString()}`;
@@ -389,7 +396,19 @@ class HeightmapNode {
                 positionsBuffer[3 * i + 1]! += sampleAltitude;
             }
 
-            return { positions: positionsBuffer, indices: indices.buffer, colors: samples.colorsBuffer };
+            if (this.root.useIndexedGeometry) {
+                return { positions: positionsBuffer, indices: indices.buffer, colors: samples.colorsBuffer };
+            } else {
+                const unindexedPositions = new Float32Array(3 * indices.buffer.length);
+                const unindexedColors = new Float32Array(3 * indices.buffer.length);
+
+                for (let indexId = 0; indexId < indices.buffer.length; indexId++) {
+                    const index = indices.buffer[indexId]!;
+                    unindexedPositions.set(positionsBuffer.subarray(3 * index, 3 * index + 3), 3 * indexId);
+                    unindexedColors.set(samples.colorsBuffer.subarray(3 * index, 3 * index + 3), 3 * indexId);
+                }
+                return { positions: unindexedPositions, colors: unindexedColors };
+            }
         });
     }
 

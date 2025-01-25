@@ -10,6 +10,7 @@ type HeightmapRootOptions = {
     readonly basePatchSize: number;
     readonly voxelRatio: number;
     readonly maxLevel: number;
+    readonly flatShading?: boolean;
 };
 
 class HeightmapRoot {
@@ -19,6 +20,8 @@ class HeightmapRoot {
 
     public readonly basePatchSize: number;
     public readonly nodeGeometry: HeightmapNodeGeometry;
+
+    public readonly useIndexedGeometry: boolean;
 
     private readonly sampler: IHeightmap;
     private readonly maxLevel: number;
@@ -38,6 +41,7 @@ class HeightmapRoot {
         this.sampler = sampler;
         this.maxLevel = options.maxLevel;
         this.maxLevelSizeInVoxels = HeightmapNodeId.getLevelSizeInVoxels(this.basePatchSize, this.maxLevel);
+        this.useIndexedGeometry = !(options.flatShading ?? false);
     }
 
     public getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {

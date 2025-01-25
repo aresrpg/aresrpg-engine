@@ -84,6 +84,7 @@ class TestTerrain extends TestTerrainBase {
             basePatchSize: chunkSize.xz,
             maxLevel: 5,
             voxelRatio: 2,
+            flatShading: true,
         });
 
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
