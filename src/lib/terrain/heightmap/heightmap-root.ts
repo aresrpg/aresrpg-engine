@@ -12,6 +12,7 @@ type HeightmapRootOptions = {
     readonly voxelRatio: number;
     readonly maxLevel: number;
     readonly flatShading?: boolean;
+    readonly dedicatedThreadsCount?: number;
 };
 
 class HeightmapRoot {
@@ -45,6 +46,7 @@ class HeightmapRoot {
 
         this.geometryProcessor = new GeometryProcessor({
             outputIndexedGeometry: !(options.flatShading ?? false),
+            dedicatedThreadsCount: options.dedicatedThreadsCount ?? 0,
         });
     }
 

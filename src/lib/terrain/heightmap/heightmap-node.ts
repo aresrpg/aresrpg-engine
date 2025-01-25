@@ -4,7 +4,7 @@ import { logger } from '../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
 import * as THREE from '../../libs/three-usage';
 
-import { type ProcessedGeometryData, type GeometryProcessor } from './geometry-processor';
+import { type GeometryProcessor, type ProcessedGeometryData } from './geometry-processor';
 import { EEdgeResolution, type HeightmapNodeGeometry } from './heightmap-node-geometry';
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapNodeMesh } from './heightmap-node-mesh';
@@ -385,7 +385,7 @@ class HeightmapNode {
         applyEdgeLimit(edgesType.right, indices.edges.right, { x: 1, y: 0 });
         applyEdgeLimit(edgesType.left, indices.edges.left, { x: -1, y: 0 });
 
-        return processAsap(template.heightmapSamples, samples => {
+        const result = processAsap(template.heightmapSamples, samples => {
             for (let i = 0; i < samples.altitudes.length; i++) {
                 const sampleAltitude = samples.altitudes[i]!;
                 positionsBuffer[3 * i + 1]! += sampleAltitude;
@@ -397,6 +397,14 @@ class HeightmapNode {
                 colors: samples.colorsBuffer,
             });
         });
+
+        if (result instanceof Promise) {
+            return new Promise(resolve => {
+                result.then(resolved => resolve(resolved));
+            });
+        } else {
+            return result;
+        }
     }
 
     private buildEdgesType(): EdgesType {
