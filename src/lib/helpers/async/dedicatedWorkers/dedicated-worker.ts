@@ -81,34 +81,19 @@ class DedicatedWorker {
     }
 
     public submitTask<T>(taskName: string, taskInput: unknown, transfer?: Transferable[]): Promise<T> {
-        if (!this.worker) {
-            throw new Error('Worker has been terminated.');
-        }
-
         const taskType = this.taskCounters.get(taskName);
         if (!taskType) {
             throw new Error(`Unknown task "${taskName}".`);
         }
         const taskId = `${taskName}_${taskType.count++}`;
 
-        const worker = this.worker;
         return new Promise<T>((resolve, reject) => {
             if (this.pendingTasks.has(taskId)) {
                 throw new Error(`A task with id "${taskId}" already exists.`);
             }
             this.pendingTasks.set(taskId, { resolve, reject });
 
-            const requestMessage: RequestMessage = {
-                messageId: this.messagesCount++,
-                taskRequestMessagesList: [
-                    {
-                        taskName,
-                        taskInput,
-                        taskId,
-                    },
-                ],
-            };
-            worker.postMessage(requestMessage, transfer ?? []);
+            this.sendTasksToWorker([{ taskId, taskName, taskInput }], transfer);
         });
     }
 
@@ -127,6 +112,18 @@ class DedicatedWorker {
 
     public get pendingTasksCount(): number {
         return this.pendingTasks.size;
+    }
+
+    private sendTasksToWorker(tasksList: ReadonlyArray<TaskRequestMessage>, transfer?: Transferable[]): void {
+        if (!this.worker) {
+            throw new Error('Worker has been terminated.');
+        }
+
+        const requestMessage: RequestMessage = {
+            messageId: this.messagesCount++,
+            taskRequestMessagesList: tasksList,
+        };
+        this.worker.postMessage(requestMessage, transfer ?? []);
     }
 
     private onTaskResponseMessage(taskResponseMessage: TaskResponseMessage): void {
