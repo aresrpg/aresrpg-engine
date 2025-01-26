@@ -13,6 +13,8 @@ class VoxelsRenderable {
     public readonly container: THREE.Object3D;
 
     public readonly parameters = {
+        dissolveRatio: 0,
+
         shadows: {
             cast: true,
             receive: true,
@@ -105,6 +107,8 @@ class VoxelsRenderable {
                 uniforms.uAoSpread.value = this.parameters.ao.spread;
                 uniforms.uSmoothEdgeRadius.value = +this.parameters.smoothEdges.enabled * this.parameters.smoothEdges.radius;
                 uniforms.uDisplayMode.value = this.parameters.voxels.displayMode;
+
+                uniforms.uDissolveRatio.value = this.parameters.dissolveRatio;
 
                 uniforms.uNoiseStrength.value = this.parameters.voxels.noiseStrength;
                 uniforms.uCheckerboardStrength.value = this.parameters.voxels.checkerboardStrength;

@@ -148,8 +148,10 @@ void main() {`,
                 'void main() {': `
 uniform sampler2D uTexture;
 
-#ifdef ${cstVoxelNoise}
+uniform float uDissolveRatio;
 uniform sampler2D uNoiseTexture;
+
+#ifdef ${cstVoxelNoise}
 uniform float uNoiseStrength;
 uniform float uCheckerboardStrength;
 #endif // ${cstVoxelNoise}
@@ -268,6 +270,14 @@ VoxelMaterial getVoxelMaterial(const vec3 modelNormal) {
 }
 
 void main() {
+    if (uDissolveRatio > 0.0 && uDissolveRatio < 1.0) {
+        vec2 dissolveUv = mod(gl_FragCoord.xy, vec2(${this.noiseTextureSize})) / vec2(${this.noiseTextureSize});
+        float dissolveSample = texture(uNoiseTexture, dissolveUv, 0.0).r;
+        if (dissolveSample <= uDissolveRatio) {
+            discard;
+        }
+    }
+    
     vec3 modelNormal = computeModelNormal();
     VoxelMaterial voxelMaterial = getVoxelMaterial(modelNormal);
 `,

@@ -9,6 +9,7 @@ enum EVoxelsDisplayMode {
 type VoxelsMaterialUniforms = {
     readonly uDisplayMode: THREE.IUniform<EVoxelsDisplayMode>;
     readonly uTexture: THREE.IUniform<THREE.Texture>;
+    readonly uDissolveRatio: THREE.IUniform<number>;
     readonly uNoiseTexture: THREE.IUniform<THREE.Texture>;
     readonly uNoiseStrength: THREE.IUniform<number>;
     readonly uCheckerboardStrength: THREE.IUniform<number>;

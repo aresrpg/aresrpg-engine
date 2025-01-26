@@ -77,6 +77,7 @@ abstract class VoxelsRenderableFactoryBase {
         this.uniformsTemplate = {
             uDisplayMode: { value: 0 },
             uTexture: { value: this.texture },
+            uDissolveRatio: { value: 0 },
             uNoiseTexture: { value: this.noiseTexture },
             uNoiseStrength: { value: 0 },
             uCheckerboardStrength: { value: 0 },
