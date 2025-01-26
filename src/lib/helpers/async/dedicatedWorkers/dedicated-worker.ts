@@ -9,6 +9,7 @@ type TaskProcessor = (input: any) => TaskOutput;
 type WorkerDefinition = {
     readonly commonCode?: string;
     readonly tasks: Record<string, TaskProcessor>;
+    readonly throttleInMs?: number;
 };
 
 type TaskRequestMessage = {
@@ -55,6 +56,17 @@ class DedicatedWorker {
     private readonly taskCounters: Map<string, TaskType>;
     private readonly pendingTasks: Map<string, PendingTask>;
 
+    private readonly throttle: {
+        readonly delayInMs: number;
+        currentQueue: {
+            readonly timeoutHandle: number;
+            readonly data: {
+                readonly tasks: TaskRequestMessage[];
+                readonly transferables: Transferable[];
+            };
+        } | null;
+    } | null = null;
+
     public constructor(name: string, definition: WorkerDefinition) {
         this.name = name;
 
@@ -63,6 +75,14 @@ class DedicatedWorker {
             this.taskCounters.set(taskName, { count: 0 });
         }
         this.pendingTasks = new Map();
+
+        const throttleInMs = definition.throttleInMs ?? 0;
+        if (throttleInMs > 0) {
+            this.throttle = {
+                delayInMs: throttleInMs,
+                currentQueue: null,
+            };
+        }
 
         const workerCode = DedicatedWorker.buildWorkerCode(definition);
         const blob = new Blob([workerCode], { type: 'text/javascript' });
@@ -80,7 +100,7 @@ class DedicatedWorker {
         };
     }
 
-    public submitTask<T>(taskName: string, taskInput: unknown, transfer?: Transferable[]): Promise<T> {
+    public submitTask<T>(taskName: string, taskInput: unknown, transfer: Transferable[] = []): Promise<T> {
         const taskType = this.taskCounters.get(taskName);
         if (!taskType) {
             throw new Error(`Unknown task "${taskName}".`);
@@ -93,7 +113,31 @@ class DedicatedWorker {
             }
             this.pendingTasks.set(taskId, { resolve, reject });
 
-            this.sendTasksToWorker([{ taskId, taskName, taskInput }], transfer);
+            if (this.throttle) {
+                let currentThrottleQueue = this.throttle.currentQueue;
+                if (!currentThrottleQueue) {
+                    const timeoutHandle = window.setTimeout(() => {
+                        if (!this.throttle?.currentQueue) {
+                            throw new Error('Something went wrong with the DedicatedWorker throttling system.');
+                        }
+                        this.sendTasksToWorker(this.throttle.currentQueue.data.tasks, this.throttle.currentQueue.data.transferables);
+                        this.throttle.currentQueue = null;
+                    }, this.throttle.delayInMs);
+
+                    this.throttle.currentQueue = {
+                        timeoutHandle,
+                        data: {
+                            tasks: [],
+                            transferables: [],
+                        },
+                    };
+                    currentThrottleQueue = this.throttle.currentQueue;
+                }
+                currentThrottleQueue.data.tasks.push({ taskId, taskName, taskInput });
+                currentThrottleQueue.data.transferables.push(...transfer);
+            } else {
+                this.sendTasksToWorker([{ taskId, taskName, taskInput }], transfer);
+            }
         });
     }
 
@@ -108,13 +152,18 @@ class DedicatedWorker {
             logger.warn(`DedicatedWorker "${this.name}" was disposed while task "${pendingTaskId}" was pending.`);
         }
         this.pendingTasks.clear();
+
+        if (this.throttle?.currentQueue) {
+            window.clearInterval(this.throttle.currentQueue.timeoutHandle);
+            this.throttle.currentQueue = null;
+        }
     }
 
     public get pendingTasksCount(): number {
         return this.pendingTasks.size;
     }
 
-    private sendTasksToWorker(tasksList: ReadonlyArray<TaskRequestMessage>, transfer?: Transferable[]): void {
+    private sendTasksToWorker(tasksList: ReadonlyArray<TaskRequestMessage>, transfer: Transferable[]): void {
         if (!this.worker) {
             throw new Error('Worker has been terminated.');
         }
@@ -123,7 +172,7 @@ class DedicatedWorker {
             messageId: this.messagesCount++,
             taskRequestMessagesList: tasksList,
         };
-        this.worker.postMessage(requestMessage, transfer ?? []);
+        this.worker.postMessage(requestMessage, transfer);
     }
 
     private onTaskResponseMessage(taskResponseMessage: TaskResponseMessage): void {
