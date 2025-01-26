@@ -7,17 +7,17 @@ enum EVoxelsDisplayMode {
 }
 
 type VoxelsMaterialUniforms = {
-    readonly uDisplayMode: { value: EVoxelsDisplayMode };
-    readonly uTexture: { value: THREE.Texture };
-    readonly uNoiseTexture: { value: THREE.Texture };
-    readonly uNoiseStrength: { value: number };
-    readonly uCheckerboardStrength: { value: number };
-    readonly uAoStrength: { value: number };
-    readonly uAoSpread: { value: number };
-    readonly uSmoothEdgeRadius: { value: number };
-    readonly uGridThickness: { value: number };
-    readonly uGridColor: { value: THREE.Vector3 };
-    readonly uShininessStrength: { value: number };
+    readonly uDisplayMode: THREE.IUniform<EVoxelsDisplayMode>;
+    readonly uTexture: THREE.IUniform<THREE.Texture>;
+    readonly uNoiseTexture: THREE.IUniform<THREE.Texture>;
+    readonly uNoiseStrength: THREE.IUniform<number>;
+    readonly uCheckerboardStrength: THREE.IUniform<number>;
+    readonly uAoStrength: THREE.IUniform<number>;
+    readonly uAoSpread: THREE.IUniform<number>;
+    readonly uSmoothEdgeRadius: THREE.IUniform<number>;
+    readonly uGridThickness: THREE.IUniform<number>;
+    readonly uGridColor: THREE.IUniform<THREE.Vector3>;
+    readonly uShininessStrength: THREE.IUniform<number>;
 };
 
 type VoxelsMaterial = THREE.Material & {
