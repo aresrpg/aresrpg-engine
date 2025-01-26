@@ -18,10 +18,6 @@ type TaskRequestMessage = {
 };
 type TaskResponseMessage =
     | {
-          readonly verb: 'task_unknown';
-          readonly reason: string;
-      }
-    | {
           readonly verb: 'task_response_ko';
           readonly taskId: string;
           readonly reason: string;
@@ -67,24 +63,21 @@ class DedicatedWorker {
         };
         this.worker.onmessage = (event: MessageEvent<TaskResponseMessage>) => {
             const verb = event.data.verb;
-            if (verb === 'task_unknown') {
-                throw new Error(`Unknown taskname: ${JSON.stringify(event)}`);
-            } else {
-                const taskId = event.data.taskId;
-                const pendingTask = this.pendingTasks.get(taskId);
-                if (!pendingTask) {
-                    throw new Error(`No pending task with id "${taskId}".`);
-                }
-                this.pendingTasks.delete(taskId);
 
-                if (verb === 'task_response_ok') {
-                    pendingTask.resolve(event.data.taskResult);
-                } else if (verb === 'task_response_ko') {
-                    pendingTask.reject(event.data.reason);
-                } else {
-                    pendingTask.reject(`Unknown verb "${verb}"`);
-                    throw new Error(`Unknown verb "${verb}": ${JSON.stringify(event)}`);
-                }
+            const taskId = event.data.taskId;
+            const pendingTask = this.pendingTasks.get(taskId);
+            if (!pendingTask) {
+                throw new Error(`No pending task with id "${taskId}".`);
+            }
+            this.pendingTasks.delete(taskId);
+
+            if (verb === 'task_response_ok') {
+                pendingTask.resolve(event.data.taskResult);
+            } else if (verb === 'task_response_ko') {
+                pendingTask.reject(event.data.reason);
+            } else {
+                pendingTask.reject(`Unknown verb "${verb}"`);
+                throw new Error(`Unknown verb "${verb}": ${JSON.stringify(event)}`);
             }
         };
     }
@@ -141,18 +134,14 @@ class DedicatedWorker {
                 self.postMessage(response, { transfer });
             };
 
-            // eslint-disable-next-line no-eval
-            const taskProcessorsList = eval('taskProcessors') as Record<string, TaskProcessor>;
-            const taskProcessor = taskProcessorsList[taskName];
-            if (typeof taskProcessor === 'undefined') {
-                postResponse({
-                    verb: 'task_unknown',
-                    reason: `Unknown task "${taskName}"`,
-                });
-                return;
-            }
-
             try {
+                // eslint-disable-next-line no-eval
+                const taskProcessorsList = eval('taskProcessors') as Record<string, TaskProcessor>;
+                const taskProcessor = taskProcessorsList[taskName];
+                if (typeof taskProcessor === 'undefined') {
+                    throw new Error(`Unknwon task "${taskName}"`);
+                }
+
                 const taskOutput = taskProcessor(taskInput);
                 postResponse(
                     {
