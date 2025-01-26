@@ -28,17 +28,10 @@ type TaskResponseMessage =
           readonly taskResult: any;
       };
 
-type RequestMessage =
-    | {
-          readonly messageId: number;
-          readonly type: 'task_request';
-          readonly taskRequestMessage: TaskRequestMessage;
-      }
-    | {
-          readonly messageId: number;
-          readonly type: 'tasklist_request';
-          readonly taskRequestMessagesList: ReadonlyArray<TaskRequestMessage>;
-      };
+type RequestMessage = {
+    readonly messageId: number;
+    readonly taskRequestMessagesList: ReadonlyArray<TaskRequestMessage>;
+};
 type ResponseMessage = {
     readonly messageId: number;
     readonly taskResponseMessagesList: ReadonlyArray<TaskResponseMessage>;
@@ -107,12 +100,13 @@ class DedicatedWorker {
 
             const requestMessage: RequestMessage = {
                 messageId: this.messagesCount++,
-                type: 'task_request',
-                taskRequestMessage: {
-                    taskName,
-                    taskInput,
-                    taskId,
-                },
+                taskRequestMessagesList: [
+                    {
+                        taskName,
+                        taskInput,
+                        taskId,
+                    },
+                ],
             };
             worker.postMessage(requestMessage, transfer ?? []);
         });
@@ -195,16 +189,9 @@ class DedicatedWorker {
                 }
             };
 
-            const tasksRequestsList: TaskRequestMessage[] = [];
-            if (requestMessage.type === 'task_request') {
-                tasksRequestsList.push(requestMessage.taskRequestMessage);
-            } else {
-                tasksRequestsList.push(...requestMessage.taskRequestMessagesList);
-            }
-
             const taskResponseMessagesList: TaskResponseMessage[] = [];
             const transferablesList: Transferable[] = [];
-            for (const taskRequest of tasksRequestsList) {
+            for (const taskRequest of requestMessage.taskRequestMessagesList) {
                 const taskProcessingResult = processTask(taskRequest);
                 taskResponseMessagesList.push(taskProcessingResult.taskResponseMessage);
                 if (taskProcessingResult.transferablesList) {
