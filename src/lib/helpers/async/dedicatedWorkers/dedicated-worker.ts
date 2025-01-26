@@ -121,6 +121,12 @@ class DedicatedWorker {
             this.worker.terminate();
             this.worker = null;
         }
+
+        for (const [pendingTaskId, pendingTask] of this.pendingTasks.entries()) {
+            pendingTask.reject('Worker was terminated');
+            logger.warn(`DedicatedWorker "${this.name}" was disposed while task "${pendingTaskId}" was pending.`);
+        }
+        this.pendingTasks.clear();
     }
 
     private static buildWorkerCode(definition: WorkerDefinition): string {
