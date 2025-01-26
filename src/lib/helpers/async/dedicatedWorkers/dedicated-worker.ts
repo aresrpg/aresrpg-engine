@@ -86,6 +86,7 @@ class DedicatedWorker {
                 } else if (verb === 'task_response_ko') {
                     pendingTask.reject(event.data.reason);
                 } else {
+                    pendingTask.reject(`Unknown verb "${verb}"`);
                     throw new Error(`Unknown verb "${verb}": ${JSON.stringify(event)}`);
                 }
             }
