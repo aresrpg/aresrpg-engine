@@ -39,21 +39,21 @@ type PendingTask = {
 
 type TaskType = {
     nextAvailableId: number;
-    readonly pendingTasks: Record<string, PendingTask>;
+    readonly pendingTasks: Map<string, PendingTask>;
 };
 
 class DedicatedWorker {
     private worker: Worker | null;
 
-    private taskTypes: Record<string, TaskType>;
+    private taskTypes: Map<string, TaskType>;
 
     public constructor(name: string, definition: WorkerDefinition) {
-        this.taskTypes = {};
+        this.taskTypes = new Map();
         for (const taskName of Object.keys(definition.tasks)) {
-            this.taskTypes[taskName] = {
+            this.taskTypes.set(taskName, {
                 nextAvailableId: 0,
-                pendingTasks: {},
-            };
+                pendingTasks: new Map(),
+            });
         }
 
         const workerCode = DedicatedWorker.buildWorkerCode(definition);
@@ -71,15 +71,15 @@ class DedicatedWorker {
             } else {
                 const taskName = event.data.taskName;
                 const taskId = event.data.taskId;
-                const taskType = this.taskTypes[taskName];
+                const taskType = this.taskTypes.get(taskName);
                 if (!taskType) {
                     throw new Error(`Unknown task "${taskName}".`);
                 }
-                const pendingTask = taskType.pendingTasks[taskId];
+                const pendingTask = taskType.pendingTasks.get(taskId);
                 if (!pendingTask) {
                     throw new Error(`No pending task of type "${taskName}" with id "${taskId}".`);
                 }
-                delete taskType.pendingTasks[taskId];
+                taskType.pendingTasks.delete(taskId);
 
                 if (verb === 'task_response_ok') {
                     pendingTask.resolve(event.data.taskResult);
@@ -98,7 +98,7 @@ class DedicatedWorker {
             throw new Error('Worker has been terminated.');
         }
 
-        const taskType = this.taskTypes[taskName];
+        const taskType = this.taskTypes.get(taskName);
         if (!taskType) {
             throw new Error(`Unknown task "${taskName}".`);
         }
@@ -107,10 +107,10 @@ class DedicatedWorker {
         return new Promise<T>((resolve, reject) => {
             const taskId = `${taskName}_${taskType.nextAvailableId++}`;
 
-            if (typeof taskType.pendingTasks[taskId] !== 'undefined') {
+            if (taskType.pendingTasks.has(taskId)) {
                 throw new Error(`A task of type "${taskName}" with id "${taskId}" already exists.`);
             }
-            taskType.pendingTasks[taskId] = { resolve, reject };
+            taskType.pendingTasks.set(taskId, { resolve, reject });
 
             const taskRequestMessage: TaskRequestMessage = {
                 taskName,
