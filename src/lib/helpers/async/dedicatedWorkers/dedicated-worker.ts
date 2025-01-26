@@ -1,3 +1,5 @@
+import { logger } from '../../logger';
+
 type TaskOutput = {
     taskResult: any;
     taskResultTransferablesList: Transferable[];
@@ -21,13 +23,11 @@ type TaskResponseMessage =
       }
     | {
           readonly verb: 'task_response_ko';
-          readonly taskName: string;
           readonly taskId: string;
           readonly reason: string;
       }
     | {
           readonly verb: 'task_response_ok';
-          readonly taskName: string;
           readonly taskId: string;
           readonly taskResult: any;
       };
@@ -38,23 +38,24 @@ type PendingTask = {
 };
 
 type TaskType = {
-    nextAvailableId: number;
-    readonly pendingTasks: Map<string, PendingTask>;
+    count: number;
 };
 
 class DedicatedWorker {
+    private readonly name: string;
     private worker: Worker | null;
 
-    private taskTypes: Map<string, TaskType>;
+    private readonly taskCounters: Map<string, TaskType>;
+    private readonly pendingTasks: Map<string, PendingTask>;
 
     public constructor(name: string, definition: WorkerDefinition) {
-        this.taskTypes = new Map();
+        this.name = name;
+
+        this.taskCounters = new Map();
         for (const taskName of Object.keys(definition.tasks)) {
-            this.taskTypes.set(taskName, {
-                nextAvailableId: 0,
-                pendingTasks: new Map(),
-            });
+            this.taskCounters.set(taskName, { count: 0 });
         }
+        this.pendingTasks = new Map();
 
         const workerCode = DedicatedWorker.buildWorkerCode(definition);
         const blob = new Blob([workerCode], { type: 'text/javascript' });
@@ -69,17 +70,12 @@ class DedicatedWorker {
             if (verb === 'task_unknown') {
                 throw new Error(`Unknown taskname: ${JSON.stringify(event)}`);
             } else {
-                const taskName = event.data.taskName;
                 const taskId = event.data.taskId;
-                const taskType = this.taskTypes.get(taskName);
-                if (!taskType) {
-                    throw new Error(`Unknown task "${taskName}".`);
-                }
-                const pendingTask = taskType.pendingTasks.get(taskId);
+                const pendingTask = this.pendingTasks.get(taskId);
                 if (!pendingTask) {
-                    throw new Error(`No pending task of type "${taskName}" with id "${taskId}".`);
+                    throw new Error(`No pending task with id "${taskId}".`);
                 }
-                taskType.pendingTasks.delete(taskId);
+                this.pendingTasks.delete(taskId);
 
                 if (verb === 'task_response_ok') {
                     pendingTask.resolve(event.data.taskResult);
@@ -98,19 +94,18 @@ class DedicatedWorker {
             throw new Error('Worker has been terminated.');
         }
 
-        const taskType = this.taskTypes.get(taskName);
+        const taskType = this.taskCounters.get(taskName);
         if (!taskType) {
             throw new Error(`Unknown task "${taskName}".`);
         }
+        const taskId = `${taskName}_${taskType.count++}`;
 
         const worker = this.worker;
         return new Promise<T>((resolve, reject) => {
-            const taskId = `${taskName}_${taskType.nextAvailableId++}`;
-
-            if (taskType.pendingTasks.has(taskId)) {
-                throw new Error(`A task of type "${taskName}" with id "${taskId}" already exists.`);
+            if (this.pendingTasks.has(taskId)) {
+                throw new Error(`A task with id "${taskId}" already exists.`);
             }
-            taskType.pendingTasks.set(taskId, { resolve, reject });
+            this.pendingTasks.set(taskId, { resolve, reject });
 
             const taskRequestMessage: TaskRequestMessage = {
                 taskName,
@@ -156,7 +151,6 @@ class DedicatedWorker {
                 postResponse(
                     {
                         verb: 'task_response_ok',
-                        taskName,
                         taskId,
                         taskResult: taskOutput.taskResult,
                     },
@@ -165,7 +159,6 @@ class DedicatedWorker {
             } catch (error) {
                 postResponse({
                     verb: 'task_response_ko',
-                    taskName,
                     taskId,
                     reason: `Exception "${error}"`,
                 });
