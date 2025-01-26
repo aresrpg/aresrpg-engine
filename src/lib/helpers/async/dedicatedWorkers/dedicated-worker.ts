@@ -28,11 +28,15 @@ type TaskResponseMessage =
           readonly taskResult: any;
       };
 
-type RequestMessage = TaskRequestMessage & {
+type RequestMessage = {
     readonly messageId: number;
+    readonly type: 'task_request';
+    readonly taskRequestMessage: TaskRequestMessage;
 };
-type ResponseMessage = TaskResponseMessage & {
+type ResponseMessage = {
     readonly messageId: number;
+    readonly type: 'task_response';
+    readonly taskResponseMessage: TaskResponseMessage;
 };
 
 type PendingTask = {
@@ -72,23 +76,7 @@ class DedicatedWorker {
         };
         this.worker.onmessage = (event: MessageEvent<ResponseMessage>) => {
             const responseMessage = event.data;
-            const verb = responseMessage.verb;
-
-            const taskId = responseMessage.taskId;
-            const pendingTask = this.pendingTasks.get(taskId);
-            if (!pendingTask) {
-                throw new Error(`No pending task with id "${taskId}".`);
-            }
-            this.pendingTasks.delete(taskId);
-
-            if (verb === 'task_response_ok') {
-                pendingTask.resolve(responseMessage.taskResult);
-            } else if (verb === 'task_response_ko') {
-                pendingTask.reject(responseMessage.reason);
-            } else {
-                pendingTask.reject(`Unknown verb "${verb}"`);
-                throw new Error(`Unknown verb "${verb}": ${JSON.stringify(event)}`);
-            }
+            this.onTaskResponseMessage(responseMessage.taskResponseMessage);
         };
     }
 
@@ -112,9 +100,12 @@ class DedicatedWorker {
 
             const requestMessage: RequestMessage = {
                 messageId: this.messagesCount++,
-                taskName,
-                taskInput,
-                taskId,
+                type: 'task_request',
+                taskRequestMessage: {
+                    taskName,
+                    taskInput,
+                    taskId,
+                },
             };
             worker.postMessage(requestMessage, transfer ?? []);
         });
@@ -133,45 +124,77 @@ class DedicatedWorker {
         this.pendingTasks.clear();
     }
 
+    private onTaskResponseMessage(taskResponseMessage: TaskResponseMessage): void {
+        const taskId = taskResponseMessage.taskId;
+        const pendingTask = this.pendingTasks.get(taskId);
+        if (!pendingTask) {
+            throw new Error(`No pending task with id "${taskId}".`);
+        }
+        this.pendingTasks.delete(taskId);
+
+        const verb = taskResponseMessage.verb;
+        if (verb === 'task_response_ok') {
+            pendingTask.resolve(taskResponseMessage.taskResult);
+        } else if (verb === 'task_response_ko') {
+            pendingTask.reject(taskResponseMessage.reason);
+        } else {
+            pendingTask.reject(`Unknown verb "${verb}"`);
+            throw new Error(`Unknown verb "${verb}": ${JSON.stringify(event)}`);
+        }
+    }
+
     private static buildWorkerCode(definition: WorkerDefinition): string {
         const onWorkerMessage = (event: MessageEvent<RequestMessage>) => {
             const requestMessage = event.data;
             const messageId = requestMessage.messageId;
-            const taskName = requestMessage.taskName;
-            const taskInput = requestMessage.taskInput;
-            const taskId = requestMessage.taskId;
 
-            const postResponse = (responseMessage: ResponseMessage, transferablesList?: Transferable[]) => {
-                const transfer = transferablesList || [];
-                self.postMessage(responseMessage, { transfer });
+            type TaskProcessingResult = {
+                readonly taskResponseMessage: TaskResponseMessage;
+                readonly transferablesList?: Transferable[];
             };
 
-            try {
-                // eslint-disable-next-line no-eval
-                const taskProcessorsList = eval('taskProcessors') as Record<string, TaskProcessor>;
-                const taskProcessor = taskProcessorsList[taskName];
-                if (typeof taskProcessor === 'undefined') {
-                    throw new Error(`Unknwon task "${taskName}"`);
-                }
+            const processTask = (taskRequestMessage: TaskRequestMessage): TaskProcessingResult => {
+                const { taskName, taskInput, taskId } = taskRequestMessage;
 
-                const taskOutput = taskProcessor(taskInput);
-                postResponse(
-                    {
-                        messageId,
-                        verb: 'task_response_ok',
-                        taskId,
-                        taskResult: taskOutput.taskResult,
-                    },
-                    taskOutput.taskResultTransferablesList
-                );
-            } catch (error) {
-                postResponse({
-                    messageId,
-                    verb: 'task_response_ko',
-                    taskId,
-                    reason: `Exception "${error}"`,
-                });
+                try {
+                    // eslint-disable-next-line no-eval
+                    const taskProcessorsList = eval('taskProcessors') as Record<string, TaskProcessor>;
+                    const taskProcessor = taskProcessorsList[taskName];
+                    if (typeof taskProcessor === 'undefined') {
+                        throw new Error(`Unknwon task "${taskName}"`);
+                    }
+
+                    const taskOutput = taskProcessor(taskInput);
+                    return {
+                        taskResponseMessage: {
+                            verb: 'task_response_ok',
+                            taskId,
+                            taskResult: taskOutput.taskResult,
+                        },
+                        transferablesList: taskOutput.taskResultTransferablesList,
+                    };
+                } catch (error) {
+                    return {
+                        taskResponseMessage: {
+                            verb: 'task_response_ko',
+                            taskId,
+                            reason: `Exception "${error}"`,
+                        },
+                    };
+                }
+            };
+
+            const transferablesList: Transferable[] = [];
+            const taskProcessingResult = processTask(requestMessage.taskRequestMessage);
+            if (taskProcessingResult.transferablesList) {
+                transferablesList.push(...taskProcessingResult.transferablesList);
             }
+            const responseMessage: ResponseMessage = {
+                messageId,
+                type: 'task_response',
+                taskResponseMessage: taskProcessingResult.taskResponseMessage,
+            };
+            self.postMessage(responseMessage, { transfer: transferablesList });
         };
 
         return `
