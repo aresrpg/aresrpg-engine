@@ -68,38 +68,26 @@ class DedicatedWorker {
             const verb = event.data.verb;
             if (verb === 'task_unknown') {
                 throw new Error(`Unknown taskname: ${JSON.stringify(event)}`);
-            } else if (verb === 'task_response_ok') {
-                const taskName = event.data.taskName;
-                const taskId = event.data.taskId;
-                const taskResult = event.data.taskResult;
-
-                const taskType = this.taskTypes[taskName];
-                if (!taskType) {
-                    throw new Error(`Unknown task "${taskName}".`);
-                }
-                const pendingTask = taskType.pendingTasks[taskId];
-                if (!pendingTask) {
-                    throw new Error(`No pending task of type "${taskName}" with id "${taskId}".`);
-                }
-                delete taskType.pendingTasks[taskId];
-                pendingTask.resolve(taskResult);
-            } else if (verb === 'task_response_ko') {
-                const taskName = event.data.taskName;
-                const taskId = event.data.taskId;
-                const reason = event.data.reason;
-
-                const taskType = this.taskTypes[taskName];
-                if (!taskType) {
-                    throw new Error(`Unknown task "${taskName}".`);
-                }
-                const pendingTask = taskType.pendingTasks[taskId];
-                if (!pendingTask) {
-                    throw new Error(`No pending task of type "${taskName}" with id "${taskId}".`);
-                }
-                delete taskType.pendingTasks[taskId];
-                pendingTask.reject(reason);
             } else {
-                throw new Error(`Unknown verb "${verb}": ${JSON.stringify(event)}`);
+                const taskName = event.data.taskName;
+                const taskId = event.data.taskId;
+                const taskType = this.taskTypes[taskName];
+                if (!taskType) {
+                    throw new Error(`Unknown task "${taskName}".`);
+                }
+                const pendingTask = taskType.pendingTasks[taskId];
+                if (!pendingTask) {
+                    throw new Error(`No pending task of type "${taskName}" with id "${taskId}".`);
+                }
+                delete taskType.pendingTasks[taskId];
+
+                if (verb === 'task_response_ok') {
+                    pendingTask.resolve(event.data.taskResult);
+                } else if (verb === 'task_response_ko') {
+                    pendingTask.reject(event.data.reason);
+                } else {
+                    throw new Error(`Unknown verb "${verb}": ${JSON.stringify(event)}`);
+                }
             }
         };
     }
