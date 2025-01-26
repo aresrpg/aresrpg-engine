@@ -28,8 +28,12 @@ type TaskResponseMessage =
           readonly taskResult: any;
       };
 
-type RequestMessage = TaskRequestMessage;
-type ResponseMessage = TaskResponseMessage;
+type RequestMessage = TaskRequestMessage & {
+    readonly messageId: number;
+};
+type ResponseMessage = TaskResponseMessage & {
+    readonly messageId: number;
+};
 
 type PendingTask = {
     resolve(result: unknown): void;
@@ -43,6 +47,8 @@ type TaskType = {
 class DedicatedWorker {
     private readonly name: string;
     private worker: Worker | null;
+
+    private messagesCount: number = 0;
 
     private readonly taskCounters: Map<string, TaskType>;
     private readonly pendingTasks: Map<string, PendingTask>;
@@ -105,6 +111,7 @@ class DedicatedWorker {
             this.pendingTasks.set(taskId, { resolve, reject });
 
             const requestMessage: RequestMessage = {
+                messageId: this.messagesCount++,
                 taskName,
                 taskInput,
                 taskId,
@@ -129,6 +136,7 @@ class DedicatedWorker {
     private static buildWorkerCode(definition: WorkerDefinition): string {
         const onWorkerMessage = (event: MessageEvent<RequestMessage>) => {
             const requestMessage = event.data;
+            const messageId = requestMessage.messageId;
             const taskName = requestMessage.taskName;
             const taskInput = requestMessage.taskInput;
             const taskId = requestMessage.taskId;
@@ -149,6 +157,7 @@ class DedicatedWorker {
                 const taskOutput = taskProcessor(taskInput);
                 postResponse(
                     {
+                        messageId,
                         verb: 'task_response_ok',
                         taskId,
                         taskResult: taskOutput.taskResult,
@@ -157,6 +166,7 @@ class DedicatedWorker {
                 );
             } catch (error) {
                 postResponse({
+                    messageId,
                     verb: 'task_response_ko',
                     taskId,
                     reason: `Exception "${error}"`,
