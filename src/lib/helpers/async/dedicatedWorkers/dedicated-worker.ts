@@ -28,6 +28,9 @@ type TaskResponseMessage =
           readonly taskResult: any;
       };
 
+type RequestMessage = TaskRequestMessage;
+type ResponseMessage = TaskResponseMessage;
+
 type PendingTask = {
     resolve(result: unknown): void;
     reject(reason: string): void;
@@ -61,10 +64,11 @@ class DedicatedWorker {
         this.worker.onerror = event => {
             throw new Error(`Unhandled error in DedicatedWorker "${name}":\n${event.message}`);
         };
-        this.worker.onmessage = (event: MessageEvent<TaskResponseMessage>) => {
-            const verb = event.data.verb;
+        this.worker.onmessage = (event: MessageEvent<ResponseMessage>) => {
+            const responseMessage = event.data;
+            const verb = responseMessage.verb;
 
-            const taskId = event.data.taskId;
+            const taskId = responseMessage.taskId;
             const pendingTask = this.pendingTasks.get(taskId);
             if (!pendingTask) {
                 throw new Error(`No pending task with id "${taskId}".`);
@@ -72,9 +76,9 @@ class DedicatedWorker {
             this.pendingTasks.delete(taskId);
 
             if (verb === 'task_response_ok') {
-                pendingTask.resolve(event.data.taskResult);
+                pendingTask.resolve(responseMessage.taskResult);
             } else if (verb === 'task_response_ko') {
-                pendingTask.reject(event.data.reason);
+                pendingTask.reject(responseMessage.reason);
             } else {
                 pendingTask.reject(`Unknown verb "${verb}"`);
                 throw new Error(`Unknown verb "${verb}": ${JSON.stringify(event)}`);
@@ -100,12 +104,12 @@ class DedicatedWorker {
             }
             this.pendingTasks.set(taskId, { resolve, reject });
 
-            const taskRequestMessage: TaskRequestMessage = {
+            const requestMessage: RequestMessage = {
                 taskName,
                 taskInput,
                 taskId,
             };
-            worker.postMessage(taskRequestMessage, transfer ?? []);
+            worker.postMessage(requestMessage, transfer ?? []);
         });
     }
 
@@ -123,15 +127,15 @@ class DedicatedWorker {
     }
 
     private static buildWorkerCode(definition: WorkerDefinition): string {
-        const onWorkerMessage = (event: MessageEvent<TaskRequestMessage>) => {
-            const eventData = event.data;
-            const taskName = eventData.taskName;
-            const taskInput = eventData.taskInput;
-            const taskId = eventData.taskId;
+        const onWorkerMessage = (event: MessageEvent<RequestMessage>) => {
+            const requestMessage = event.data;
+            const taskName = requestMessage.taskName;
+            const taskInput = requestMessage.taskInput;
+            const taskId = requestMessage.taskId;
 
-            const postResponse = (response: TaskResponseMessage, transferablesList?: Transferable[]) => {
+            const postResponse = (responseMessage: ResponseMessage, transferablesList?: Transferable[]) => {
                 const transfer = transferablesList || [];
-                self.postMessage(response, { transfer });
+                self.postMessage(responseMessage, { transfer });
             };
 
             try {
