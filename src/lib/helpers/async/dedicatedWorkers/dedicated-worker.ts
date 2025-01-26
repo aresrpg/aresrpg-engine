@@ -131,6 +131,10 @@ class DedicatedWorker {
         this.pendingTasks.clear();
     }
 
+    public get pendingTasksCount(): number {
+        return this.pendingTasks.size;
+    }
+
     private onTaskResponseMessage(taskResponseMessage: TaskResponseMessage): void {
         const taskId = taskResponseMessage.taskId;
         const pendingTask = this.pendingTasks.get(taskId);

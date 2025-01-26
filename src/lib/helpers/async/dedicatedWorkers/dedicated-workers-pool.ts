@@ -1,22 +1,15 @@
-import { DedicatedWorker, type WorkerDefinition, type TaskProcessor } from './dedicated-worker';
-
-type PooledDedicatedWorker = {
-    readonly dedicatedWorker: DedicatedWorker;
-    pendingPromisesCount: number;
-};
+import { DedicatedWorker, type TaskProcessor, type WorkerDefinition } from './dedicated-worker';
 
 class DedicatedWorkersPool {
     private readonly name: string;
-    public readonly pooledWorkers: PooledDedicatedWorker[] = [];
+    public readonly pooledWorkers: DedicatedWorker[] = [];
 
     public constructor(name: string, poolSize: number, workerDefinition: WorkerDefinition) {
         this.name = name;
 
         for (let i = 0; i < poolSize; i++) {
-            this.pooledWorkers.push({
-                dedicatedWorker: new DedicatedWorker(`${name} (${i})`, workerDefinition),
-                pendingPromisesCount: 0,
-            });
+            const worker = new DedicatedWorker(`${name} (${i})`, workerDefinition);
+            this.pooledWorkers.push(worker);
         }
     }
 
@@ -25,28 +18,25 @@ class DedicatedWorkersPool {
         if (!worker) {
             throw new Error(`No available worker in pool "${this.name}".`);
         }
-
-        worker.pendingPromisesCount++;
-        const promise = worker.dedicatedWorker.submitTask<T>(taskName, taskInput, transfer);
-        promise.finally(() => worker.pendingPromisesCount--);
-        return promise;
+        return worker.submitTask<T>(taskName, taskInput, transfer);
     }
 
     public dispose(): void {
         for (const pooledWorker of this.pooledWorkers) {
-            pooledWorker.dedicatedWorker.dispose();
+            pooledWorker.dispose();
         }
         this.pooledWorkers.length = 0;
     }
 
-    private findLessBusyWorker(): PooledDedicatedWorker | null {
-        let result: PooledDedicatedWorker | null = null;
+    private findLessBusyWorker(): DedicatedWorker | null {
+        let result: DedicatedWorker | null = null;
 
-        let minPendingPromisesCount = Number.MAX_VALUE;
+        let minPendingTasksCount = Number.MAX_VALUE;
         for (const worker of this.pooledWorkers) {
-            if (worker.pendingPromisesCount < minPendingPromisesCount) {
+            const workerPendingTasksCount = worker.pendingTasksCount;
+            if (workerPendingTasksCount < minPendingTasksCount) {
                 result = worker;
-                minPendingPromisesCount = worker.pendingPromisesCount;
+                minPendingTasksCount = workerPendingTasksCount;
             }
         }
 
