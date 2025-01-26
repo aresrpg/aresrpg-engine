@@ -80,8 +80,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     private readonly promiseThrottler: PromisesQueue;
     private readonly patchFactory: PatchFactoryBase;
 
-    private patchesStore: Record<string, StoredPatchRenderable> = {};
-    private enqueuedPatchesStore: Record<string, EnqueuedPatchRenderable> = {};
+    private readonly patchesStore: Record<string, StoredPatchRenderable> = {};
+    private readonly enqueuedPatchesStore: Record<string, EnqueuedPatchRenderable> = {};
 
     public constructor(
         minChunkIdY: number,
