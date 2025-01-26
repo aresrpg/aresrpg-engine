@@ -28,15 +28,20 @@ type TaskResponseMessage =
           readonly taskResult: any;
       };
 
-type RequestMessage = {
-    readonly messageId: number;
-    readonly type: 'task_request';
-    readonly taskRequestMessage: TaskRequestMessage;
-};
+type RequestMessage =
+    | {
+          readonly messageId: number;
+          readonly type: 'task_request';
+          readonly taskRequestMessage: TaskRequestMessage;
+      }
+    | {
+          readonly messageId: number;
+          readonly type: 'tasklist_request';
+          readonly taskRequestMessagesList: ReadonlyArray<TaskRequestMessage>;
+      };
 type ResponseMessage = {
     readonly messageId: number;
-    readonly type: 'task_response';
-    readonly taskResponseMessage: TaskResponseMessage;
+    readonly taskResponseMessagesList: ReadonlyArray<TaskResponseMessage>;
 };
 
 type PendingTask = {
@@ -76,7 +81,9 @@ class DedicatedWorker {
         };
         this.worker.onmessage = (event: MessageEvent<ResponseMessage>) => {
             const responseMessage = event.data;
-            this.onTaskResponseMessage(responseMessage.taskResponseMessage);
+            for (const taskResponse of responseMessage.taskResponseMessagesList) {
+                this.onTaskResponseMessage(taskResponse);
+            }
         };
     }
 
@@ -184,15 +191,26 @@ class DedicatedWorker {
                 }
             };
 
-            const transferablesList: Transferable[] = [];
-            const taskProcessingResult = processTask(requestMessage.taskRequestMessage);
-            if (taskProcessingResult.transferablesList) {
-                transferablesList.push(...taskProcessingResult.transferablesList);
+            const tasksRequestsList: TaskRequestMessage[] = [];
+            if (requestMessage.type === 'task_request') {
+                tasksRequestsList.push(requestMessage.taskRequestMessage);
+            } else {
+                tasksRequestsList.push(...requestMessage.taskRequestMessagesList);
             }
+
+            const taskResponseMessagesList: TaskResponseMessage[] = [];
+            const transferablesList: Transferable[] = [];
+            for (const taskRequest of tasksRequestsList) {
+                const taskProcessingResult = processTask(taskRequest);
+                taskResponseMessagesList.push(taskProcessingResult.taskResponseMessage);
+                if (taskProcessingResult.transferablesList) {
+                    transferablesList.push(...taskProcessingResult.transferablesList);
+                }
+            }
+
             const responseMessage: ResponseMessage = {
                 messageId,
-                type: 'task_response',
-                taskResponseMessage: taskProcessingResult.taskResponseMessage,
+                taskResponseMessagesList,
             };
             self.postMessage(responseMessage, { transfer: transferablesList });
         };
