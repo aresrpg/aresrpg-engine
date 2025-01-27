@@ -31,8 +31,8 @@ class StoredPatch {
     } | null = null;
 
     private disposed: boolean = false;
-    private shouldBeVisible: boolean = false;
-    private invisibleSince: number | null = performance.now();
+    private shouldBeAttached: boolean = false;
+    private detachedSince: number | null = performance.now();
 
     private latestAdaptativeQualityParameters: AdaptativeQualityParameters | null = null;
 
@@ -50,18 +50,18 @@ class StoredPatch {
     }
 
     public setVisible(visible: boolean): void {
-        if (this.shouldBeVisible !== visible) {
-            this.shouldBeVisible = visible;
+        if (this.shouldBeAttached !== visible) {
+            this.shouldBeAttached = visible;
 
-            if (this.shouldBeVisible) {
-                this.invisibleSince = null;
+            if (this.shouldBeAttached) {
+                this.detachedSince = null;
             } else {
-                this.invisibleSince = performance.now();
+                this.detachedSince = performance.now();
             }
 
             const voxelsRenderable = this.tryGetVoxelsRenderable();
             if (voxelsRenderable) {
-                if (this.shouldBeVisible) {
+                if (this.shouldBeAttached) {
                     this.parent.add(voxelsRenderable.container);
                 } else {
                     voxelsRenderable.container.removeFromParent();
@@ -70,15 +70,15 @@ class StoredPatch {
         }
     }
 
-    public getInvisibleSinceTimestamp(): number | null {
-        return this.invisibleSince;
+    public isDetachedSince(): number | null {
+        return this.detachedSince;
     }
 
     public isMeshInScene(): boolean {
         return !!this.tryGetVoxelsRenderable()?.container.parent;
     }
 
-    public isPatchInScene(): boolean {
+    public isAttached(): boolean {
         if (!this.computationResult) {
             return false;
         }
@@ -89,10 +89,6 @@ class StoredPatch {
             // the patch was computed, but there is no mesh -> it is as if it was in the scene
             return true;
         }
-    }
-
-    public isFullyDisplayed(): boolean {
-        return this.isMeshInScene();
     }
 
     public tryGetVoxelsRenderable(): VoxelsRenderable | null {
@@ -160,7 +156,7 @@ class StoredPatch {
 
                 if (computedVoxelsRenderable) {
                     StoredPatch.enforceDisplayQuality(computedVoxelsRenderable, this.latestAdaptativeQualityParameters);
-                    if (this.shouldBeVisible) {
+                    if (this.shouldBeAttached) {
                         this.parent.add(computedVoxelsRenderable.container);
                     }
                 }

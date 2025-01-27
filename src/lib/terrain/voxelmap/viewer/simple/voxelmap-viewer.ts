@@ -175,6 +175,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         }
 
         this.notifyChange();
+        // add patches that are not computed
     }
 
     public override dispose(): void {
@@ -212,7 +213,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
         for (const storedPatch of this.storedPatches.values()) {
             const voxelsRenderable = storedPatch.tryGetVoxelsRenderable();
-            if (voxelsRenderable && storedPatch.isFullyDisplayed()) {
+            if (voxelsRenderable && storedPatch.isMeshInScene()) {
                 result.push({ id: storedPatch.id, voxelsRenderable });
             }
         }
@@ -223,7 +224,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     protected override isPatchAttached(patchId: PatchId): boolean {
         const storedPatch = this.storedPatches.get(patchId.asString);
         if (storedPatch) {
-            return storedPatch.isPatchInScene();
+            return storedPatch.isAttached();
         }
         return false;
     }
@@ -236,7 +237,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
         const invisiblePatchesList: InvisiblePatch[] = [];
         for (const storedPatch of this.storedPatches.values()) {
-            const invisibleSinceTimestamp = storedPatch.getInvisibleSinceTimestamp();
+            const invisibleSinceTimestamp = storedPatch.isDetachedSince();
             if (invisibleSinceTimestamp !== null) {
                 invisiblePatchesList.push({ storedPatch, invisibleSinceTimestamp });
             }
