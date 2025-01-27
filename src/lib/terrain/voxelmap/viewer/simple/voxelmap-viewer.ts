@@ -168,14 +168,16 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         for (const visiblePatchId of visiblePatchesId) {
             const patchId = new PatchId(visiblePatchId);
             visiblePatchesIdsSet.add(patchId.asString);
+
+            if (!this.storedPatches.has(patchId.asString)) {
+                this.storedPatches.set(patchId.asString, new StoredPatch(this.container, patchId));
+            }
         }
 
         for (const [patchId, storedPatch] of this.storedPatches.entries()) {
             const shouldBeVisible = visiblePatchesIdsSet.has(patchId);
             storedPatch.setVisible(shouldBeVisible);
         }
-
-        // add patches that are not computed
     }
 
     public override dispose(): void {
