@@ -54,22 +54,33 @@ class StoredPatch {
         const voxelRenderable = this.tryGetVoxelsRenderable();
         if (voxelRenderable) {
             if (this.transition) {
-                const now = performance.now();
-                const progression = (now - this.transition.startTimestamp) / transitionTime;
+                let progression: number;
+                if (transitionTime > 0) {
+                    const now = performance.now();
+                    progression = (now - this.transition.startTimestamp) / transitionTime;
+                } else {
+                    progression = 1;
+                }
+
+                const wasFullyVisible = voxelRenderable.parameters.dissolveRatio === 0;
+
                 if (progression <= 0) {
                     voxelRenderable.parameters.dissolveRatio = this.transition.fromDissolve;
                 } else if (progression >= 1) {
                     voxelRenderable.parameters.dissolveRatio = this.transition.toDissolve;
                     this.transition = null;
 
-                    if (this.shouldBeAttached) {
-                        this.notifyVisibilityChange();
-                    } else {
+                    if (!this.shouldBeAttached) {
                         voxelRenderable.container.removeFromParent();
                     }
                 } else {
                     voxelRenderable.parameters.dissolveRatio =
                         this.transition.fromDissolve * (1 - progression) + this.transition.toDissolve * progression;
+                }
+
+                const isFullyVisible = voxelRenderable.parameters.dissolveRatio === 0;
+                if (wasFullyVisible !== isFullyVisible) {
+                    this.notifyVisibilityChange();
                 }
             }
         }
@@ -127,11 +138,7 @@ class StoredPatch {
         }
         const voxelsRenderable = this.computationResult.voxelsRenderable;
         if (voxelsRenderable) {
-            if (this.transition) {
-                return false;
-            } else {
-                return !!voxelsRenderable.container.parent;
-            }
+            return !!voxelsRenderable.container.parent && voxelsRenderable.parameters.dissolveRatio === 0;
         } else {
             // the patch was computed, but there is no mesh -> it is as if it was in the scene
             return true;
