@@ -26,7 +26,7 @@ class StoredPatch {
 
     private readonly parent: THREE.Object3D;
 
-    private hasLatestData: boolean = false; // TODO à travailler
+    private hasLatestData: boolean = false;
     private latestComputationId: Symbol | null = null;
     private computationResult: {
         readonly voxelsRenderable: VoxelsRenderable | null;
@@ -35,12 +35,44 @@ class StoredPatch {
     private disposed: boolean = false;
     private shouldBeAttached: boolean = false;
     private detachedSince: number | null = performance.now();
+    private transition: {
+        readonly startTimestamp: number;
+        readonly fromDissolve: number;
+        readonly toDissolve: number;
+    } | null = null;
 
     private latestAdaptativeQualityParameters: AdaptativeQualityParameters | null = null;
 
     public constructor(parent: THREE.Object3D, id: PatchId) {
         this.parent = parent;
         this.id = id;
+    }
+
+    public update(): void {
+        const transitionTime = 2000;
+
+        const voxelRenderable = this.tryGetVoxelsRenderable();
+        if (voxelRenderable) {
+            if (this.transition) {
+                const now = performance.now();
+                const progression = (now - this.transition.startTimestamp) / transitionTime;
+                if (progression <= 0) {
+                    voxelRenderable.parameters.dissolveRatio = this.transition.fromDissolve;
+                } else if (progression >= 1) {
+                    voxelRenderable.parameters.dissolveRatio = this.transition.toDissolve;
+                    this.transition = null;
+
+                    if (this.shouldBeAttached) {
+                        this.notifyVisibilityChange();
+                    } else {
+                        voxelRenderable.container.removeFromParent();
+                    }
+                } else {
+                    voxelRenderable.parameters.dissolveRatio =
+                        this.transition.fromDissolve * (1 - progression) + this.transition.toDissolve * progression;
+                }
+            }
+        }
     }
 
     public needsNewData(): boolean {
@@ -65,10 +97,18 @@ class StoredPatch {
             if (voxelsRenderable) {
                 if (this.shouldBeAttached) {
                     this.parent.add(voxelsRenderable.container);
+                    this.transition = {
+                        startTimestamp: performance.now(),
+                        fromDissolve: 1,
+                        toDissolve: 0,
+                    };
                 } else {
-                    voxelsRenderable.container.removeFromParent();
+                    this.transition = {
+                        startTimestamp: performance.now(),
+                        fromDissolve: 0,
+                        toDissolve: 1,
+                    };
                 }
-                this.notifyVisibilityChange();
             }
         }
     }
@@ -87,7 +127,11 @@ class StoredPatch {
         }
         const voxelsRenderable = this.computationResult.voxelsRenderable;
         if (voxelsRenderable) {
-            return !!voxelsRenderable.container.parent;
+            if (this.transition) {
+                return false;
+            } else {
+                return !!voxelsRenderable.container.parent;
+            }
         } else {
             // the patch was computed, but there is no mesh -> it is as if it was in the scene
             return true;
@@ -143,6 +187,7 @@ class StoredPatch {
                     resolveAsCancelled();
                     return;
                 }
+                this.latestComputationId = null;
 
                 const wasMeshInScene = this.isMeshInScene();
 
@@ -165,7 +210,11 @@ class StoredPatch {
                         this.parent.add(computedVoxelsRenderable.container);
 
                         if (!wasMeshInScene) {
-                            this.notifyVisibilityChange();
+                            this.transition = {
+                                startTimestamp: performance.now(),
+                                fromDissolve: 1,
+                                toDissolve: 0,
+                            };
                         }
                     }
                 }
@@ -176,8 +225,10 @@ class StoredPatch {
     }
 
     public cancelScheduledComputation(): void {
-        this.latestComputationId = null;
-        this.hasLatestData = false;
+        if (this.latestComputationId) {
+            this.latestComputationId = null;
+            this.hasLatestData = false;
+        }
     }
 
     public deleteComputationResults(): void {

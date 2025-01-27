@@ -52,7 +52,7 @@ class TerrainViewer {
      * Call this method before rendering.
      * */
     public update(): void {
-        this.voxelmapViewer.applyParameters();
+        this.voxelmapViewer.update();
         this.updateHeightmap();
     }
 

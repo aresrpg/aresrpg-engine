@@ -193,7 +193,7 @@ return vec4(sampled.rgb / sampled.a, 1);
                 ao: { ...this.voxelmapViewer.parameters.ao },
                 specular: { ...this.voxelmapViewer.parameters.specular },
             };
-            voxelsFolder.add(this.voxelmapViewer.container, "visible").name("Show voxels");
+            voxelsFolder.add(this.voxelmapViewer.container, 'visible').name('Show voxels');
             voxelsFolder
                 .add(parameters, 'shadows')
                 .name('Enable shadows')

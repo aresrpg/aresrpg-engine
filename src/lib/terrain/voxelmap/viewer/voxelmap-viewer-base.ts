@@ -79,7 +79,7 @@ abstract class VoxelmapViewerBase {
         this.garbageCollectionHandle = window.setInterval(() => this.garbageCollectPatches(this.maxPatchesInCache), 5000);
     }
 
-    public applyParameters(): void {
+    public update(): void {
         const voxelsSettings = this.parameters;
         for (const patch of this.allVisiblePatches) {
             const voxelsRenderable = patch.voxelsRenderable;

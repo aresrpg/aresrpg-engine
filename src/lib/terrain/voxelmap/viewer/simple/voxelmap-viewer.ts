@@ -102,6 +102,14 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         this.promiseThrottler = new PromisesQueue(this.maxPatchesComputedInParallel);
     }
 
+    public override update(): void {
+        for (const storedPatch of this.storedPatches.values()) {
+            storedPatch.update();
+        }
+
+        super.update();
+    }
+
     public doesPatchRequireVoxelsData(id: THREE.Vector3Like): boolean {
         const patchId = new PatchId(id);
         const storedPatch = this.storedPatches.get(patchId.asString);
