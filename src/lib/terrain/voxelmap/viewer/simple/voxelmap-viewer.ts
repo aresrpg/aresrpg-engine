@@ -118,6 +118,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         let storedPatch = this.storedPatches.get(patchId.asString);
         if (!storedPatch) {
             storedPatch = new StoredPatch(this.container, patchId);
+            storedPatch.onVisibilityChange.push(() => this.notifyChange());
             this.storedPatches.set(patchId.asString, storedPatch);
         }
         if (!storedPatch.needsNewData()) {
@@ -174,7 +175,6 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             storedPatch.setVisible(shouldBeVisible);
         }
 
-        this.notifyChange();
         // add patches that are not computed
     }
 

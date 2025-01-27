@@ -22,6 +22,8 @@ type AdaptativeQualityParameters = {
 
 class StoredPatch {
     public readonly id: PatchId;
+    public readonly onVisibilityChange: VoidFunction[] = [];
+
     private readonly parent: THREE.Object3D;
 
     private hasLatestData: boolean = false; // TODO à travailler
@@ -66,6 +68,7 @@ class StoredPatch {
                 } else {
                     voxelsRenderable.container.removeFromParent();
                 }
+                this.notifyVisibilityChange();
             }
         }
     }
@@ -141,6 +144,8 @@ class StoredPatch {
                     return;
                 }
 
+                const wasMeshInScene = this.isMeshInScene();
+
                 if (this.computationResult) {
                     // we are overwriting a previous computation result
                     if (this.computationResult.voxelsRenderable) {
@@ -158,6 +163,10 @@ class StoredPatch {
                     StoredPatch.enforceDisplayQuality(computedVoxelsRenderable, this.latestAdaptativeQualityParameters);
                     if (this.shouldBeAttached) {
                         this.parent.add(computedVoxelsRenderable.container);
+
+                        if (!wasMeshInScene) {
+                            this.notifyVisibilityChange();
+                        }
                     }
                 }
 
@@ -192,6 +201,12 @@ class StoredPatch {
 
         this.cancelScheduledComputation();
         this.deleteComputationResults();
+    }
+
+    private notifyVisibilityChange(): void {
+        for (const callback of this.onVisibilityChange) {
+            callback();
+        }
     }
 
     private static enforceDisplayQuality(voxelsRenderable: VoxelsRenderable, params: AdaptativeQualityParameters | null): void {
