@@ -1,3 +1,4 @@
+import { Transition } from '../../../../helpers/transition';
 import type * as THREE from '../../../../libs/three-usage';
 import { type PatchId } from '../../patch/patch-id';
 import { EVoxelMaterialQuality } from '../../voxelsRenderable/voxels-material';
@@ -20,6 +21,8 @@ type AdaptativeQualityParameters = {
     readonly cameraPosition: THREE.Vector3;
 };
 
+const transitionTime = 200;
+
 class StoredPatch {
     public readonly id: PatchId;
     public readonly onVisibilityChange: VoidFunction[] = [];
@@ -35,11 +38,7 @@ class StoredPatch {
     private disposed: boolean = false;
     private shouldBeAttached: boolean = false;
     private detachedSince: number | null = performance.now();
-    private transition: {
-        readonly startTimestamp: number;
-        readonly fromDissolve: number;
-        readonly toDissolve: number;
-    } | null = null;
+    private transition: Transition | null = null;
 
     private latestAdaptativeQualityParameters: AdaptativeQualityParameters | null = null;
 
@@ -49,33 +48,18 @@ class StoredPatch {
     }
 
     public update(): void {
-        const transitionTime = 2000;
-
         const voxelRenderable = this.tryGetVoxelsRenderable();
         if (voxelRenderable) {
             if (this.transition) {
-                let progression: number;
-                if (transitionTime > 0) {
-                    const now = performance.now();
-                    progression = (now - this.transition.startTimestamp) / transitionTime;
-                } else {
-                    progression = 1;
-                }
-
                 const wasFullyVisible = voxelRenderable.parameters.dissolveRatio === 0;
+                voxelRenderable.parameters.dissolveRatio = this.transition.currentValue;
 
-                if (progression <= 0) {
-                    voxelRenderable.parameters.dissolveRatio = this.transition.fromDissolve;
-                } else if (progression >= 1) {
-                    voxelRenderable.parameters.dissolveRatio = this.transition.toDissolve;
+                if (this.transition.isFinished()) {
                     this.transition = null;
 
                     if (!this.shouldBeAttached) {
                         voxelRenderable.container.removeFromParent();
                     }
-                } else {
-                    voxelRenderable.parameters.dissolveRatio =
-                        this.transition.fromDissolve * (1 - progression) + this.transition.toDissolve * progression;
                 }
 
                 const isFullyVisible = voxelRenderable.parameters.dissolveRatio === 0;
@@ -108,17 +92,9 @@ class StoredPatch {
             if (voxelsRenderable) {
                 if (this.shouldBeAttached) {
                     this.parent.add(voxelsRenderable.container);
-                    this.transition = {
-                        startTimestamp: performance.now(),
-                        fromDissolve: 1,
-                        toDissolve: 0,
-                    };
+                    this.transitionToDissolved(false);
                 } else {
-                    this.transition = {
-                        startTimestamp: performance.now(),
-                        fromDissolve: 0,
-                        toDissolve: 1,
-                    };
+                    this.transitionToDissolved(true);
                 }
             }
         }
@@ -217,11 +193,7 @@ class StoredPatch {
                         this.parent.add(computedVoxelsRenderable.container);
 
                         if (!wasMeshInScene) {
-                            this.transition = {
-                                startTimestamp: performance.now(),
-                                fromDissolve: 1,
-                                toDissolve: 0,
-                            };
+                            this.transitionToDissolved(false);
                         }
                     }
                 }
@@ -259,6 +231,18 @@ class StoredPatch {
 
         this.cancelScheduledComputation();
         this.deleteComputationResults();
+    }
+
+    private transitionToDissolved(dissolved: boolean): void {
+        let from: number;
+        if (this.transition) {
+            from = this.transition.currentValue;
+        } else {
+            from = dissolved ? 0 : 1;
+        }
+        const to = dissolved ? 1 : 0;
+
+        this.transition = new Transition(transitionTime * Math.abs(to - from), from, to);
     }
 
     private notifyVisibilityChange(): void {
