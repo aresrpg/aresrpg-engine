@@ -212,7 +212,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
         for (const storedPatch of this.storedPatches.values()) {
             const voxelsRenderable = storedPatch.tryGetVoxelsRenderable();
-            if (voxelsRenderable) {
+            if (voxelsRenderable && storedPatch.isFullyDisplayed()) {
                 result.push({ id: storedPatch.id, voxelsRenderable });
             }
         }
@@ -223,7 +223,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     protected override isPatchAttached(patchId: PatchId): boolean {
         const storedPatch = this.storedPatches.get(patchId.asString);
         if (storedPatch) {
-            return storedPatch.isMeshInScene();
+            return storedPatch.isPatchInScene();
         }
         return false;
     }

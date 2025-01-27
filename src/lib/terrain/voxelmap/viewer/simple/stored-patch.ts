@@ -26,7 +26,9 @@ class StoredPatch {
 
     private hasLatestData: boolean = false; // TODO à travailler
     private latestComputationId: Symbol | null = null;
-    private voxelsRenderable: VoxelsRenderable | null = null;
+    private computationResult: {
+        readonly voxelsRenderable: VoxelsRenderable | null;
+    } | null = null;
 
     private disposed: boolean = false;
     private shouldBeVisible: boolean = false;
@@ -57,11 +59,12 @@ class StoredPatch {
                 this.invisibleSince = performance.now();
             }
 
-            if (this.voxelsRenderable) {
+            const voxelsRenderable = this.tryGetVoxelsRenderable();
+            if (voxelsRenderable) {
                 if (this.shouldBeVisible) {
-                    this.parent.add(this.voxelsRenderable.container);
+                    this.parent.add(voxelsRenderable.container);
                 } else {
-                    this.voxelsRenderable.container.removeFromParent();
+                    voxelsRenderable.container.removeFromParent();
                 }
             }
         }
@@ -72,18 +75,39 @@ class StoredPatch {
     }
 
     public isMeshInScene(): boolean {
-        return !!this.voxelsRenderable?.container.parent;
+        return !!this.tryGetVoxelsRenderable()?.container.parent;
+    }
+
+    public isPatchInScene(): boolean {
+        if (!this.computationResult) {
+            return false;
+        }
+        const voxelsRenderable = this.computationResult.voxelsRenderable;
+        if (voxelsRenderable) {
+            return !!voxelsRenderable.container.parent;
+        } else {
+            // the patch was computed, but there is no mesh -> it is as if it was in the scene
+            return true;
+        }
+    }
+
+    public isFullyDisplayed(): boolean {
+        return this.isMeshInScene();
     }
 
     public tryGetVoxelsRenderable(): VoxelsRenderable | null {
-        return this.voxelsRenderable;
+        if (this.computationResult) {
+            return this.computationResult.voxelsRenderable;
+        }
+        return null;
     }
 
     public updateDisplayQuality(params: AdaptativeQualityParameters | null): void {
         this.latestAdaptativeQualityParameters = params;
 
-        if (this.voxelsRenderable) {
-            StoredPatch.enforceDisplayQuality(this.voxelsRenderable, this.latestAdaptativeQualityParameters);
+        const voxelsRenerable = this.tryGetVoxelsRenderable();
+        if (voxelsRenerable) {
+            StoredPatch.enforceDisplayQuality(voxelsRenerable, this.latestAdaptativeQualityParameters);
         }
     }
 
@@ -110,22 +134,34 @@ class StoredPatch {
                     return;
                 }
 
-                const computationResult = await computationTask();
+                const computedVoxelsRenderable = await computationTask();
 
                 if (computationId !== this.latestComputationId) {
                     // a more recent computation has been requested while this one was running
-                    if (computationResult) {
-                        computationResult.dispose();
+                    if (computedVoxelsRenderable) {
+                        computedVoxelsRenderable.dispose();
                     }
                     resolveAsCancelled();
                     return;
                 }
 
-                this.voxelsRenderable = computationResult;
-                if (this.voxelsRenderable) {
-                    StoredPatch.enforceDisplayQuality(this.voxelsRenderable, this.latestAdaptativeQualityParameters);
+                if (this.computationResult) {
+                    // we are overwriting a previous computation result
+                    if (this.computationResult.voxelsRenderable) {
+                        // properly remove the obsolete computation that we are overwriting
+                        this.computationResult.voxelsRenderable.container.removeFromParent();
+                        this.computationResult.voxelsRenderable.dispose();
+                    }
+                }
+
+                this.computationResult = {
+                    voxelsRenderable: computedVoxelsRenderable,
+                };
+
+                if (computedVoxelsRenderable) {
+                    StoredPatch.enforceDisplayQuality(computedVoxelsRenderable, this.latestAdaptativeQualityParameters);
                     if (this.shouldBeVisible) {
-                        this.parent.add(this.voxelsRenderable.container);
+                        this.parent.add(computedVoxelsRenderable.container);
                     }
                 }
 
@@ -140,10 +176,14 @@ class StoredPatch {
     }
 
     public deleteComputationResults(): void {
-        if (this.voxelsRenderable) {
-            this.voxelsRenderable.container.removeFromParent();
-            this.voxelsRenderable.dispose();
-            this.voxelsRenderable = null;
+        if (this.computationResult) {
+            const voxelsRenderable = this.tryGetVoxelsRenderable();
+            if (voxelsRenderable) {
+                voxelsRenderable.container.removeFromParent();
+                voxelsRenderable.dispose();
+            }
+            this.computationResult = null;
+
             this.hasLatestData = false;
         }
     }
