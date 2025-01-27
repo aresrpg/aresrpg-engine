@@ -92,7 +92,7 @@ abstract class TestTerrainBase extends TestBase {
                 );
             }, 200);
 
-            this.gui.add(viewParams, 'playerViewRadius', 1, 1000);
+            this.gui.add(viewParams, 'playerViewRadius', 1, 1000, 1);
         }
 
         setInterval(() => {
