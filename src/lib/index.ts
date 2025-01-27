@@ -21,9 +21,9 @@ export {
 } from './terrain/voxelmap/viewer/autonomous/voxelmap-viewer-autonomous';
 export {
     EComputationMethod,
+    EComputationResult,
     VoxelmapViewer,
     type ComputationOptions,
-    type ComputationStatus,
     type VoxelmapViewerOptions,
     type VoxelsChunkData,
 } from './terrain/voxelmap/viewer/simple/voxelmap-viewer';
