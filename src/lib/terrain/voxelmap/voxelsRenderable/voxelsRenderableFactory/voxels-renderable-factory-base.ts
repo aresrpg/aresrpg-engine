@@ -55,8 +55,6 @@ abstract class VoxelsRenderableFactoryBase {
     protected readonly noiseTextureSize: number = 64;
     protected readonly checkerboardType: CheckerboardType = 'xyz';
 
-    protected readonly uniformsTemplate: VoxelsMaterialUniforms;
-
     protected constructor(params: Parameters) {
         if (typeof params.noiseResolution !== 'undefined') {
             this.noiseResolution = params.noiseResolution;
@@ -73,22 +71,6 @@ abstract class VoxelsRenderableFactoryBase {
         this.noiseTexture.needsUpdate = true;
 
         this.texture = VoxelsRenderableFactoryBase.buildMaterialsTexture(params.voxelMaterialsList, params.voxelTypeEncoder);
-
-        this.uniformsTemplate = {
-            uDisplayMode: { value: 0 },
-            uTexture: { value: this.texture },
-            uDissolveRatio: { value: 0 },
-            uNoiseTexture: { value: this.noiseTexture },
-            uNoiseStrength: { value: 0 },
-            uCheckerboardStrength: { value: 0 },
-            uAoStrength: { value: 0 },
-            uAoSpread: { value: 0 },
-            uSmoothEdgeRadius: { value: 0 },
-            uGridThickness: { value: 0.02 },
-            uGridColor: { value: new THREE.Vector3(-0.2, -0.2, -0.2) },
-            uShininessStrength: { value: 1 },
-        };
-        this.uniformsTemplate.uTexture.value = this.texture;
     }
 
     public buildVoxelsRenderable(voxelsChunkData: VoxelsChunkData): null | Promise<VoxelsRenderable | null> {
@@ -146,6 +128,23 @@ abstract class VoxelsRenderableFactoryBase {
     }
 
     public abstract buildGeometryAndMaterials(voxelsChunkData: VoxelsChunkDataNotEmpty): Promise<GeometryAndMaterial[]>;
+
+    protected buildDefaultUniforms(): VoxelsMaterialUniforms {
+        return {
+            uDisplayMode: { value: 0 },
+            uTexture: { value: this.texture },
+            uDissolveRatio: { value: 0 },
+            uNoiseTexture: { value: this.noiseTexture },
+            uNoiseStrength: { value: 0 },
+            uCheckerboardStrength: { value: 0 },
+            uAoStrength: { value: 0 },
+            uAoSpread: { value: 0 },
+            uSmoothEdgeRadius: { value: 0 },
+            uGridThickness: { value: 0.02 },
+            uGridColor: { value: new THREE.Vector3(-0.2, -0.2, -0.2) },
+            uShininessStrength: { value: 1 },
+        };
+    }
 
     private static buildMaterialsTexture(
         voxelMaterials: ReadonlyArray<IVoxelMaterial>,

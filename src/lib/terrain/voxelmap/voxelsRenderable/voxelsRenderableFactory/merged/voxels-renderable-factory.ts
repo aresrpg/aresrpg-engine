@@ -40,8 +40,6 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
 
     public readonly maxVoxelsChunkSize: THREE.Vector3;
 
-    private readonly materialsTemplates: VoxelsMaterials;
-
     private buildThreeJsVoxelsMaterial(parameters: VoxelsMaterialParameters): VoxelsMaterial {
         const cstVoxelAo = 'VOXELS_AO';
         const cstVoxelNoise = 'VOXELS_NOISE';
@@ -51,7 +49,7 @@ abstract class VoxelsRenderableFactory extends VoxelsRenderableFactoryBase {
         const phongMaterial = new THREE.MeshPhongMaterial();
         phongMaterial.shininess = 0;
         const material = phongMaterial as unknown as VoxelsMaterialTemp;
-        material.userData.uniforms = this.uniformsTemplate;
+        material.userData.uniforms = this.buildDefaultUniforms();
         material.customProgramCacheKey = () => `voxels-factory-merged_${this.instanceId}`;
         material.defines = material.defines || {};
         if (parameters.enableAo) {
@@ -398,17 +396,7 @@ void main() {
             params.maxVoxelsChunkSize.xz
         );
 
-        this.materialsTemplates = this.buildVoxelsMaterials();
-
         this.instanceId = VoxelsRenderableFactory.instancesCount++;
-    }
-
-    public override dispose(): void {
-        super.dispose();
-        for (const material of Object.values(this.materialsTemplates.materials)) {
-            material.dispose();
-        }
-        this.materialsTemplates.shadowMaterial.dispose();
     }
 
     protected assembleGeometryAndMaterials(buffer: Uint32Array): GeometryAndMaterial[] {
@@ -428,7 +416,7 @@ void main() {
 
         const trianglesCount = verticesCount / 3;
         const gpuMemoryBytes = interleavedBuffer.array.byteLength;
-        return [{ id: 'merged', materials: this.materialsTemplates, geometry, trianglesCount, gpuMemoryBytes }];
+        return [{ id: 'merged', materials: this.buildVoxelsMaterials(), geometry, trianglesCount, gpuMemoryBytes }];
     }
 }
 
