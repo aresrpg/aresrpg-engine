@@ -39,7 +39,9 @@ abstract class TestTerrainBase extends TestBase {
                 );
             }, 0);
         } else {
-            const playerViewRadius = 10;
+            const viewParams = {
+                playerViewRadius: 10,
+            };
 
             const playerContainer = new THREE.Group();
             playerContainer.position.x = 0;
@@ -85,10 +87,12 @@ abstract class TestTerrainBase extends TestBase {
             setInterval(() => {
                 this.showMapAroundPosition(
                     playerContainer.position,
-                    playerViewRadius,
+                    viewParams.playerViewRadius,
                     this.playerVisibility?.visibilityFrustum ?? undefined
                 );
             }, 200);
+
+            this.gui.add(viewParams, 'playerViewRadius', 1, 1000);
         }
 
         setInterval(() => {
