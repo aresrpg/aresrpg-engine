@@ -21,12 +21,17 @@ type AdaptativeQualityParameters = {
     readonly cameraPosition: THREE.Vector3;
 };
 
-const transitionTime = 200;
+type Parameters = {
+    readonly parent: THREE.Object3D;
+    readonly id: PatchId;
+    readonly transitionTime: number;
+};
 
 class StoredPatch {
     public readonly id: PatchId;
     public readonly onVisibilityChange: VoidFunction[] = [];
 
+    private readonly transitionTime: number;
     private readonly parent: THREE.Object3D;
 
     private hasLatestData: boolean = false;
@@ -42,9 +47,10 @@ class StoredPatch {
 
     private latestAdaptativeQualityParameters: AdaptativeQualityParameters | null = null;
 
-    public constructor(parent: THREE.Object3D, id: PatchId) {
-        this.parent = parent;
-        this.id = id;
+    public constructor(params: Parameters) {
+        this.parent = params.parent;
+        this.id = params.id;
+        this.transitionTime = params.transitionTime;
     }
 
     public update(): void {
@@ -242,7 +248,7 @@ class StoredPatch {
         }
         const to = dissolved ? 1 : 0;
 
-        this.transition = new Transition(transitionTime * Math.abs(to - from), from, to);
+        this.transition = new Transition(this.transitionTime * Math.abs(to - from), from, to);
     }
 
     private notifyVisibilityChange(): void {

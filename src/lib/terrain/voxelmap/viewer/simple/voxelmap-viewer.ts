@@ -34,6 +34,7 @@ type ComputationOptions =
       };
 
 type VoxelmapViewerOptions = {
+    readonly transitionTime?: number;
     readonly patchSize?: VoxelsChunkSize;
     readonly computationOptions?: ComputationOptions;
     readonly checkerboardType?: CheckerboardType;
@@ -48,6 +49,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     private readonly patchFactory: PatchFactoryBase;
 
     private readonly storedPatches = new Map<string, StoredPatch>();
+
+    private readonly transitionTime: number;
 
     public constructor(
         minChunkIdY: number,
@@ -100,6 +103,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         }
 
         this.promiseThrottler = new PromisesQueue(this.maxPatchesComputedInParallel);
+
+        this.transitionTime = options?.transitionTime ?? 250;
     }
 
     public override update(): void {
@@ -125,7 +130,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         const patchId = new PatchId(id);
         let storedPatch = this.storedPatches.get(patchId.asString);
         if (!storedPatch) {
-            storedPatch = new StoredPatch(this.container, patchId);
+            storedPatch = new StoredPatch({ parent: this.container, id: patchId, transitionTime: this.transitionTime });
             storedPatch.onVisibilityChange.push(() => this.notifyChange());
             this.storedPatches.set(patchId.asString, storedPatch);
         }
@@ -178,7 +183,10 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             visiblePatchesIdsSet.add(patchId.asString);
 
             if (!this.storedPatches.has(patchId.asString)) {
-                this.storedPatches.set(patchId.asString, new StoredPatch(this.container, patchId));
+                this.storedPatches.set(
+                    patchId.asString,
+                    new StoredPatch({ parent: this.container, id: patchId, transitionTime: this.transitionTime })
+                );
             }
         }
 
