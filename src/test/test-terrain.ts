@@ -255,6 +255,7 @@ return vec4(sampled.rgb / sampled.a, 1);
         {
             const lodFolder = this.gui.addFolder('LOD');
             lodFolder.add(this.terrainViewer.parameters.lod, 'enabled');
+            lodFolder.add(heightmapViewer.container.scale, 'y', 0.00001, 1).name('Y scale');
             lodFolder.add(this.terrainViewer.parameters.lod, 'wireframe');
             lodFolder.open();
         }
