@@ -1,5 +1,6 @@
 export { PromisesQueue } from './helpers/async/promises-queue';
 export { ELogLevel, setVerbosity } from './helpers/logger';
+export { type IHeightmapViewer } from './terrain/heightmap/i-heightmap-viewer';
 export { HeightmapViewer } from './terrain/heightmap/heightmap-viewer';
 export type { IHeightmap, IHeightmapCoords, IHeightmapSample } from './terrain/heightmap/i-heightmap';
 export { TerrainViewer } from './terrain/terrain-viewer';
