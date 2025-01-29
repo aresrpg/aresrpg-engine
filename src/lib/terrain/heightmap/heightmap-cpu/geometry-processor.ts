@@ -1,5 +1,5 @@
-import { type SyncOrPromise } from '../../helpers/async/async-sync';
-import { DedicatedWorkersPool } from '../../helpers/async/dedicatedWorkers/dedicated-workers-pool';
+import { type SyncOrPromise } from '../../../helpers/async/async-sync';
+import { DedicatedWorkersPool } from '../../../helpers/async/dedicatedWorkers/dedicated-workers-pool';
 
 type IndexedGeometryData = {
     readonly positions: Float32Array;

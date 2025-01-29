@@ -7,7 +7,7 @@ import {
     computeBoard,
     EBoardSquareType,
     EComputationMethod,
-    HeightmapViewer,
+    HeightmapViewerCpu,
     InstancedBillboard,
     PromisesQueue,
     Snow,
@@ -148,7 +148,7 @@ class TestParticles extends TestTerrainBase {
             });
         }, 150);
 
-        const heightmapViewer = new HeightmapViewer(map, {
+        const heightmapViewer = new HeightmapViewerCpu(map, {
             basePatchSize: chunkSize.xz,
             maxLevel: 5,
             voxelRatio: 2,

@@ -1,11 +1,11 @@
-import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
-import * as THREE from '../../libs/three-usage';
+import { createMeshesStatistics, type MeshesStatistics } from '../../../helpers/meshes-statistics';
+import * as THREE from '../../../libs/three-usage';
+import { type IHeightmap } from '../i-heightmap';
 
 import { GeometryProcessor } from './geometry-processor';
 import { HeightmapNode } from './heightmap-node';
 import { HeightmapNodeGeometry } from './heightmap-node-geometry';
 import { HeightmapNodeId } from './heightmap-node-id';
-import { type IHeightmap } from './i-heightmap';
 
 type HeightmapRootOptions = {
     readonly basePatchSize: number;

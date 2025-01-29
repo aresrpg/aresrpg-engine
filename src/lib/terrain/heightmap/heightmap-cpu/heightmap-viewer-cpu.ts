@@ -1,13 +1,13 @@
-import * as THREE from '../../libs/three-usage';
+import * as THREE from '../../../libs/three-usage';
+import { type IHeightmap } from '../i-heightmap';
+import { type HeightmapStatistics, type IHeightmapViewer } from '../i-heightmap-viewer';
 
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapRoot, type HeightmapRootOptions } from './heightmap-root';
-import { type IHeightmap } from './i-heightmap';
-import { type HeightmapStatistics, type IHeightmapViewer } from './i-heightmap-viewer';
 
 type HeightmapViewerOptions = HeightmapRootOptions;
 
-class HeightmapViewer implements IHeightmapViewer {
+class HeightmapViewerCpu implements IHeightmapViewer {
     public readonly container: THREE.Object3D;
 
     public readonly basePatchSize: number;
@@ -94,4 +94,4 @@ class HeightmapViewer implements IHeightmapViewer {
     }
 }
 
-export { HeightmapViewer };
+export { HeightmapViewerCpu };

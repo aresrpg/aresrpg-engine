@@ -1,6 +1,6 @@
 import type * as THREE from 'three-usage-test';
 
-import { HeightmapViewer, TerrainViewer, VoxelmapViewerAutonomous, type IHeightmap, type IVoxelMap } from '../lib';
+import { HeightmapViewerCpu, TerrainViewer, VoxelmapViewerAutonomous, type IHeightmap, type IVoxelMap } from '../lib';
 
 import { TestTerrainBase, type ITerrainMap } from './test-terrain-base';
 
@@ -14,7 +14,7 @@ class TestTerrainAutonomous extends TestTerrainBase {
 
         this.voxelmapViewer = new VoxelmapViewerAutonomous(map);
 
-        const heightmapViewer = new HeightmapViewer(map, {
+        const heightmapViewer = new HeightmapViewerCpu(map, {
             basePatchSize: this.voxelmapViewer.chunkSize.xz,
             maxLevel: 5,
             voxelRatio: 2,

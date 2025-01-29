@@ -7,7 +7,7 @@ import {
     computeBoard,
     EBoardSquareType,
     EComputationMethod,
-    HeightmapViewer,
+    HeightmapViewerCpu,
     PromisesQueue,
     TerrainViewer,
     VoxelmapViewer,
@@ -67,7 +67,7 @@ class TestBoard extends TestBase {
         });
         this.voxelmapViewer.parameters.faces.checkerboardContrast = 0.01;
 
-        const heightmapViewer = new HeightmapViewer(map, {
+        const heightmapViewer = new HeightmapViewerCpu(map, {
             basePatchSize: chunkSize.xz,
             maxLevel: 5,
             voxelRatio: 2,

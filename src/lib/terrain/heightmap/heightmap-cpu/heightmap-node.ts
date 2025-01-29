@@ -1,14 +1,14 @@
-import { processAsap, type SyncOrPromise } from '../../helpers/async/async-sync';
-import { DisposableMap } from '../../helpers/disposable-map';
-import { logger } from '../../helpers/logger';
-import { createMeshesStatistics, type MeshesStatistics } from '../../helpers/meshes-statistics';
-import * as THREE from '../../libs/three-usage';
+import { processAsap, type SyncOrPromise } from '../../../helpers/async/async-sync';
+import { DisposableMap } from '../../../helpers/disposable-map';
+import { logger } from '../../../helpers/logger';
+import { createMeshesStatistics, type MeshesStatistics } from '../../../helpers/meshes-statistics';
+import * as THREE from '../../../libs/three-usage';
+import { type IHeightmap, type IHeightmapCoords } from '../i-heightmap';
 
 import { type GeometryProcessor, type ProcessedGeometryData } from './geometry-processor';
 import { EEdgeResolution, type HeightmapNodeGeometry } from './heightmap-node-geometry';
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapNodeMesh } from './heightmap-node-mesh';
-import { type IHeightmap, type IHeightmapCoords } from './i-heightmap';
 
 type Children = {
     readonly mm: HeightmapNode;
