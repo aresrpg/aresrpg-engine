@@ -1,5 +1,6 @@
 import * as THREE from '../../../../libs/three-usage';
 
+import { type HeightmapRootTexture } from './heightmap-root-texture';
 import { buildHeightmapTileMaterial } from './heightmap-tile-material';
 import { buildEdgesResolutionId, type EdgesResolution, EEdgeResolution, type TileGeometryStore } from './tile-geometry-store';
 
@@ -12,13 +13,10 @@ type Children = {
 
 type Parameters = {
     readonly geometryStore: TileGeometryStore;
-    readonly data: {
-        readonly texture: THREE.Texture;
-        readonly elevationScale: number;
-        readonly uv: {
-            readonly scale: number;
-            readonly shift: THREE.Vector2Like;
-        };
+    readonly rootTexture: HeightmapRootTexture;
+    readonly uv: {
+        readonly scale: number;
+        readonly shift: THREE.Vector2Like;
     };
 };
 
@@ -33,12 +31,8 @@ class HeightmapTile {
     private readonly selfMaterial: THREE.ShaderMaterial;
     private readonly selfMeshes: Map<string, THREE.Mesh>;
 
-    private readonly data: {
-        readonly texture: THREE.Texture;
-        readonly elevationScale: number;
-    };
-
-    private readonly uv: {
+    readonly rootTexture: HeightmapRootTexture;
+    readonly uv: {
         readonly scale: number;
         readonly shift: THREE.Vector2Like;
     };
@@ -58,10 +52,15 @@ class HeightmapTile {
 
         this.geometryStore = params.geometryStore;
 
-        this.data = { ...params.data };
-        this.uv = { ...params.data.uv };
+        this.rootTexture = params.rootTexture;
+        this.uv = { ...params.uv };
 
-        this.selfMaterial = buildHeightmapTileMaterial(this.data.texture, this.data.elevationScale, this.uv.scale, this.uv.shift);
+        this.selfMaterial = buildHeightmapTileMaterial(
+            this.rootTexture.texture,
+            this.rootTexture.elevationScale,
+            this.uv.scale,
+            this.uv.shift
+        );
         this.selfMeshes = new Map();
         const edgesTypesList = [EEdgeResolution.SIMPLE, EEdgeResolution.DECIMATED];
         for (const up of edgesTypesList) {
@@ -92,13 +91,10 @@ class HeightmapTile {
                 const childUvScale = this.uv.scale / 2;
                 const childTile = new HeightmapTile({
                     geometryStore: this.geometryStore,
-                    data: {
-                        texture: this.data.texture,
-                        elevationScale: this.data.elevationScale,
-                        uv: {
-                            scale: childUvScale,
-                            shift: new THREE.Vector2().copy(this.uv.shift).add({ x: x * childUvScale, y: z * childUvScale }),
-                        },
+                    rootTexture: this.rootTexture,
+                    uv: {
+                        scale: childUvScale,
+                        shift: new THREE.Vector2().copy(this.uv.shift).add({ x: x * childUvScale, y: z * childUvScale }),
                     },
                 });
                 childTile.container.applyMatrix4(new THREE.Matrix4().makeTranslation(x, 0, z));

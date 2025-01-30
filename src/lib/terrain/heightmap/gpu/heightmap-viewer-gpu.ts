@@ -26,6 +26,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
 
     private readonly geometryStore: TileGeometryStore;
     private readonly maxNesting: number;
+    private readonly segmentsCount: number;
     private readonly rootTilesMap: Map<string, HeightmapRootTile>;
 
     public constructor(params: Parameters) {
@@ -37,6 +38,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
 
         this.geometryStore = new TileGeometryStore(params.segmentsCount);
         this.maxNesting = params.maxNesting;
+        this.segmentsCount = params.segmentsCount;
         this.rootTilesMap = new Map();
     }
 
@@ -89,7 +91,11 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                 const rootTileId = `${rootQuadtreeNode.nodeId.worldCoordsInLevel.x}_${rootQuadtreeNode.nodeId.worldCoordsInLevel.z}`;
                 let rootTile = this.rootTilesMap.get(rootTileId);
                 if (!rootTile) {
-                    rootTile = new HeightmapRootTile({ geometryStore: this.geometryStore });
+                    rootTile = new HeightmapRootTile({
+                        geometryStore: this.geometryStore,
+                        segmentsCount: this.segmentsCount,
+                        maxNesting: this.maxNesting,
+                    });
                     rootTile.container.applyMatrix4(
                         new THREE.Matrix4().makeTranslation(
                             rootQuadtreeNode.nodeId.worldCoordsInLevel.x,
