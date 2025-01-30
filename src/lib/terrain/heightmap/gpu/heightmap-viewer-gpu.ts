@@ -50,7 +50,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         const quadtree = new Quadtree({ maxNesting: this.maxNesting });
 
         for (const patch of patches) {
-            const quadtreeNode = quadtree.getOrBuildNode({ level: 0, worldCoords: patch });
+            const quadtreeNode = quadtree.getOrBuildNode({ nestingLevel: this.maxNesting, worldCoordsInLevel: patch });
             quadtreeNode.visible = false;
         }
 
@@ -86,12 +86,16 @@ class HeightmapViewerGpu implements IHeightmapViewer {
 
         for (const rootQuadtreeNode of quadtree.getRootNodes()) {
             if (rootQuadtreeNode.visible) {
-                const rootTileId = `${rootQuadtreeNode.nodeId.worldCoords.x}_${rootQuadtreeNode.nodeId.worldCoords.z}`;
+                const rootTileId = `${rootQuadtreeNode.nodeId.worldCoordsInLevel.x}_${rootQuadtreeNode.nodeId.worldCoordsInLevel.z}`;
                 let rootTile = this.rootTilesMap.get(rootTileId);
                 if (!rootTile) {
                     rootTile = new HeightmapRootTile({ geometryStore: this.geometryStore });
                     rootTile.container.applyMatrix4(
-                        new THREE.Matrix4().makeTranslation(rootQuadtreeNode.nodeId.worldCoords.x, 0, rootQuadtreeNode.nodeId.worldCoords.z)
+                        new THREE.Matrix4().makeTranslation(
+                            rootQuadtreeNode.nodeId.worldCoordsInLevel.x,
+                            0,
+                            rootQuadtreeNode.nodeId.worldCoordsInLevel.z
+                        )
                     );
                     rootTile.container.applyMatrix4(new THREE.Matrix4().makeScale(rootTileSize, 1, rootTileSize));
                     this.container.add(rootTile.container);

@@ -1,6 +1,6 @@
 import { safeModulo } from '../../../../helpers/math';
 
-import { QuadtreeNode, type ReadonlyQuadtreeNode, type QuadtreeNodeId } from './quadtree-node';
+import { QuadtreeNode, type QuadtreeNodeId, type ReadonlyQuadtreeNode } from './quadtree-node';
 
 type Parameters = {
     readonly maxNesting: number;
@@ -34,8 +34,11 @@ class Quadtree {
         }
 
         for (let iLevel = 1; iLevel < levelCoords.length && currentNode; iLevel++) {
-            const coordsInLevel = levelCoords[iLevel]!.worldCoords;
-            const coordsInParent = { x: safeModulo(coordsInLevel.x, 2), z: safeModulo(coordsInLevel.z, 2) };
+            const coordsInLevel = levelCoords[iLevel]!.worldCoordsInLevel;
+            const coordsInParent = {
+                x: safeModulo(coordsInLevel.x, 2) as 0 | 1,
+                z: safeModulo(coordsInLevel.z, 2) as 0 | 1,
+            };
             currentNode = currentNode.getOrBuildChild(coordsInParent);
         }
         return currentNode;
@@ -52,8 +55,11 @@ class Quadtree {
         let currentNode = this.rootNodes.get(rootNodeId) ?? null;
 
         for (let iLevel = 1; iLevel < levelCoords.length && currentNode; iLevel++) {
-            const coordsInLevel = levelCoords[iLevel]!.worldCoords;
-            const coordsInParent = { x: coordsInLevel.x % 2, z: coordsInLevel.z % 2 };
+            const coordsInLevel = levelCoords[iLevel]!.worldCoordsInLevel;
+            const coordsInParent = {
+                x: (coordsInLevel.x % 2) as 0 | 1,
+                z: (coordsInLevel.z % 2) as 0 | 1,
+            };
             currentNode = currentNode.tryGetChild(coordsInParent);
         }
 
@@ -61,32 +67,28 @@ class Quadtree {
     }
 
     private buildLocalNodeIdsList(nodeId: QuadtreeNodeId): QuadtreeNodeId[] {
-        if (nodeId.level > this.maxNesting) {
+        if (nodeId.nestingLevel > this.maxNesting) {
             throw new Error();
         }
 
-        let previousNodeId = nodeId;
-        const nodeIdsList: QuadtreeNodeId[] = [previousNodeId];
-
-        while (previousNodeId.level < this.maxNesting) {
-            previousNodeId = {
-                level: previousNodeId.level + 1,
-                worldCoords: {
-                    x: Math.floor(previousNodeId.worldCoords.x / 2),
-                    z: Math.floor(previousNodeId.worldCoords.z / 2),
+        const nodeIdsList: QuadtreeNodeId[] = [];
+        for (let iNestingLevel = 0; iNestingLevel <= nodeId.nestingLevel; iNestingLevel++) {
+            nodeIdsList.push({
+                nestingLevel: iNestingLevel,
+                worldCoordsInLevel: {
+                    x: Math.floor(nodeId.worldCoordsInLevel.x / 2 ** (this.maxNesting - iNestingLevel)),
+                    z: Math.floor(nodeId.worldCoordsInLevel.z / 2 ** (this.maxNesting - iNestingLevel)),
                 },
-            };
-            nodeIdsList.push(previousNodeId);
+            });
         }
-
-        return nodeIdsList.reverse();
+        return nodeIdsList;
     }
 
     private buildRootNodeId(nodeId: QuadtreeNodeId): string {
-        if (nodeId.level !== this.maxNesting) {
+        if (nodeId.nestingLevel !== 0) {
             throw new Error();
         }
-        return `${nodeId.worldCoords.x}_${nodeId.worldCoords.z}`;
+        return `${nodeId.worldCoordsInLevel.x}_${nodeId.worldCoordsInLevel.z}`;
     }
 }
 

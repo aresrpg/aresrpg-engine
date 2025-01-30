@@ -1,11 +1,14 @@
-type Coord2D = Readonly<{
-    readonly x: number;
-    readonly z: number;
-}>;
+type ChildId = {
+    readonly x: 0 | 1;
+    readonly z: 0 | 1;
+};
 
 type QuadtreeNodeId = {
-    readonly level: number;
-    readonly worldCoords: Coord2D;
+    readonly nestingLevel: number;
+    readonly worldCoordsInLevel: {
+        readonly x: number;
+        readonly z: number;
+    };
 };
 
 type ReadonlyQuadtreeNode = {
@@ -35,20 +38,18 @@ class QuadtreeNode implements ReadonlyQuadtreeNode {
         this.nodeId = nodeId;
     }
 
-    public getOrBuildChild(localCoords: Coord2D): QuadtreeNode {
-        if (this.nodeId.level === 0) {
-            throw new Error('Cannot a level == 0 QuadtreeNode cannot have children.');
-        }
-
+    public getOrBuildChild(childId: ChildId): QuadtreeNode {
         if (!this.children) {
             const buildChild = (childX: 0 | 1, childY: 0 | 1): QuadtreeNode => {
                 return new QuadtreeNode({
-                    level: childrenLevel,
-                    worldCoords: { x: 2 * this.nodeId.worldCoords.x + childX, z: 2 * this.nodeId.worldCoords.z + childY },
+                    nestingLevel: this.nodeId.nestingLevel + 1,
+                    worldCoordsInLevel: {
+                        x: 2 * this.nodeId.worldCoordsInLevel.x + childX,
+                        z: 2 * this.nodeId.worldCoordsInLevel.z + childY,
+                    },
                 });
             };
 
-            const childrenLevel = this.nodeId.level - 1;
             this.children = {
                 mm: buildChild(0, 0),
                 mp: buildChild(0, 1),
@@ -57,14 +58,12 @@ class QuadtreeNode implements ReadonlyQuadtreeNode {
             };
         }
 
-        const stringId = `${'mp'[localCoords.x]}${'mp'[localCoords.z]}` as 'mm' | 'mp' | 'pm' | 'pp';
-        return this.children[stringId];
+        return this.getChild(childId);
     }
 
-    public tryGetChild(localCoords: Coord2D): QuadtreeNode | null {
+    public tryGetChild(childId: ChildId): QuadtreeNode | null {
         if (this.children) {
-            const stringId = `${'mp'[localCoords.x]}${'mp'[localCoords.z]}` as 'mm' | 'mp' | 'pm' | 'pp';
-            return this.children[stringId] ?? null;
+            return this.getChild(childId);
         } else {
             return null;
         }
@@ -73,6 +72,15 @@ class QuadtreeNode implements ReadonlyQuadtreeNode {
     public getChildren(): ReturnType<ReadonlyQuadtreeNode['getChildren']> {
         return this.children;
     }
+
+    private getChild(childId: ChildId): QuadtreeNode {
+        if (!this.children) {
+            throw new Error();
+        }
+
+        const stringId = `${'mp'[childId.x]}${'mp'[childId.z]}` as 'mm' | 'mp' | 'pm' | 'pp';
+        return this.children[stringId];
+    }
 }
 
-export { QuadtreeNode, type Coord2D, type QuadtreeNodeId, type ReadonlyQuadtreeNode };
+export { QuadtreeNode, type ChildId, type QuadtreeNodeId, type ReadonlyQuadtreeNode };
