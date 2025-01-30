@@ -1,8 +1,10 @@
+import { safeModulo } from '../../../../helpers/math';
 import * as THREE from '../../../../libs/three-usage';
+import { type QuadtreeNodeId } from '../quadtree/quadtree-node';
 
-import { type HeightmapRootTexture } from './heightmap-root-texture';
+import { type TileId, type HeightmapRootTexture } from './heightmap-root-texture';
 import { buildHeightmapTileMaterial } from './heightmap-tile-material';
-import { buildEdgesResolutionId, type EdgesResolution, EEdgeResolution, type TileGeometryStore } from './tile-geometry-store';
+import { buildEdgesResolutionId, EEdgeResolution, type EdgesResolution, type TileGeometryStore } from './tile-geometry-store';
 
 type Children = {
     readonly mm: HeightmapTile;
@@ -14,14 +16,13 @@ type Children = {
 type Parameters = {
     readonly geometryStore: TileGeometryStore;
     readonly rootTexture: HeightmapRootTexture;
-    readonly uv: {
-        readonly scale: number;
-        readonly shift: THREE.Vector2Like;
-    };
+    readonly worldNodeId: QuadtreeNodeId;
 };
 
 class HeightmapTile {
     public readonly container: THREE.Object3D;
+
+    private readonly worldNodeId: QuadtreeNodeId;
 
     private readonly childrenContainer: THREE.Object3D;
     private readonly selfContainer: THREE.Object3D;
@@ -31,12 +32,12 @@ class HeightmapTile {
     private readonly selfMaterial: THREE.ShaderMaterial;
     private readonly selfMeshes: Map<string, THREE.Mesh>;
 
-    readonly rootTexture: HeightmapRootTexture;
-    readonly uv: {
-        readonly scale: number;
-        readonly shift: THREE.Vector2Like;
+    protected readonly root: {
+        readonly texture: HeightmapRootTexture;
+        readonly localTileId: TileId;
     };
 
+    private subdivided: boolean = false;
     public children: Children | null = null;
 
     public constructor(params: Parameters) {
@@ -48,19 +49,28 @@ class HeightmapTile {
 
         this.selfContainer = new THREE.Group();
         this.selfContainer.name = 'self';
+        this.selfContainer.visible = false;
         this.container.add(this.selfContainer);
 
         this.geometryStore = params.geometryStore;
 
-        this.rootTexture = params.rootTexture;
-        this.uv = { ...params.uv };
+        this.root = {
+            texture: params.rootTexture,
+            localTileId: {
+                nestingLevel: params.worldNodeId.nestingLevel,
+                localCoords: {
+                    x: safeModulo(params.worldNodeId.worldCoordsInLevel.x, 2 ** params.worldNodeId.nestingLevel),
+                    z: safeModulo(params.worldNodeId.worldCoordsInLevel.z, 2 ** params.worldNodeId.nestingLevel),
+                },
+            },
+        };
 
-        this.selfMaterial = buildHeightmapTileMaterial(
-            this.rootTexture.texture,
-            this.rootTexture.elevationScale,
-            this.uv.scale,
-            this.uv.shift
-        );
+        const uvScale = 1 / 2 ** this.root.localTileId.nestingLevel;
+
+        this.selfMaterial = buildHeightmapTileMaterial(this.root.texture.texture, this.root.texture.elevationScale, uvScale, {
+            x: this.root.localTileId.localCoords.x * uvScale,
+            y: this.root.localTileId.localCoords.z * uvScale,
+        });
         this.selfMeshes = new Map();
         const edgesTypesList = [EEdgeResolution.SIMPLE, EEdgeResolution.DECIMATED];
         for (const up of edgesTypesList) {
@@ -83,18 +93,22 @@ class HeightmapTile {
             left: EEdgeResolution.SIMPLE,
             right: EEdgeResolution.SIMPLE,
         });
+
+        this.worldNodeId = params.worldNodeId;
     }
 
     public subdivide(): void {
         if (!this.children) {
             const createAndAttachChild = (x: 0 | 1, z: 0 | 1): HeightmapTile => {
-                const childUvScale = this.uv.scale / 2;
                 const childTile = new HeightmapTile({
                     geometryStore: this.geometryStore,
-                    rootTexture: this.rootTexture,
-                    uv: {
-                        scale: childUvScale,
-                        shift: new THREE.Vector2().copy(this.uv.shift).add({ x: x * childUvScale, y: z * childUvScale }),
+                    rootTexture: this.root.texture,
+                    worldNodeId: {
+                        nestingLevel: this.worldNodeId.nestingLevel + 1,
+                        worldCoordsInLevel: {
+                            x: 2 * this.worldNodeId.worldCoordsInLevel.x + x,
+                            z: 2 * this.worldNodeId.worldCoordsInLevel.z + z,
+                        },
                     },
                 });
                 childTile.container.applyMatrix4(new THREE.Matrix4().makeTranslation(x, 0, z));
@@ -111,19 +125,14 @@ class HeightmapTile {
                 pp: createAndAttachChild(1, 1),
             };
         }
+
+        this.subdivided = true;
         this.container.clear();
         this.container.add(this.childrenContainer);
     }
 
     public merge(): void {
-        if (this.children) {
-            for (const child of Object.values(this.children)) {
-                child.dispose();
-            }
-        }
-        this.children = null;
-        this.childrenContainer.clear();
-
+        this.subdivided = false;
         this.container.clear();
         this.container.add(this.selfContainer);
     }
@@ -181,6 +190,18 @@ class HeightmapTile {
                     child.wireframe = wireframe;
                 }
             }
+        }
+    }
+
+    public update(): void {
+        if (this.children) {
+            for (const child of Object.values(this.children)) {
+                child.update();
+            }
+        }
+
+        if (!this.subdivided && !this.selfContainer.visible && this.root.texture.hasFullTile(this.root.localTileId)) {
+            this.selfContainer.visible = true;
         }
     }
 }

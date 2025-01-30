@@ -1,4 +1,4 @@
-import * as THREE from '../../../../libs/three-usage';
+import { type QuadtreeNodeId } from '../quadtree/quadtree-node';
 
 import { HeightmapRootTexture } from './heightmap-root-texture';
 import { HeightmapTile } from './heightmap-tile';
@@ -8,6 +8,7 @@ type Parameters = {
     readonly geometryStore: TileGeometryStore;
     readonly segmentsCount: number;
     readonly maxNesting: number;
+    readonly quadtreeNodeId: QuadtreeNodeId;
 };
 
 class HeightmapRootTile extends HeightmapTile {
@@ -21,15 +22,12 @@ class HeightmapRootTile extends HeightmapTile {
         super({
             geometryStore: params.geometryStore,
             rootTexture,
-            uv: {
-                scale: 1,
-                shift: new THREE.Vector2(0, 0),
-            },
+            worldNodeId: params.quadtreeNodeId,
         });
     }
 
     public override dispose(): void {
-        this.rootTexture.dispose();
+        this.root.texture.dispose();
         super.dispose();
     }
 }

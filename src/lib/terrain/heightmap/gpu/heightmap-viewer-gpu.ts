@@ -45,6 +45,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     public update(): void {
         for (const rootTile of this.rootTilesMap.values()) {
             rootTile.wireframe = this.wireframe;
+            rootTile.update();
         }
     }
 
@@ -95,6 +96,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                         geometryStore: this.geometryStore,
                         segmentsCount: this.segmentsCount,
                         maxNesting: this.maxNesting,
+                        quadtreeNodeId: rootQuadtreeNode.nodeId,
                     });
                     rootTile.container.applyMatrix4(
                         new THREE.Matrix4().makeTranslation(

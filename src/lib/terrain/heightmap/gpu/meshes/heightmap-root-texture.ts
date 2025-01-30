@@ -127,4 +127,4 @@ class HeightmapRootTexture {
     }
 }
 
-export { HeightmapRootTexture, type Parameters };
+export { HeightmapRootTexture, type Parameters, type TileId };
