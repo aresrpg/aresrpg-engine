@@ -2,7 +2,7 @@ import { safeModulo } from '../../../../helpers/math';
 import * as THREE from '../../../../libs/three-usage';
 import { type QuadtreeNodeId } from '../quadtree/quadtree-node';
 
-import { type TileId, type HeightmapRootTexture } from './heightmap-root-texture';
+import { type HeightmapRootTexture, type TileId } from './heightmap-root-texture';
 import { buildHeightmapTileMaterial } from './heightmap-tile-material';
 import { buildEdgesResolutionId, EEdgeResolution, type EdgesResolution, type TileGeometryStore } from './tile-geometry-store';
 
@@ -65,12 +65,8 @@ class HeightmapTile {
             },
         };
 
-        const uvScale = 1 / 2 ** this.root.localTileId.nestingLevel;
-
-        this.selfMaterial = buildHeightmapTileMaterial(this.root.texture.texture, 0, uvScale, {
-            x: this.root.localTileId.localCoords.x * uvScale,
-            y: this.root.localTileId.localCoords.z * uvScale,
-        });
+        const uvChunk = this.root.texture.getTileUv(this.root.localTileId);
+        this.selfMaterial = buildHeightmapTileMaterial(this.root.texture.texture, 0, uvChunk.scale, uvChunk.shift);
         this.selfMeshes = new Map();
         const edgesTypesList = [EEdgeResolution.SIMPLE, EEdgeResolution.DECIMATED];
         for (const up of edgesTypesList) {

@@ -15,6 +15,11 @@ type TileId = {
     readonly localCoords: TileCoords; // relative to root
 };
 
+type UvChunk = {
+    readonly scale: number;
+    readonly shift: THREE.Vector2Like;
+};
+
 function buildCellIdString(tileId: CellId): string {
     return `${tileId.x}_${tileId.z}`;
 }
@@ -97,6 +102,15 @@ class HeightmapRootTexture {
     public hasCell(cellId: CellId): boolean {
         const cellIdString = buildCellIdString(cellId);
         return this.computedTilesIds.has(cellIdString);
+    }
+
+    public getTileUv(tileId: TileId): UvChunk {
+        const scale = 1 / 2 ** tileId.nestingLevel;
+        const shift = {
+            x: tileId.localCoords.x * scale,
+            y: tileId.localCoords.z * scale,
+        };
+        return { scale, shift };
     }
 
     private getCellIdsListForTile(tileId: TileId): Iterable<CellId> {
