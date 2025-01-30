@@ -21,7 +21,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     focusDistance: number = 3;
     visibilityDistance: number = 5;
 
-    public readonly wireframe: boolean = false;
+    public wireframe: boolean = false;
 
     private readonly geometryStore: TileGeometryStore;
     private readonly maxNesting: number;
@@ -36,6 +36,12 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         this.geometryStore = new TileGeometryStore(params.segmentsCount);
         this.maxNesting = params.maxNesting;
         this.rootTilesMap = new Map();
+    }
+
+    public update(): void {
+        for (const rootTile of this.rootTilesMap.values()) {
+            rootTile.wireframe = this.wireframe;
+        }
     }
 
     public setHiddenPatches(patches: ReadonlyArray<{ x: number; z: number }>): void {

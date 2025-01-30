@@ -86,13 +86,14 @@ class TerrainViewer {
                 this.container.add(heightmapContainer);
             }
 
-            this.heightmapViewer.wireframe = this.parameters.lod.wireframe;
-
             if (this.heightmapViewerNeedsUpdate) {
                 const completeChunksColumns = this.voxelmapViewer.getCompleteChunksColumns();
                 this.heightmapViewer.setHiddenPatches(completeChunksColumns);
                 this.heightmapViewerNeedsUpdate = false;
             }
+
+            this.heightmapViewer.wireframe = this.parameters.lod.wireframe;
+            this.heightmapViewer.update();
         } else {
             heightmapContainer.removeFromParent();
         }

@@ -28,6 +28,8 @@ class HeightmapViewerCpu implements IHeightmapViewer {
         this.container.add(this.root.container);
     }
 
+    public update(): void {}
+
     public setHiddenPatches(patches: ReadonlyArray<{ x: number; z: number }>): void {
         this.resetSubdivisions();
         for (const completeChunksColumn of patches) {

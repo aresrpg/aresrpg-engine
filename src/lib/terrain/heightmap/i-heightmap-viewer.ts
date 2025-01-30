@@ -14,6 +14,7 @@ interface IHeightmapViewer {
 
     wireframe: boolean;
 
+    update(): void;
     setHiddenPatches(patches: ReadonlyArray<{ x: number; z: number }>): void;
     getStatistics(): HeightmapStatistics;
 }

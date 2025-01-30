@@ -26,6 +26,7 @@ class HeightmapTile {
 
     private readonly geometryStore: TileGeometryStore;
 
+    private readonly selfMaterial: THREE.ShaderMaterial;
     private readonly selfMeshes: Map<string, THREE.Mesh>;
 
     private readonly uv: {
@@ -53,6 +54,7 @@ class HeightmapTile {
             shift: params.uv?.shift ?? new THREE.Vector2(0, 0),
         };
 
+        this.selfMaterial = buildHeightmapTileMaterial(this.uv.scale, this.uv.shift);
         this.selfMeshes = new Map();
         const edgesTypesList = [EEdgeResolution.SIMPLE, EEdgeResolution.DECIMATED];
         for (const up of edgesTypesList) {
@@ -61,9 +63,7 @@ class HeightmapTile {
                     for (const right of edgesTypesList) {
                         const edgeResolution = { up, down, left, right };
                         const bufferGeometry = params.geometryStore.getBufferGeometry(edgeResolution);
-                        const material = buildHeightmapTileMaterial(this.uv.scale, this.uv.shift);
-                        material.wireframe = true;
-                        const mesh = new THREE.Mesh(bufferGeometry, material);
+                        const mesh = new THREE.Mesh(bufferGeometry, this.selfMaterial);
                         const id = buildEdgesResolutionId(edgeResolution);
                         this.selfMeshes.set(id, mesh);
                     }
@@ -92,6 +92,7 @@ class HeightmapTile {
                 });
                 childTile.container.applyMatrix4(new THREE.Matrix4().makeTranslation(x, 0, z));
                 childTile.container.applyMatrix4(new THREE.Matrix4().makeScale(0.5, 1, 0.5));
+                childTile.wireframe = this.wireframe;
                 this.childrenContainer.add(childTile.container);
                 return childTile;
             };
@@ -158,6 +159,22 @@ class HeightmapTile {
 
     public setVisibility(visible: boolean): void {
         this.container.visible = visible;
+    }
+
+    public get wireframe(): boolean {
+        return this.selfMaterial.wireframe;
+    }
+
+    public set wireframe(wireframe: boolean) {
+        if (this.wireframe !== wireframe) {
+            this.selfMaterial.wireframe = wireframe;
+
+            if (this.children) {
+                for (const child of Object.values(this.children)) {
+                    child.wireframe = wireframe;
+                }
+            }
+        }
     }
 }
 
