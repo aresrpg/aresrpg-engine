@@ -80,17 +80,24 @@ class TestTerrain extends TestTerrainBase {
             });
         }, 150);
 
-        const heightmapViewer = new HeightmapViewerCpu(map, {
-            basePatchSize: chunkSize.xz,
-            maxLevel: 5,
-            voxelRatio: 2,
-            flatShading: true,
-        });
+        const testHeightmapViewerGpu = true;
+        const heightmapViewer = testHeightmapViewerGpu
+            ? new HeightmapViewerGpu({
+                  basePatchSize: chunkSize.xz,
+                  maxNesting: 5,
+                  segmentsCount: chunkSize.xz / 4,
+              })
+            : new HeightmapViewerCpu(map, {
+                  basePatchSize: chunkSize.xz,
+                  maxLevel: 5,
+                  voxelRatio: 2,
+                  flatShading: true,
+              });
 
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
         this.voxelmapViewer.parameters.shadows.cast = this.enableShadows;
         this.voxelmapViewer.parameters.shadows.receive = this.enableShadows;
-        this.terrainViewer.parameters.lod.enabled = false;
+        // this.terrainViewer.parameters.lod.enabled = false;
         // this.terrainViewer.parameters.lod.wireframe = true;
         this.scene.add(this.terrainViewer.container);
 
