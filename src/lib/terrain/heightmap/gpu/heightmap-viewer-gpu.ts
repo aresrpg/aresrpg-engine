@@ -81,7 +81,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                 const rootTileId = `${rootQuadtreeNode.nodeId.worldCoords.x}_${rootQuadtreeNode.nodeId.worldCoords.z}`;
                 let rootTile = this.rootTilesMap.get(rootTileId);
                 if (!rootTile) {
-                    rootTile = new HeightmapTile({ geometryStore: this.geometryStore });
+                    rootTile = new HeightmapTile({ geometryStore: this.geometryStore, uv: null });
                     rootTile.container.applyMatrix4(
                         new THREE.Matrix4().makeTranslation(rootQuadtreeNode.nodeId.worldCoords.x, 0, rootQuadtreeNode.nodeId.worldCoords.z)
                     );

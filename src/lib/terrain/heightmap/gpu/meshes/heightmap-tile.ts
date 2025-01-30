@@ -1,5 +1,6 @@
 import * as THREE from '../../../../libs/three-usage';
 
+import { buildHeightmapTileMaterial } from './heightmap-tile-material';
 import { buildEdgesResolutionId, type EdgesResolution, EEdgeResolution, type TileGeometryStore } from './tile-geometry-store';
 
 type Children = {
@@ -11,6 +12,10 @@ type Children = {
 
 type Parameters = {
     readonly geometryStore: TileGeometryStore;
+    readonly uv: {
+        readonly scale: number;
+        readonly shift: THREE.Vector2Like;
+    } | null;
 };
 
 class HeightmapTile {
@@ -22,6 +27,11 @@ class HeightmapTile {
     private readonly geometryStore: TileGeometryStore;
 
     private readonly selfMeshes: Map<string, THREE.Mesh>;
+
+    private readonly uv: {
+        readonly scale: number;
+        readonly shift: THREE.Vector2Like;
+    };
 
     public children: Children | null = null;
 
@@ -38,6 +48,11 @@ class HeightmapTile {
 
         this.geometryStore = params.geometryStore;
 
+        this.uv = {
+            scale: params.uv?.scale ?? 1,
+            shift: params.uv?.shift ?? new THREE.Vector2(0, 0),
+        };
+
         this.selfMeshes = new Map();
         const edgesTypesList = [EEdgeResolution.SIMPLE, EEdgeResolution.DECIMATED];
         for (const up of edgesTypesList) {
@@ -46,7 +61,9 @@ class HeightmapTile {
                     for (const right of edgesTypesList) {
                         const edgeResolution = { up, down, left, right };
                         const bufferGeometry = params.geometryStore.getBufferGeometry(edgeResolution);
-                        const mesh = new THREE.Mesh(bufferGeometry, new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true }));
+                        const material = buildHeightmapTileMaterial(this.uv.scale, this.uv.shift);
+                        material.wireframe = true;
+                        const mesh = new THREE.Mesh(bufferGeometry, material);
                         const id = buildEdgesResolutionId(edgeResolution);
                         this.selfMeshes.set(id, mesh);
                     }
@@ -64,19 +81,26 @@ class HeightmapTile {
 
     public subdivide(): void {
         if (!this.children) {
-            const createAndAttachChild = (shiftX: boolean, shiftY: boolean): HeightmapTile => {
-                const childTile = new HeightmapTile({ geometryStore: this.geometryStore });
-                childTile.container.applyMatrix4(new THREE.Matrix4().makeTranslation(+shiftX, 0, +shiftY));
+            const createAndAttachChild = (x: 0 | 1, z: 0 | 1): HeightmapTile => {
+                const childUvScale = this.uv.scale / 2;
+                const childTile = new HeightmapTile({
+                    geometryStore: this.geometryStore,
+                    uv: {
+                        scale: childUvScale,
+                        shift: new THREE.Vector2().copy(this.uv.shift).add({ x: x * childUvScale, y: z * childUvScale }),
+                    },
+                });
+                childTile.container.applyMatrix4(new THREE.Matrix4().makeTranslation(x, 0, z));
                 childTile.container.applyMatrix4(new THREE.Matrix4().makeScale(0.5, 1, 0.5));
                 this.childrenContainer.add(childTile.container);
                 return childTile;
             };
 
             this.children = {
-                mm: createAndAttachChild(false, false),
-                mp: createAndAttachChild(false, true),
-                pm: createAndAttachChild(true, false),
-                pp: createAndAttachChild(true, true),
+                mm: createAndAttachChild(0, 0),
+                mp: createAndAttachChild(0, 1),
+                pm: createAndAttachChild(1, 0),
+                pp: createAndAttachChild(1, 1),
             };
         }
         this.container.clear();
