@@ -56,9 +56,9 @@ async function buildTestScene(test: ETest): Promise<TestBase> {
     }
 }
 
-async function start(): Promise<void> {
-    const testScene = await buildTestScene(ETest.GRASS);
+async function start(test: ETest): Promise<void> {
+    const testScene = await buildTestScene(test);
     testScene.start();
 }
 
-void start();
+void start(ETest.TERRAIN);

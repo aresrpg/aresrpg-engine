@@ -90,7 +90,7 @@ class Tree {
         if (voxel === 0) {
             return null;
         }
-        return (voxel - 1) as number;
+        return voxel - 1;
     }
 
     public getHeightmapSample(position: THREE.Vector2Like): IHeightmapSample | null {
