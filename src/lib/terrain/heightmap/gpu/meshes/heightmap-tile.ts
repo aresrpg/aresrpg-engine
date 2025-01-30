@@ -3,7 +3,6 @@ import * as THREE from '../../../../libs/three-usage';
 import { type QuadtreeNodeId } from '../quadtree/quadtree-node';
 
 import { type HeightmapRootTexture, type TileId } from './heightmap-root-texture';
-import { buildHeightmapTileMaterial } from './heightmap-tile-material';
 import { buildEdgesResolutionId, EEdgeResolution, type EdgesResolution, type TileGeometryStore } from './tile-geometry-store';
 
 type Children = {
@@ -29,8 +28,10 @@ class HeightmapTile {
 
     private readonly geometryStore: TileGeometryStore;
 
-    private readonly selfMaterial: THREE.ShaderMaterial;
-    private readonly selfMeshes: Map<string, THREE.Mesh>;
+    private readonly self: {
+        readonly material: THREE.ShaderMaterial;
+        readonly meshes: Map<string, THREE.Mesh>;
+    };
 
     protected readonly root: {
         readonly texture: HeightmapRootTexture;
@@ -66,8 +67,45 @@ class HeightmapTile {
         };
 
         const uvChunk = this.root.texture.getTileUv(this.root.localTileId);
-        this.selfMaterial = buildHeightmapTileMaterial(this.root.texture.texture, 0, uvChunk.scale, uvChunk.shift);
-        this.selfMeshes = new Map();
+        this.self = {
+            material: new THREE.ShaderMaterial({
+                glslVersion: '300 es',
+                uniforms: {
+                    uElevationTexture: { value: this.root.texture.texture },
+                    uElevationScale: { value: 1 },
+                    uUvScale: { value: uvChunk.scale },
+                    uUvShift: { value: new THREE.Vector2().copy(uvChunk.shift) },
+                },
+                vertexShader: `
+                    uniform sampler2D uElevationTexture;
+                    uniform vec2 uUvShift;
+                    uniform float uUvScale;
+                    uniform float uElevationScale;
+            
+                    out vec3 vColor;
+            
+                    void main() {
+                        vec2 uv = uUvShift + position.xz * uUvScale;
+            
+                        vec3 adjustedPosition = position;
+                        // adjustedPosition.y = texture(uElevationTexture, uv).r * uElevationScale;
+            
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(adjustedPosition, 1);
+                        vColor = texture(uElevationTexture, uv).rgb;
+                    }
+                    `,
+                fragmentShader: `
+                    in vec3 vColor;
+            
+                    out vec4 fragColor;
+            
+                    void main() {
+                        fragColor = vec4(vColor, 1);
+                    }
+                    `,
+            }),
+            meshes: new Map(),
+        };
         const edgesTypesList = [EEdgeResolution.SIMPLE, EEdgeResolution.DECIMATED];
         for (const up of edgesTypesList) {
             for (const down of edgesTypesList) {
@@ -75,9 +113,9 @@ class HeightmapTile {
                     for (const right of edgesTypesList) {
                         const edgeResolution = { up, down, left, right };
                         const bufferGeometry = params.geometryStore.getBufferGeometry(edgeResolution);
-                        const mesh = new THREE.Mesh(bufferGeometry, this.selfMaterial);
+                        const mesh = new THREE.Mesh(bufferGeometry, this.self.material);
                         const id = buildEdgesResolutionId(edgeResolution);
-                        this.selfMeshes.set(id, mesh);
+                        this.self.meshes.set(id, mesh);
                     }
                 }
             }
@@ -142,7 +180,7 @@ class HeightmapTile {
         }
         this.childrenContainer.clear();
 
-        for (const selfMesh of this.selfMeshes.values()) {
+        for (const selfMesh of this.self.meshes.values()) {
             const selfMeshMaterial = selfMesh.material;
             if (Array.isArray(selfMeshMaterial)) {
                 for (const material of selfMeshMaterial) {
@@ -152,7 +190,7 @@ class HeightmapTile {
                 selfMeshMaterial.dispose();
             }
         }
-        this.selfMeshes.clear();
+        this.self.meshes.clear();
         this.selfContainer.clear();
 
         this.container.clear();
@@ -160,7 +198,7 @@ class HeightmapTile {
 
     public setEdgesResolution(edgesResolution: EdgesResolution): void {
         const id = buildEdgesResolutionId(edgesResolution);
-        const mesh = this.selfMeshes.get(id);
+        const mesh = this.self.meshes.get(id);
         if (!mesh) {
             throw new Error();
         }
@@ -174,12 +212,12 @@ class HeightmapTile {
     }
 
     public get wireframe(): boolean {
-        return this.selfMaterial.wireframe;
+        return this.self.material.wireframe;
     }
 
     public set wireframe(wireframe: boolean) {
         if (this.wireframe !== wireframe) {
-            this.selfMaterial.wireframe = wireframe;
+            this.self.material.wireframe = wireframe;
 
             if (this.children) {
                 for (const child of Object.values(this.children)) {
