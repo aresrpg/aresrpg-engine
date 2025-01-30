@@ -16,7 +16,6 @@ class HeightmapRootTile extends HeightmapTile {
         const rootTexture = new HeightmapRootTexture({
             baseCellSize: params.segmentsCount + 1,
             maxNesting: params.maxNesting,
-            elevationScale: 150,
         });
 
         super({

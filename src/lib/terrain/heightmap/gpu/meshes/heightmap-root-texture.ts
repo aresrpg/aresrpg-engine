@@ -3,7 +3,6 @@ import * as THREE from '../../../../libs/three-usage';
 type Parameters = {
     readonly baseCellSize: number;
     readonly maxNesting: number;
-    readonly elevationScale: number;
 };
 
 type CellId = {
@@ -22,7 +21,6 @@ function buildCellIdString(tileId: CellId): string {
 
 class HeightmapRootTexture {
     public readonly texture: THREE.Texture;
-    public readonly elevationScale: number;
 
     private readonly rendertarget: THREE.WebGLRenderTarget;
     private readonly maxNesting: number;
@@ -43,7 +41,6 @@ class HeightmapRootTexture {
             throw new Error();
         }
         this.texture = texture;
-        this.elevationScale = params.elevationScale;
         this.maxNesting = params.maxNesting;
     }
 

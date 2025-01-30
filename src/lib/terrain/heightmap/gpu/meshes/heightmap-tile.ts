@@ -67,7 +67,7 @@ class HeightmapTile {
 
         const uvScale = 1 / 2 ** this.root.localTileId.nestingLevel;
 
-        this.selfMaterial = buildHeightmapTileMaterial(this.root.texture.texture, this.root.texture.elevationScale, uvScale, {
+        this.selfMaterial = buildHeightmapTileMaterial(this.root.texture.texture, 0, uvScale, {
             x: this.root.localTileId.localCoords.x * uvScale,
             y: this.root.localTileId.localCoords.z * uvScale,
         });
