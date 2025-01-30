@@ -1,7 +1,8 @@
 import * as THREE from '../../../libs/three-usage';
 import { type HeightmapStatistics, type IHeightmapViewer } from '../i-heightmap-viewer';
 
-import { HeightmapTile } from './meshes/heightmap-tile';
+import { HeightmapRootTile } from './meshes/heightmap-root-tile';
+import { type HeightmapTile } from './meshes/heightmap-tile';
 import { TileGeometryStore } from './meshes/tile-geometry-store';
 import { Quadtree } from './quadtree/quadtree';
 import { type ReadonlyQuadtreeNode } from './quadtree/quadtree-node';
@@ -25,11 +26,12 @@ class HeightmapViewerGpu implements IHeightmapViewer {
 
     private readonly geometryStore: TileGeometryStore;
     private readonly maxNesting: number;
-    private readonly rootTilesMap: Map<string, HeightmapTile>;
+    private readonly rootTilesMap: Map<string, HeightmapRootTile>;
 
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
         this.container.name = 'heightmap-viewer';
+        this.container.frustumCulled = false;
 
         this.basePatchSize = params.basePatchSize;
 
@@ -87,7 +89,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                 const rootTileId = `${rootQuadtreeNode.nodeId.worldCoords.x}_${rootQuadtreeNode.nodeId.worldCoords.z}`;
                 let rootTile = this.rootTilesMap.get(rootTileId);
                 if (!rootTile) {
-                    rootTile = new HeightmapTile({ geometryStore: this.geometryStore, uv: null });
+                    rootTile = new HeightmapRootTile({ geometryStore: this.geometryStore });
                     rootTile.container.applyMatrix4(
                         new THREE.Matrix4().makeTranslation(rootQuadtreeNode.nodeId.worldCoords.x, 0, rootQuadtreeNode.nodeId.worldCoords.z)
                     );

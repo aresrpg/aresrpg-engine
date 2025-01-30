@@ -12,10 +12,14 @@ type Children = {
 
 type Parameters = {
     readonly geometryStore: TileGeometryStore;
-    readonly uv: {
-        readonly scale: number;
-        readonly shift: THREE.Vector2Like;
-    } | null;
+    readonly data: {
+        readonly texture: THREE.Texture;
+        readonly elevationScale: number;
+        readonly uv: {
+            readonly scale: number;
+            readonly shift: THREE.Vector2Like;
+        };
+    };
 };
 
 class HeightmapTile {
@@ -28,6 +32,11 @@ class HeightmapTile {
 
     private readonly selfMaterial: THREE.ShaderMaterial;
     private readonly selfMeshes: Map<string, THREE.Mesh>;
+
+    private readonly data: {
+        readonly texture: THREE.Texture;
+        readonly elevationScale: number;
+    };
 
     private readonly uv: {
         readonly scale: number;
@@ -49,12 +58,10 @@ class HeightmapTile {
 
         this.geometryStore = params.geometryStore;
 
-        this.uv = {
-            scale: params.uv?.scale ?? 1,
-            shift: params.uv?.shift ?? new THREE.Vector2(0, 0),
-        };
+        this.data = { ...params.data };
+        this.uv = { ...params.data.uv };
 
-        this.selfMaterial = buildHeightmapTileMaterial(this.uv.scale, this.uv.shift);
+        this.selfMaterial = buildHeightmapTileMaterial(this.data.texture, this.data.elevationScale, this.uv.scale, this.uv.shift);
         this.selfMeshes = new Map();
         const edgesTypesList = [EEdgeResolution.SIMPLE, EEdgeResolution.DECIMATED];
         for (const up of edgesTypesList) {
@@ -85,9 +92,13 @@ class HeightmapTile {
                 const childUvScale = this.uv.scale / 2;
                 const childTile = new HeightmapTile({
                     geometryStore: this.geometryStore,
-                    uv: {
-                        scale: childUvScale,
-                        shift: new THREE.Vector2().copy(this.uv.shift).add({ x: x * childUvScale, y: z * childUvScale }),
+                    data: {
+                        texture: this.data.texture,
+                        elevationScale: this.data.elevationScale,
+                        uv: {
+                            scale: childUvScale,
+                            shift: new THREE.Vector2().copy(this.uv.shift).add({ x: x * childUvScale, y: z * childUvScale }),
+                        },
                     },
                 });
                 childTile.container.applyMatrix4(new THREE.Matrix4().makeTranslation(x, 0, z));
