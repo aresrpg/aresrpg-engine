@@ -22,6 +22,8 @@ class HeightmapRootTile extends HeightmapTile {
             baseCellSize: params.segmentsCount,
             maxNesting: params.maxNesting,
             geometryStore: params.geometryStore,
+            minAltitude: params.heightmap.minAltitude,
+            maxAltitude: params.heightmap.maxAltitude,
         });
 
         const rootSize = params.sizeWorld;

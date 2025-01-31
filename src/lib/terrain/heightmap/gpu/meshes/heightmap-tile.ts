@@ -1,5 +1,6 @@
+import { AsyncTask } from '../../../../helpers/async/async-task';
 import * as THREE from '../../../../libs/three-usage';
-import { type IHeightmap, type IHeightmapCoords } from '../../i-heightmap';
+import { type IHeightmapSample, type IHeightmap, type IHeightmapCoords } from '../../i-heightmap';
 
 import { type HeightmapRootTexture, type TileId } from './heightmap-root-texture';
 import { buildEdgesResolutionId, EEdgeResolution, type EdgesResolution, type TileGeometryStore } from './tile-geometry-store';
@@ -40,6 +41,8 @@ class HeightmapTile {
         readonly meshes: Map<string, THREE.Mesh>;
     };
 
+    private dataQuery: AsyncTask<IHeightmapSample[]> | null;
+
     private subdivided: boolean = false;
     public children: Children | null = null;
 
@@ -64,26 +67,29 @@ class HeightmapTile {
                 glslVersion: '300 es',
                 uniforms: {
                     uElevationTexture: { value: this.root.texture.texture },
-                    uElevationScale: { value: 1 },
                     uUvScale: { value: uvChunk.scale },
                     uUvShift: { value: new THREE.Vector2().copy(uvChunk.shift) },
+                    uMinAltitude: { value: this.root.heightmap.minAltitude },
+                    uMaxAltitude: { value: this.root.heightmap.maxAltitude },
                 },
                 vertexShader: `
                     uniform sampler2D uElevationTexture;
                     uniform vec2 uUvShift;
                     uniform float uUvScale;
-                    uniform float uElevationScale;
+                    uniform float uMinAltitude;
+                    uniform float uMaxAltitude;
             
                     out vec3 vColor;
             
                     void main() {
                         vec2 uv = uUvShift + position.xz * uUvScale;
-            
+                        vec4 textureSample = texture(uElevationTexture, uv);
+
                         vec3 adjustedPosition = position;
-                        // adjustedPosition.y = texture(uElevationTexture, uv).r * uElevationScale;
+                        adjustedPosition.y = mix(uMinAltitude, uMaxAltitude, textureSample.a);
             
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(adjustedPosition, 1);
-                        vColor = texture(uElevationTexture, uv).rgb;
+                        vColor = textureSample.rgb;
                     }
                     `,
                 fragmentShader: `
@@ -118,6 +124,11 @@ class HeightmapTile {
             down: EEdgeResolution.SIMPLE,
             left: EEdgeResolution.SIMPLE,
             right: EEdgeResolution.SIMPLE,
+        });
+
+        this.dataQuery = new AsyncTask(async () => {
+            const worldCoords = this.root.convertToWorldPositions(this.self.localTileId, this.root.texture.tilePositions);
+            return await this.root.heightmap.sampleHeightmap(worldCoords);
         });
     }
 
@@ -223,9 +234,20 @@ class HeightmapTile {
             }
         }
 
-        // this.root.texture.renderTile(this.root.localTileId, renderer);
-        if (!this.subdivided && !this.selfContainer.visible && this.root.texture.hasFullTile(this.self.localTileId)) {
-            this.selfContainer.visible = true;
+        if (!this.subdivided) {
+            if (this.dataQuery && !this.dataQuery.isStarted) {
+                this.dataQuery.start();
+            }
+
+            if (!this.selfContainer.visible && this.root.texture.hasFullTile(this.self.localTileId)) {
+                this.selfContainer.visible = true;
+            }
+        }
+
+        if (this.dataQuery?.isFinished) {
+            const samples = this.dataQuery.getResultSync();
+            this.root.texture.renderTile(this.self.localTileId, renderer, samples);
+            this.dataQuery = null;
         }
     }
 }

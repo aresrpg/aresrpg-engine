@@ -1,10 +1,13 @@
 import * as THREE from '../../../../libs/three-usage';
+import { type IHeightmapSample } from '../../i-heightmap';
 
 import { type TileGeometryStore } from './tile-geometry-store';
 
 type Parameters = {
     readonly baseCellSize: number;
     readonly maxNesting: number;
+    readonly minAltitude: number;
+    readonly maxAltitude: number;
     readonly geometryStore: TileGeometryStore;
 };
 
@@ -16,10 +19,6 @@ type TileCoords = CellId;
 type TileId = {
     readonly nestingLevel: number;
     readonly localCoords: TileCoords; // relative to root
-};
-
-type TileData = {
-    readonly colors: ReadonlyArray<THREE.Color>;
 };
 
 type UvChunk = {
@@ -34,7 +33,7 @@ function buildCellIdString(tileId: CellId): string {
 class HeightmapRootTexture {
     public readonly texture: THREE.Texture;
 
-    private readonly tilePositions: ReadonlyArray<{ readonly x: number; readonly z: number }>; // in [0, 1]
+    public readonly tilePositions: ReadonlyArray<{ readonly x: number; readonly z: number }>; // in [0, 1]
 
     private readonly rendertarget: THREE.WebGLRenderTarget;
     private readonly maxNesting: number;
@@ -46,6 +45,7 @@ class HeightmapRootTexture {
     private readonly tile: {
         readonly mesh: THREE.Mesh;
         readonly colorAttribute: THREE.Float32BufferAttribute;
+        readonly altitudeAttribute: THREE.Float32BufferAttribute;
         readonly shader: {
             readonly material: THREE.RawShaderMaterial;
             readonly uniforms: {
@@ -85,6 +85,8 @@ class HeightmapRootTexture {
 
         const uniforms = {
             uNestingLevel: { value: 0 },
+            uMinAltitude: { value: params.minAltitude },
+            uMaxAltitude: { value: params.maxAltitude },
             uUvScale: { value: 1 },
             uUvShift: { value: new THREE.Vector2() },
         };
@@ -95,38 +97,47 @@ class HeightmapRootTexture {
             uniform vec2 uUvShift;
             uniform float uUvScale;
             uniform float uNestingLevel;
+            uniform float uMinAltitude;
+            uniform float uMaxAltitude;
 
             in vec3 position;
+            in vec3 color;
+            in float altitude;
 
             out vec3 vColor;
+            out float vAltitude;
 
             void main() {
                 vec2 uv = uUvShift + position.xz * uUvScale;
                 gl_Position = vec4(2.0 * uv - 1.0, 1.0 - uNestingLevel / 200.0, 1);
-                vColor = vec3(position.xz, 0);
+                vColor = color;
+                vAltitude = (altitude - uMinAltitude) / (uMaxAltitude - uMinAltitude);
             }
             `,
             fragmentShader: `
             precision mediump float;
 
             in vec3 vColor;
+            in float vAltitude;
 
             out vec4 fragColor;
 
             void main() {
-                fragColor = vec4(vColor, 1);
+                fragColor = vec4(vColor, vAltitude);
             }
             `,
             blending: THREE.NoBlending,
             side: THREE.DoubleSide,
         });
-        const colorAttribute = new THREE.Float32BufferAttribute(new Float32Array(positionAttribute.array.length), 3);
+        const colorAttribute = new THREE.Float32BufferAttribute(new Float32Array(3 * positionAttribute.count), 3);
         tileGeometry.setAttribute('color', colorAttribute);
+        const altitudeAttribute = new THREE.Float32BufferAttribute(new Float32Array(positionAttribute.count), 1);
+        tileGeometry.setAttribute('altitude', altitudeAttribute);
 
         const mesh = new THREE.Mesh(tileGeometry, material);
         mesh.frustumCulled = false;
 
-        this.tile = { mesh, colorAttribute, shader: { material, uniforms } };
+        this.tile = { mesh, colorAttribute, altitudeAttribute, shader: { material, uniforms } };
     }
 
     public dispose(): void {
@@ -135,8 +146,8 @@ class HeightmapRootTexture {
         this.computedTilesIds.clear();
     }
 
-    public renderTile(tileId: TileId, renderer: THREE.WebGLRenderer, tileData: TileData): void {
-        if (tileData.colors.length !== this.tilePositions.length) {
+    public renderTile(tileId: TileId, renderer: THREE.WebGLRenderer, tileSamples: ReadonlyArray<IHeightmapSample>): void {
+        if (tileSamples.length !== this.tilePositions.length) {
             throw new Error();
         }
 
@@ -167,11 +178,13 @@ class HeightmapRootTexture {
         this.tile.shader.uniforms.uNestingLevel.value = tileId.nestingLevel;
         this.tile.shader.material.uniformsNeedUpdate = true;
 
-        tileData.colors.forEach((color: THREE.Color, index: number) => {
-            this.tile.colorAttribute.array[3 * index + 0] = color.r;
-            this.tile.colorAttribute.array[3 * index + 1] = color.g;
-            this.tile.colorAttribute.array[3 * index + 2] = color.b;
+        tileSamples.forEach((sample: IHeightmapSample, index: number) => {
+            this.tile.altitudeAttribute.array[index] = sample.altitude;
+            this.tile.colorAttribute.array[3 * index + 0] = sample.color.r;
+            this.tile.colorAttribute.array[3 * index + 1] = sample.color.g;
+            this.tile.colorAttribute.array[3 * index + 2] = sample.color.b;
         });
+        this.tile.altitudeAttribute.needsUpdate = true;
         this.tile.colorAttribute.needsUpdate = true;
 
         renderer.render(this.tile.mesh, this.fakeCamera);
@@ -189,12 +202,11 @@ class HeightmapRootTexture {
     }
 
     public hasFullTile(tileId: TileId): boolean {
-        // for (const cellId of this.getCellIdsListForTile(tileId)) {
-        //     if (!this.hasCell(cellId)) {
-        //         return false;
-        //     }
-        // }
-        // return true;
+        for (const cellId of this.getCellIdsListForTile(tileId)) {
+            if (!this.hasCell(cellId)) {
+                return false;
+            }
+        }
         return true;
     }
 
