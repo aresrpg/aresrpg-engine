@@ -1,6 +1,5 @@
-import { safeModulo } from '../../../../helpers/math';
 import * as THREE from '../../../../libs/three-usage';
-import { type QuadtreeNodeId } from '../quadtree/quadtree-node';
+import { type IHeightmap, type IHeightmapCoords } from '../../i-heightmap';
 
 import { type HeightmapRootTexture, type TileId } from './heightmap-root-texture';
 import { buildEdgesResolutionId, EEdgeResolution, type EdgesResolution, type TileGeometryStore } from './tile-geometry-store';
@@ -13,29 +12,32 @@ type Children = {
 };
 
 type Parameters = {
-    readonly geometryStore: TileGeometryStore;
-    readonly rootTexture: HeightmapRootTexture;
-    readonly worldNodeId: QuadtreeNodeId;
+    readonly root: {
+        readonly heightmap: IHeightmap;
+        readonly geometryStore: TileGeometryStore;
+        readonly texture: HeightmapRootTexture;
+        convertToWorldPositions(localTileId: TileId, normalizedPositions: ReadonlyArray<IHeightmapCoords>): IHeightmapCoords[];
+    };
+    readonly localTileId: TileId;
 };
 
 class HeightmapTile {
     public readonly container: THREE.Object3D;
 
-    private readonly worldNodeId: QuadtreeNodeId;
-
     private readonly childrenContainer: THREE.Object3D;
     private readonly selfContainer: THREE.Object3D;
 
-    private readonly geometryStore: TileGeometryStore;
-
-    private readonly self: {
-        readonly material: THREE.ShaderMaterial;
-        readonly meshes: Map<string, THREE.Mesh>;
+    protected readonly root: {
+        readonly heightmap: IHeightmap;
+        readonly geometryStore: TileGeometryStore;
+        readonly texture: HeightmapRootTexture;
+        convertToWorldPositions(localTileId: TileId, normalizedPositions: ReadonlyArray<IHeightmapCoords>): IHeightmapCoords[];
     };
 
-    protected readonly root: {
-        readonly texture: HeightmapRootTexture;
+    private readonly self: {
         readonly localTileId: TileId;
+        readonly material: THREE.ShaderMaterial;
+        readonly meshes: Map<string, THREE.Mesh>;
     };
 
     private subdivided: boolean = false;
@@ -53,21 +55,11 @@ class HeightmapTile {
         this.selfContainer.visible = false;
         this.container.add(this.selfContainer);
 
-        this.geometryStore = params.geometryStore;
+        this.root = params.root;
 
-        this.root = {
-            texture: params.rootTexture,
-            localTileId: {
-                nestingLevel: params.worldNodeId.nestingLevel,
-                localCoords: {
-                    x: safeModulo(params.worldNodeId.worldCoordsInLevel.x, 2 ** params.worldNodeId.nestingLevel),
-                    z: safeModulo(params.worldNodeId.worldCoordsInLevel.z, 2 ** params.worldNodeId.nestingLevel),
-                },
-            },
-        };
-
-        const uvChunk = this.root.texture.getTileUv(this.root.localTileId);
+        const uvChunk = this.root.texture.getTileUv(params.localTileId);
         this.self = {
+            localTileId: params.localTileId,
             material: new THREE.ShaderMaterial({
                 glslVersion: '300 es',
                 uniforms: {
@@ -112,7 +104,7 @@ class HeightmapTile {
                 for (const left of edgesTypesList) {
                     for (const right of edgesTypesList) {
                         const edgeResolution = { up, down, left, right };
-                        const bufferGeometry = params.geometryStore.getBufferGeometry(edgeResolution);
+                        const bufferGeometry = this.root.geometryStore.getBufferGeometry(edgeResolution);
                         const mesh = new THREE.Mesh(bufferGeometry, this.self.material);
                         const id = buildEdgesResolutionId(edgeResolution);
                         this.self.meshes.set(id, mesh);
@@ -127,21 +119,18 @@ class HeightmapTile {
             left: EEdgeResolution.SIMPLE,
             right: EEdgeResolution.SIMPLE,
         });
-
-        this.worldNodeId = params.worldNodeId;
     }
 
     public subdivide(): void {
         if (!this.children) {
             const createAndAttachChild = (x: 0 | 1, z: 0 | 1): HeightmapTile => {
                 const childTile = new HeightmapTile({
-                    geometryStore: this.geometryStore,
-                    rootTexture: this.root.texture,
-                    worldNodeId: {
-                        nestingLevel: this.worldNodeId.nestingLevel + 1,
-                        worldCoordsInLevel: {
-                            x: 2 * this.worldNodeId.worldCoordsInLevel.x + x,
-                            z: 2 * this.worldNodeId.worldCoordsInLevel.z + z,
+                    root: this.root,
+                    localTileId: {
+                        nestingLevel: this.self.localTileId.nestingLevel + 1,
+                        localCoords: {
+                            x: 2 * this.self.localTileId.localCoords.x + x,
+                            z: 2 * this.self.localTileId.localCoords.z + z,
                         },
                     },
                 });
@@ -227,14 +216,15 @@ class HeightmapTile {
         }
     }
 
-    public update(): void {
+    public update(renderer: THREE.WebGLRenderer): void {
         if (this.children) {
             for (const child of Object.values(this.children)) {
-                child.update();
+                child.update(renderer);
             }
         }
 
-        if (!this.subdivided && !this.selfContainer.visible && this.root.texture.hasFullTile(this.root.localTileId)) {
+        // this.root.texture.renderTile(this.root.localTileId, renderer);
+        if (!this.subdivided && !this.selfContainer.visible && this.root.texture.hasFullTile(this.self.localTileId)) {
             this.selfContainer.visible = true;
         }
     }

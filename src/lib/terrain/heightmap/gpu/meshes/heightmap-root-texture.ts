@@ -1,8 +1,11 @@
 import * as THREE from '../../../../libs/three-usage';
 
+import { type TileGeometryStore } from './tile-geometry-store';
+
 type Parameters = {
     readonly baseCellSize: number;
     readonly maxNesting: number;
+    readonly geometryStore: TileGeometryStore;
 };
 
 type CellId = {
@@ -13,6 +16,10 @@ type TileCoords = CellId;
 type TileId = {
     readonly nestingLevel: number;
     readonly localCoords: TileCoords; // relative to root
+};
+
+type TileData = {
+    readonly colors: ReadonlyArray<THREE.Color>;
 };
 
 type UvChunk = {
@@ -27,6 +34,8 @@ function buildCellIdString(tileId: CellId): string {
 class HeightmapRootTexture {
     public readonly texture: THREE.Texture;
 
+    private readonly tilePositions: ReadonlyArray<{ readonly x: number; readonly z: number }>; // in [0, 1]
+
     private readonly rendertarget: THREE.WebGLRenderTarget;
     private readonly maxNesting: number;
 
@@ -34,19 +43,90 @@ class HeightmapRootTexture {
 
     private readonly computedTilesIds = new Set<string>();
 
+    private readonly tile: {
+        readonly mesh: THREE.Mesh;
+        readonly colorAttribute: THREE.Float32BufferAttribute;
+        readonly shader: {
+            readonly material: THREE.RawShaderMaterial;
+            readonly uniforms: {
+                readonly uNestingLevel: THREE.IUniform<number>;
+                readonly uUvScale: THREE.IUniform<number>;
+                readonly uUvShift: THREE.IUniform<THREE.Vector2Like>;
+            };
+        };
+    };
+
     private isFirstUpdate: boolean = true;
 
     public constructor(params: Parameters) {
         const textureSize = params.baseCellSize * 2 ** params.maxNesting;
-        this.rendertarget = new THREE.WebGLRenderTarget(textureSize, textureSize, {
-            count: 1,
-        });
-        const texture = this.rendertarget.textures[0];
+        this.rendertarget = new THREE.WebGLRenderTarget(textureSize, textureSize);
+        const texture = this.rendertarget.texture;
         if (!texture) {
             throw new Error();
         }
+        texture.magFilter = THREE.NearestFilter;
         this.texture = texture;
         this.maxNesting = params.maxNesting;
+
+        const tileGeometry = params.geometryStore.getBaseTile().clone();
+        const positionAttribute = tileGeometry.getAttribute('position');
+        const positions: THREE.Vector3Like[] = [];
+        for (let iIndex = 0; iIndex < positionAttribute.array.length; iIndex += 3) {
+            positions.push(
+                new THREE.Vector3(
+                    positionAttribute.array[iIndex + 0]!,
+                    positionAttribute.array[iIndex + 1]!,
+                    positionAttribute.array[iIndex + 2]!
+                )
+            );
+        }
+        this.tilePositions = positions;
+
+        const uniforms = {
+            uNestingLevel: { value: 0 },
+            uUvScale: { value: 1 },
+            uUvShift: { value: new THREE.Vector2() },
+        };
+        const material = new THREE.RawShaderMaterial({
+            glslVersion: '300 es',
+            uniforms,
+            vertexShader: `
+            uniform vec2 uUvShift;
+            uniform float uUvScale;
+            uniform float uNestingLevel;
+
+            in vec3 position;
+
+            out vec3 vColor;
+
+            void main() {
+                vec2 uv = uUvShift + position.xz * uUvScale;
+                gl_Position = vec4(2.0 * uv - 1.0, 1.0 - uNestingLevel / 200.0, 1);
+                vColor = vec3(position.xz, 0);
+            }
+            `,
+            fragmentShader: `
+            precision mediump float;
+
+            in vec3 vColor;
+
+            out vec4 fragColor;
+
+            void main() {
+                fragColor = vec4(vColor, 1);
+            }
+            `,
+            blending: THREE.NoBlending,
+            side: THREE.DoubleSide,
+        });
+        const colorAttribute = new THREE.Float32BufferAttribute(new Float32Array(positionAttribute.array.length), 3);
+        tileGeometry.setAttribute('color', colorAttribute);
+
+        const mesh = new THREE.Mesh(tileGeometry, material);
+        mesh.frustumCulled = false;
+
+        this.tile = { mesh, colorAttribute, shader: { material, uniforms } };
     }
 
     public dispose(): void {
@@ -55,7 +135,11 @@ class HeightmapRootTexture {
         this.computedTilesIds.clear();
     }
 
-    public renderTile(tileId: TileId, renderer: THREE.WebGLRenderer, mesh: THREE.Object3D): void {
+    public renderTile(tileId: TileId, renderer: THREE.WebGLRenderer, tileData: TileData): void {
+        if (tileData.colors.length !== this.tilePositions.length) {
+            throw new Error();
+        }
+
         const previousState = {
             autoClear: renderer.autoClear,
             autoClearColor: renderer.autoClearColor,
@@ -68,7 +152,8 @@ class HeightmapRootTexture {
         renderer.autoClear = false;
         renderer.autoClearColor = false;
         renderer.autoClearDepth = false;
-        renderer.setClearColor(0x000000, 0);
+        renderer.setClearColor(0x000000);
+        renderer.setClearAlpha(0);
         renderer.setRenderTarget(this.rendertarget);
 
         if (this.isFirstUpdate) {
@@ -76,30 +161,44 @@ class HeightmapRootTexture {
             this.isFirstUpdate = false;
         }
 
-        renderer.render(mesh, this.fakeCamera);
+        const uvChunk = this.getTileUv(tileId);
+        this.tile.shader.uniforms.uUvScale.value = uvChunk.scale;
+        this.tile.shader.uniforms.uUvShift.value = uvChunk.shift;
+        this.tile.shader.uniforms.uNestingLevel.value = tileId.nestingLevel;
+        this.tile.shader.material.uniformsNeedUpdate = true;
+
+        tileData.colors.forEach((color: THREE.Color, index: number) => {
+            this.tile.colorAttribute.array[3 * index + 0] = color.r;
+            this.tile.colorAttribute.array[3 * index + 1] = color.g;
+            this.tile.colorAttribute.array[3 * index + 2] = color.b;
+        });
+        this.tile.colorAttribute.needsUpdate = true;
+
+        renderer.render(this.tile.mesh, this.fakeCamera);
+
+        for (const cellId of this.getCellIdsListForTile(tileId)) {
+            const cellIdString = buildCellIdString(cellId);
+            this.computedTilesIds.add(cellIdString);
+        }
 
         renderer.autoClear = previousState.autoClear;
         renderer.autoClearColor = previousState.autoClearColor;
         renderer.autoClearDepth = previousState.autoClearDepth;
         renderer.setClearColor(previousState.clearColor, previousState.clearAlpha);
         renderer.setRenderTarget(previousState.renderTarget);
-
-        for (const cellId of this.getCellIdsListForTile(tileId)) {
-            const cellIdString = buildCellIdString(cellId);
-            this.computedTilesIds.add(cellIdString);
-        }
     }
 
     public hasFullTile(tileId: TileId): boolean {
-        for (const cellId of this.getCellIdsListForTile(tileId)) {
-            if (!this.hasCell(cellId)) {
-                return false;
-            }
-        }
+        // for (const cellId of this.getCellIdsListForTile(tileId)) {
+        //     if (!this.hasCell(cellId)) {
+        //         return false;
+        //     }
+        // }
+        // return true;
         return true;
     }
 
-    public hasCell(cellId: CellId): boolean {
+    private hasCell(cellId: CellId): boolean {
         const cellIdString = buildCellIdString(cellId);
         return this.computedTilesIds.has(cellIdString);
     }
@@ -113,6 +212,7 @@ class HeightmapRootTexture {
         return { scale, shift };
     }
 
+    // public getPositions(): THREE.Vector3Like
     private getCellIdsListForTile(tileId: TileId): Iterable<CellId> {
         if (tileId.nestingLevel > this.maxNesting) {
             throw new Error();

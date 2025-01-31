@@ -21,6 +21,7 @@ export {
     Mesh,
     MeshBasicMaterial,
     MeshPhongMaterial,
+    NearestFilter,
     NoBlending,
     NormalBlending,
     OneFactor,

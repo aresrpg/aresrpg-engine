@@ -102,7 +102,7 @@ class TestBoard extends TestBase {
     }
 
     protected override update(): void {
-        this.terrainViewer.update();
+        this.terrainViewer.update(this.renderer);
     }
 
     private applyVisibility(): void {

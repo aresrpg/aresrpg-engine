@@ -61,6 +61,15 @@ class TileGeometryStore {
         return result;
     }
 
+    public getBaseTile(): THREE.BufferGeometry {
+        return this.getBufferGeometry({
+            up: EEdgeResolution.SIMPLE,
+            down: EEdgeResolution.SIMPLE,
+            left: EEdgeResolution.SIMPLE,
+            right: EEdgeResolution.SIMPLE,
+        });
+    }
+
     public dispose(): void {
         for (const bufferGeometry of this.bufferGeometries.values()) {
             bufferGeometry.dispose();

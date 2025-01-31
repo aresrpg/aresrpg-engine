@@ -14,7 +14,7 @@ interface IHeightmapViewer {
 
     wireframe: boolean;
 
-    update(): void;
+    update(renderer: THREE.WebGLRenderer): void;
     setHiddenPatches(patches: ReadonlyArray<{ x: number; z: number }>): void;
     getStatistics(): HeightmapStatistics;
 }

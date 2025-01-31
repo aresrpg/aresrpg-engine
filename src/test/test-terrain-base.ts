@@ -1,5 +1,5 @@
-import * as THREE from 'three-usage-test';
 import GUI from 'lil-gui';
+import * as THREE from 'three-usage-test';
 
 import { type IHeightmap, type IHeightmapSample, type IVoxelMap, type TerrainViewer } from '../lib';
 
@@ -120,7 +120,7 @@ abstract class TestTerrainBase extends TestBase {
             );
         }
 
-        this.terrainViewer.update();
+        this.terrainViewer.update(this.renderer);
     }
 
     private setupLighting(): void {

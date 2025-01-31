@@ -8,6 +8,7 @@ import {
     EComputationMethod,
     EVoxelsDisplayMode,
     HeightmapViewerCpu,
+    HeightmapViewerGpu,
     InstancedBillboard,
     PromisesQueue,
     TerrainViewer,
@@ -86,6 +87,7 @@ class TestTerrain extends TestTerrainBase {
                   basePatchSize: chunkSize.xz,
                   maxNesting: 5,
                   segmentsCount: chunkSize.xz / 4,
+                  heightmap: map,
               })
             : new HeightmapViewerCpu(map, {
                   basePatchSize: chunkSize.xz,

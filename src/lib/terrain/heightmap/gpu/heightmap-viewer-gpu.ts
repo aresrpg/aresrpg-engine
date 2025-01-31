@@ -1,4 +1,5 @@
 import * as THREE from '../../../libs/three-usage';
+import { type IHeightmap } from '../i-heightmap';
 import { type HeightmapStatistics, type IHeightmapViewer } from '../i-heightmap-viewer';
 
 import { HeightmapRootTile } from './meshes/heightmap-root-tile';
@@ -11,6 +12,7 @@ type Parameters = {
     readonly basePatchSize: number;
     readonly segmentsCount: number;
     readonly maxNesting: number;
+    readonly heightmap: IHeightmap;
 };
 
 class HeightmapViewerGpu implements IHeightmapViewer {
@@ -25,9 +27,11 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     public wireframe: boolean = false;
 
     private readonly geometryStore: TileGeometryStore;
+    private readonly heightmap: IHeightmap;
     private readonly maxNesting: number;
     private readonly segmentsCount: number;
-    private readonly rootTilesMap: Map<string, HeightmapRootTile>;
+
+    private readonly rootTilesMap = new Map<string, HeightmapRootTile>();
 
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
@@ -37,15 +41,15 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         this.basePatchSize = params.basePatchSize;
 
         this.geometryStore = new TileGeometryStore(params.segmentsCount);
+        this.heightmap = params.heightmap;
         this.maxNesting = params.maxNesting;
         this.segmentsCount = params.segmentsCount;
-        this.rootTilesMap = new Map();
     }
 
-    public update(): void {
+    public update(renderer: THREE.WebGLRenderer): void {
         for (const rootTile of this.rootTilesMap.values()) {
             rootTile.wireframe = this.wireframe;
-            rootTile.update();
+            rootTile.update(renderer);
         }
     }
 
@@ -94,9 +98,14 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                 if (!rootTile) {
                     rootTile = new HeightmapRootTile({
                         geometryStore: this.geometryStore,
+                        heightmap: this.heightmap,
                         segmentsCount: this.segmentsCount,
                         maxNesting: this.maxNesting,
-                        quadtreeNodeId: rootQuadtreeNode.nodeId,
+                        sizeWorld: rootTileSize,
+                        originWorld: {
+                            x: rootQuadtreeNode.nodeId.worldCoordsInLevel.x * rootTileSize,
+                            z: rootQuadtreeNode.nodeId.worldCoordsInLevel.z * rootTileSize,
+                        },
                     });
                     rootTile.container.applyMatrix4(
                         new THREE.Matrix4().makeTranslation(

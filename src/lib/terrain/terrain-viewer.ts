@@ -51,9 +51,9 @@ class TerrainViewer {
     /**
      * Call this method before rendering.
      * */
-    public update(): void {
+    public update(renderer: THREE.WebGLRenderer): void {
         this.voxelmapViewer.update();
-        this.updateHeightmap();
+        this.updateHeightmap(renderer);
     }
 
     /**
@@ -79,7 +79,7 @@ class TerrainViewer {
         };
     }
 
-    private updateHeightmap(): void {
+    private updateHeightmap(renderer: THREE.WebGLRenderer): void {
         const heightmapContainer = this.heightmapViewer.container;
         if (this.parameters.lod.enabled) {
             if (!heightmapContainer.parent) {
@@ -93,7 +93,7 @@ class TerrainViewer {
             }
 
             this.heightmapViewer.wireframe = this.parameters.lod.wireframe;
-            this.heightmapViewer.update();
+            this.heightmapViewer.update(renderer);
         } else {
             heightmapContainer.removeFromParent();
         }
