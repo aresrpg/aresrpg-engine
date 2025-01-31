@@ -66,14 +66,16 @@ class HeightmapTile {
             material: new THREE.ShaderMaterial({
                 glslVersion: '300 es',
                 uniforms: {
-                    uElevationTexture: { value: this.root.texture.texture },
+                    uTexture0: { value: this.root.texture.textures[0] },
+                    uTexture1: { value: this.root.texture.textures[1] },
                     uUvScale: { value: uvChunk.scale },
                     uUvShift: { value: new THREE.Vector2().copy(uvChunk.shift) },
                     uMinAltitude: { value: this.root.heightmap.minAltitude },
                     uMaxAltitude: { value: this.root.heightmap.maxAltitude },
                 },
                 vertexShader: `
-                    uniform sampler2D uElevationTexture;
+                    uniform sampler2D uTexture0;
+                    uniform sampler2D uTexture1;
                     uniform vec2 uUvShift;
                     uniform float uUvScale;
                     uniform float uMinAltitude;
@@ -81,15 +83,20 @@ class HeightmapTile {
             
                     out vec3 vColor;
             
+                    #include <packing>
+
                     void main() {
                         vec2 uv = uUvShift + position.xz * uUvScale;
-                        vec4 textureSample = texture(uElevationTexture, uv);
+                        vec4 texture0Sample = texture(uTexture0, uv);
+                        vec4 texture1Sample = texture(uTexture1, uv);
+
+                        float altitude = unpackRGToDepth(vec2(texture0Sample.a, texture1Sample.a));
 
                         vec3 adjustedPosition = position;
-                        adjustedPosition.y = mix(uMinAltitude, uMaxAltitude, textureSample.a);
+                        adjustedPosition.y = mix(uMinAltitude, uMaxAltitude, altitude);
             
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(adjustedPosition, 1);
-                        vColor = textureSample.rgb;
+                        vColor = texture0Sample.rgb;
                     }
                     `,
                 fragmentShader: `
@@ -112,6 +119,7 @@ class HeightmapTile {
                         const edgeResolution = { up, down, left, right };
                         const bufferGeometry = this.root.geometryStore.getBufferGeometry(edgeResolution);
                         const mesh = new THREE.Mesh(bufferGeometry, this.self.material);
+                        mesh.frustumCulled = false;
                         const id = buildEdgesResolutionId(edgeResolution);
                         this.self.meshes.set(id, mesh);
                     }

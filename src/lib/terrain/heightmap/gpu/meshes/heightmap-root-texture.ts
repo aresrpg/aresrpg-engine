@@ -31,7 +31,7 @@ function buildCellIdString(tileId: CellId): string {
 }
 
 class HeightmapRootTexture {
-    public readonly texture: THREE.Texture;
+    public readonly textures: [THREE.Texture, THREE.Texture];
 
     public readonly tilePositions: ReadonlyArray<{ readonly x: number; readonly z: number }>; // in [0, 1]
 
@@ -60,13 +60,16 @@ class HeightmapRootTexture {
 
     public constructor(params: Parameters) {
         const textureSize = params.baseCellSize * 2 ** params.maxNesting;
-        this.rendertarget = new THREE.WebGLRenderTarget(textureSize, textureSize);
-        const texture = this.rendertarget.texture;
-        if (!texture) {
+        this.rendertarget = new THREE.WebGLRenderTarget(textureSize, textureSize, { count: 2 });
+        const texture0 = this.rendertarget.textures[0];
+        const texture1 = this.rendertarget.textures[1];
+        if (!texture0 || !texture1) {
             throw new Error();
         }
-        texture.magFilter = THREE.NearestFilter;
-        this.texture = texture;
+        this.textures = [texture0, texture1];
+        for (const texture of this.textures) {
+            texture.magFilter = THREE.NearestFilter;
+        }
         this.maxNesting = params.maxNesting;
 
         const tileGeometry = params.geometryStore.getBaseTile().clone();
@@ -120,10 +123,16 @@ class HeightmapRootTexture {
             in vec3 vColor;
             in float vAltitude;
 
-            out vec4 fragColor;
+            layout (location=0) out vec4 fragColor1;
+            layout (location=1) out vec4 fragColor2;
+
+            #include <packing>
 
             void main() {
-                fragColor = vec4(vColor, vAltitude);
+                vec2 encodedAltitude = packDepthToRG(vAltitude);
+
+                fragColor1 = vec4(vColor, encodedAltitude.x);
+                fragColor2 = vec4(0, 0, 0, encodedAltitude.y);
             }
             `,
             blending: THREE.NoBlending,
@@ -141,7 +150,9 @@ class HeightmapRootTexture {
     }
 
     public dispose(): void {
-        this.texture.dispose();
+        for (const texture of this.textures) {
+            texture.dispose();
+        }
         this.rendertarget.dispose();
         this.computedTilesIds.clear();
     }

@@ -36,7 +36,6 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
         this.container.name = 'heightmap-viewer';
-        this.container.frustumCulled = false;
 
         this.basePatchSize = params.basePatchSize;
 
