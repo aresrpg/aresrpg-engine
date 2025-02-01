@@ -244,10 +244,14 @@ class HeightmapTile {
 
         if (!this.subdivided) {
             if (this.dataQuery && !this.dataQuery.isStarted) {
-                this.dataQuery.start();
+                if (this.root.texture.hasOptimalDataForTile(this.self.localTileId)) {
+                    this.dataQuery = null; // we already have precise enough data for this tile
+                } else {
+                    this.dataQuery.start();
+                }
             }
 
-            if (!this.selfContainer.visible && this.root.texture.hasFullTile(this.self.localTileId)) {
+            if (!this.selfContainer.visible && this.root.texture.hasDataForTile(this.self.localTileId)) {
                 this.selfContainer.visible = true;
             }
         }

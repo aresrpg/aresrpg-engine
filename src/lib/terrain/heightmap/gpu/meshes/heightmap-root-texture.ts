@@ -40,7 +40,7 @@ class HeightmapRootTexture {
 
     private readonly fakeCamera = new THREE.PerspectiveCamera();
 
-    private readonly computedTilesIds = new Set<string>();
+    private readonly computedCellsPrecisions = new Map<string, number>();
 
     private readonly tile: {
         readonly mesh: THREE.Mesh;
@@ -154,7 +154,7 @@ class HeightmapRootTexture {
             texture.dispose();
         }
         this.rendertarget.dispose();
-        this.computedTilesIds.clear();
+        this.computedCellsPrecisions.clear();
     }
 
     public renderTile(tileId: TileId, renderer: THREE.WebGLRenderer, tileSamples: ReadonlyArray<IHeightmapSample>): void {
@@ -202,7 +202,8 @@ class HeightmapRootTexture {
 
         for (const cellId of this.getCellIdsListForTile(tileId)) {
             const cellIdString = buildCellIdString(cellId);
-            this.computedTilesIds.add(cellIdString);
+            const currentComputedPrecisionForCell = this.computedCellsPrecisions.get(cellIdString) ?? -1;
+            this.computedCellsPrecisions.set(cellIdString, Math.max(currentComputedPrecisionForCell, tileId.nestingLevel));
         }
 
         renderer.autoClear = previousState.autoClear;
@@ -212,18 +213,14 @@ class HeightmapRootTexture {
         renderer.setRenderTarget(previousState.renderTarget);
     }
 
-    public hasFullTile(tileId: TileId): boolean {
-        for (const cellId of this.getCellIdsListForTile(tileId)) {
-            if (!this.hasCell(cellId)) {
-                return false;
-            }
-        }
-        return true;
+    public hasDataForTile(tileId: TileId): boolean {
+        const precision = this.getCurrentPrecisionForTile(tileId);
+        return precision !== undefined;
     }
 
-    private hasCell(cellId: CellId): boolean {
-        const cellIdString = buildCellIdString(cellId);
-        return this.computedTilesIds.has(cellIdString);
+    public hasOptimalDataForTile(tileId: TileId): boolean {
+        const precision = this.getCurrentPrecisionForTile(tileId);
+        return precision !== undefined && precision >= tileId.nestingLevel;
     }
 
     public getTileUv(tileId: TileId): UvChunk {
@@ -235,7 +232,23 @@ class HeightmapRootTexture {
         return { scale, shift };
     }
 
-    // public getPositions(): THREE.Vector3Like
+    private getCurrentPrecisionForTile(tileId: TileId): number | undefined {
+        let minimumPrecision: number | undefined;
+        for (const cellId of this.getCellIdsListForTile(tileId)) {
+            const cellIdString = buildCellIdString(cellId);
+            const cellPrecision = this.computedCellsPrecisions.get(cellIdString);
+            if (cellPrecision === undefined) {
+                return undefined;
+            }
+            if (minimumPrecision === undefined) {
+                minimumPrecision = cellPrecision;
+            } else {
+                minimumPrecision = Math.min(minimumPrecision, cellPrecision);
+            }
+        }
+        return minimumPrecision;
+    }
+
     private getCellIdsListForTile(tileId: TileId): Iterable<CellId> {
         if (tileId.nestingLevel > this.maxNesting) {
             throw new Error();
