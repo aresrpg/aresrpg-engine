@@ -41,29 +41,8 @@ class Quadtree {
             };
             currentNode = currentNode.getOrBuildChild(coordsInParent);
         }
+
         return currentNode;
-    }
-
-    public tryGetNode(nodeId: QuadtreeNodeId): QuadtreeNode | null {
-        const levelCoords = this.buildLocalNodeIdsList(nodeId);
-
-        const rootNodeCoords = levelCoords[0];
-        if (!rootNodeCoords) {
-            throw new Error();
-        }
-        const rootNodeId = this.buildRootNodeId(rootNodeCoords);
-        let currentNode = this.rootNodes.get(rootNodeId) ?? null;
-
-        for (let iLevel = 1; iLevel < levelCoords.length && currentNode; iLevel++) {
-            const coordsInLevel = levelCoords[iLevel]!.worldCoordsInLevel;
-            const coordsInParent = {
-                x: (coordsInLevel.x % 2) as 0 | 1,
-                z: (coordsInLevel.z % 2) as 0 | 1,
-            };
-            currentNode = currentNode.tryGetChild(coordsInParent);
-        }
-
-        return currentNode ?? null;
     }
 
     private buildLocalNodeIdsList(nodeId: QuadtreeNodeId): QuadtreeNodeId[] {
