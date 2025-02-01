@@ -52,6 +52,9 @@ class HeightmapRootTile extends HeightmapTile {
                         };
                     });
                 },
+                getWorldSize(nestingLevel: number): number {
+                    return params.sizeWorld / 2 ** nestingLevel;
+                },
             },
             localTileId: { nestingLevel: 0, localCoords: { x: 0, z: 0 } },
         });

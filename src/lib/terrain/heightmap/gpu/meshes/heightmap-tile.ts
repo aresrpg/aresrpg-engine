@@ -1,4 +1,5 @@
 import { AsyncTask } from '../../../../helpers/async/async-task';
+import { applyReplacements } from '../../../../helpers/string';
 import * as THREE from '../../../../libs/three-usage';
 import { type IHeightmap, type IHeightmapCoords, type IHeightmapSample } from '../../i-heightmap';
 
@@ -18,6 +19,7 @@ type Parameters = {
         readonly geometryStore: TileGeometryStore;
         readonly texture: HeightmapRootTexture;
         convertToWorldPositions(localTileId: TileId, normalizedPositions: ReadonlyArray<IHeightmapCoords>): IHeightmapCoords[];
+        getWorldSize(nestingLevel: number): number;
     };
     readonly localTileId: TileId;
 };
@@ -44,12 +46,13 @@ class HeightmapTile {
         readonly geometryStore: TileGeometryStore;
         readonly texture: HeightmapRootTexture;
         convertToWorldPositions(localTileId: TileId, normalizedPositions: ReadonlyArray<IHeightmapCoords>): IHeightmapCoords[];
+        getWorldSize(nestingLevel: number): number;
     };
 
     private readonly self: {
         readonly localTileId: TileId;
         readonly shader: {
-            readonly material: THREE.ShaderMaterial;
+            readonly material: THREE.MeshPhongMaterial;
             readonly uniforms: {
                 readonly uDropUp: THREE.IUniform<number>;
                 readonly uDropDown: THREE.IUniform<number>;
@@ -83,7 +86,15 @@ class HeightmapTile {
 
         this.root = params.root;
 
+        const uvChunk = this.root.texture.getTileUv(params.localTileId);
         const uniforms = {
+            uTexture0: { value: this.root.texture.textures[0] },
+            uTexture1: { value: this.root.texture.textures[1] },
+            uUvScale: { value: uvChunk.scale },
+            uUvShift: { value: new THREE.Vector2().copy(uvChunk.shift) },
+            uMinAltitude: { value: this.root.heightmap.minAltitude },
+            uMaxAltitude: { value: this.root.heightmap.maxAltitude },
+            uSizeWorld: { value: this.root.getWorldSize(params.localTileId.nestingLevel) },
             uDropUp: { value: 0 },
             uDropDown: { value: 0 },
             uDropLeft: { value: 0 },
@@ -94,86 +105,61 @@ class HeightmapTile {
             uDropUpRight: { value: 0 },
         };
 
-        const uvChunk = this.root.texture.getTileUv(params.localTileId);
+        const material = new THREE.MeshPhongMaterial({ vertexColors: true });
+        material.shininess = 0;
+        // material.flatShading = true;
+        material.customProgramCacheKey = () => 'heightmap-tile-material';
+        material.onBeforeCompile = parameters => {
+            parameters.uniforms = {
+                ...parameters.uniforms,
+                ...uniforms,
+            };
+
+            parameters.vertexShader = applyReplacements(parameters.vertexShader, {
+                'void main() {': `
+uniform sampler2D uTexture0;
+uniform sampler2D uTexture1;
+uniform vec2 uUvShift;
+uniform float uUvScale;
+uniform float uMinAltitude;
+uniform float uMaxAltitude;
+uniform float uSizeWorld;
+
+uniform float uDropUp;
+uniform float uDropDown;
+uniform float uDropLeft;
+uniform float uDropRight;
+uniform float uDropDownLeft;
+uniform float uDropDownRight;
+uniform float uDropUpLeft;
+uniform float uDropUpRight;
+
+#include <packing>
+
+void main() {
+    vec2 tileUv = uUvShift + position.xz * uUvScale;
+    vec4 texture0Sample = texture(uTexture0, tileUv);
+    vec4 texture1Sample = texture(uTexture1, tileUv);
+`,
+                '#include <begin_vertex>': `
+vec3 transformed = position;
+float altitude = unpackRGToDepth(vec2(texture0Sample.a, texture1Sample.a));
+transformed.y = mix(uMinAltitude, uMaxAltitude, altitude);
+`,
+                '#include <beginnormal_vertex>': `
+vec3 objectNormal = 2.0 * texture1Sample.rgb - 1.0;
+objectNormal.y /= uSizeWorld;
+`,
+                '#include <color_vertex>': `
+vColor = texture0Sample.rgb;
+`,
+            });
+        };
+
         this.self = {
             localTileId: params.localTileId,
             shader: {
-                material: new THREE.ShaderMaterial({
-                    glslVersion: '300 es',
-                    uniforms: {
-                        uTexture0: { value: this.root.texture.textures[0] },
-                        uTexture1: { value: this.root.texture.textures[1] },
-                        uUvScale: { value: uvChunk.scale },
-                        uUvShift: { value: new THREE.Vector2().copy(uvChunk.shift) },
-                        uMinAltitude: { value: this.root.heightmap.minAltitude },
-                        uMaxAltitude: { value: this.root.heightmap.maxAltitude },
-                        ...uniforms,
-                    },
-                    vertexShader: `
-                    uniform sampler2D uTexture0;
-                    uniform sampler2D uTexture1;
-                    uniform vec2 uUvShift;
-                    uniform float uUvScale;
-                    uniform float uMinAltitude;
-                    uniform float uMaxAltitude;
-
-                    uniform float uDropUp;
-                    uniform float uDropDown;
-                    uniform float uDropLeft;
-                    uniform float uDropRight;
-                    uniform float uDropDownLeft;
-                    uniform float uDropDownRight;
-                    uniform float uDropUpLeft;
-                    uniform float uDropUpRight;
-            
-                    out vec3 vColor;
-                    out vec3 vNormal;
-            
-                    #include <packing>
-
-                    void main() {
-                        vec2 uv = uUvShift + position.xz * uUvScale;
-                        vec4 texture0Sample = texture(uTexture0, uv);
-                        vec4 texture1Sample = texture(uTexture1, uv);
-
-                        float altitude = unpackRGToDepth(vec2(texture0Sample.a, texture1Sample.a));
-
-                        vec3 adjustedPosition = position;
-                        adjustedPosition.y = mix(uMinAltitude, uMaxAltitude, altitude);
-
-                        float isUp = step(0.99, position.z);
-                        float isDown = step(position.z, 0.01);
-                        float isLeft = step(position.x, 0.01);
-                        float isRight = step(0.99, position.x);
-
-                        float drop = step(0.5,
-                            isUp * uDropUp +
-                            isDown * uDropDown +
-                            isLeft * uDropLeft +
-                            isRight * uDropRight +
-                            isDown * (isLeft * uDropDownLeft + isRight * uDropDownRight) +
-                            isUp * (isLeft * uDropUpLeft + isRight * uDropUpRight)
-                        );
-
-                        adjustedPosition.y -= 30.0 * drop;
-            
-                        gl_Position = projectionMatrix * modelViewMatrix * vec4(adjustedPosition, 1);
-                        vColor = texture0Sample.rgb;
-
-                        vNormal = 2.0 * texture1Sample.rgb - 1.0;
-                    }
-                    `,
-                    fragmentShader: `
-                    in vec3 vColor;
-                    in vec3 vNormal;
-            
-                    out vec4 fragColor;
-            
-                    void main() {
-                        fragColor = vec4(vColor, 1);
-                    }
-                    `,
-                }),
+                material,
                 uniforms,
             },
             meshes: new Map(),
@@ -291,8 +277,6 @@ class HeightmapTile {
         this.self.shader.uniforms.uDropDownRight.value = +edgesDrop.downRight;
         this.self.shader.uniforms.uDropUpLeft.value = +edgesDrop.upLeft;
         this.self.shader.uniforms.uDropUpRight.value = +edgesDrop.upRight;
-
-        this.self.shader.material.uniformsNeedUpdate = true;
     }
 
     public setVisibility(visible: boolean): void {
