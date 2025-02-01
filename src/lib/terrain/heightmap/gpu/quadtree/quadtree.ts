@@ -52,11 +52,13 @@ class Quadtree {
 
         const nodeIdsList: QuadtreeNodeId[] = [];
         for (let iNestingLevel = 0; iNestingLevel <= nodeId.nestingLevel; iNestingLevel++) {
+            const nodeWorldSize = 2 ** (nodeId.nestingLevel - iNestingLevel);
+
             nodeIdsList.push({
                 nestingLevel: iNestingLevel,
                 worldCoordsInLevel: {
-                    x: Math.floor(nodeId.worldCoordsInLevel.x / 2 ** (this.maxNesting - iNestingLevel)),
-                    z: Math.floor(nodeId.worldCoordsInLevel.z / 2 ** (this.maxNesting - iNestingLevel)),
+                    x: Math.floor(nodeId.worldCoordsInLevel.x / nodeWorldSize),
+                    z: Math.floor(nodeId.worldCoordsInLevel.z / nodeWorldSize),
                 },
             });
         }
