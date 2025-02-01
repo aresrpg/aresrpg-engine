@@ -53,6 +53,7 @@ class HeightmapTile {
         readonly localTileId: TileId;
         readonly shader: {
             readonly material: THREE.MeshPhongMaterial;
+            readonly shadowMaterial: THREE.Material;
             readonly uniforms: {
                 readonly uDropUp: THREE.IUniform<number>;
                 readonly uDropDown: THREE.IUniform<number>;
@@ -156,10 +157,70 @@ vColor = texture0Sample.rgb;
             });
         };
 
+        // Custom shadow material using RGBA depth packing.
+        // A custom material for shadows is needed here, because the geometry is created inside the vertex shader,
+        // so the builtin threejs shadow material will not work.
+        // Written like:
+        // https://github.com/mrdoob/three.js/blob/2ff77e4b335e31c108aac839a07401664998c730/src/renderers/shaders/ShaderLib/depth.glsl.js#L47
+        const shadowMaterial = new THREE.ShaderMaterial({
+            glslVersion: '300 es',
+            uniforms,
+            vertexShader: `
+                uniform sampler2D uTexture0;
+                uniform sampler2D uTexture1;
+                uniform vec2 uUvShift;
+                uniform float uUvScale;
+                uniform float uMinAltitude;
+                uniform float uMaxAltitude;
+                uniform float uSizeWorld;
+
+                uniform float uDropUp;
+                uniform float uDropDown;
+                uniform float uDropLeft;
+                uniform float uDropRight;
+                uniform float uDropDownLeft;
+                uniform float uDropDownRight;
+                uniform float uDropUpLeft;
+                uniform float uDropUpRight;
+
+                #include <packing>
+
+                out vec2 vHighPrecisionZW;
+
+                void main() {
+                    vec2 tileUv = uUvShift + position.xz * uUvScale;
+                    vec4 texture0Sample = texture(uTexture0, tileUv);
+                    vec4 texture1Sample = texture(uTexture1, tileUv);
+                    
+                    vec3 modelPosition = position;
+                    float altitude = unpackRGToDepth(vec2(texture0Sample.a, texture1Sample.a));
+                    modelPosition.y = mix(uMinAltitude, uMaxAltitude, altitude);
+
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(modelPosition, 1.0);
+                    vHighPrecisionZW = gl_Position.zw;
+                }`,
+            fragmentShader: `precision highp float;
+        
+                #include <packing>
+        
+                in vec2 vHighPrecisionZW;
+        
+                out vec4 fragColor;
+        
+                void main(void) {
+                    // Higher precision equivalent of gl_FragCoord.z. This assumes depthRange has been left to its default values.
+                    float fragCoordZ = 0.5 * vHighPrecisionZW[0] / vHighPrecisionZW[1] + 0.5;
+        
+                    // RGBA depth packing 
+                    fragColor = packDepthToRGBA( fragCoordZ );
+                }`,
+        });
+
         this.self = {
             localTileId: params.localTileId,
             shader: {
                 material,
+                shadowMaterial,
                 uniforms,
             },
             meshes: new Map(),
@@ -172,6 +233,9 @@ vColor = texture0Sample.rgb;
                         const edgeResolution = { up, down, left, right };
                         const bufferGeometry = this.root.geometryStore.getBufferGeometry(edgeResolution);
                         const mesh = new THREE.Mesh(bufferGeometry, this.self.shader.material);
+                        mesh.customDepthMaterial = this.self.shader.shadowMaterial;
+                        mesh.receiveShadow = true;
+                        mesh.castShadow = true;
                         mesh.frustumCulled = false;
                         const id = buildEdgesResolutionId(edgeResolution);
                         this.self.meshes.set(id, mesh);
