@@ -127,6 +127,7 @@ class HeightmapTile {
                     uniform float uDropUpRight;
             
                     out vec3 vColor;
+                    out vec3 vNormal;
             
                     #include <packing>
 
@@ -154,14 +155,17 @@ class HeightmapTile {
                             isUp * (isLeft * uDropUpLeft + isRight * uDropUpRight)
                         );
 
-                        adjustedPosition.y -= 20.0 * drop;
+                        adjustedPosition.y -= 30.0 * drop;
             
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(adjustedPosition, 1);
                         vColor = texture0Sample.rgb;
+
+                        vNormal = 2.0 * texture1Sample.rgb - 1.0;
                     }
                     `,
                     fragmentShader: `
                     in vec3 vColor;
+                    in vec3 vNormal;
             
                     out vec4 fragColor;
             

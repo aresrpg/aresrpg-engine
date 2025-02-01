@@ -4,7 +4,8 @@ import { type IHeightmapSample } from '../../i-heightmap';
 import { type TileGeometryStore } from './tile-geometry-store';
 
 type Parameters = {
-    readonly baseCellSize: number;
+    readonly baseCellSizeInTexels: number;
+    readonly texelSizeInWorld: number;
     readonly maxNesting: number;
     readonly minAltitude: number;
     readonly maxAltitude: number;
@@ -35,7 +36,15 @@ class HeightmapRootTexture {
 
     public readonly tilePositions: ReadonlyArray<{ readonly x: number; readonly z: number }>; // in [0, 1]
 
-    private readonly rendertarget: THREE.WebGLRenderTarget;
+    private needsUpdate: boolean = false;
+
+    private readonly rawRendertarget: THREE.WebGLRenderTarget;
+
+    private readonly finalization: {
+        readonly rendertarget: THREE.WebGLRenderTarget;
+        readonly material: THREE.ShaderMaterial;
+    };
+
     private readonly maxNesting: number;
 
     private readonly fakeCamera = new THREE.PerspectiveCamera();
@@ -59,14 +68,80 @@ class HeightmapRootTexture {
     private isFirstUpdate: boolean = true;
 
     public constructor(params: Parameters) {
-        const textureSize = params.baseCellSize * 2 ** params.maxNesting;
-        this.rendertarget = new THREE.WebGLRenderTarget(textureSize, textureSize, { count: 2 });
-        const texture0 = this.rendertarget.textures[0];
-        const texture1 = this.rendertarget.textures[1];
-        if (!texture0 || !texture1) {
+        const textureSize = params.baseCellSizeInTexels * 2 ** params.maxNesting;
+
+        this.rawRendertarget = new THREE.WebGLRenderTarget(textureSize, textureSize, { count: 2 });
+        const rawTexture0 = this.rawRendertarget.textures[0];
+        const rawTexture1 = this.rawRendertarget.textures[1];
+        if (!rawTexture0 || !rawTexture1) {
             throw new Error();
         }
-        this.textures = [texture0, texture1];
+
+        this.finalization = {
+            rendertarget: new THREE.WebGLRenderTarget(textureSize, textureSize, { depthBuffer: false, count: 2 }),
+            material: new THREE.RawShaderMaterial({
+                glslVersion: '300 es',
+                uniforms: {
+                    uTexture0: { value: rawTexture0 },
+                    uTexture1: { value: rawTexture1 },
+                },
+                vertexShader: `
+                in vec3 position;
+
+                out vec2 vUv;
+
+                void main() {
+                    gl_Position = vec4(2.0 * position.xz - 1.0, 0, 1);
+                    vUv = position.xz;
+                }
+                `,
+                fragmentShader: `
+                precision mediump float;
+
+                uniform sampler2D uTexture0;
+                uniform sampler2D uTexture1;
+
+                in vec2 vUv;
+
+                layout (location=0) out vec4 fragColor1;
+                layout (location=1) out vec4 fragColor2;
+
+                #include <packing>
+
+                vec3 computeNormal() {
+                    const float texelSize = 1.0 / ${textureSize.toFixed(1)};
+                    float altitudeLeft =  texture(uTexture0, vUv - vec2(texelSize, 0)).a;
+                    float altitudeRight = texture(uTexture0, vUv + vec2(texelSize, 0)).a;
+                    float altitudeUp =    texture(uTexture0, vUv + vec2(0, texelSize)).a;
+                    float altitudeDown =  texture(uTexture0, vUv - vec2(0, texelSize)).a;
+
+                    return normalize(vec3(
+                        altitudeLeft - altitudeRight,
+                        ${((2 * params.texelSizeInWorld) / (params.maxAltitude - params.minAltitude)).toFixed(5)},
+                        altitudeDown - altitudeUp
+                    ));
+                }
+
+                void main() {
+                    vec3 color = texture(uTexture0, vUv).rgb;
+                    vec3 normal = computeNormal();
+                    
+                    vec2 packedAltitude = texture(uTexture1, vUv).rg;
+                    fragColor1 = vec4(color, packedAltitude.x);
+                    fragColor2 = vec4(0.5 + 0.5 * normal, packedAltitude.y);
+                }
+                `,
+                blending: THREE.NoBlending,
+                side: THREE.DoubleSide,
+            }),
+        };
+
+        const finalTexture0 = this.finalization.rendertarget.textures[0];
+        const finalTexture1 = this.finalization.rendertarget.textures[1];
+        if (!finalTexture0 || !finalTexture1) {
+            throw new Error();
+        }
+        this.textures = [finalTexture0, finalTexture1];
         for (const texture of this.textures) {
             texture.magFilter = THREE.NearestFilter;
         }
@@ -123,16 +198,14 @@ class HeightmapRootTexture {
             in vec3 vColor;
             in float vAltitude;
 
-            layout (location=0) out vec4 fragColor1;
-            layout (location=1) out vec4 fragColor2;
+            layout (location=0) out vec4 fragColor0;
+            layout (location=1) out vec4 fragColor1;
 
             #include <packing>
 
             void main() {
-                vec2 encodedAltitude = packDepthToRG(vAltitude);
-
-                fragColor1 = vec4(vColor, encodedAltitude.x);
-                fragColor2 = vec4(0, 0, 0, encodedAltitude.y);
+                fragColor0 = vec4(vColor, vAltitude);
+                fragColor1 = vec4(packDepthToRG(vAltitude), 0, 1);
             }
             `,
             blending: THREE.NoBlending,
@@ -153,7 +226,8 @@ class HeightmapRootTexture {
         for (const texture of this.textures) {
             texture.dispose();
         }
-        this.rendertarget.dispose();
+        this.rawRendertarget.dispose();
+        this.finalization.rendertarget.dispose();
         this.computedCellsPrecisions.clear();
     }
 
@@ -176,7 +250,7 @@ class HeightmapRootTexture {
         renderer.autoClearDepth = false;
         renderer.setClearColor(0x000000);
         renderer.setClearAlpha(0);
-        renderer.setRenderTarget(this.rendertarget);
+        renderer.setRenderTarget(this.rawRendertarget);
 
         if (this.isFirstUpdate) {
             renderer.clear(true, true);
@@ -184,6 +258,7 @@ class HeightmapRootTexture {
         }
 
         const uvChunk = this.getTileUv(tileId);
+        this.tile.mesh.material = this.tile.shader.material;
         this.tile.shader.uniforms.uUvScale.value = uvChunk.scale;
         this.tile.shader.uniforms.uUvShift.value = uvChunk.shift;
         this.tile.shader.uniforms.uNestingLevel.value = tileId.nestingLevel;
@@ -211,6 +286,26 @@ class HeightmapRootTexture {
         renderer.autoClearDepth = previousState.autoClearDepth;
         renderer.setClearColor(previousState.clearColor, previousState.clearAlpha);
         renderer.setRenderTarget(previousState.renderTarget);
+
+        this.needsUpdate = true;
+    }
+
+    public update(renderer: THREE.WebGLRenderer): void {
+        if (!this.needsUpdate) {
+            return;
+        }
+
+        this.tile.mesh.material = this.finalization.material;
+
+        const previousRendertarget = renderer.getRenderTarget();
+
+        renderer.setRenderTarget(this.finalization.rendertarget);
+
+        renderer.render(this.tile.mesh, this.fakeCamera);
+
+        renderer.setRenderTarget(previousRendertarget);
+
+        this.needsUpdate = false;
     }
 
     public hasDataForTile(tileId: TileId): boolean {

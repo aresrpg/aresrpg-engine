@@ -1,4 +1,5 @@
 import { type IHeightmap, type IHeightmapCoords } from '../../i-heightmap';
+import type * as THREE from '../../../../libs/three-usage';
 
 import { HeightmapRootTexture, type TileId } from './heightmap-root-texture';
 import { HeightmapTile } from './heightmap-tile';
@@ -19,7 +20,8 @@ type Parameters = {
 class HeightmapRootTile extends HeightmapTile {
     public constructor(params: Parameters) {
         const rootTexture = new HeightmapRootTexture({
-            baseCellSize: params.segmentsCount,
+            baseCellSizeInTexels: params.segmentsCount,
+            texelSizeInWorld: 2,
             maxNesting: params.maxNesting,
             geometryStore: params.geometryStore,
             minAltitude: params.heightmap.minAltitude,
@@ -53,6 +55,11 @@ class HeightmapRootTile extends HeightmapTile {
             },
             localTileId: { nestingLevel: 0, localCoords: { x: 0, z: 0 } },
         });
+    }
+
+    public override update(renderer: THREE.WebGLRenderer): void {
+        super.update(renderer);
+        this.root.texture.update(renderer);
     }
 
     public override dispose(): void {
