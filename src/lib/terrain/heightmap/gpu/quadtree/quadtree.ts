@@ -33,13 +33,32 @@ class Quadtree {
             this.rootNodes.set(rootNodeId, currentNode);
         }
 
+        const ensureNeighbourExist = (node: QuadtreeNode, dX: number, dZ: number): void => {
+            this.getOrBuildNode({
+                nestingLevel: node.nodeId.nestingLevel,
+                worldCoordsInLevel: {
+                    x: node.nodeId.worldCoordsInLevel.x + dX,
+                    z: node.nodeId.worldCoordsInLevel.z + dZ,
+                },
+            });
+        };
+
         for (let iLevel = 1; iLevel < levelCoords.length && currentNode; iLevel++) {
+            if (!currentNode.getChildren()) {
+                currentNode.subdivide();
+
+                ensureNeighbourExist(currentNode, -1, 0);
+                ensureNeighbourExist(currentNode, +1, 0);
+                ensureNeighbourExist(currentNode, 0, -1);
+                ensureNeighbourExist(currentNode, 0, +1);
+            }
+
             const coordsInLevel = levelCoords[iLevel]!.worldCoordsInLevel;
-            const coordsInParent = {
+            const currentNodeChildId = {
                 x: safeModulo(coordsInLevel.x, 2) as 0 | 1,
                 z: safeModulo(coordsInLevel.z, 2) as 0 | 1,
             };
-            currentNode = currentNode.getOrBuildChild(coordsInParent);
+            currentNode = currentNode.getChild(currentNodeChildId);
         }
 
         return currentNode;

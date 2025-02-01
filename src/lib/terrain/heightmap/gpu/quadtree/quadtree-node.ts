@@ -38,34 +38,30 @@ class QuadtreeNode implements ReadonlyQuadtreeNode {
         this.nodeId = nodeId;
     }
 
-    public getOrBuildChild(childId: ChildId): QuadtreeNode {
-        if (!this.children) {
-            const buildChild = (childX: 0 | 1, childY: 0 | 1): QuadtreeNode => {
-                return new QuadtreeNode({
-                    nestingLevel: this.nodeId.nestingLevel + 1,
-                    worldCoordsInLevel: {
-                        x: 2 * this.nodeId.worldCoordsInLevel.x + childX,
-                        z: 2 * this.nodeId.worldCoordsInLevel.z + childY,
-                    },
-                });
-            };
+    public subdivide(): void {
+        const buildChild = (childX: 0 | 1, childY: 0 | 1): QuadtreeNode => {
+            return new QuadtreeNode({
+                nestingLevel: this.nodeId.nestingLevel + 1,
+                worldCoordsInLevel: {
+                    x: 2 * this.nodeId.worldCoordsInLevel.x + childX,
+                    z: 2 * this.nodeId.worldCoordsInLevel.z + childY,
+                },
+            });
+        };
 
-            this.children = {
-                mm: buildChild(0, 0),
-                mp: buildChild(0, 1),
-                pm: buildChild(1, 0),
-                pp: buildChild(1, 1),
-            };
-        }
-
-        return this.getChild(childId);
+        this.children = {
+            mm: buildChild(0, 0),
+            mp: buildChild(0, 1),
+            pm: buildChild(1, 0),
+            pp: buildChild(1, 1),
+        };
     }
 
     public getChildren(): ReturnType<ReadonlyQuadtreeNode['getChildren']> {
         return this.children;
     }
 
-    private getChild(childId: ChildId): QuadtreeNode {
+    public getChild(childId: ChildId): QuadtreeNode {
         if (!this.children) {
             throw new Error();
         }
