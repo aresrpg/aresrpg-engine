@@ -1,11 +1,10 @@
 import * as THREE from '../../../libs/three-usage';
-import { EEdgeResolution } from '../cpu/heightmap-node-geometry';
 import { type IHeightmap } from '../i-heightmap';
 import { type HeightmapStatistics, type IHeightmapViewer } from '../i-heightmap-viewer';
 
 import { HeightmapRootTile } from './meshes/heightmap-root-tile';
 import { type HeightmapTile } from './meshes/heightmap-tile';
-import { TileGeometryStore } from './meshes/tile-geometry-store';
+import { EEdgeResolution, TileGeometryStore } from './meshes/tile-geometry-store';
 import { Quadtree } from './quadtree/quadtree';
 import { type QuadtreeNode, type ReadonlyQuadtreeNode } from './quadtree/quadtree-node';
 
@@ -59,6 +58,12 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         for (const patch of patches) {
             const quadtreeNode = quadtree.getOrBuildNode({ nestingLevel: this.maxNesting, worldCoordsInLevel: patch });
             quadtreeNode.visible = false;
+
+            for (let dX = -1; dX <= 1; dX++) {
+                for (let dZ = -1; dZ <= 1; dZ++) {
+                    quadtree.getOrBuildNode({ nestingLevel: this.maxNesting, worldCoordsInLevel: { x: patch.x + dX, z: patch.z + dZ } });
+                }
+            }
         }
 
         this.updateMeshes(quadtree);
@@ -84,8 +89,8 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         };
 
         const udpateTile = (tile: HeightmapTile, quadtreeNode: ReadonlyQuadtreeNode): void => {
-            tile.setVisibility(quadtreeNode.visible);
-            if (quadtreeNode.visible) {
+            tile.setVisibility(quadtreeNode.isVisible());
+            if (quadtreeNode.isVisible()) {
                 const quadtreeNodeChildren = quadtreeNode.getChildren();
                 if (quadtreeNodeChildren) {
                     tile.subdivide();
@@ -101,6 +106,10 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                         down: getNeighbour(quadtreeNode, 0, -1),
                         left: getNeighbour(quadtreeNode, -1, 0),
                         right: getNeighbour(quadtreeNode, +1, 0),
+                        downLeft: getNeighbour(quadtreeNode, -1, -1),
+                        downRight: getNeighbour(quadtreeNode, +1, -1),
+                        upLeft: getNeighbour(quadtreeNode, -1, +1),
+                        upRight: getNeighbour(quadtreeNode, +1, +1),
                     };
 
                     tile.setEdgesResolution({
@@ -109,6 +118,16 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                         left: neighbours.left ? EEdgeResolution.SIMPLE : EEdgeResolution.DECIMATED,
                         right: neighbours.right ? EEdgeResolution.SIMPLE : EEdgeResolution.DECIMATED,
                     });
+                    tile.setEdgesDrop({
+                        up: neighbours.up?.isVisible() === false,
+                        down: neighbours.down?.isVisible() === false,
+                        left: neighbours.left?.isVisible() === false,
+                        right: neighbours.right?.isVisible() === false,
+                        upLeft: neighbours.upLeft?.isVisible() === false,
+                        upRight: neighbours.upRight?.isVisible() === false,
+                        downLeft: neighbours.downLeft?.isVisible() === false,
+                        downRight: neighbours.downRight?.isVisible() === false,
+                    });
                 }
             }
         };
@@ -116,7 +135,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         const rootTileSize = this.basePatchSize * 2 ** this.maxNesting;
 
         for (const rootQuadtreeNode of quadtree.getRootNodes()) {
-            if (rootQuadtreeNode.visible) {
+            if (rootQuadtreeNode.isVisible()) {
                 const rootTileId = `${rootQuadtreeNode.nodeId.worldCoordsInLevel.x}_${rootQuadtreeNode.nodeId.worldCoordsInLevel.z}`;
                 let rootTile = this.rootTilesMap.get(rootTileId);
                 if (!rootTile) {

@@ -1,9 +1,9 @@
 import { AsyncTask } from '../../../../helpers/async/async-task';
 import * as THREE from '../../../../libs/three-usage';
-import { type IHeightmapSample, type IHeightmap, type IHeightmapCoords } from '../../i-heightmap';
+import { type IHeightmap, type IHeightmapCoords, type IHeightmapSample } from '../../i-heightmap';
 
 import { type HeightmapRootTexture, type TileId } from './heightmap-root-texture';
-import { buildEdgesResolutionId, EEdgeResolution, type EdgesResolution, type TileGeometryStore } from './tile-geometry-store';
+import { buildEdgesResolutionId, type EdgesResolution, EEdgeResolution, type TileGeometryStore } from './tile-geometry-store';
 
 type Children = {
     readonly mm: HeightmapTile;
@@ -22,6 +22,17 @@ type Parameters = {
     readonly localTileId: TileId;
 };
 
+type TileEdgesDrop = {
+    readonly up: boolean;
+    readonly down: boolean;
+    readonly left: boolean;
+    readonly right: boolean;
+    readonly upLeft: boolean;
+    readonly upRight: boolean;
+    readonly downLeft: boolean;
+    readonly downRight: boolean;
+};
+
 class HeightmapTile {
     public readonly container: THREE.Object3D;
 
@@ -37,7 +48,19 @@ class HeightmapTile {
 
     private readonly self: {
         readonly localTileId: TileId;
-        readonly material: THREE.ShaderMaterial;
+        readonly shader: {
+            readonly material: THREE.ShaderMaterial;
+            readonly uniforms: {
+                readonly uDropUp: THREE.IUniform<number>;
+                readonly uDropDown: THREE.IUniform<number>;
+                readonly uDropLeft: THREE.IUniform<number>;
+                readonly uDropRight: THREE.IUniform<number>;
+                readonly uDropDownLeft: THREE.IUniform<number>;
+                readonly uDropDownRight: THREE.IUniform<number>;
+                readonly uDropUpLeft: THREE.IUniform<number>;
+                readonly uDropUpRight: THREE.IUniform<number>;
+            };
+        };
         readonly meshes: Map<string, THREE.Mesh>;
     };
 
@@ -60,26 +83,48 @@ class HeightmapTile {
 
         this.root = params.root;
 
+        const uniforms = {
+            uDropUp: { value: 0 },
+            uDropDown: { value: 0 },
+            uDropLeft: { value: 0 },
+            uDropRight: { value: 0 },
+            uDropDownLeft: { value: 0 },
+            uDropDownRight: { value: 0 },
+            uDropUpLeft: { value: 0 },
+            uDropUpRight: { value: 0 },
+        };
+
         const uvChunk = this.root.texture.getTileUv(params.localTileId);
         this.self = {
             localTileId: params.localTileId,
-            material: new THREE.ShaderMaterial({
-                glslVersion: '300 es',
-                uniforms: {
-                    uTexture0: { value: this.root.texture.textures[0] },
-                    uTexture1: { value: this.root.texture.textures[1] },
-                    uUvScale: { value: uvChunk.scale },
-                    uUvShift: { value: new THREE.Vector2().copy(uvChunk.shift) },
-                    uMinAltitude: { value: this.root.heightmap.minAltitude },
-                    uMaxAltitude: { value: this.root.heightmap.maxAltitude },
-                },
-                vertexShader: `
+            shader: {
+                material: new THREE.ShaderMaterial({
+                    glslVersion: '300 es',
+                    uniforms: {
+                        uTexture0: { value: this.root.texture.textures[0] },
+                        uTexture1: { value: this.root.texture.textures[1] },
+                        uUvScale: { value: uvChunk.scale },
+                        uUvShift: { value: new THREE.Vector2().copy(uvChunk.shift) },
+                        uMinAltitude: { value: this.root.heightmap.minAltitude },
+                        uMaxAltitude: { value: this.root.heightmap.maxAltitude },
+                        ...uniforms,
+                    },
+                    vertexShader: `
                     uniform sampler2D uTexture0;
                     uniform sampler2D uTexture1;
                     uniform vec2 uUvShift;
                     uniform float uUvScale;
                     uniform float uMinAltitude;
                     uniform float uMaxAltitude;
+
+                    uniform float uDropUp;
+                    uniform float uDropDown;
+                    uniform float uDropLeft;
+                    uniform float uDropRight;
+                    uniform float uDropDownLeft;
+                    uniform float uDropDownRight;
+                    uniform float uDropUpLeft;
+                    uniform float uDropUpRight;
             
                     out vec3 vColor;
             
@@ -94,12 +139,28 @@ class HeightmapTile {
 
                         vec3 adjustedPosition = position;
                         adjustedPosition.y = mix(uMinAltitude, uMaxAltitude, altitude);
+
+                        float isUp = step(0.99, position.z);
+                        float isDown = step(position.z, 0.01);
+                        float isLeft = step(position.x, 0.01);
+                        float isRight = step(0.99, position.x);
+
+                        float drop = step(0.5,
+                            isUp * uDropUp +
+                            isDown * uDropDown +
+                            isLeft * uDropLeft +
+                            isRight * uDropRight +
+                            isDown * (isLeft * uDropDownLeft + isRight * uDropDownRight) +
+                            isUp * (isLeft * uDropUpLeft + isRight * uDropUpRight)
+                        );
+
+                        adjustedPosition.y -= 20.0 * drop;
             
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(adjustedPosition, 1);
                         vColor = texture0Sample.rgb;
                     }
                     `,
-                fragmentShader: `
+                    fragmentShader: `
                     in vec3 vColor;
             
                     out vec4 fragColor;
@@ -108,7 +169,9 @@ class HeightmapTile {
                         fragColor = vec4(vColor, 1);
                     }
                     `,
-            }),
+                }),
+                uniforms,
+            },
             meshes: new Map(),
         };
         const edgesTypesList = [EEdgeResolution.SIMPLE, EEdgeResolution.DECIMATED];
@@ -118,7 +181,7 @@ class HeightmapTile {
                     for (const right of edgesTypesList) {
                         const edgeResolution = { up, down, left, right };
                         const bufferGeometry = this.root.geometryStore.getBufferGeometry(edgeResolution);
-                        const mesh = new THREE.Mesh(bufferGeometry, this.self.material);
+                        const mesh = new THREE.Mesh(bufferGeometry, this.self.shader.material);
                         mesh.frustumCulled = false;
                         const id = buildEdgesResolutionId(edgeResolution);
                         this.self.meshes.set(id, mesh);
@@ -215,17 +278,30 @@ class HeightmapTile {
         this.selfContainer.add(mesh);
     }
 
+    public setEdgesDrop(edgesDrop: TileEdgesDrop): void {
+        this.self.shader.uniforms.uDropUp.value = +edgesDrop.up;
+        this.self.shader.uniforms.uDropDown.value = +edgesDrop.down;
+        this.self.shader.uniforms.uDropLeft.value = +edgesDrop.left;
+        this.self.shader.uniforms.uDropRight.value = +edgesDrop.right;
+        this.self.shader.uniforms.uDropDownLeft.value = +edgesDrop.downLeft;
+        this.self.shader.uniforms.uDropDownRight.value = +edgesDrop.downRight;
+        this.self.shader.uniforms.uDropUpLeft.value = +edgesDrop.upLeft;
+        this.self.shader.uniforms.uDropUpRight.value = +edgesDrop.upRight;
+
+        this.self.shader.material.uniformsNeedUpdate = true;
+    }
+
     public setVisibility(visible: boolean): void {
         this.container.visible = visible;
     }
 
     public get wireframe(): boolean {
-        return this.self.material.wireframe;
+        return this.self.shader.material.wireframe;
     }
 
     public set wireframe(wireframe: boolean) {
         if (this.wireframe !== wireframe) {
-            this.self.material.wireframe = wireframe;
+            this.self.shader.material.wireframe = wireframe;
 
             if (this.children) {
                 for (const child of Object.values(this.children)) {
@@ -264,4 +340,4 @@ class HeightmapTile {
     }
 }
 
-export { HeightmapTile, type Parameters };
+export { HeightmapTile, type Parameters, type TileEdgesDrop };
