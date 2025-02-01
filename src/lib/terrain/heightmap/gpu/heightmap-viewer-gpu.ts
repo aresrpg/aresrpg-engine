@@ -1,4 +1,5 @@
 import * as THREE from '../../../libs/three-usage';
+import { EEdgeResolution } from '../cpu/heightmap-node-geometry';
 import { type IHeightmap } from '../i-heightmap';
 import { type HeightmapStatistics, type IHeightmapViewer } from '../i-heightmap-viewer';
 
@@ -6,7 +7,7 @@ import { HeightmapRootTile } from './meshes/heightmap-root-tile';
 import { type HeightmapTile } from './meshes/heightmap-tile';
 import { TileGeometryStore } from './meshes/tile-geometry-store';
 import { Quadtree } from './quadtree/quadtree';
-import { type ReadonlyQuadtreeNode } from './quadtree/quadtree-node';
+import { type QuadtreeNode, type ReadonlyQuadtreeNode } from './quadtree/quadtree-node';
 
 type Parameters = {
     readonly basePatchSize: number;
@@ -72,6 +73,16 @@ class HeightmapViewerGpu implements IHeightmapViewer {
             rootTile.setVisibility(false);
         }
 
+        const getNeighbour = (quadtreeNode: ReadonlyQuadtreeNode, dX: number, dZ: number): QuadtreeNode | null => {
+            return quadtree.tryGetNode({
+                nestingLevel: quadtreeNode.nodeId.nestingLevel,
+                worldCoordsInLevel: {
+                    x: quadtreeNode.nodeId.worldCoordsInLevel.x + dX,
+                    z: quadtreeNode.nodeId.worldCoordsInLevel.z + dZ,
+                },
+            });
+        };
+
         const udpateTile = (tile: HeightmapTile, quadtreeNode: ReadonlyQuadtreeNode): void => {
             tile.setVisibility(quadtreeNode.visible);
             if (quadtreeNode.visible) {
@@ -84,6 +95,20 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                     udpateTile(tile.children!.pp, quadtreeNodeChildren.pp);
                 } else {
                     tile.merge();
+
+                    const neighbours = {
+                        up: getNeighbour(quadtreeNode, 0, +1),
+                        down: getNeighbour(quadtreeNode, 0, -1),
+                        left: getNeighbour(quadtreeNode, -1, 0),
+                        right: getNeighbour(quadtreeNode, +1, 0),
+                    };
+
+                    tile.setEdgesResolution({
+                        up: neighbours.up ? EEdgeResolution.SIMPLE : EEdgeResolution.DECIMATED,
+                        down: neighbours.down ? EEdgeResolution.SIMPLE : EEdgeResolution.DECIMATED,
+                        left: neighbours.left ? EEdgeResolution.SIMPLE : EEdgeResolution.DECIMATED,
+                        right: neighbours.right ? EEdgeResolution.SIMPLE : EEdgeResolution.DECIMATED,
+                    });
                 }
             }
         };

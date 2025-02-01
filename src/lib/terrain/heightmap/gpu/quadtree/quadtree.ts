@@ -33,7 +33,7 @@ class Quadtree {
             });
         };
 
-        for (let iLevel = 1; iLevel < levelCoords.length && currentNode; iLevel++) {
+        for (let iLevel = 1; iLevel < levelCoords.length; iLevel++) {
             if (!currentNode.getChildren()) {
                 currentNode.subdivide();
 
@@ -41,6 +41,32 @@ class Quadtree {
                 ensureNeighbourExist(currentNode, +1, 0);
                 ensureNeighbourExist(currentNode, 0, -1);
                 ensureNeighbourExist(currentNode, 0, +1);
+            }
+
+            const coordsInLevel = levelCoords[iLevel]!.worldCoordsInLevel;
+            const currentNodeChildId = {
+                x: safeModulo(coordsInLevel.x, 2) as 0 | 1,
+                z: safeModulo(coordsInLevel.z, 2) as 0 | 1,
+            };
+            currentNode = currentNode.getChild(currentNodeChildId);
+        }
+
+        return currentNode;
+    }
+
+    public tryGetNode(nodeId: QuadtreeNodeId): QuadtreeNode | null {
+        const levelCoords = this.buildLocalNodeIdsList(nodeId);
+
+        const rootNodeCoords = levelCoords[0];
+        if (!rootNodeCoords) {
+            throw new Error();
+        }
+        const rootNodeId = this.buildRootNodeId(rootNodeCoords);
+        let currentNode = this.rootNodes.get(rootNodeId) ?? null;
+
+        for (let iLevel = 1; iLevel < levelCoords.length && currentNode; iLevel++) {
+            if (!currentNode.getChildren()) {
+                return null;
             }
 
             const coordsInLevel = levelCoords[iLevel]!.worldCoordsInLevel;
