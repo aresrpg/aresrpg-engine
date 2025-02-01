@@ -2,18 +2,8 @@ import { safeModulo } from '../../../../helpers/math';
 
 import { QuadtreeNode, type QuadtreeNodeId, type ReadonlyQuadtreeNode } from './quadtree-node';
 
-type Parameters = {
-    readonly maxNesting: number;
-};
-
 class Quadtree {
-    private readonly maxNesting: number;
-
     private readonly rootNodes = new Map<string, QuadtreeNode>();
-
-    public constructor(params: Parameters) {
-        this.maxNesting = params.maxNesting;
-    }
 
     public getRootNodes(): Iterable<ReadonlyQuadtreeNode> {
         return this.rootNodes.values();
@@ -65,10 +55,6 @@ class Quadtree {
     }
 
     private buildLocalNodeIdsList(nodeId: QuadtreeNodeId): QuadtreeNodeId[] {
-        if (nodeId.nestingLevel > this.maxNesting) {
-            throw new Error();
-        }
-
         const nodeIdsList: QuadtreeNodeId[] = [];
         for (let iNestingLevel = 0; iNestingLevel <= nodeId.nestingLevel; iNestingLevel++) {
             const nodeWorldSize = 2 ** (nodeId.nestingLevel - iNestingLevel);
