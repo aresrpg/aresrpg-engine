@@ -61,14 +61,6 @@ class QuadtreeNode implements ReadonlyQuadtreeNode {
         return this.getChild(childId);
     }
 
-    public tryGetChild(childId: ChildId): QuadtreeNode | null {
-        if (this.children) {
-            return this.getChild(childId);
-        } else {
-            return null;
-        }
-    }
-
     public getChildren(): ReturnType<ReadonlyQuadtreeNode['getChildren']> {
         return this.children;
     }
