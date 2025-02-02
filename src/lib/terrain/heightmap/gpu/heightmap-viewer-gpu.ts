@@ -31,18 +31,20 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     private readonly maxNesting: number;
     private readonly segmentsCount: number;
 
+    private readonly rootTileSize: number;
     private readonly rootTilesMap = new Map<string, HeightmapRootTile>();
 
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
         this.container.name = 'heightmap-viewer';
 
-        this.basePatchSize = params.basePatchSize;
-
         this.geometryStore = new TileGeometryStore(params.segmentsCount);
         this.heightmap = params.heightmap;
         this.maxNesting = params.maxNesting;
         this.segmentsCount = params.segmentsCount;
+
+        this.basePatchSize = params.basePatchSize;
+        this.rootTileSize = this.basePatchSize * 2 ** this.maxNesting;
     }
 
     public update(renderer: THREE.WebGLRenderer): void {
@@ -66,11 +68,48 @@ class HeightmapViewerGpu implements IHeightmapViewer {
             }
         }
 
+        this.applyVisibility(quadtree);
         this.updateMeshes(quadtree);
     }
 
     public getStatistics(): HeightmapStatistics {
         throw new Error('Method not implemented.');
+    }
+
+    private applyVisibility(quadtree: Quadtree): void {
+        for (const rootNode of quadtree.getRootNodes()) {
+            rootNode.setVisible(false);
+        }
+
+        const rootNodeFrom = new THREE.Vector2()
+            .copy(this.focusPoint)
+            .subScalar(this.visibilityDistance)
+            .divideScalar(this.rootTileSize)
+            .floor();
+        const rootNodeTo = new THREE.Vector2()
+            .copy(this.focusPoint)
+            .addScalar(this.visibilityDistance)
+            .divideScalar(this.rootTileSize)
+            .floor();
+        for (let iX = rootNodeFrom.x; iX <= rootNodeTo.x; iX++) {
+            for (let iZ = rootNodeFrom.y; iZ <= rootNodeTo.y; iZ++) {
+                const rootNode = quadtree.getOrBuildNode({ nestingLevel: 0, worldCoordsInLevel: { x: iX, z: iZ } });
+                rootNode.setVisible(true);
+            }
+        }
+
+        const cellNodeFrom = new THREE.Vector2()
+            .copy(this.focusPoint)
+            .subScalar(this.focusDistance)
+            .divideScalar(this.basePatchSize)
+            .floor();
+        const cellNodeTo = new THREE.Vector2().copy(this.focusPoint).addScalar(this.focusDistance).divideScalar(this.basePatchSize).floor();
+        for (let iX = cellNodeFrom.x; iX <= cellNodeTo.x; iX++) {
+            for (let iZ = cellNodeFrom.y; iZ <= cellNodeTo.y; iZ++) {
+                const node = quadtree.getOrBuildNode({ nestingLevel: this.maxNesting, worldCoordsInLevel: { x: iX, z: iZ } });
+                node.setVisible(true);
+            }
+        }
     }
 
     private updateMeshes(quadtree: Quadtree): void {
