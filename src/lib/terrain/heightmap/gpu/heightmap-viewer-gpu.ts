@@ -57,6 +57,8 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     public setHiddenPatches(patches: ReadonlyArray<{ x: number; z: number }>): void {
         const quadtree = new Quadtree();
 
+        this.applyVisibility(quadtree);
+
         for (const patch of patches) {
             const quadtreeNode = quadtree.getOrBuildNode({ nestingLevel: this.maxNesting, worldCoordsInLevel: patch });
             quadtreeNode.setVisible(false);
@@ -68,7 +70,6 @@ class HeightmapViewerGpu implements IHeightmapViewer {
             }
         }
 
-        this.applyVisibility(quadtree);
         this.updateMeshes(quadtree);
     }
 
