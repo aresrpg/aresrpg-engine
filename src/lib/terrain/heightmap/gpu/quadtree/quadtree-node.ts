@@ -13,6 +13,7 @@ type QuadtreeNodeId = {
 
 type ReadonlyQuadtreeNode = {
     readonly nodeId: QuadtreeNodeId;
+    setVisible(visible: boolean): void;
     isVisible(): boolean;
     getChildren(): {
         readonly mm: ReadonlyQuadtreeNode;
@@ -25,7 +26,7 @@ type ReadonlyQuadtreeNode = {
 class QuadtreeNode implements ReadonlyQuadtreeNode {
     public readonly nodeId: QuadtreeNodeId;
 
-    public visible: boolean = true;
+    private visible: boolean = true;
 
     private children: {
         readonly mm: QuadtreeNode;
@@ -68,6 +69,10 @@ class QuadtreeNode implements ReadonlyQuadtreeNode {
 
         const stringId = `${'mp'[childId.x]}${'mp'[childId.z]}` as 'mm' | 'mp' | 'pm' | 'pp';
         return this.children[stringId];
+    }
+
+    public setVisible(visible: boolean): void {
+        this.visible = visible;
     }
 
     public isVisible(): boolean {

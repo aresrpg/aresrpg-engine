@@ -57,7 +57,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
 
         for (const patch of patches) {
             const quadtreeNode = quadtree.getOrBuildNode({ nestingLevel: this.maxNesting, worldCoordsInLevel: patch });
-            quadtreeNode.visible = false;
+            quadtreeNode.setVisible(false);
 
             for (let dX = -1; dX <= 1; dX++) {
                 for (let dZ = -1; dZ <= 1; dZ++) {
