@@ -70,10 +70,9 @@ class HeightmapRootTexture {
     public constructor(params: Parameters) {
         const textureSize = params.baseCellSizeInTexels * 2 ** params.maxNesting;
 
-        this.rawRendertarget = new THREE.WebGLRenderTarget(textureSize, textureSize, { count: 2, generateMipmaps: false });
-        const rawTexture0 = this.rawRendertarget.textures[0];
-        const rawTexture1 = this.rawRendertarget.textures[1];
-        if (!rawTexture0 || !rawTexture1) {
+        this.rawRendertarget = new THREE.WebGLRenderTarget(textureSize, textureSize, { generateMipmaps: false });
+        const rawTexture = this.rawRendertarget.texture;
+        if (!rawTexture) {
             throw new Error();
         }
 
@@ -82,8 +81,7 @@ class HeightmapRootTexture {
             material: new THREE.RawShaderMaterial({
                 glslVersion: '300 es',
                 uniforms: {
-                    uTexture0: { value: rawTexture0 },
-                    uTexture1: { value: rawTexture1 },
+                    uTexture: { value: rawTexture },
                 },
                 vertexShader: `
                 in vec3 position;
@@ -98,8 +96,7 @@ class HeightmapRootTexture {
                 fragmentShader: `
                 precision mediump float;
 
-                uniform sampler2D uTexture0;
-                uniform sampler2D uTexture1;
+                uniform sampler2D uTexture;
 
                 in vec2 vUv;
 
@@ -110,10 +107,10 @@ class HeightmapRootTexture {
 
                 vec3 computeNormal() {
                     const float texelSize = 1.0 / ${textureSize.toFixed(1)};
-                    float altitudeLeft =  texture(uTexture0, vUv - vec2(texelSize, 0)).a;
-                    float altitudeRight = texture(uTexture0, vUv + vec2(texelSize, 0)).a;
-                    float altitudeUp =    texture(uTexture0, vUv + vec2(0, texelSize)).a;
-                    float altitudeDown =  texture(uTexture0, vUv - vec2(0, texelSize)).a;
+                    float altitudeLeft =  texture(uTexture, vUv - vec2(texelSize, 0)).a;
+                    float altitudeRight = texture(uTexture, vUv + vec2(texelSize, 0)).a;
+                    float altitudeUp =    texture(uTexture, vUv + vec2(0, texelSize)).a;
+                    float altitudeDown =  texture(uTexture, vUv - vec2(0, texelSize)).a;
 
                     return normalize(vec3(
                         altitudeLeft - altitudeRight,
@@ -123,12 +120,13 @@ class HeightmapRootTexture {
                 }
 
                 void main() {
-                    vec3 color = texture(uTexture0, vUv).rgb;
+                    vec4 sampled = texture(uTexture, vUv);
+                    vec3 color = sampled.rgb;
+                    float altitude = sampled.a;
                     vec3 normal = computeNormal();
                     
-                    vec2 packedAltitude = texture(uTexture1, vUv).rg;
-                    fragColor1 = vec4(color, packedAltitude.x);
-                    fragColor2 = vec4(0.5 + 0.5 * normal, packedAltitude.y);
+                    fragColor1 = vec4(color, altitude);
+                    fragColor2 = vec4(0.5 + 0.5 * normal, 0);
                 }
                 `,
                 blending: THREE.NoBlending,
@@ -143,7 +141,8 @@ class HeightmapRootTexture {
         }
         this.textures = [finalTexture0, finalTexture1];
         for (const texture of this.textures) {
-            texture.magFilter = THREE.NearestFilter;
+            texture.magFilter = THREE.LinearFilter;
+            texture.minFilter = THREE.LinearFilter;
         }
         this.maxNesting = params.maxNesting;
 
@@ -198,14 +197,12 @@ class HeightmapRootTexture {
             in vec3 vColor;
             in float vAltitude;
 
-            layout (location=0) out vec4 fragColor0;
-            layout (location=1) out vec4 fragColor1;
+            layout (location=0) out vec4 fragColor;
 
             #include <packing>
 
             void main() {
-                fragColor0 = vec4(vColor, vAltitude);
-                fragColor1 = vec4(packDepthToRG(vAltitude), 0, 1);
+                fragColor = vec4(vColor, vAltitude);
             }
             `,
             blending: THREE.NoBlending,

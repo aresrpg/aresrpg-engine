@@ -144,7 +144,7 @@ void main() {
 `,
                 '#include <begin_vertex>': `
 vec3 transformed = position;
-float altitude = unpackRGToDepth(vec2(texture0Sample.a, texture1Sample.a));
+float altitude = texture0Sample.a;
 transformed.y = mix(uMinAltitude, uMaxAltitude, altitude);
 `,
                 '#include <beginnormal_vertex>': `
@@ -167,7 +167,6 @@ vColor = texture0Sample.rgb;
             uniforms,
             vertexShader: `
                 uniform sampler2D uTexture0;
-                uniform sampler2D uTexture1;
                 uniform vec2 uUvShift;
                 uniform float uUvScale;
                 uniform float uMinAltitude;
@@ -190,10 +189,9 @@ vColor = texture0Sample.rgb;
                 void main() {
                     vec2 tileUv = uUvShift + position.xz * uUvScale;
                     vec4 texture0Sample = texture(uTexture0, tileUv);
-                    vec4 texture1Sample = texture(uTexture1, tileUv);
                     
                     vec3 modelPosition = position;
-                    float altitude = unpackRGToDepth(vec2(texture0Sample.a, texture1Sample.a));
+                    float altitude = texture0Sample.a;
                     modelPosition.y = mix(uMinAltitude, uMaxAltitude, altitude);
 
                     gl_Position = projectionMatrix * modelViewMatrix * vec4(modelPosition, 1.0);
