@@ -70,7 +70,7 @@ class HeightmapRootTexture {
     public constructor(params: Parameters) {
         const textureSize = params.baseCellSizeInTexels * 2 ** params.maxNesting;
 
-        this.rawRendertarget = new THREE.WebGLRenderTarget(textureSize, textureSize, { count: 2 });
+        this.rawRendertarget = new THREE.WebGLRenderTarget(textureSize, textureSize, { count: 2, generateMipmaps: false });
         const rawTexture0 = this.rawRendertarget.textures[0];
         const rawTexture1 = this.rawRendertarget.textures[1];
         if (!rawTexture0 || !rawTexture1) {
@@ -78,7 +78,7 @@ class HeightmapRootTexture {
         }
 
         this.finalization = {
-            rendertarget: new THREE.WebGLRenderTarget(textureSize, textureSize, { depthBuffer: false, count: 2 }),
+            rendertarget: new THREE.WebGLRenderTarget(textureSize, textureSize, { count: 2, generateMipmaps: false, depthBuffer: false }),
             material: new THREE.RawShaderMaterial({
                 glslVersion: '300 es',
                 uniforms: {
