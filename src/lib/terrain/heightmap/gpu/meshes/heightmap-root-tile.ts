@@ -19,6 +19,8 @@ type Parameters = {
 };
 
 class HeightmapRootTile extends HeightmapTile {
+    private invisibleSinceTimestamp: number | null = null;
+
     public constructor(params: Parameters) {
         const rootTexture = new HeightmapRootTexture({
             baseCellSizeInTexels: params.segmentsCount,
@@ -66,6 +68,20 @@ class HeightmapRootTile extends HeightmapTile {
     public override update(renderer: THREE.WebGLRenderer): void {
         super.update(renderer);
         this.root.texture.update(renderer);
+    }
+
+    public override setVisibility(visible: boolean): void {
+        super.setVisibility(visible);
+
+        if (visible) {
+            this.invisibleSinceTimestamp = null;
+        } else if (this.invisibleSinceTimestamp === null) {
+            this.invisibleSinceTimestamp = performance.now();
+        }
+    }
+
+    public isInvisibleSince(): number | null {
+        return this.invisibleSinceTimestamp;
     }
 
     public override dispose(): void {

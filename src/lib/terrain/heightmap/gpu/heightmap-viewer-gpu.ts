@@ -14,6 +14,10 @@ type Parameters = {
     readonly maxNesting: number;
     readonly heightmap: IHeightmap;
     readonly flatShading: boolean;
+    readonly garbageCollecting?: {
+        readonly maxInvisibleRootTilesInCache?: number;
+        readonly frequency?: number;
+    };
 };
 
 class HeightmapViewerGpu implements IHeightmapViewer {
@@ -33,6 +37,12 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     private readonly segmentsCount: number;
     private readonly flatShading: boolean;
 
+    private readonly garbageCollecting: {
+        readonly maxInvisibleRootTilesInCache: number;
+        readonly frequency: number;
+        handle: number | null;
+    };
+
     private readonly rootTileSize: number;
     private readonly rootTilesMap = new Map<string, HeightmapRootTile>();
 
@@ -49,6 +59,15 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         this.maxNesting = params.maxNesting;
         this.segmentsCount = params.segmentsCount;
         this.flatShading = params.flatShading;
+
+        this.garbageCollecting = {
+            maxInvisibleRootTilesInCache: params.garbageCollecting?.maxInvisibleRootTilesInCache ?? 10,
+            frequency: params.garbageCollecting?.frequency ?? 5000,
+            handle: null,
+        };
+        this.garbageCollecting.handle = window.setInterval(() => {
+            this.garbageCollect();
+        }, this.garbageCollecting.frequency);
 
         this.basePatchSize = params.basePatchSize;
         this.rootTileSize = this.basePatchSize * 2 ** this.maxNesting;
@@ -211,6 +230,29 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                 }
                 udpateTile(rootTile, rootQuadtreeNode);
             }
+        }
+    }
+
+    private garbageCollect(): void {
+        type RootTile = {
+            readonly id: string;
+            readonly rootTile: HeightmapRootTile;
+            readonly invisibleSinceTimestamp: number;
+        };
+
+        const invisibleRootTilesList: RootTile[] = [];
+        for (const [id, rootTile] of this.rootTilesMap.entries()) {
+            const invisibleSinceTimestamp = rootTile.isInvisibleSince();
+            if (invisibleSinceTimestamp) {
+                invisibleRootTilesList.push({ id, rootTile, invisibleSinceTimestamp });
+            }
+        }
+        invisibleRootTilesList.sort((a, b) => a.invisibleSinceTimestamp - b.invisibleSinceTimestamp);
+
+        const rootTilesToDelete = invisibleRootTilesList.slice(0, this.garbageCollecting.maxInvisibleRootTilesInCache);
+        for (const rootTile of rootTilesToDelete) {
+            rootTile.rootTile.dispose();
+            this.rootTilesMap.delete(rootTile.id);
         }
     }
 }
