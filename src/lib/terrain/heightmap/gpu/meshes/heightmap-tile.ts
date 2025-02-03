@@ -22,6 +22,7 @@ type Parameters = {
         getWorldSize(nestingLevel: number): number;
     };
     readonly localTileId: TileId;
+    readonly flatShading: boolean;
 };
 
 type TileEdgesDrop = {
@@ -68,6 +69,8 @@ class HeightmapTile {
         readonly meshes: Map<string, THREE.Mesh>;
     };
 
+    private readonly flatShading: boolean;
+
     private dataQuery: AsyncTask<IHeightmapSample[]> | null;
 
     private subdivided: boolean = false;
@@ -86,6 +89,7 @@ class HeightmapTile {
         this.container.add(this.selfContainer);
 
         this.root = params.root;
+        this.flatShading = params.flatShading;
 
         const uvChunk = this.root.texture.getTileUv(params.localTileId);
         const uniforms = {
@@ -106,11 +110,11 @@ class HeightmapTile {
             uDropUpRight: { value: 0 },
         };
 
-        const useFlatShading = !this.root.texture.textures.normals;
+        const hasNormalsTexture = !!this.root.texture.textures.normals;
         const material = new THREE.MeshPhongMaterial({ vertexColors: true });
         material.shininess = 0;
-        material.flatShading = useFlatShading;
-        material.customProgramCacheKey = () => `heightmap-tile-material-flat=${useFlatShading}`;
+        material.flatShading = this.flatShading;
+        material.customProgramCacheKey = () => `heightmap-tile-material-normals=${hasNormalsTexture}`;
         material.onBeforeCompile = parameters => {
             parameters.uniforms = {
                 ...parameters.uniforms,
@@ -148,7 +152,7 @@ vColor = texture0Sample.rgb;
 `,
             });
 
-            if (!useFlatShading) {
+            if (hasNormalsTexture) {
                 parameters.vertexShader = applyReplacements(parameters.vertexShader, {
                     'void main() {': `
                 uniform sampler2D uTexture1;
@@ -270,6 +274,7 @@ vColor = texture0Sample.rgb;
                             z: 2 * this.self.localTileId.localCoords.z + z,
                         },
                     },
+                    flatShading: this.flatShading,
                 });
                 childTile.container.applyMatrix4(new THREE.Matrix4().makeTranslation(x, 0, z));
                 childTile.container.applyMatrix4(new THREE.Matrix4().makeScale(0.5, 1, 0.5));

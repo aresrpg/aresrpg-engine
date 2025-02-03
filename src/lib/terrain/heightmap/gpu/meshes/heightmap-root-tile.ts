@@ -27,7 +27,7 @@ class HeightmapRootTile extends HeightmapTile {
             geometryStore: params.geometryStore,
             minAltitude: params.heightmap.minAltitude,
             maxAltitude: params.heightmap.maxAltitude,
-            flatShading: params.flatShading,
+            computeNormalsTexture: true,
         });
 
         const rootSize = params.sizeWorld;
@@ -59,6 +59,7 @@ class HeightmapRootTile extends HeightmapTile {
                 },
             },
             localTileId: { nestingLevel: 0, localCoords: { x: 0, z: 0 } },
+            flatShading: params.flatShading,
         });
     }
 

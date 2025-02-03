@@ -11,7 +11,7 @@ type Parameters = {
     readonly minAltitude: number;
     readonly maxAltitude: number;
     readonly geometryStore: TileGeometryStore;
-    readonly flatShading: boolean;
+    readonly computeNormalsTexture: boolean;
 };
 
 type CellId = {
@@ -78,7 +78,7 @@ class HeightmapRootTexture {
 
         this.rawRendertarget = new THREE.WebGLRenderTarget(textureSize, textureSize, { generateMipmaps: false });
 
-        if (!params.flatShading) {
+        if (params.computeNormalsTexture) {
             this.finalization = {
                 fullscreenQuad: createFullscreenQuad('position'),
                 rendertarget: new THREE.WebGLRenderTarget(textureSize, textureSize, {
