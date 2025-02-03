@@ -111,8 +111,6 @@ class HeightmapRootTexture {
                 layout (location=0) out vec4 fragColor1;
                 layout (location=1) out vec4 fragColor2;
 
-                #include <packing>
-
                 vec3 computeNormal() {
                     const float texelSize = 1.0 / ${textureSize.toFixed(1)};
                     float altitudeLeft =  texture(uTexture, vUv - vec2(texelSize, 0)).a;
@@ -207,8 +205,6 @@ class HeightmapRootTexture {
             in float vAltitude;
 
             layout (location=0) out vec4 fragColor;
-
-            #include <packing>
 
             void main() {
                 fragColor = vec4(vColor, vAltitude);

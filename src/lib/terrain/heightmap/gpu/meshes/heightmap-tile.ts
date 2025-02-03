@@ -124,7 +124,6 @@ uniform vec2 uUvShift;
 uniform float uUvScale;
 uniform float uMinAltitude;
 uniform float uMaxAltitude;
-uniform float uSizeWorld;
 
 uniform float uDropUp;
 uniform float uDropDown;
@@ -134,8 +133,6 @@ uniform float uDropDownLeft;
 uniform float uDropDownRight;
 uniform float uDropUpLeft;
 uniform float uDropUpRight;
-
-#include <packing>
 
 void main() {
     vec2 tileUv = uUvShift + position.xz * uUvScale;
@@ -155,6 +152,7 @@ vColor = texture0Sample.rgb;
                 parameters.vertexShader = applyReplacements(parameters.vertexShader, {
                     'void main() {': `
                 uniform sampler2D uTexture1;
+                uniform float uSizeWorld;
 
                 void main() {`,
                     '#include <beginnormal_vertex>': `
@@ -180,7 +178,6 @@ vColor = texture0Sample.rgb;
                 uniform float uUvScale;
                 uniform float uMinAltitude;
                 uniform float uMaxAltitude;
-                uniform float uSizeWorld;
 
                 uniform float uDropUp;
                 uniform float uDropDown;
@@ -190,8 +187,6 @@ vColor = texture0Sample.rgb;
                 uniform float uDropDownRight;
                 uniform float uDropUpLeft;
                 uniform float uDropUpRight;
-
-                #include <packing>
 
                 out vec2 vHighPrecisionZW;
 
