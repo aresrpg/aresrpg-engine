@@ -14,8 +14,10 @@ type HeightmapViewerGpuStatistics = {
 };
 
 type Parameters = {
-    readonly basePatchSize: number;
-    readonly segmentsCount: number;
+    readonly basePatch: {
+        readonly worldSize: number;
+        readonly segmentsCount: number;
+    };
     readonly maxNesting: number;
     readonly heightmap: IHeightmap;
     readonly flatShading: boolean;
@@ -56,13 +58,13 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         this.container.name = 'heightmap-viewer';
 
         this.geometryStore = new TileGeometryStore({
-            segmentsCount: params.segmentsCount,
+            segmentsCount: params.basePatch.segmentsCount,
             minAltitude: params.heightmap.minAltitude,
             maxAltitude: params.heightmap.maxAltitude,
         });
         this.heightmap = params.heightmap;
         this.maxNesting = params.maxNesting;
-        this.segmentsCount = params.segmentsCount;
+        this.segmentsCount = params.basePatch.segmentsCount;
         this.flatShading = params.flatShading;
 
         this.garbageCollecting = {
@@ -74,7 +76,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
             this.garbageCollect();
         }, this.garbageCollecting.frequency);
 
-        this.basePatchSize = params.basePatchSize;
+        this.basePatchSize = params.basePatch.worldSize;
         this.rootTileSize = this.basePatchSize * 2 ** this.maxNesting;
     }
 
@@ -211,8 +213,6 @@ class HeightmapViewerGpu implements IHeightmapViewer {
             }
         };
 
-        const rootTileSize = this.basePatchSize * 2 ** this.maxNesting;
-
         for (const rootQuadtreeNode of quadtree.getRootNodes()) {
             if (rootQuadtreeNode.isVisible()) {
                 const rootTileId = `${rootQuadtreeNode.nodeId.worldCoordsInLevel.x}_${rootQuadtreeNode.nodeId.worldCoordsInLevel.z}`;
@@ -221,13 +221,12 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                     rootTile = new HeightmapRootTile({
                         geometryStore: this.geometryStore,
                         heightmap: this.heightmap,
-                        segmentsCount: this.segmentsCount,
-                        maxNesting: this.maxNesting,
-                        sizeWorld: rootTileSize,
-                        originWorld: {
-                            x: rootQuadtreeNode.nodeId.worldCoordsInLevel.x * rootTileSize,
-                            z: rootQuadtreeNode.nodeId.worldCoordsInLevel.z * rootTileSize,
+                        baseCell: {
+                            worldSize: this.basePatchSize,
+                            segmentsCount: this.segmentsCount,
                         },
+                        tileId: rootQuadtreeNode.nodeId.worldCoordsInLevel,
+                        maxNesting: this.maxNesting,
                         flatShading: this.flatShading,
                     });
                     rootTile.container.applyMatrix4(
@@ -237,7 +236,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                             rootQuadtreeNode.nodeId.worldCoordsInLevel.z
                         )
                     );
-                    rootTile.container.applyMatrix4(new THREE.Matrix4().makeScale(rootTileSize, 1, rootTileSize));
+                    rootTile.container.applyMatrix4(new THREE.Matrix4().makeScale(this.rootTileSize, 1, this.rootTileSize));
                     this.container.add(rootTile.container);
                     this.rootTilesMap.set(rootTileId, rootTile);
                 }

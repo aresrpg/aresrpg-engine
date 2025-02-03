@@ -1,11 +1,11 @@
 import * as THREE from '../libs/three-usage';
 
-import { type HeightmapStatistics, type IHeightmapViewer } from './heightmap/i-heightmap-viewer';
+import { type IHeightmapViewer } from './heightmap/i-heightmap-viewer';
 import { type VoxelmapStatistics, type VoxelmapViewerBase } from './voxelmap/viewer/voxelmap-viewer-base';
 
 type TerrainStatistics = {
     voxelmap: VoxelmapStatistics;
-    heightmap: HeightmapStatistics;
+    heightmap: object;
 };
 
 class TerrainViewer {
