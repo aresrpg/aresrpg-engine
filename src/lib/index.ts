@@ -1,7 +1,7 @@
 export { PromisesQueue } from './helpers/async/promises-queue';
 export { ELogLevel, setVerbosity } from './helpers/logger';
-export { HeightmapViewerCpu } from './terrain/heightmap/cpu/heightmap-viewer-cpu';
-export { HeightmapViewerGpu } from './terrain/heightmap/gpu/heightmap-viewer-gpu';
+export { HeightmapViewerCpu, type HeightmapViewerCpuStatistics } from './terrain/heightmap/cpu/heightmap-viewer-cpu';
+export { HeightmapViewerGpu, type HeightmapViewerGpuStatistics } from './terrain/heightmap/gpu/heightmap-viewer-gpu';
 export type { IHeightmap, IHeightmapCoords, IHeightmapSample } from './terrain/heightmap/i-heightmap';
 export { type IHeightmapViewer } from './terrain/heightmap/i-heightmap-viewer';
 export { TerrainViewer } from './terrain/terrain-viewer';

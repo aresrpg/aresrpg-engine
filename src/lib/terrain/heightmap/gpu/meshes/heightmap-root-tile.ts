@@ -84,6 +84,10 @@ class HeightmapRootTile extends HeightmapTile {
         return this.invisibleSinceTimestamp;
     }
 
+    public getTotalGpuMemoryBytes(): number {
+        return this.root.texture.getTotalGpuMemoryBytes();
+    }
+
     public override dispose(): void {
         this.root.texture.dispose();
         super.dispose();

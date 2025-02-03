@@ -225,12 +225,15 @@ class HeightmapRootTexture {
     }
 
     public dispose(): void {
-        this.textures.colorAndAltitude.dispose();
-        this.textures.normals?.dispose();
-
+        for (const texture of this.rawRendertarget.textures) {
+            texture.dispose();
+        }
         this.rawRendertarget.dispose();
 
         if (this.finalization) {
+            for (const texture of this.finalization.rendertarget.textures) {
+                texture.dispose();
+            }
             this.finalization.fullscreenQuad.geometry.dispose();
             this.finalization.rendertarget.dispose();
             this.finalization.material.dispose();
@@ -337,6 +340,21 @@ class HeightmapRootTexture {
             y: tileId.localCoords.z * scale,
         };
         return { scale, shift };
+    }
+
+    public getTotalGpuMemoryBytes(): number {
+        const computeRendertargetMemoryBytes = (rendertarget: THREE.WebGLRenderTarget): number => {
+            const pixelsCount = rendertarget.width * rendertarget.height;
+            const texturesCount = rendertarget.textures.length + +!!rendertarget.depthTexture;
+            return texturesCount * pixelsCount * 4;
+        };
+
+        let total = 0;
+        total += computeRendertargetMemoryBytes(this.rawRendertarget);
+        if (this.finalization) {
+            total += computeRendertargetMemoryBytes(this.finalization.rendertarget);
+        }
+        return total;
     }
 
     private getCurrentPrecisionForTile(tileId: TileId): number | undefined {

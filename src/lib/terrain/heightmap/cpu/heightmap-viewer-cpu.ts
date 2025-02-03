@@ -1,9 +1,12 @@
+import { type MeshesStatistics } from '../../../helpers/meshes-statistics';
 import * as THREE from '../../../libs/three-usage';
 import { type IHeightmap } from '../i-heightmap';
-import { type HeightmapStatistics, type IHeightmapViewer } from '../i-heightmap-viewer';
+import { type IHeightmapViewer } from '../i-heightmap-viewer';
 
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapRoot, type HeightmapRootOptions } from './heightmap-root';
+
+type HeightmapViewerCpuStatistics = MeshesStatistics;
 
 type HeightmapViewerOptions = HeightmapRootOptions;
 
@@ -76,7 +79,7 @@ class HeightmapViewerCpu implements IHeightmapViewer {
         this.root.updateMesh();
     }
 
-    public getStatistics(): HeightmapStatistics {
+    public getStatistics(): HeightmapViewerCpuStatistics {
         return this.root.getStatistics();
     }
 
@@ -96,4 +99,4 @@ class HeightmapViewerCpu implements IHeightmapViewer {
     }
 }
 
-export { HeightmapViewerCpu };
+export { HeightmapViewerCpu, type HeightmapViewerCpuStatistics };

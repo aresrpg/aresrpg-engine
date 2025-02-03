@@ -1,12 +1,17 @@
 import * as THREE from '../../../libs/three-usage';
 import { type IHeightmap } from '../i-heightmap';
-import { type HeightmapStatistics, type IHeightmapViewer } from '../i-heightmap-viewer';
+import { type IHeightmapViewer } from '../i-heightmap-viewer';
 
 import { HeightmapRootTile } from './meshes/heightmap-root-tile';
 import { type HeightmapTile } from './meshes/heightmap-tile';
 import { EEdgeResolution, TileGeometryStore } from './meshes/tile-geometry-store';
 import { Quadtree } from './quadtree/quadtree';
 import { type QuadtreeNode, type ReadonlyQuadtreeNode } from './quadtree/quadtree-node';
+
+type HeightmapViewerGpuStatistics = {
+    rootTilesCount: number;
+    gpuMemoryBytes: number;
+};
 
 type Parameters = {
     readonly basePatchSize: number;
@@ -99,8 +104,16 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         this.updateMeshes(quadtree);
     }
 
-    public getStatistics(): HeightmapStatistics {
-        throw new Error('Method not implemented.');
+    public getStatistics(): HeightmapViewerGpuStatistics {
+        const result = {
+            rootTilesCount: 0,
+            gpuMemoryBytes: 0,
+        };
+        for (const rootTile of this.rootTilesMap.values()) {
+            result.rootTilesCount++;
+            result.gpuMemoryBytes += rootTile.getTotalGpuMemoryBytes();
+        }
+        return result;
     }
 
     private applyVisibility(quadtree: Quadtree): void {
@@ -257,4 +270,4 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     }
 }
 
-export { HeightmapViewerGpu, type Parameters };
+export { HeightmapViewerGpu, type HeightmapViewerGpuStatistics, type Parameters };
