@@ -234,7 +234,6 @@ vColor = texture0Sample.rgb;
                         mesh.customDepthMaterial = this.self.shader.shadowMaterial;
                         mesh.receiveShadow = true;
                         mesh.castShadow = true;
-                        mesh.frustumCulled = false;
                         const id = buildEdgesResolutionId(edgeResolution);
                         this.self.meshes.set(id, mesh);
                     }

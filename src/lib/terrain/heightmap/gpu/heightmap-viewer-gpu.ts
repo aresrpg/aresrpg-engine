@@ -38,7 +38,11 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         this.container = new THREE.Group();
         this.container.name = 'heightmap-viewer';
 
-        this.geometryStore = new TileGeometryStore(params.segmentsCount);
+        this.geometryStore = new TileGeometryStore({
+            segmentsCount: params.segmentsCount,
+            minAltitude: params.heightmap.minAltitude,
+            maxAltitude: params.heightmap.maxAltitude,
+        });
         this.heightmap = params.heightmap;
         this.maxNesting = params.maxNesting;
         this.segmentsCount = params.segmentsCount;

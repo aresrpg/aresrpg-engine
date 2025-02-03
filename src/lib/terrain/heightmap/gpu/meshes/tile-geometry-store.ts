@@ -16,18 +16,24 @@ function buildEdgesResolutionId(edgesResolution: EdgesResolution): string {
     return `${edgesResolution.up}_${edgesResolution.down}_${edgesResolution.left}_${edgesResolution.right}`;
 }
 
+type Parameters = {
+    readonly segmentsCount: number;
+    readonly minAltitude: number;
+    readonly maxAltitude: number;
+};
+
 class TileGeometryStore {
     private readonly bufferGeometries: Map<string, THREE.BufferGeometry>;
 
-    public constructor(segmentsCount: number) {
-        if (!Number.isInteger(segmentsCount)) {
+    public constructor(params: Parameters) {
+        if (!Number.isInteger(params.segmentsCount)) {
             throw new Error();
         }
 
         const positions: number[] = [];
-        for (let iZ = segmentsCount; iZ >= 0; iZ--) {
-            for (let iX = 0; iX <= segmentsCount; iX++) {
-                positions.push(iX / segmentsCount, 0, iZ / segmentsCount);
+        for (let iZ = params.segmentsCount; iZ >= 0; iZ--) {
+            for (let iX = 0; iX <= params.segmentsCount; iX++) {
+                positions.push(iX / params.segmentsCount, 0, iZ / params.segmentsCount);
             }
         }
         const positionsBufferAttribute = new THREE.Float32BufferAttribute(positions, 3);
@@ -40,9 +46,14 @@ class TileGeometryStore {
                         const edgesResolution = { up, down, left, right };
                         const bufferGeometry = new THREE.BufferGeometry();
                         bufferGeometry.setAttribute('position', positionsBufferAttribute);
-                        bufferGeometry.setIndex(TileGeometryStore.getIndices(segmentsCount, edgesResolution));
+                        bufferGeometry.setIndex(TileGeometryStore.getIndices(params.segmentsCount, edgesResolution));
 
-                        bufferGeometry.boundingBox = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1, 500, 1));
+                        const boundingBox = new THREE.Box3(
+                            new THREE.Vector3(0, params.minAltitude, 0),
+                            new THREE.Vector3(1, params.maxAltitude, 1)
+                        );
+                        bufferGeometry.boundingBox = boundingBox;
+                        bufferGeometry.boundingSphere = boundingBox.getBoundingSphere(new THREE.Sphere());
 
                         const id = buildEdgesResolutionId(edgesResolution);
                         this.bufferGeometries.set(id, bufferGeometry);
