@@ -1,3 +1,4 @@
+import { createFullscreenQuad } from '../../../../helpers/fullscreen-quad';
 import * as THREE from '../../../../libs/three-usage';
 import { type IHeightmapSample } from '../../i-heightmap';
 
@@ -41,6 +42,7 @@ class HeightmapRootTexture {
     private readonly rawRendertarget: THREE.WebGLRenderTarget;
 
     private readonly finalization: {
+        readonly fullscreenQuad: THREE.Mesh;
         readonly rendertarget: THREE.WebGLRenderTarget;
         readonly material: THREE.ShaderMaterial;
     };
@@ -77,6 +79,7 @@ class HeightmapRootTexture {
         }
 
         this.finalization = {
+            fullscreenQuad: createFullscreenQuad('position'),
             rendertarget: new THREE.WebGLRenderTarget(textureSize, textureSize, { count: 2, generateMipmaps: false, depthBuffer: false }),
             material: new THREE.RawShaderMaterial({
                 glslVersion: '300 es',
@@ -84,13 +87,13 @@ class HeightmapRootTexture {
                     uTexture: { value: rawTexture },
                 },
                 vertexShader: `
-                in vec3 position;
+                in vec2 position;
 
                 out vec2 vUv;
 
                 void main() {
-                    gl_Position = vec4(2.0 * position.xz - 1.0, 0, 1);
-                    vUv = position.xz;
+                    gl_Position = vec4(2.0 * position - 1.0, 0, 1);
+                    vUv = position;
                 }
                 `,
                 fragmentShader: `
@@ -133,6 +136,7 @@ class HeightmapRootTexture {
                 side: THREE.DoubleSide,
             }),
         };
+        this.finalization.fullscreenQuad.material = this.finalization.material;
 
         const finalTexture0 = this.finalization.rendertarget.textures[0];
         const finalTexture1 = this.finalization.rendertarget.textures[1];
@@ -224,7 +228,9 @@ class HeightmapRootTexture {
             texture.dispose();
         }
         this.rawRendertarget.dispose();
+        this.finalization.fullscreenQuad.geometry.dispose();
         this.finalization.rendertarget.dispose();
+        this.finalization.material.dispose();
         this.computedCellsPrecisions.clear();
     }
 
@@ -255,7 +261,6 @@ class HeightmapRootTexture {
         }
 
         const uvChunk = this.getTileUv(tileId);
-        this.tile.mesh.material = this.tile.shader.material;
         this.tile.shader.uniforms.uUvScale.value = uvChunk.scale;
         this.tile.shader.uniforms.uUvShift.value = uvChunk.shift;
         this.tile.shader.uniforms.uNestingLevel.value = tileId.nestingLevel;
@@ -292,15 +297,18 @@ class HeightmapRootTexture {
             return;
         }
 
-        this.tile.mesh.material = this.finalization.material;
+        const previousState = {
+            renderTarget: renderer.getRenderTarget(),
+            sortObjects: renderer.sortObjects,
+        };
 
-        const previousRendertarget = renderer.getRenderTarget();
-
+        renderer.sortObjects = false;
         renderer.setRenderTarget(this.finalization.rendertarget);
 
-        renderer.render(this.tile.mesh, this.fakeCamera);
+        renderer.render(this.finalization.fullscreenQuad, this.fakeCamera);
 
-        renderer.setRenderTarget(previousRendertarget);
+        renderer.setRenderTarget(previousState.renderTarget);
+        renderer.sortObjects = previousState.sortObjects;
 
         this.needsUpdate = false;
     }
