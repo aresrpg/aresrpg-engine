@@ -25,6 +25,8 @@ class TerrainViewer {
     protected readonly heightmapViewer: IHeightmapViewer;
     protected heightmapViewerNeedsUpdate: boolean = true;
 
+    private lastHeightmapUpdateTimestamp: number | null = null;
+
     public constructor(heightmapViewer: IHeightmapViewer, voxelmapViewer: VoxelmapViewerBase) {
         this.container = new THREE.Group();
         this.container.name = 'Terrain container';
@@ -80,6 +82,12 @@ class TerrainViewer {
     }
 
     private updateHeightmap(renderer: THREE.WebGLRenderer): void {
+        const now = performance.now();
+        if (this.lastHeightmapUpdateTimestamp && now - this.lastHeightmapUpdateTimestamp < 50) {
+            return;
+        }
+        this.lastHeightmapUpdateTimestamp = now;
+
         const heightmapContainer = this.heightmapViewer.container;
         if (this.parameters.lod.enabled) {
             if (!heightmapContainer.parent) {
