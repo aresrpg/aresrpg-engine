@@ -84,9 +84,11 @@ class TestTerrain extends TestTerrainBase {
         const testHeightmapViewerGpu = true;
         const heightmapViewer = testHeightmapViewerGpu
             ? new HeightmapViewerGpu({
-                  basePatchSize: chunkSize.xz,
+                  basePatch: {
+                      worldSize: chunkSize.xz,
+                      segmentsCount: chunkSize.xz / 2,
+                  },
                   maxNesting: 5,
-                  segmentsCount: chunkSize.xz / 4,
                   heightmap: map,
                   flatShading: true,
               })

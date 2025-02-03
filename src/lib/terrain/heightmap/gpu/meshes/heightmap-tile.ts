@@ -146,6 +146,20 @@ void main() {
 vec3 transformed = position;
 float altitude = texture0Sample.a;
 transformed.y = mix(uMinAltitude, uMaxAltitude, altitude);
+
+float isUp = step(0.99, position.z);
+float isDown = step(position.z, 0.01);
+float isLeft = step(position.x, 0.01);
+float isRight = step(0.99, position.x);
+float drop = step(0.5,
+    isUp * uDropUp +
+    isDown * uDropDown +
+    isLeft * uDropLeft +
+    isRight * uDropRight +
+    isDown * (isLeft * uDropDownLeft + isRight * uDropDownRight) +
+    isUp * (isLeft * uDropUpLeft + isRight * uDropUpRight)
+);
+transformed.y -= 30.0 * drop;
 `,
                 '#include <color_vertex>': `
 vColor = texture0Sample.rgb;
