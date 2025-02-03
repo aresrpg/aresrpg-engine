@@ -88,6 +88,7 @@ class TestTerrain extends TestTerrainBase {
                   maxNesting: 5,
                   segmentsCount: chunkSize.xz / 4,
                   heightmap: map,
+                  flatShading: true,
               })
             : new HeightmapViewerCpu(map, {
                   basePatchSize: chunkSize.xz,

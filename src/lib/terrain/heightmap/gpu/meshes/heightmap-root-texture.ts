@@ -11,6 +11,7 @@ type Parameters = {
     readonly minAltitude: number;
     readonly maxAltitude: number;
     readonly geometryStore: TileGeometryStore;
+    readonly flatShading: boolean;
 };
 
 type CellId = {
@@ -33,7 +34,10 @@ function buildCellIdString(tileId: CellId): string {
 }
 
 class HeightmapRootTexture {
-    public readonly textures: [THREE.Texture, THREE.Texture];
+    public readonly textures: {
+        readonly colorAndAltitude: THREE.Texture;
+        readonly normals?: THREE.Texture;
+    };
 
     public readonly tilePositions: ReadonlyArray<{ readonly x: number; readonly z: number }>; // in [0, 1]
 
@@ -45,7 +49,7 @@ class HeightmapRootTexture {
         readonly fullscreenQuad: THREE.Mesh;
         readonly rendertarget: THREE.WebGLRenderTarget;
         readonly material: THREE.ShaderMaterial;
-    };
+    } | null = null;
 
     private readonly maxNesting: number;
 
@@ -73,20 +77,21 @@ class HeightmapRootTexture {
         const textureSize = params.baseCellSizeInTexels * 2 ** params.maxNesting;
 
         this.rawRendertarget = new THREE.WebGLRenderTarget(textureSize, textureSize, { generateMipmaps: false });
-        const rawTexture = this.rawRendertarget.texture;
-        if (!rawTexture) {
-            throw new Error();
-        }
 
-        this.finalization = {
-            fullscreenQuad: createFullscreenQuad('position'),
-            rendertarget: new THREE.WebGLRenderTarget(textureSize, textureSize, { count: 2, generateMipmaps: false, depthBuffer: false }),
-            material: new THREE.RawShaderMaterial({
-                glslVersion: '300 es',
-                uniforms: {
-                    uTexture: { value: rawTexture },
-                },
-                vertexShader: `
+        if (!params.flatShading) {
+            this.finalization = {
+                fullscreenQuad: createFullscreenQuad('position'),
+                rendertarget: new THREE.WebGLRenderTarget(textureSize, textureSize, {
+                    count: 2,
+                    generateMipmaps: false,
+                    depthBuffer: false,
+                }),
+                material: new THREE.RawShaderMaterial({
+                    glslVersion: '300 es',
+                    uniforms: {
+                        uTexture: { value: this.rawRendertarget.texture },
+                    },
+                    vertexShader: `
                 in vec2 position;
 
                 out vec2 vUv;
@@ -96,7 +101,7 @@ class HeightmapRootTexture {
                     vUv = position;
                 }
                 `,
-                fragmentShader: `
+                    fragmentShader: `
                 precision mediump float;
 
                 uniform sampler2D uTexture;
@@ -132,22 +137,22 @@ class HeightmapRootTexture {
                     fragColor2 = vec4(0.5 + 0.5 * normal, 0);
                 }
                 `,
-                blending: THREE.NoBlending,
-                side: THREE.DoubleSide,
-            }),
-        };
-        this.finalization.fullscreenQuad.material = this.finalization.material;
+                    blending: THREE.NoBlending,
+                    side: THREE.DoubleSide,
+                }),
+            };
+            this.finalization.fullscreenQuad.material = this.finalization.material;
 
-        const finalTexture0 = this.finalization.rendertarget.textures[0];
-        const finalTexture1 = this.finalization.rendertarget.textures[1];
-        if (!finalTexture0 || !finalTexture1) {
-            throw new Error();
+            const finalTexture0 = this.finalization.rendertarget.textures[0];
+            const finalTexture1 = this.finalization.rendertarget.textures[1];
+            if (!finalTexture0 || !finalTexture1) {
+                throw new Error();
+            }
+            this.textures = { colorAndAltitude: finalTexture0, normals: finalTexture1 };
+        } else {
+            this.textures = { colorAndAltitude: this.rawRendertarget.texture };
         }
-        this.textures = [finalTexture0, finalTexture1];
-        for (const texture of this.textures) {
-            texture.magFilter = THREE.LinearFilter;
-            texture.minFilter = THREE.LinearFilter;
-        }
+
         this.maxNesting = params.maxNesting;
 
         const tileGeometry = params.geometryStore.getBaseTile().clone();
@@ -224,13 +229,17 @@ class HeightmapRootTexture {
     }
 
     public dispose(): void {
-        for (const texture of this.textures) {
-            texture.dispose();
-        }
+        this.textures.colorAndAltitude.dispose();
+        this.textures.normals?.dispose();
+
         this.rawRendertarget.dispose();
-        this.finalization.fullscreenQuad.geometry.dispose();
-        this.finalization.rendertarget.dispose();
-        this.finalization.material.dispose();
+
+        if (this.finalization) {
+            this.finalization.fullscreenQuad.geometry.dispose();
+            this.finalization.rendertarget.dispose();
+            this.finalization.material.dispose();
+        }
+
         this.computedCellsPrecisions.clear();
     }
 
@@ -289,11 +298,13 @@ class HeightmapRootTexture {
         renderer.setClearColor(previousState.clearColor, previousState.clearAlpha);
         renderer.setRenderTarget(previousState.renderTarget);
 
-        this.needsUpdate = true;
+        if (this.finalization) {
+            this.needsUpdate = true;
+        }
     }
 
     public update(renderer: THREE.WebGLRenderer): void {
-        if (!this.needsUpdate) {
+        if (!this.needsUpdate || !this.finalization) {
             return;
         }
 

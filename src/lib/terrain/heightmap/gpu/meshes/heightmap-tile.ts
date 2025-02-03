@@ -89,8 +89,8 @@ class HeightmapTile {
 
         const uvChunk = this.root.texture.getTileUv(params.localTileId);
         const uniforms = {
-            uTexture0: { value: this.root.texture.textures[0] },
-            uTexture1: { value: this.root.texture.textures[1] },
+            uTexture0: { value: this.root.texture.textures.colorAndAltitude },
+            uTexture1: { value: this.root.texture.textures.normals },
             uUvScale: { value: uvChunk.scale },
             uUvShift: { value: new THREE.Vector2().copy(uvChunk.shift) },
             uMinAltitude: { value: this.root.heightmap.minAltitude },
@@ -106,10 +106,11 @@ class HeightmapTile {
             uDropUpRight: { value: 0 },
         };
 
+        const useFlatShading = !this.root.texture.textures.normals;
         const material = new THREE.MeshPhongMaterial({ vertexColors: true });
         material.shininess = 0;
-        // material.flatShading = true;
-        material.customProgramCacheKey = () => 'heightmap-tile-material';
+        material.flatShading = useFlatShading;
+        material.customProgramCacheKey = () => `heightmap-tile-material-flat=${useFlatShading}`;
         material.onBeforeCompile = parameters => {
             parameters.uniforms = {
                 ...parameters.uniforms,
@@ -119,7 +120,6 @@ class HeightmapTile {
             parameters.vertexShader = applyReplacements(parameters.vertexShader, {
                 'void main() {': `
 uniform sampler2D uTexture0;
-uniform sampler2D uTexture1;
 uniform vec2 uUvShift;
 uniform float uUvScale;
 uniform float uMinAltitude;
@@ -140,21 +140,30 @@ uniform float uDropUpRight;
 void main() {
     vec2 tileUv = uUvShift + position.xz * uUvScale;
     vec4 texture0Sample = texture(uTexture0, tileUv);
-    vec4 texture1Sample = texture(uTexture1, tileUv);
 `,
                 '#include <begin_vertex>': `
 vec3 transformed = position;
 float altitude = texture0Sample.a;
 transformed.y = mix(uMinAltitude, uMaxAltitude, altitude);
 `,
-                '#include <beginnormal_vertex>': `
-vec3 objectNormal = 2.0 * texture1Sample.rgb - 1.0;
-objectNormal.y /= uSizeWorld;
-`,
                 '#include <color_vertex>': `
 vColor = texture0Sample.rgb;
 `,
             });
+
+            if (!useFlatShading) {
+                parameters.vertexShader = applyReplacements(parameters.vertexShader, {
+                    'void main() {': `
+                uniform sampler2D uTexture1;
+
+                void main() {`,
+                    '#include <beginnormal_vertex>': `
+                vec4 texture1Sample = texture(uTexture1, tileUv);
+                vec3 objectNormal = 2.0 * texture1Sample.rgb - 1.0;
+                objectNormal.y /= uSizeWorld;
+                `,
+                });
+            }
         };
 
         // Custom shadow material using RGBA depth packing.

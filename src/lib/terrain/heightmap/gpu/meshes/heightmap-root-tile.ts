@@ -15,6 +15,7 @@ type Parameters = {
         readonly x: number;
         readonly z: number;
     };
+    readonly flatShading: boolean;
 };
 
 class HeightmapRootTile extends HeightmapTile {
@@ -26,6 +27,7 @@ class HeightmapRootTile extends HeightmapTile {
             geometryStore: params.geometryStore,
             minAltitude: params.heightmap.minAltitude,
             maxAltitude: params.heightmap.maxAltitude,
+            flatShading: params.flatShading,
         });
 
         const rootSize = params.sizeWorld;

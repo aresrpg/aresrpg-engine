@@ -13,6 +13,7 @@ type Parameters = {
     readonly segmentsCount: number;
     readonly maxNesting: number;
     readonly heightmap: IHeightmap;
+    readonly flatShading: boolean;
 };
 
 class HeightmapViewerGpu implements IHeightmapViewer {
@@ -30,6 +31,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     private readonly heightmap: IHeightmap;
     private readonly maxNesting: number;
     private readonly segmentsCount: number;
+    private readonly flatShading: boolean;
 
     private readonly rootTileSize: number;
     private readonly rootTilesMap = new Map<string, HeightmapRootTile>();
@@ -46,6 +48,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         this.heightmap = params.heightmap;
         this.maxNesting = params.maxNesting;
         this.segmentsCount = params.segmentsCount;
+        this.flatShading = params.flatShading;
 
         this.basePatchSize = params.basePatchSize;
         this.rootTileSize = this.basePatchSize * 2 ** this.maxNesting;
@@ -193,6 +196,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                             x: rootQuadtreeNode.nodeId.worldCoordsInLevel.x * rootTileSize,
                             z: rootQuadtreeNode.nodeId.worldCoordsInLevel.z * rootTileSize,
                         },
+                        flatShading: this.flatShading,
                     });
                     rootTile.container.applyMatrix4(
                         new THREE.Matrix4().makeTranslation(
