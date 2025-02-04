@@ -3,14 +3,19 @@ import { createNoise2D, type NoiseFunction2D } from 'simplex-noise';
 import * as THREE from 'three-usage-test';
 
 import { safeModulo } from '../../lib/helpers/math';
-import { voxelmapDataPacking, type IHeightmap, type IHeightmapSample, type IVoxelMap, type LocalMapData } from '../../lib/index';
+import { type HeightmapSamples, voxelmapDataPacking, type IHeightmap, type IVoxelMap, type LocalMapData } from '../../lib';
 
 import { colorMapping } from './color-mapping';
 import { RepeatableBluenoise } from './repeatable-bluenoise';
 import { Tree } from './trees/tree';
 
+type HeightmapSample = {
+    readonly altitude: number;
+    readonly materialId: number;
+};
+
 type TreesTextureSample = {
-    readonly heightmapSample: IHeightmapSample;
+    readonly heightmapSample: HeightmapSample;
     readonly treeRootTextureCoords: THREE.Vector2Like;
     readonly treeProbability: number;
 };
@@ -179,7 +184,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         const worldPos = { x: 0, y: 0, z: 0 };
 
         let isFullPatch = true;
-        const samples: IHeightmapSample[] = [];
+        const samples: HeightmapSample[] = [];
         for (worldPos.z = blockStart.z; worldPos.z < blockEnd.z; worldPos.z++) {
             for (worldPos.x = blockStart.x; worldPos.x < blockEnd.x; worldPos.x++) {
                 const sample = this.sampleHeightmapBaseTerrain(worldPos.x, worldPos.z);
@@ -227,15 +232,21 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         }
     }
 
-    public sampleHeightmap(coords: Float32Array): IHeightmapSample[] | Promise<IHeightmapSample[]> {
+    public sampleHeightmap(coords: Float32Array): HeightmapSamples | Promise<HeightmapSamples> {
         if (coords.length % 2 !== 0) {
             throw new Error();
         }
+        const samplesCount = coords.length / 2;
 
-        const result: IHeightmapSample[] = [];
-        for (let i = 0; i < coords.length; i += 2) {
-            const sample = this.sampleHeightmapPoint(coords[i + 0]!, coords[i + 1]!);
-            result.push(sample);
+        const result: HeightmapSamples = {
+            altitudes: new Float32Array(samplesCount),
+            materialIds: new Uint32Array(samplesCount),
+        };
+
+        for (let iSample = 0; iSample < samplesCount; iSample++) {
+            const sample = this.sampleHeightmapPoint(coords[2 * iSample + 0]!, coords[2 * iSample + 1]!);
+            result.altitudes[iSample] = sample.altitude;
+            result.materialIds[iSample] = sample.materialId;
         }
 
         const synchronous = true;
@@ -250,7 +261,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         }
     }
 
-    public sampleHeightmapBaseTerrain(x: number, z: number): IHeightmapSample {
+    public sampleHeightmapBaseTerrain(x: number, z: number): HeightmapSample {
         x -= this.coordsShift.x;
         z -= this.coordsShift.z;
 
@@ -265,13 +276,14 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         altitude = Math.floor(altitude);
 
         const color = this.positionToColor(x, altitude, z);
+        const materialId = colorMapping.getMaterialId(color);
         return {
             altitude,
-            color,
+            materialId,
         };
     }
 
-    private sampleHeightmapPoint(x: number, z: number): IHeightmapSample {
+    private sampleHeightmapPoint(x: number, z: number): HeightmapSample {
         let sample = this.sampleHeightmapBaseTerrain(x, z);
 
         if (!this.includeTreesInLod) {
@@ -307,8 +319,8 @@ class VoxelMap implements IVoxelMap, IHeightmap {
             if (sample.altitude < treeSampleAltitude) {
                 if (this.isThereATree(treeRootWorldCoords, treesTextureSample.treeProbability)) {
                     sample = {
-                        color: treesTextureSample.heightmapSample.color,
                         altitude: treeSampleAltitude,
+                        materialId: treesTextureSample.heightmapSample.materialId,
                     };
                 }
             }
@@ -397,4 +409,4 @@ class VoxelMap implements IVoxelMap, IHeightmap {
     }
 }
 
-export { VoxelMap };
+export { VoxelMap, type HeightmapSample };

@@ -3,6 +3,7 @@ import { DisposableMap } from '../../../helpers/disposable-map';
 import { logger } from '../../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../../helpers/meshes-statistics';
 import * as THREE from '../../../libs/three-usage';
+import { type MaterialsStore } from '../../materials-store';
 import { type IHeightmap } from '../i-heightmap';
 
 import { type GeometryProcessor, type ProcessedGeometryData } from './geometry-processor';
@@ -45,6 +46,7 @@ interface IHeightmapRoot {
     readonly material: THREE.Material;
     readonly nodeGeometry: HeightmapNodeGeometry;
     readonly geometryProcessor: GeometryProcessor;
+    readonly materialsStore: MaterialsStore;
 
     getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
     getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null;
@@ -328,11 +330,23 @@ class HeightmapNode {
 
             const samplingResults = this.sampler.sampleHeightmap(sampleCoords);
             const processedSamples = processAsap(samplingResults, samples => {
+                if (samples.altitudes.length !== samples.materialIds.length) {
+                    throw new Error(
+                        `Invalid heightmap samples: incoherent (altitudes count=${samples.altitudes.length}, materials count=${samples.materialIds.length})`
+                    );
+                }
+                if (positionsCount !== samples.altitudes.length) {
+                    throw new Error(`Invalid heightmap samples: expected ${positionsCount} but received ${samples.altitudes.length}.`);
+                }
+
                 const altitudes: number[] = [];
                 const colors: number[] = [];
-                for (const sample of samples) {
-                    altitudes.push(sample.altitude);
-                    colors.push(sample.color.r, sample.color.g, sample.color.b);
+                for (let iSample = 0; iSample < positionsCount; iSample++) {
+                    const altitude = samples.altitudes[iSample]!;
+                    const materialId = samples.materialIds[iSample]!;
+                    const color = this.root.materialsStore.getVoxelMaterial(materialId).color;
+                    altitudes.push(altitude);
+                    colors.push(color.r, color.g, color.b);
                 }
 
                 return {

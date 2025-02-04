@@ -1,5 +1,6 @@
 import { createMeshesStatistics, type MeshesStatistics } from '../../../helpers/meshes-statistics';
 import * as THREE from '../../../libs/three-usage';
+import { type MaterialsStore } from '../../materials-store';
 import { type IHeightmap } from '../i-heightmap';
 
 import { GeometryProcessor } from './geometry-processor';
@@ -11,6 +12,7 @@ type HeightmapRootOptions = {
     readonly basePatchSize: number;
     readonly voxelRatio: number;
     readonly maxLevel: number;
+    readonly materialsStore: MaterialsStore;
     readonly flatShading?: boolean;
     readonly dedicatedThreadsCount?: number;
 };
@@ -24,6 +26,8 @@ class HeightmapRoot {
     public readonly nodeGeometry: HeightmapNodeGeometry;
 
     public readonly geometryProcessor: GeometryProcessor;
+
+    public readonly materialsStore: MaterialsStore;
 
     private readonly sampler: IHeightmap;
     private readonly maxLevel: number;
@@ -48,6 +52,8 @@ class HeightmapRoot {
             outputIndexedGeometry: !(options.flatShading ?? false),
             dedicatedThreadsCount: options.dedicatedThreadsCount ?? 0,
         });
+
+        this.materialsStore = options.materialsStore;
     }
 
     public getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {

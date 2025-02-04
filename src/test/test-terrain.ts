@@ -84,6 +84,7 @@ class TestTerrain extends TestTerrainBase {
         const testHeightmapViewerGpu = true;
         const heightmapViewer = testHeightmapViewerGpu
             ? new HeightmapViewerGpu({
+                  materialsStore: this.voxelMaterialsStore,
                   basePatch: {
                       worldSize: chunkSize.xz,
                       segmentsCount: chunkSize.xz / 2,
@@ -93,6 +94,7 @@ class TestTerrain extends TestTerrainBase {
                   flatShading: true,
               })
             : new HeightmapViewerCpu(map, {
+                  materialsStore: this.voxelMaterialsStore,
                   basePatchSize: chunkSize.xz,
                   maxLevel: 5,
                   voxelRatio: 2,

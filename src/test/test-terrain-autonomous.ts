@@ -15,6 +15,7 @@ class TestTerrainAutonomous extends TestTerrainBase {
         this.voxelmapViewer = new VoxelmapViewerAutonomous(map);
 
         const heightmapViewer = new HeightmapViewerCpu(map, {
+            materialsStore: this.voxelMaterialsStore,
             basePatchSize: this.voxelmapViewer.chunkSize.xz,
             maxLevel: 5,
             voxelRatio: 2,

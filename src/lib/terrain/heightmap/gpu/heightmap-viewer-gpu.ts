@@ -1,4 +1,5 @@
 import * as THREE from '../../../libs/three-usage';
+import { type MaterialsStore } from '../../materials-store';
 import { type IHeightmap } from '../i-heightmap';
 import { type IHeightmapViewer } from '../i-heightmap-viewer';
 
@@ -14,6 +15,7 @@ type HeightmapViewerGpuStatistics = {
 };
 
 type Parameters = {
+    readonly materialsStore: MaterialsStore;
     readonly basePatch: {
         readonly worldSize: number;
         readonly segmentsCount: number;
@@ -38,6 +40,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
 
     public wireframe: boolean = false;
 
+    private readonly materialsStore: MaterialsStore;
     private readonly geometryStore: TileGeometryStore;
     private readonly heightmap: IHeightmap;
     private readonly maxNesting: number;
@@ -57,6 +60,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         this.container = new THREE.Group();
         this.container.name = 'heightmap-viewer';
 
+        this.materialsStore = params.materialsStore;
         this.geometryStore = new TileGeometryStore({
             segmentsCount: params.basePatch.segmentsCount,
             minAltitude: params.heightmap.minAltitude,
@@ -219,6 +223,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                 let rootTile = this.rootTilesMap.get(rootTileId);
                 if (!rootTile) {
                     rootTile = new HeightmapRootTile({
+                        materialsStore: this.materialsStore,
                         geometryStore: this.geometryStore,
                         heightmap: this.heightmap,
                         baseCell: {

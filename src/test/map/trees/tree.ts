@@ -1,7 +1,12 @@
 import * as THREE from 'three-usage-test';
 
-import { type IHeightmapSample, type VoxelsChunkData } from '../../../lib';
+import { type VoxelsChunkData } from '../../../lib';
 import { colorMapping } from '../color-mapping';
+
+type VoxelmapSample = {
+    readonly altitude: number;
+    readonly materialId: number;
+};
 
 const keyColors = {
     treeTrunk: { color: new THREE.Color('#692D00') },
@@ -15,7 +20,7 @@ class Tree {
     private readonly voxels: VoxelsChunkData;
     private readonly indexFactor: THREE.Vector3Like;
 
-    private readonly fromAbove: Array<IHeightmapSample | null>;
+    private readonly fromAbove: Array<VoxelmapSample | null>;
 
     public constructor() {
         this.radiusXZ = 4;
@@ -58,13 +63,13 @@ class Tree {
         this.fromAbove = [];
         for (pos.z = 0; pos.z < this.size.z; pos.z++) {
             for (pos.x = 0; pos.x < this.size.x; pos.x++) {
-                let sample: IHeightmapSample | null = null;
+                let sample: VoxelmapSample | null = null;
                 for (pos.y = this.size.y - 1; pos.y >= 0; pos.y--) {
-                    const voxelData = this.getVoxel(pos);
-                    if (voxelData) {
+                    const materialId = this.getVoxel(pos);
+                    if (materialId) {
                         sample = {
                             altitude: pos.y,
-                            color: colorMapping.getColor(voxelData),
+                            materialId,
                         };
                         break;
                     }
@@ -93,7 +98,7 @@ class Tree {
         return voxel - 1;
     }
 
-    public getHeightmapSample(position: THREE.Vector2Like): IHeightmapSample | null {
+    public getHeightmapSample(position: THREE.Vector2Like): VoxelmapSample | null {
         const x = Math.floor(position.x);
         const z = Math.floor(position.y);
         if (x < 0 || z < 0 || x >= this.size.x || z >= this.size.z) {

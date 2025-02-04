@@ -1,10 +1,12 @@
 import { createFullscreenQuad } from '../../../../helpers/fullscreen-quad';
 import * as THREE from '../../../../libs/three-usage';
-import { type IHeightmapSample } from '../../i-heightmap';
+import { type MaterialsStore } from '../../../materials-store';
+import { type HeightmapSamples } from '../../i-heightmap';
 
 import { type TileGeometryStore } from './tile-geometry-store';
 
 type Parameters = {
+    readonly materialsStore: MaterialsStore;
     readonly baseCellSizeInTexels: number;
     readonly texelSizeInWorld: number;
     readonly maxNesting: number;
@@ -59,7 +61,7 @@ class HeightmapRootTexture {
 
     private readonly tile: {
         readonly mesh: THREE.Mesh;
-        readonly colorAttribute: THREE.Float32BufferAttribute;
+        readonly materialIdAttribute: THREE.Float32BufferAttribute;
         readonly altitudeAttribute: THREE.Float32BufferAttribute;
         readonly shader: {
             readonly material: THREE.RawShaderMaterial;
@@ -171,8 +173,12 @@ class HeightmapRootTexture {
         };
         const material = new THREE.RawShaderMaterial({
             glslVersion: '300 es',
-            uniforms,
+            uniforms: {
+                ...uniforms,
+                uMaterialsTexture: { value: params.materialsStore.texture },
+            },
             vertexShader: `
+            uniform sampler2D uMaterialsTexture;
             uniform vec2 uUvShift;
             uniform float uUvScale;
             uniform float uNestingLevel;
@@ -180,16 +186,18 @@ class HeightmapRootTexture {
             uniform float uMaxAltitude;
 
             in vec3 position;
-            in vec3 color;
+            in uint materialId;
             in float altitude;
 
             out vec3 vColor;
             out float vAltitude;
 
+            ${params.materialsStore.glslDeclaration}
+            
             void main() {
                 vec2 uv = uUvShift + position.xz * uUvScale;
                 gl_Position = vec4(2.0 * uv - 1.0, 1.0 - uNestingLevel / 200.0, 1);
-                vColor = color;
+                vColor = getVoxelMaterial(materialId, uMaterialsTexture, 0.0).color;
                 vAltitude = (altitude - uMinAltitude) / (uMaxAltitude - uMinAltitude);
             }
             `,
@@ -208,15 +216,15 @@ class HeightmapRootTexture {
             blending: THREE.NoBlending,
             side: THREE.DoubleSide,
         });
-        const colorAttribute = new THREE.Float32BufferAttribute(new Float32Array(3 * positionAttribute.count), 3);
-        tileGeometry.setAttribute('color', colorAttribute);
+        const materialIdAttribute = new THREE.Uint32BufferAttribute(new Uint32Array(positionAttribute.count), 1);
+        tileGeometry.setAttribute('materialId', materialIdAttribute);
         const altitudeAttribute = new THREE.Float32BufferAttribute(new Float32Array(positionAttribute.count), 1);
         tileGeometry.setAttribute('altitude', altitudeAttribute);
 
         const mesh = new THREE.Mesh(tileGeometry, material);
         mesh.frustumCulled = false;
 
-        this.tile = { mesh, colorAttribute, altitudeAttribute, shader: { material, uniforms } };
+        this.tile = { mesh, materialIdAttribute, altitudeAttribute, shader: { material, uniforms } };
     }
 
     public dispose(): void {
@@ -237,8 +245,9 @@ class HeightmapRootTexture {
         this.computedCellsPrecisions.clear();
     }
 
-    public renderTile(tileId: TileId, renderer: THREE.WebGLRenderer, tileSamples: ReadonlyArray<IHeightmapSample>): void {
-        if (tileSamples.length !== this.tilePositions.length / 2) {
+    public renderTile(tileId: TileId, renderer: THREE.WebGLRenderer, tileSamples: HeightmapSamples): void {
+        const expectedSamplesCount = this.tilePositions.length / 2;
+        if (tileSamples.altitudes.length !== expectedSamplesCount || tileSamples.altitudes.length !== expectedSamplesCount) {
             throw new Error();
         }
 
@@ -269,14 +278,10 @@ class HeightmapRootTexture {
         this.tile.shader.uniforms.uNestingLevel.value = tileId.nestingLevel;
         this.tile.shader.material.uniformsNeedUpdate = true;
 
-        tileSamples.forEach((sample: IHeightmapSample, index: number) => {
-            this.tile.altitudeAttribute.array[index] = sample.altitude;
-            this.tile.colorAttribute.array[3 * index + 0] = sample.color.r;
-            this.tile.colorAttribute.array[3 * index + 1] = sample.color.g;
-            this.tile.colorAttribute.array[3 * index + 2] = sample.color.b;
-        });
+        this.tile.altitudeAttribute.array.set(tileSamples.altitudes);
         this.tile.altitudeAttribute.needsUpdate = true;
-        this.tile.colorAttribute.needsUpdate = true;
+        this.tile.materialIdAttribute.array.set(tileSamples.materialIds);
+        this.tile.materialIdAttribute.needsUpdate = true;
 
         renderer.render(this.tile.mesh, this.fakeCamera);
 

@@ -1,7 +1,7 @@
 import { AsyncTask } from '../../../../helpers/async/async-task';
 import { applyReplacements } from '../../../../helpers/string';
 import * as THREE from '../../../../libs/three-usage';
-import { type IHeightmap, type IHeightmapSample } from '../../i-heightmap';
+import { type HeightmapSamples, type IHeightmap } from '../../i-heightmap';
 
 import { type HeightmapRootTexture, type TileId } from './heightmap-root-texture';
 import { buildEdgesResolutionId, type EdgesResolution, EEdgeResolution, type TileGeometryStore } from './tile-geometry-store';
@@ -71,7 +71,7 @@ class HeightmapTile {
 
     private readonly flatShading: boolean;
 
-    private dataQuery: AsyncTask<IHeightmapSample[]> | null;
+    private dataQuery: AsyncTask<HeightmapSamples> | null;
 
     private subdivided: boolean = false;
     public children: Children | null = null;

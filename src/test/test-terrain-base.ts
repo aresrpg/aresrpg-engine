@@ -1,12 +1,13 @@
 import GUI from 'lil-gui';
 import * as THREE from 'three-usage-test';
 
-import { MaterialsStore, type IHeightmap, type IHeightmapSample, type IVoxelMap, type TerrainViewer } from '../lib';
+import { MaterialsStore, type IHeightmap, type IVoxelMap, type TerrainViewer } from '../lib';
 
+import { type HeightmapSample } from './map/voxel-map';
 import { TestBase } from './test-base';
 
 interface ITerrainMap {
-    sampleHeightmapBaseTerrain(x: number, z: number): IHeightmapSample;
+    sampleHeightmapBaseTerrain(x: number, z: number): HeightmapSample;
 }
 
 abstract class TestTerrainBase extends TestBase {

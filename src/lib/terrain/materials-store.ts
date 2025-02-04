@@ -10,15 +10,16 @@ type Parameters = {
 
 class MaterialsStore {
     public readonly texture: THREE.DataTexture;
+    public readonly materialsCount: number;
+    public readonly glslDeclaration: string;
 
     private readonly maxShininess: number;
-
-    public readonly materialsCount: number;
-
-    public readonly glslDeclaration: string;
+    private readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
 
     public constructor(params: Parameters) {
         this.maxShininess = params.maxShininess;
+        this.voxelMaterialsList = params.voxelMaterialsList;
+
         this.texture = this.buildMaterialsTexture(params.voxelMaterialsList);
         this.materialsCount = params.voxelMaterialsList.length;
 
@@ -46,6 +47,14 @@ VoxelMaterial getVoxelMaterial(const in uint materialId, const in sampler2D mate
 
     public dispose(): void {
         this.texture.dispose();
+    }
+
+    public getVoxelMaterial(materialId: number): IVoxelMaterial {
+        const voxelMaterial = this.voxelMaterialsList[materialId];
+        if (!voxelMaterial) {
+            throw new Error();
+        }
+        return voxelMaterial;
     }
 
     private buildMaterialsTexture(voxelMaterials: ReadonlyArray<IVoxelMaterial>): THREE.DataTexture {

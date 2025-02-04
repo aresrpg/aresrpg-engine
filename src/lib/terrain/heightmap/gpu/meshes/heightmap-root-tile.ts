@@ -1,4 +1,5 @@
 import type * as THREE from '../../../../libs/three-usage';
+import { type MaterialsStore } from '../../../materials-store';
 import { type IHeightmap } from '../../i-heightmap';
 
 import { HeightmapRootTexture, type TileId } from './heightmap-root-texture';
@@ -6,6 +7,7 @@ import { HeightmapTile } from './heightmap-tile';
 import { type TileGeometryStore } from './tile-geometry-store';
 
 type Parameters = {
+    readonly materialsStore: MaterialsStore;
     readonly geometryStore: TileGeometryStore;
     readonly heightmap: IHeightmap;
     readonly maxNesting: number;
@@ -33,6 +35,7 @@ class HeightmapRootTile extends HeightmapTile {
 
         const baseCellSizeInTexels = params.baseCell.segmentsCount;
         const rootTexture = new HeightmapRootTexture({
+            materialsStore: params.materialsStore,
             baseCellSizeInTexels,
             texelSizeInWorld: params.baseCell.worldSize / baseCellSizeInTexels,
             maxNesting: params.maxNesting,

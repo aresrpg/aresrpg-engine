@@ -74,6 +74,7 @@ class TestBoard extends TestBase {
         this.voxelmapViewer.parameters.faces.checkerboardContrast = 0.01;
 
         const heightmapViewer = new HeightmapViewerCpu(map, {
+            materialsStore: this.voxelMaterialsStore,
             basePatchSize: chunkSize.xz,
             maxLevel: 5,
             voxelRatio: 2,
