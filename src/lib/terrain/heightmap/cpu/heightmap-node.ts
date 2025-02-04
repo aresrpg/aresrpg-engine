@@ -318,12 +318,12 @@ class HeightmapNode {
             const positionsCount = positionsBuffer.length / 3;
 
             const sampleCoords = new Float32Array(2 * positionsCount);
-            for (let i = 0; i < positionsCount; i++) {
-                positionsBuffer[3 * i + 0]! *= scaling;
-                positionsBuffer[3 * i + 2]! *= scaling;
+            for (let iPosition = 0; iPosition < positionsCount; iPosition++) {
+                positionsBuffer[3 * iPosition + 0]! *= scaling;
+                positionsBuffer[3 * iPosition + 2]! *= scaling;
 
-                sampleCoords[2 * i + 0] = positionsBuffer[3 * i + 0]! + this.id.box.min.x;
-                sampleCoords[2 * i + 1] = positionsBuffer[3 * i + 2]! + this.id.box.min.y;
+                sampleCoords[2 * iPosition + 0] = positionsBuffer[3 * iPosition + 0]! + this.id.box.min.x;
+                sampleCoords[2 * iPosition + 1] = positionsBuffer[3 * iPosition + 2]! + this.id.box.min.y;
             }
 
             const samplingResults = this.sampler.sampleHeightmap(sampleCoords);
