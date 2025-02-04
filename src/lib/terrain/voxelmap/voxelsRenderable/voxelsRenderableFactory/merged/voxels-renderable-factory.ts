@@ -246,7 +246,8 @@ VoxelMaterial buildVoxelMaterial(const vec3 modelNormal) {
         #endif // ${cstVoxelNoise}
 
         uint voxelMaterialId = ${VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId.glslDecode('vData2')};
-        voxelMaterial = getVoxelMaterial(voxelMaterialId);
+        voxelMaterial = getVoxelMaterial(voxelMaterialId, uTexture, noise);
+        voxelMaterial.shininess = 0.0001 + voxelMaterial.shininess * uShininessStrength;
     }
 
     if (uDisplayMode == ${EVoxelsDisplayMode.GREY}u) {

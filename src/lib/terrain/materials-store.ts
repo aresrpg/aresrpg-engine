@@ -29,17 +29,18 @@ struct VoxelMaterial {
     vec3 emissive;
 };
 
-VoxelMaterial getVoxelMaterial(const in uint materialId) {
+VoxelMaterial getVoxelMaterial(const in uint materialId, const in sampler2D materialsTexture, float noise) {
     VoxelMaterial voxelMaterial;
-    ivec2 texelCoords = ivec2(voxelMaterialId % ${this.texture.image.width}u, voxelMaterialId / ${this.texture.image.width}u);
-    vec4 fetchedTexel = texelFetch(uTexture, texelCoords, 0);
+    ivec2 texelCoords = ivec2(materialId % ${this.texture.image.width}u, materialId / ${this.texture.image.width}u);
+    vec4 fetchedTexel = texelFetch(materialsTexture, texelCoords, 0);
     voxelMaterial.color = fetchedTexel.rgb + noise;
 
     float emissive = step(0.5, fetchedTexel.a) * (2.0 * fetchedTexel.a - 1.0);
-    voxelMaterial.shininess = 0.0001 + step(fetchedTexel.a, 0.5) * uShininessStrength * ${this.maxShininess.toFixed(1)} * 2.0 * fetchedTexel.a * (1.0 + 10.0 * noise);
+    voxelMaterial.shininess = step(fetchedTexel.a, 0.5) * ${this.maxShininess.toFixed(1)} * 2.0 * fetchedTexel.a * (1.0 + 10.0 * noise);
     voxelMaterial.emissive = emissive * voxelMaterial.color;
     voxelMaterial.color *= (1.0 - emissive);
     return voxelMaterial;
+}
 `;
     }
 
