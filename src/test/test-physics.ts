@@ -4,6 +4,7 @@ import * as THREE from 'three-usage-test';
 import {
     EComputationMethod,
     type IVoxelMap,
+    MaterialsStore,
     PromisesQueue,
     VoxelmapCollider,
     VoxelmapCollisions,
@@ -78,7 +79,12 @@ class TestPhysics extends TestBase {
 
         const voxelsChunkOrdering: VoxelsChunkOrdering = 'zyx';
 
-        this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, map.voxelMaterialsList, {
+        const voxelMaterialsStore = new MaterialsStore({
+            voxelMaterialsList: map.voxelMaterialsList,
+            maxShininess: 400,
+        });
+
+        this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, voxelMaterialsStore, {
             patchSize: chunkSize,
             computationOptions: {
                 method: EComputationMethod.CPU_MULTITHREADED,

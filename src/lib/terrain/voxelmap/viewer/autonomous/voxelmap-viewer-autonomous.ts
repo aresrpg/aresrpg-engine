@@ -10,6 +10,7 @@ import { type PatchFactoryBase } from '../../patch/patch-factory/patch-factory-b
 import { PatchId } from '../../patch/patch-id';
 import { VoxelmapVisibilityComputer } from '../../voxelmap-visibility-computer';
 import { VoxelmapViewerBase, type ComputedPatch, type PatchRenderable } from '../voxelmap-viewer-base';
+import { MaterialsStore } from '../../../materials-store';
 
 import { AsyncPatch } from './async-patch';
 
@@ -51,22 +52,26 @@ class VoxelmapViewerAutonomous extends VoxelmapViewerBase {
 
         const voxelsChunkOrdering = options?.voxelsChunkOrdering ?? 'zyx';
 
+        const voxelMaterialsStore = new MaterialsStore({
+            voxelMaterialsList: map.voxelMaterialsList,
+            maxShininess: 400,
+        });
         let patchFactory: PatchFactoryBase;
         if (computingMode === EPatchComputingMode.CPU_CACHED) {
             patchFactory = new PatchFactoryCpu({
-                voxelMaterialsList: map.voxelMaterialsList,
+                voxelMaterialsStore,
                 patchSize: voxelsChunksSize,
                 voxelsChunkOrdering,
             });
         } else if (computingMode === EPatchComputingMode.GPU_SEQUENTIAL) {
             patchFactory = new PatchFactoryGpuSequential({
-                voxelMaterialsList: map.voxelMaterialsList,
+                voxelMaterialsStore,
                 patchSize: voxelsChunksSize,
                 voxelsChunkOrdering,
             });
         } else if (computingMode === EPatchComputingMode.GPU_OPTIMIZED) {
             patchFactory = new PatchFactoryGpuOptimized({
-                voxelMaterialsList: map.voxelMaterialsList,
+                voxelMaterialsStore,
                 patchSize: voxelsChunksSize,
                 voxelsChunkOrdering,
             });

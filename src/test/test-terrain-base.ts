@@ -1,7 +1,7 @@
 import GUI from 'lil-gui';
 import * as THREE from 'three-usage-test';
 
-import { type IHeightmap, type IHeightmapSample, type IVoxelMap, type TerrainViewer } from '../lib';
+import { MaterialsStore, type IHeightmap, type IHeightmapSample, type IVoxelMap, type TerrainViewer } from '../lib';
 
 import { TestBase } from './test-base';
 
@@ -22,8 +22,15 @@ abstract class TestTerrainBase extends TestBase {
 
     protected readonly gui = new GUI();
 
+    protected readonly voxelMaterialsStore: MaterialsStore;
+
     public constructor(voxelMap: IHeightmap & IVoxelMap & ITerrainMap) {
         super();
+
+        this.voxelMaterialsStore = new MaterialsStore({
+            voxelMaterialsList: voxelMap.voxelMaterialsList,
+            maxShininess: 400,
+        });
 
         this.setupLighting();
 

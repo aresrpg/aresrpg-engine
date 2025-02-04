@@ -130,7 +130,7 @@ class TestParticles extends TestTerrainBase {
         const minChunkIdY = Math.floor(map.minAltitude / chunkSize.y);
         const maxChunkIdY = Math.floor(map.maxAltitude / chunkSize.y);
 
-        this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, map.voxelMaterialsList, {
+        this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, this.voxelMaterialsStore, {
             patchSize: chunkSize,
             computationOptions: {
                 method: EComputationMethod.CPU_MULTITHREADED,
@@ -323,7 +323,7 @@ return vec4(sampled.rgb / sampled.a, 1);
 
     private setupBoard(voxelMap: IVoxelMap & ITerrainMap): void {
         const factory = new BoardRenderableFactory({
-            voxelMaterialsList: voxelMap.voxelMaterialsList,
+            voxelMaterialsStore: this.voxelMaterialsStore,
         });
 
         const testLineOfSight = false;

@@ -1,6 +1,7 @@
 import { applyReplacements, vec3ToString } from '../../../../../helpers/string';
 import * as THREE from '../../../../../libs/three-usage';
-import { type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
+import { type MaterialsStore } from '../../../../materials-store';
+import { type VoxelsChunkSize } from '../../../i-voxelmap';
 import { EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterialUniforms, type VoxelsMaterials } from '../../voxels-material';
 import * as Cube from '../cube';
 import { VoxelsRenderableFactoryBase, type CheckerboardType, type GeometryAndMaterial } from '../voxels-renderable-factory-base';
@@ -22,7 +23,7 @@ type VoxelsMaterialParameters = {
 };
 
 type Parameters = {
-    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly voxelMaterialsStore: MaterialsStore;
     readonly maxVoxelsChunkSize: VoxelsChunkSize;
     readonly noiseResolution?: number | undefined;
     readonly checkerboardType?: undefined | CheckerboardType;
@@ -229,13 +230,9 @@ float computeNoise() {
 }
 #endif // ${cstVoxelNoise}
 
-struct VoxelMaterial {
-    vec3 color;
-    float shininess;
-    vec3 emissive;
-};
+${this.voxelsMaterialsStore.glslDeclaration}
 
-VoxelMaterial getVoxelMaterial(const vec3 modelNormal) {
+VoxelMaterial buildVoxelMaterial(const vec3 modelNormal) {
     VoxelMaterial voxelMaterial;
 
     if (uDisplayMode == ${EVoxelsDisplayMode.NORMALS}u) {
@@ -249,14 +246,7 @@ VoxelMaterial getVoxelMaterial(const vec3 modelNormal) {
         #endif // ${cstVoxelNoise}
 
         uint voxelMaterialId = ${VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId.glslDecode('vData2')};
-        ivec2 texelCoords = ivec2(voxelMaterialId % ${this.texture.image.width}u, voxelMaterialId / ${this.texture.image.width}u);
-        vec4 fetchedTexel = texelFetch(uTexture, texelCoords, 0);
-        voxelMaterial.color = fetchedTexel.rgb + noise;
-
-        float emissive = step(0.5, fetchedTexel.a) * (2.0 * fetchedTexel.a - 1.0);
-        voxelMaterial.shininess = 0.0001 + step(fetchedTexel.a, 0.5) * uShininessStrength * ${VoxelsRenderableFactoryBase.maxShininess.toFixed(1)} * 2.0 * fetchedTexel.a * (1.0 + 10.0 * noise);
-        voxelMaterial.emissive = emissive * voxelMaterial.color;
-        voxelMaterial.color *= (1.0 - emissive);
+        voxelMaterial = getVoxelMaterial(voxelMaterialId);
     }
 
     if (uDisplayMode == ${EVoxelsDisplayMode.GREY}u) {
@@ -277,7 +267,7 @@ void main() {
     }
     
     vec3 modelNormal = computeModelNormal();
-    VoxelMaterial voxelMaterial = getVoxelMaterial(modelNormal);
+    VoxelMaterial voxelMaterial = buildVoxelMaterial(modelNormal);
 `,
                 '#include <normal_fragment_begin>': `
     vec3 normal = normalMatrix * modelNormal;`,
@@ -383,7 +373,7 @@ void main() {
 
     public constructor(params: Parameters) {
         super({
-            voxelMaterialsList: params.voxelMaterialsList,
+            voxelMaterialsStore: params.voxelMaterialsStore,
             voxelTypeEncoder: VoxelsRenderableFactory.vertexData2Encoder.voxelMaterialId,
             noiseResolution: params.noiseResolution,
             checkerboardType: params.checkerboardType,

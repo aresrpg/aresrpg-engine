@@ -4,6 +4,7 @@ export { HeightmapViewerCpu, type HeightmapViewerCpuStatistics } from './terrain
 export { HeightmapViewerGpu, type HeightmapViewerGpuStatistics } from './terrain/heightmap/gpu/heightmap-viewer-gpu';
 export type { IHeightmap, IHeightmapSample } from './terrain/heightmap/i-heightmap';
 export { type IHeightmapViewer } from './terrain/heightmap/i-heightmap-viewer';
+export { MaterialsStore } from './terrain/materials-store';
 export { TerrainViewer } from './terrain/terrain-viewer';
 export { computeBoard, EBoardSquareType, type Board, type BoardSquare } from './terrain/voxelmap/board/board';
 export { BoardRenderableFactory, type BoardRenderable } from './terrain/voxelmap/board/board-renderable-factory';

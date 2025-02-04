@@ -1,5 +1,6 @@
 import * as THREE from '../../../libs/three-usage';
-import { voxelmapDataPacking, type IVoxelMaterial } from '../i-voxelmap';
+import { type MaterialsStore } from '../../materials-store';
+import { voxelmapDataPacking } from '../i-voxelmap';
 import { type VoxelsRenderable } from '../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryCpuWorker } from '../voxelsRenderable/voxelsRenderableFactory/merged/cpu/voxels-renderable-factory-cpu-worker';
 import { type VoxelsChunkData } from '../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
@@ -7,7 +8,7 @@ import { type VoxelsChunkData } from '../voxelsRenderable/voxelsRenderableFactor
 import { EBoardSquareType, type Board } from './board';
 
 type Parameters = {
-    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly voxelMaterialsStore: MaterialsStore;
 };
 
 type BoardRenderable = {
@@ -18,7 +19,7 @@ type BoardRenderable = {
 class BoardRenderableFactory extends VoxelsRenderableFactoryCpuWorker {
     public constructor(params: Parameters) {
         super({
-            voxelMaterialsList: params.voxelMaterialsList,
+            voxelMaterialsStore: params.voxelMaterialsStore,
             maxVoxelsChunkSize: { xz: 128, y: 16 },
             workersPoolSize: 1,
             voxelsChunkOrdering: 'zyx',

@@ -1,13 +1,14 @@
-import type * as THREE from '../../../../../libs/three-usage';
 import { PromisesQueue } from '../../../../../helpers/async/promises-queue';
-import { type VoxelsChunkOrdering, type IVoxelMap, type IVoxelMaterial, type VoxelsChunkSize } from '../../../i-voxelmap';
+import type * as THREE from '../../../../../libs/three-usage';
+import { type MaterialsStore } from '../../../../materials-store';
+import { type IVoxelMap, type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryCpuWorker } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/cpu/voxels-renderable-factory-cpu-worker';
 import { type CheckerboardType } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 import { PatchFactoryBase } from '../patch-factory-base';
 
 type Parameters = {
-    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly voxelMaterialsStore: MaterialsStore;
     readonly patchSize: VoxelsChunkSize;
     readonly workersPoolSize: number;
     readonly checkerboardType?: CheckerboardType;
@@ -21,7 +22,7 @@ class PatchFactoryCpuWorker extends PatchFactoryBase {
 
     public constructor(params: Parameters) {
         const voxelsRenderableFactory = new VoxelsRenderableFactoryCpuWorker({
-            voxelMaterialsList: params.voxelMaterialsList,
+            voxelMaterialsStore: params.voxelMaterialsStore,
             maxVoxelsChunkSize: params.patchSize,
             workersPoolSize: params.workersPoolSize,
             checkerboardType: params.checkerboardType,

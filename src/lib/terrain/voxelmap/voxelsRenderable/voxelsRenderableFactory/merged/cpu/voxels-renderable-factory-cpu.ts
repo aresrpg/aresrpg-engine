@@ -1,5 +1,6 @@
 import type * as THREE from '../../../../../../libs/three-usage';
-import { voxelmapDataPacking, type IVoxelMaterial, type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../../../i-voxelmap';
+import { type MaterialsStore } from '../../../../../materials-store';
+import { voxelmapDataPacking, type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
 import {
     type CheckerboardType,
@@ -26,7 +27,7 @@ type VoxelsChunkCache = VoxelsChunkData & {
 };
 
 type Parameters = {
-    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly voxelMaterialsStore: MaterialsStore;
     readonly maxVoxelsChunkSize: VoxelsChunkSize;
     readonly voxelsChunkOrdering: VoxelsChunkOrdering;
     readonly checkerboardType?: CheckerboardType | undefined;

@@ -1,8 +1,8 @@
-import { clamp, nextPowerOfTwo } from '../../../../helpers/math';
 import { vec3ToString } from '../../../../helpers/string';
 import { type PackedUintFragment } from '../../../../helpers/uint-packing';
 import * as THREE from '../../../../libs/three-usage';
-import { type IVoxelMaterial, type VoxelsChunkOrdering } from '../../i-voxelmap';
+import { type MaterialsStore } from '../../../materials-store';
+import { type VoxelsChunkOrdering } from '../../i-voxelmap';
 import { type VoxelsMaterialUniforms, type VoxelsMaterials } from '../voxels-material';
 import { VoxelsRenderable } from '../voxels-renderable';
 
@@ -36,7 +36,7 @@ type VoxelsChunkData = VoxelsChunkDataEmpty | VoxelsChunkDataNotEmpty;
 type CheckerboardType = 'x' | 'y' | 'z' | 'xy' | 'xz' | 'yz' | 'xyz';
 
 type Parameters = {
-    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly voxelMaterialsStore: MaterialsStore;
     readonly voxelTypeEncoder: PackedUintFragment;
     readonly noiseResolution?: number | undefined;
     readonly checkerboardType?: undefined | CheckerboardType;
@@ -44,13 +44,12 @@ type Parameters = {
 
 abstract class VoxelsRenderableFactoryBase {
     public static readonly maxSmoothEdgeRadius = 0.3;
-    public static readonly maxShininess = 400;
 
     public abstract readonly maxVoxelsChunkSize: THREE.Vector3;
 
-    protected readonly texture: THREE.DataTexture;
-    private readonly noiseTexture: THREE.DataTexture;
+    protected readonly voxelsMaterialsStore: MaterialsStore;
 
+    private readonly noiseTexture: THREE.DataTexture;
     protected readonly noiseResolution: number = 5;
     protected readonly noiseTextureSize: number = 64;
     protected readonly checkerboardType: CheckerboardType = 'xyz';
@@ -70,7 +69,14 @@ abstract class VoxelsRenderableFactoryBase {
         this.noiseTexture = VoxelsRenderableFactoryBase.buildNoiseTexture(this.noiseTextureSize);
         this.noiseTexture.needsUpdate = true;
 
-        this.texture = VoxelsRenderableFactoryBase.buildMaterialsTexture(params.voxelMaterialsList, params.voxelTypeEncoder);
+        const maxVoxelTypesSupported = params.voxelTypeEncoder.maxValue + 1;
+        if (params.voxelMaterialsStore.materialsCount > maxVoxelTypesSupported) {
+            throw new Error(
+                `A map cannot have more than ${maxVoxelTypesSupported} voxel types (received ${params.voxelMaterialsStore.materialsCount}).`
+            );
+        }
+
+        this.voxelsMaterialsStore = params.voxelMaterialsStore;
     }
 
     public buildVoxelsRenderable(voxelsChunkData: VoxelsChunkData): null | Promise<VoxelsRenderable | null> {
@@ -93,7 +99,6 @@ abstract class VoxelsRenderableFactoryBase {
     }
 
     public dispose(): void {
-        this.texture.dispose();
         this.noiseTexture.dispose();
     }
 
@@ -132,7 +137,7 @@ abstract class VoxelsRenderableFactoryBase {
     protected buildDefaultUniforms(): VoxelsMaterialUniforms {
         return {
             uDisplayMode: { value: 0 },
-            uTexture: { value: this.texture },
+            uTexture: { value: this.voxelsMaterialsStore.texture },
             uDissolveRatio: { value: 0 },
             uNoiseTexture: { value: this.noiseTexture },
             uNoiseStrength: { value: 0 },
@@ -144,52 +149,6 @@ abstract class VoxelsRenderableFactoryBase {
             uGridColor: { value: new THREE.Vector3(-0.2, -0.2, -0.2) },
             uShininessStrength: { value: 1 },
         };
-    }
-
-    private static buildMaterialsTexture(
-        voxelMaterials: ReadonlyArray<IVoxelMaterial>,
-        voxelTypeEncoder: PackedUintFragment
-    ): THREE.DataTexture {
-        const voxelTypesCount = voxelMaterials.length;
-        const maxVoxelTypesSupported = voxelTypeEncoder.maxValue + 1;
-        if (voxelTypesCount > maxVoxelTypesSupported) {
-            throw new Error(`A map cannot have more than ${maxVoxelTypesSupported} voxel types (received ${voxelTypesCount}).`);
-        }
-
-        const maxTextureWidth = 256;
-        const idealTextureWidth = nextPowerOfTwo(voxelTypesCount);
-        const textureWidth = Math.min(idealTextureWidth, maxTextureWidth);
-        const textureHeight = Math.ceil(voxelTypesCount / textureWidth);
-        const textureData = new Uint8Array(4 * textureWidth * textureHeight);
-
-        voxelMaterials.forEach((material: IVoxelMaterial, materialId: number) => {
-            textureData[4 * materialId + 0] = 255 * material.color.r;
-            textureData[4 * materialId + 1] = 255 * material.color.g;
-            textureData[4 * materialId + 2] = 255 * material.color.b;
-            const shininess = material.shininess ?? 0;
-            const emissiveness = material.emissiveness ?? 0;
-
-            if (shininess < 0) {
-                throw new Error(`A material cannot have negative shininess.`);
-            }
-            if (emissiveness < 0) {
-                throw new Error(`A material cannot have negative emissiveness.`);
-            }
-            if (emissiveness > 0 && shininess > 0) {
-                throw new Error(`A material cannot both have shininess and emissiveness`);
-            }
-
-            if (emissiveness > 0) {
-                // store emissiveness
-                textureData[4 * materialId + 3] = 128 + clamp(127 * emissiveness, 0, 127);
-            } else {
-                // store shininess
-                textureData[4 * materialId + 3] = clamp((127 * shininess) / VoxelsRenderableFactoryBase.maxShininess, 0, 127);
-            }
-        });
-        const texture = new THREE.DataTexture(textureData, textureWidth, textureHeight);
-        texture.needsUpdate = true;
-        return texture;
     }
 
     private static buildNoiseTexture(resolution: number): THREE.DataTexture {

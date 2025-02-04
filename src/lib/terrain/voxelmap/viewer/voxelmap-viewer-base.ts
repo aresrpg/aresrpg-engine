@@ -23,7 +23,6 @@ type ComputedPatch = {
 
 abstract class VoxelmapViewerBase {
     public readonly maxSmoothEdgeRadius = VoxelsRenderableFactoryBase.maxSmoothEdgeRadius;
-    public readonly maxShininess = VoxelsRenderableFactoryBase.maxShininess;
 
     public readonly container: THREE.Group;
 

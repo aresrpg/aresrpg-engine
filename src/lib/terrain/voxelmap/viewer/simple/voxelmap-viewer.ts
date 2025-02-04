@@ -2,7 +2,8 @@ import { PromisesQueue } from '../../../../helpers/async/promises-queue';
 import { logger } from '../../../../helpers/logger';
 import { vec3ToString } from '../../../../helpers/string';
 import * as THREE from '../../../../libs/three-usage';
-import { type IVoxelMaterial, type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../i-voxelmap';
+import { type MaterialsStore } from '../../../materials-store';
+import { type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../i-voxelmap';
 import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-cpu';
 import { PatchFactoryCpuWorker } from '../../patch/patch-factory/merged/patch-factory-cpu-worker';
 import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
@@ -52,12 +53,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
     private readonly transitionTime: number;
 
-    public constructor(
-        minChunkIdY: number,
-        maxChunkIdY: number,
-        voxelMaterialsList: ReadonlyArray<IVoxelMaterial>,
-        options?: VoxelmapViewerOptions
-    ) {
+    public constructor(minChunkIdY: number, maxChunkIdY: number, voxelMaterialsStore: MaterialsStore, options?: VoxelmapViewerOptions) {
         const patchSize = options?.patchSize ?? { xz: 64, y: 64 };
         super(minChunkIdY, maxChunkIdY, patchSize);
 
@@ -75,7 +71,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
         if (this.computationOptions.method === EComputationMethod.CPU_MONOTHREADED) {
             this.patchFactory = new PatchFactoryCpu({
-                voxelMaterialsList,
+                voxelMaterialsStore,
                 patchSize,
                 checkerboardType,
                 greedyMeshing: this.computationOptions.greedyMeshing ?? true,
@@ -84,7 +80,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             this.maxPatchesComputedInParallel = 1;
         } else if (this.computationOptions.method === EComputationMethod.CPU_MULTITHREADED) {
             this.patchFactory = new PatchFactoryCpuWorker({
-                voxelMaterialsList,
+                voxelMaterialsStore,
                 patchSize,
                 workersPoolSize: this.computationOptions.threadsCount,
                 checkerboardType,
@@ -94,7 +90,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             this.maxPatchesComputedInParallel = this.computationOptions.threadsCount;
         } else {
             this.patchFactory = new PatchFactoryGpuSequential({
-                voxelMaterialsList,
+                voxelMaterialsStore,
                 patchSize,
                 voxelsChunkOrdering,
                 checkerboardType,

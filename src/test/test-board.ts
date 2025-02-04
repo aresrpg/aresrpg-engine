@@ -8,6 +8,7 @@ import {
     EBoardSquareType,
     EComputationMethod,
     HeightmapViewerCpu,
+    MaterialsStore,
     PromisesQueue,
     TerrainViewer,
     VoxelmapViewer,
@@ -31,6 +32,7 @@ class TestBoard extends TestBase {
     private readonly voxelmapVisibilityComputer: VoxelmapVisibilityComputer;
     private readonly promisesQueue: PromisesQueue;
 
+    private readonly voxelMaterialsStore: MaterialsStore;
     private readonly map: VoxelmapWrapper;
 
     private readonly gui: GUI;
@@ -55,7 +57,11 @@ class TestBoard extends TestBase {
         const minChunkIdY = Math.floor(map.minAltitude / chunkSize.y);
         const maxChunkIdY = Math.floor(map.maxAltitude / chunkSize.y);
 
-        this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, map.voxelMaterialsList, {
+        this.voxelMaterialsStore = new MaterialsStore({
+            voxelMaterialsList: map.voxelMaterialsList,
+            maxShininess: 400,
+        });
+        this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, this.voxelMaterialsStore, {
             patchSize: chunkSize,
             computationOptions: {
                 method: EComputationMethod.CPU_MULTITHREADED,
@@ -141,7 +147,7 @@ class TestBoard extends TestBase {
 
     private setupBoard(voxelMap: IVoxelMap & ITerrainMap): void {
         const factory = new BoardRenderableFactory({
-            voxelMaterialsList: voxelMap.voxelMaterialsList,
+            voxelMaterialsStore: this.voxelMaterialsStore,
         });
 
         const parameters = {

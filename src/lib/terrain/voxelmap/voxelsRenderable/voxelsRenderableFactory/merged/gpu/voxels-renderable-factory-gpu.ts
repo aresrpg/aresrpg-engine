@@ -1,11 +1,12 @@
-import { type IVoxelMaterial, type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../../../i-voxelmap';
-import { type VoxelsChunkDataNotEmpty, type CheckerboardType, type GeometryAndMaterial } from '../../voxels-renderable-factory-base';
+import { type MaterialsStore } from '../../../../../materials-store';
+import { type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../../../i-voxelmap';
+import { type CheckerboardType, type GeometryAndMaterial, type VoxelsChunkDataNotEmpty } from '../../voxels-renderable-factory-base';
 import { VoxelsRenderableFactory } from '../voxels-renderable-factory';
 
 import { VoxelsComputerGpu } from './voxels-computer-gpu';
 
 type Parameters = {
-    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly voxelMaterialsStore: MaterialsStore;
     readonly voxelsChunkSize: VoxelsChunkSize;
     readonly voxelsChunkOrdering: VoxelsChunkOrdering;
     readonly checkerboardType?: CheckerboardType | undefined;
@@ -16,7 +17,7 @@ class VoxelsRenderableFactoryGpu extends VoxelsRenderableFactory {
 
     public constructor(params: Parameters) {
         super({
-            voxelMaterialsList: params.voxelMaterialsList,
+            voxelMaterialsStore: params.voxelMaterialsStore,
             maxVoxelsChunkSize: params.voxelsChunkSize,
             checkerboardType: params.checkerboardType,
         });
