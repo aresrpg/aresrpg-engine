@@ -1,7 +1,7 @@
 import { AsyncTask } from '../../../../helpers/async/async-task';
 import { applyReplacements } from '../../../../helpers/string';
 import * as THREE from '../../../../libs/three-usage';
-import { type IHeightmap, type IHeightmapCoords, type IHeightmapSample } from '../../i-heightmap';
+import { type IHeightmap, type IHeightmapSample } from '../../i-heightmap';
 
 import { type HeightmapRootTexture, type TileId } from './heightmap-root-texture';
 import { buildEdgesResolutionId, type EdgesResolution, EEdgeResolution, type TileGeometryStore } from './tile-geometry-store';
@@ -18,7 +18,7 @@ type Parameters = {
         readonly heightmap: IHeightmap;
         readonly geometryStore: TileGeometryStore;
         readonly texture: HeightmapRootTexture;
-        convertToWorldPositions(localTileId: TileId, normalizedPositions: ReadonlyArray<IHeightmapCoords>): IHeightmapCoords[];
+        convertToWorldPositions(localTileId: TileId, normalizedPositions: Float32Array): Float32Array;
         getWorldSize(nestingLevel: number): number;
     };
     readonly localTileId: TileId;
@@ -46,7 +46,7 @@ class HeightmapTile {
         readonly heightmap: IHeightmap;
         readonly geometryStore: TileGeometryStore;
         readonly texture: HeightmapRootTexture;
-        convertToWorldPositions(localTileId: TileId, normalizedPositions: ReadonlyArray<IHeightmapCoords>): IHeightmapCoords[];
+        convertToWorldPositions(localTileId: TileId, normalizedPositions: Float32Array): Float32Array;
         getWorldSize(nestingLevel: number): number;
     };
 

@@ -1,5 +1,5 @@
 import type * as THREE from '../../../../libs/three-usage';
-import { type IHeightmap, type IHeightmapCoords } from '../../i-heightmap';
+import { type IHeightmap } from '../../i-heightmap';
 
 import { HeightmapRootTexture, type TileId } from './heightmap-root-texture';
 import { HeightmapTile } from './heightmap-tile';
@@ -47,22 +47,20 @@ class HeightmapRootTile extends HeightmapTile {
                 heightmap: params.heightmap,
                 geometryStore: params.geometryStore,
                 texture: rootTexture,
-                convertToWorldPositions: (
-                    localTileId: TileId,
-                    normalizedPositions: ReadonlyArray<IHeightmapCoords>
-                ): IHeightmapCoords[] => {
+                convertToWorldPositions: (localTileId: TileId, normalizedPositions: Float32Array): Float32Array => {
                     const tileSize = getWorldSize(localTileId.nestingLevel);
                     const tileOriginWorld = {
                         x: originWorld.x + tileSize * localTileId.localCoords.x,
                         z: originWorld.z + tileSize * localTileId.localCoords.z,
                     };
 
-                    return normalizedPositions.map(normalizedPosition => {
-                        return {
-                            x: tileOriginWorld.x + tileSize * normalizedPosition.x,
-                            z: tileOriginWorld.z + tileSize * normalizedPosition.z,
-                        };
-                    });
+                    const positionsCount = normalizedPositions.length / 2;
+                    const positions = new Float32Array(2 * positionsCount);
+                    for (let i = 0; i < positionsCount; i++) {
+                        positions[2 * i + 0] = tileOriginWorld.x + tileSize * normalizedPositions[2 * i + 0]!;
+                        positions[2 * i + 1] = tileOriginWorld.z + tileSize * normalizedPositions[2 * i + 1]!;
+                    }
+                    return positions;
                 },
                 getWorldSize,
             },

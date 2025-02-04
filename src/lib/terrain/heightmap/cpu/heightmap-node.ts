@@ -3,7 +3,7 @@ import { DisposableMap } from '../../../helpers/disposable-map';
 import { logger } from '../../../helpers/logger';
 import { createMeshesStatistics, type MeshesStatistics } from '../../../helpers/meshes-statistics';
 import * as THREE from '../../../libs/three-usage';
-import { type IHeightmap, type IHeightmapCoords } from '../i-heightmap';
+import { type IHeightmap } from '../i-heightmap';
 
 import { type GeometryProcessor, type ProcessedGeometryData } from './geometry-processor';
 import { EEdgeResolution, type HeightmapNodeGeometry } from './heightmap-node-geometry';
@@ -315,16 +315,15 @@ class HeightmapNode {
         let template = this.template;
         if (!template) {
             const positionsBuffer = this.root.nodeGeometry.clonePositionsBuffer();
+            const positionsCount = positionsBuffer.length / 3;
 
-            const sampleCoords: IHeightmapCoords[] = [];
-            for (let i = 0; i < positionsBuffer.length; i += 3) {
-                positionsBuffer[i]! *= scaling;
-                positionsBuffer[i + 2]! *= scaling;
+            const sampleCoords = new Float32Array(2 * positionsCount);
+            for (let i = 0; i < positionsCount; i++) {
+                positionsBuffer[3 * i + 0]! *= scaling;
+                positionsBuffer[3 * i + 2]! *= scaling;
 
-                sampleCoords.push({
-                    x: positionsBuffer[i]! + this.id.box.min.x,
-                    z: positionsBuffer[i + 2]! + this.id.box.min.y,
-                });
+                sampleCoords[2 * i + 0] = positionsBuffer[3 * i + 0]! + this.id.box.min.x;
+                sampleCoords[2 * i + 1] = positionsBuffer[3 * i + 2]! + this.id.box.min.y;
             }
 
             const samplingResults = this.sampler.sampleHeightmap(sampleCoords);

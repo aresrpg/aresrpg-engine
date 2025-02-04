@@ -3,14 +3,7 @@ import { createNoise2D, type NoiseFunction2D } from 'simplex-noise';
 import * as THREE from 'three-usage-test';
 
 import { safeModulo } from '../../lib/helpers/math';
-import {
-    voxelmapDataPacking,
-    type IHeightmap,
-    type IHeightmapCoords,
-    type IHeightmapSample,
-    type IVoxelMap,
-    type LocalMapData,
-} from '../../lib/index';
+import { voxelmapDataPacking, type IHeightmap, type IHeightmapSample, type IVoxelMap, type LocalMapData } from '../../lib/index';
 
 import { colorMapping } from './color-mapping';
 import { RepeatableBluenoise } from './repeatable-bluenoise';
@@ -234,52 +227,16 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         }
     }
 
-    public sampleHeightmap(coords: IHeightmapCoords[]): IHeightmapSample[] | Promise<IHeightmapSample[]> {
-        const result = coords.map(coords => {
-            let sample = this.sampleHeightmapBaseTerrain(coords.x, coords.z);
+    public sampleHeightmap(coords: Float32Array): IHeightmapSample[] | Promise<IHeightmapSample[]> {
+        if (coords.length % 2 !== 0) {
+            throw new Error();
+        }
 
-            if (!this.includeTreesInLod) {
-                return sample;
-            }
-
-            const voxelsWorldCoords = {
-                x: Math.floor(coords.x),
-                z: Math.floor(coords.z),
-            };
-            const voxelTextureCoords = {
-                x: safeModulo(voxelsWorldCoords.x, this.treesTexture.size),
-                z: safeModulo(voxelsWorldCoords.z, this.treesTexture.size),
-            };
-            const textureBaseCoords = {
-                x: this.treesTexture.size * Math.floor(voxelsWorldCoords.x / this.treesTexture.size),
-                z: this.treesTexture.size * Math.floor(voxelsWorldCoords.z / this.treesTexture.size),
-            };
-
-            const treesTextureSample = this.treesTexture.data[this.treesTexture.buildIndex(voxelTextureCoords.x, voxelTextureCoords.z)];
-            if (typeof treesTextureSample === 'undefined') {
-                throw new Error();
-            }
-            if (treesTextureSample) {
-                const treeRootWorldCoords = {
-                    x: textureBaseCoords.x + treesTextureSample.treeRootTextureCoords.x,
-                    y: 0,
-                    z: textureBaseCoords.z + treesTextureSample.treeRootTextureCoords.y,
-                };
-                treeRootWorldCoords.y = this.sampleHeightmapBaseTerrain(treeRootWorldCoords.x, treeRootWorldCoords.z).altitude;
-
-                const treeSampleAltitude = treeRootWorldCoords.y + treesTextureSample.heightmapSample.altitude;
-                if (sample.altitude < treeSampleAltitude) {
-                    if (this.isThereATree(treeRootWorldCoords, treesTextureSample.treeProbability)) {
-                        sample = {
-                            color: treesTextureSample.heightmapSample.color,
-                            altitude: treeSampleAltitude,
-                        };
-                    }
-                }
-            }
-
-            return sample;
-        });
+        const result: IHeightmapSample[] = [];
+        for (let i = 0; i < coords.length; i += 2) {
+            const sample = this.sampleHeightmapPoint(coords[i + 0]!, coords[i + 1]!);
+            result.push(sample);
+        }
 
         const synchronous = true;
         if (synchronous) {
@@ -312,6 +269,52 @@ class VoxelMap implements IVoxelMap, IHeightmap {
             altitude,
             color,
         };
+    }
+
+    private sampleHeightmapPoint(x: number, z: number): IHeightmapSample {
+        let sample = this.sampleHeightmapBaseTerrain(x, z);
+
+        if (!this.includeTreesInLod) {
+            return sample;
+        }
+
+        const voxelsWorldCoords = {
+            x: Math.floor(x),
+            z: Math.floor(z),
+        };
+        const voxelTextureCoords = {
+            x: safeModulo(voxelsWorldCoords.x, this.treesTexture.size),
+            z: safeModulo(voxelsWorldCoords.z, this.treesTexture.size),
+        };
+        const textureBaseCoords = {
+            x: this.treesTexture.size * Math.floor(voxelsWorldCoords.x / this.treesTexture.size),
+            z: this.treesTexture.size * Math.floor(voxelsWorldCoords.z / this.treesTexture.size),
+        };
+
+        const treesTextureSample = this.treesTexture.data[this.treesTexture.buildIndex(voxelTextureCoords.x, voxelTextureCoords.z)];
+        if (typeof treesTextureSample === 'undefined') {
+            throw new Error();
+        }
+        if (treesTextureSample) {
+            const treeRootWorldCoords = {
+                x: textureBaseCoords.x + treesTextureSample.treeRootTextureCoords.x,
+                y: 0,
+                z: textureBaseCoords.z + treesTextureSample.treeRootTextureCoords.y,
+            };
+            treeRootWorldCoords.y = this.sampleHeightmapBaseTerrain(treeRootWorldCoords.x, treeRootWorldCoords.z).altitude;
+
+            const treeSampleAltitude = treeRootWorldCoords.y + treesTextureSample.heightmapSample.altitude;
+            if (sample.altitude < treeSampleAltitude) {
+                if (this.isThereATree(treeRootWorldCoords, treesTextureSample.treeProbability)) {
+                    sample = {
+                        color: treesTextureSample.heightmapSample.color,
+                        altitude: treeSampleAltitude,
+                    };
+                }
+            }
+        }
+
+        return sample;
     }
 
     private positionToColor(x: number, y: number, z: number): THREE.Color {

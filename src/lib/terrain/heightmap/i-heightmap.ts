@@ -7,11 +7,6 @@ type Color = {
     readonly b: number;
 };
 
-interface IHeightmapCoords {
-    readonly x: number;
-    readonly z: number;
-}
-
 interface IHeightmapSample {
     readonly altitude: number;
     readonly color: Color;
@@ -28,7 +23,7 @@ interface IHeightmap {
      * Samples points on the heightmap, synchronously or asynchronously.
      * @returns A list (or promise of list) of one sample per input coords, in the same order as the input coords.
      */
-    sampleHeightmap(coords: IHeightmapCoords[]): IHeightmapSample[] | Promise<IHeightmapSample[]>;
+    sampleHeightmap(coords: Float32Array): IHeightmapSample[] | Promise<IHeightmapSample[]>;
 }
 
-export type { IHeightmap, IHeightmapCoords, IHeightmapSample };
+export type { IHeightmap, IHeightmapSample };

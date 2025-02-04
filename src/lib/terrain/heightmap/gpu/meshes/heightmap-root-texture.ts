@@ -39,7 +39,7 @@ class HeightmapRootTexture {
         readonly normals?: THREE.Texture;
     };
 
-    public readonly tilePositions: ReadonlyArray<{ readonly x: number; readonly z: number }>; // in [0, 1]
+    public readonly tilePositions: Float32Array; // in [0, 1]
 
     private needsUpdate: boolean = false;
 
@@ -155,15 +155,10 @@ class HeightmapRootTexture {
 
         const tileGeometry = params.geometryStore.getBaseTile().clone();
         const positionAttribute = tileGeometry.getAttribute('position');
-        const positions: THREE.Vector3Like[] = [];
-        for (let iIndex = 0; iIndex < positionAttribute.array.length; iIndex += 3) {
-            positions.push(
-                new THREE.Vector3(
-                    positionAttribute.array[iIndex + 0]!,
-                    positionAttribute.array[iIndex + 1]!,
-                    positionAttribute.array[iIndex + 2]!
-                )
-            );
+        const positions = new Float32Array(2 * positionAttribute.count);
+        for (let iPosition = 0; iPosition < positionAttribute.count; iPosition++) {
+            positions[2 * iPosition + 0] = positionAttribute.array[3 * iPosition + 0]!;
+            positions[2 * iPosition + 1] = positionAttribute.array[3 * iPosition + 2]!;
         }
         this.tilePositions = positions;
 
@@ -243,7 +238,7 @@ class HeightmapRootTexture {
     }
 
     public renderTile(tileId: TileId, renderer: THREE.WebGLRenderer, tileSamples: ReadonlyArray<IHeightmapSample>): void {
-        if (tileSamples.length !== this.tilePositions.length) {
+        if (tileSamples.length !== this.tilePositions.length / 2) {
             throw new Error();
         }
 
