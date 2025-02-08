@@ -113,7 +113,7 @@ abstract class VoxelmapViewerBase {
             yFilled: number[];
         };
 
-        const columns: Record<string, Column> = {};
+        const columns = new Map<string, Column>();
 
         const minPatchIdY = this.minChunkIdY;
         const maxPatchIdY = this.maxChunkIdY;
@@ -127,20 +127,21 @@ abstract class VoxelmapViewerBase {
                 const id = new PatchId({ x: patch.id.x, y, z: patch.id.z });
                 if (this.isPatchAttached(id)) {
                     const columnId = `${patch.id.x}_${patch.id.z}`;
-                    let column = columns[columnId];
+                    let column = columns.get(columnId);
                     if (!column) {
                         column = {
                             id: { x: patch.id.x, z: patch.id.z },
                             yFilled: [],
                         };
-                        columns[columnId] = column;
+                        columns.set(columnId, column);
                     }
                     column.yFilled.push(y);
                 }
             }
         }
 
-        const completeColumns = Object.values(columns).filter(column => {
+        const completeColumnIdsList: { x: number; z: number }[] = [];
+        for (const column of columns.values()) {
             const missingYList: number[] = [];
 
             for (const y of requiredPatchIdYList) {
@@ -149,14 +150,13 @@ abstract class VoxelmapViewerBase {
                 }
             }
 
-            if (missingYList.length > 0) {
+            if (missingYList.length === 0) {
+                completeColumnIdsList.push(column.id);
+            } else {
                 logger.diagnostic(`Incomplete colum "x=${column.id.x};z=${column.id.z}": missing y=${missingYList.join(',')}`);
-                return false;
             }
-            return true;
-        });
-
-        return completeColumns.map(column => column.id);
+        }
+        return completeColumnIdsList;
     }
 
     /**

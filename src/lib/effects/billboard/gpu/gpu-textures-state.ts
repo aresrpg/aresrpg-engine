@@ -29,7 +29,7 @@ class GpuTexturesState {
     private readonly renderTargets: [THREE.WebGLRenderTarget, THREE.WebGLRenderTarget];
     private currentRenderTargetId: number = 0;
 
-    private readonly pipelines: Record<string, Pipeline> = {};
+    private readonly pipelines = new Map<string, Pipeline>();
 
     public constructor(params: Parameters) {
         this.renderTargets = [
@@ -120,7 +120,7 @@ ${['vUv', ...params.textureNames.map((_name: string, index: number) => `out_frag
 }`;
             }
 
-            this.pipelines[name] = {
+            this.pipelines.set(name, {
                 shader: new THREE.RawShaderMaterial({
                     glslVersion: '300 es',
                     blending: THREE.NoBlending,
@@ -131,12 +131,12 @@ ${['vUv', ...params.textureNames.map((_name: string, index: number) => `out_frag
                     fragmentShader,
                 }),
                 requiresPreviousState: definition.requiresPreviousState,
-            };
+            });
         }
     }
 
     public runPipeline(renderer: THREE.WebGLRenderer, name: string): void {
-        const pipeline = this.pipelines[name];
+        const pipeline = this.pipelines.get(name);
         if (!pipeline) {
             throw new Error(`Unknown pipeline "${name}".`);
         }

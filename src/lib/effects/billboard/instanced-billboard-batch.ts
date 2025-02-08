@@ -32,7 +32,7 @@ class InstancedBillboardBatch {
     public readonly maxInstancesCount: number;
     private readonly instanceWorldPositionAttribute: THREE.InstancedBufferAttribute;
     private readonly instanceLocalTransformAttribute: THREE.InstancedBufferAttribute;
-    private readonly instanceCustomAttributes: Record<string, CustomAttribute>;
+    private readonly instanceCustomAttributes = new Map<string, CustomAttribute>();
 
     public constructor(params: Parameters) {
         const billboardGeometry = createBillboardInstancedBufferGeometry();
@@ -50,7 +50,6 @@ class InstancedBillboardBatch {
         this.instanceLocalTransformAttribute = new THREE.InstancedBufferAttribute(new Float32Array(instanceLocalTransformBuffer), 4);
         billboardGeometry.setAttribute('aInstanceLocalTransform', this.instanceLocalTransformAttribute);
 
-        this.instanceCustomAttributes = {};
         for (const [name, definition] of Object.entries(params.customAttributes)) {
             const size = attributeSizes[definition.type];
             if (typeof size === 'undefined') {
@@ -59,7 +58,7 @@ class InstancedBillboardBatch {
 
             const bufferAttribute = new THREE.InstancedBufferAttribute(new Float32Array(size * params.maxInstancesCount), size);
             billboardGeometry.setAttribute(`a_${name}`, bufferAttribute);
-            this.instanceCustomAttributes[name] = { bufferAttribute, size };
+            this.instanceCustomAttributes.set(name, { bufferAttribute, size });
         }
 
         this.mesh = new THREE.InstancedMesh(billboardGeometry, params.billboardMaterial, params.maxInstancesCount);
@@ -94,7 +93,7 @@ class InstancedBillboardBatch {
     }
 
     public setInstanceCustomAttribute(instanceId: number, name: string, value: ReadonlyArray<number>): void {
-        const customAttribute = this.instanceCustomAttributes[name];
+        const customAttribute = this.instanceCustomAttributes.get(name);
         if (!customAttribute) {
             throw new Error(`Unknown attribute "${name}".`);
         }

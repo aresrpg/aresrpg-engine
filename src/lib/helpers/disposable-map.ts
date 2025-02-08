@@ -7,24 +7,24 @@ interface IDisposable {
 type Key = string | number;
 
 class DisposableMap<T extends IDisposable> {
-    private store: Record<Key, T> = {};
+    private readonly store = new Map<Key, T>();
     private readonly itemsList = new CachedItem<T[]>(() => Object.values(this.store));
 
     public setItem(id: Key, item: T): void {
         this.deleteItem(id);
-        this.store[id] = item;
+        this.store.set(id, item);
         this.itemsList.invalidate();
     }
 
     public getItem(id: Key): T | null {
-        return this.store[id] || null;
+        return this.store.get(id) || null;
     }
 
     public deleteItem(id: Key): boolean {
-        const item = this.store[id];
+        const item = this.store.get(id);
         if (typeof item !== 'undefined') {
             item.dispose();
-            delete this.store[id];
+            this.store.delete(id);
             this.itemsList.invalidate();
             return true;
         }
@@ -43,7 +43,7 @@ class DisposableMap<T extends IDisposable> {
         for (const item of this.allItems) {
             item.dispose();
         }
-        this.store = {};
+        this.store.clear();
         this.itemsList.invalidate();
     }
 }
