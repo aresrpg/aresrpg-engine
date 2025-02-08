@@ -34,8 +34,10 @@ function createBillboardMaterial(params: Parameters): THREE.Material {
     let material: THREE.Material;
     if (params.material === 'Phong') {
         material = new THREE.MeshPhongMaterial();
+        material.name = 'billboard-material-phong';
     } else if (params.material === 'Basic') {
         material = new THREE.MeshBasicMaterial();
+        material.name = 'billboard-material-basic';
     } else {
         throw new Error(`Unsupported material "${params.material}".`);
     }
@@ -151,6 +153,7 @@ function createBillboardInstancedBufferGeometry(): THREE.InstancedBufferGeometry
     );
     bufferGeometry.setAttribute('normal', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
     bufferGeometry.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0], 2));
+    bufferGeometry.name = 'billboard-instanced-buffergeometry';
     return bufferGeometry;
 }
 

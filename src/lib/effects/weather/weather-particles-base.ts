@@ -55,6 +55,7 @@ class GpuInstancedBillboard {
 
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
+        this.container.name = 'weather-particles-container';
 
         const textureSize = nextPowerOfTwo(Math.floor(Math.sqrt(params.maxInstancesCount)));
         if (params.maxInstancesCount > textureSize * textureSize) {
@@ -167,6 +168,7 @@ localTransform = mat2(size.x, 0, 0, size.y);`,
         {
             const billboardGeometry = createBillboardInstancedBufferGeometry();
             this.mesh = new THREE.InstancedMesh(billboardGeometry, this.displayPipeline.shader, params.maxInstancesCount);
+            this.mesh.name = 'weather-particles-mesh';
             this.mesh.count = 0;
             this.mesh.frustumCulled = false;
             this.mesh.receiveShadow = params.rendering.shadows.receive;

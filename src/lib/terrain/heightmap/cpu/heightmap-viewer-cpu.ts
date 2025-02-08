@@ -23,7 +23,7 @@ class HeightmapViewerCpu implements IHeightmapViewer {
 
     public constructor(sampler: IHeightmap, options: HeightmapViewerOptions) {
         this.container = new THREE.Group();
-        this.container.name = 'Heightmap container';
+        this.container.name = 'heightmapviewer-cpu-container';
 
         this.basePatchSize = options.basePatchSize;
 

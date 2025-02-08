@@ -55,7 +55,7 @@ abstract class TestBase {
         this.cameraControl.target.set(0, this.camera.position.y - 10, 0);
 
         this.scene = new THREE.Scene();
-        this.scene.name = 'Scene';
+        this.scene.name = 'test-scene';
         this.scene.matrixAutoUpdate = false;
         this.scene.add(new THREE.AxesHelper(500));
     }

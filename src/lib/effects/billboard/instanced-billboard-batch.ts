@@ -62,6 +62,7 @@ class InstancedBillboardBatch {
         }
 
         this.mesh = new THREE.InstancedMesh(billboardGeometry, params.billboardMaterial, params.maxInstancesCount);
+        this.mesh.name = 'instanced-billboard-mesh';
         this.mesh.count = 0;
         this.mesh.frustumCulled = false;
         this.mesh.receiveShadow = params.receiveShadows;

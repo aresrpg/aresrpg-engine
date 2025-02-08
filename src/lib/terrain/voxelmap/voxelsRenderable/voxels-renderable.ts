@@ -87,6 +87,7 @@ class VoxelsRenderable {
             this.trianglesCount = trianglesCount;
             this.gpuMemoryBytes = gpuMemoryBytes;
         }
+        this.container.name = 'voxels-renderable';
 
         this.boundingBox = new THREE.Box3();
         for (const patchMesh of patchMeshes) {

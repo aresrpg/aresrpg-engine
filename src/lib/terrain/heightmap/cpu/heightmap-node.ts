@@ -84,7 +84,7 @@ class HeightmapNode {
         this.root = root;
 
         this.container = new THREE.Group();
-        this.container.name = `Heightmap node ${this.id.asString()}`;
+        this.container.name = `heightmap-node-${this.id.asString()}`;
     }
 
     public resetSubdivisions(): void {
@@ -301,7 +301,7 @@ class HeightmapNode {
             }
 
             const mesh = new THREE.Mesh(geometry, this.root.material);
-            mesh.name = `Heightmap node mesh ${this.id.asString()}`;
+            mesh.name = `heightmap-node-mesh-${this.id.asString()}`;
             mesh.receiveShadow = true;
             mesh.castShadow = true;
             const firstVoxelPosition = this.id.box.min;

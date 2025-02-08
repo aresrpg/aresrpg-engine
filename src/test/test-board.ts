@@ -158,6 +158,7 @@ class TestBoard extends TestBase {
         };
 
         const boardContainer = new THREE.Group();
+        boardContainer.name = 'board-container';
         this.scene.add(boardContainer);
         let currentBoard: {
             board: Board;
@@ -167,7 +168,9 @@ class TestBoard extends TestBase {
         const boardOverlaysHandler = new BoardOverlaysHandler({ board: { size: { x: 1, z: 1 }, origin: { x: 0, y: 0, z: 0 } } });
 
         const boardCenterContainer = new THREE.Group();
+        boardCenterContainer.name = 'board-center-container';
         const boardCenter = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0xffffff }));
+        boardCenter.name = 'board-center';
         boardCenter.position.set(0.5, 0.5, 0.5);
         boardCenterContainer.add(boardCenter);
 

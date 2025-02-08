@@ -36,6 +36,7 @@ return vec4(0.5, 0.5, 1, 1);
         this.instancedBillboard.initializePositions(renderer);
 
         this.container = new THREE.Group();
+        this.container.name = 'rain-container';
         this.instancedBillboard.container.position.copy(this.instancedBillboard.positionsRange.clone().multiplyScalar(-0.5));
         this.container.add(this.instancedBillboard.container);
     }

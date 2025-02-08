@@ -40,6 +40,7 @@ class HeightmapRoot {
 
     public constructor(sampler: IHeightmap, options: HeightmapRootOptions) {
         this.container = new THREE.Group();
+        this.container.name = 'heightmap-cpu-root';
 
         this.basePatchSize = options.basePatchSize;
         this.nodeGeometry = new HeightmapNodeGeometry(this.basePatchSize, options.voxelRatio);

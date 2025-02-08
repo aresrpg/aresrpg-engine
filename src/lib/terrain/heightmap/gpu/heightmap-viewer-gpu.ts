@@ -58,7 +58,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
 
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
-        this.container.name = 'heightmap-viewer';
+        this.container.name = 'heightmapviewer-gpu-container';
 
         this.materialsStore = params.materialsStore;
         this.geometryStore = new TileGeometryStore({

@@ -40,6 +40,7 @@ class InstancedBillboard {
 
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
+        this.container.name = 'instanced-billboard-container';
 
         this.maxInstancesCount = params.maxInstancesCount ?? Infinity;
 

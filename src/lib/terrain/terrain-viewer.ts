@@ -29,7 +29,7 @@ class TerrainViewer {
 
     public constructor(heightmapViewer: IHeightmapViewer, voxelmapViewer: VoxelmapViewerBase) {
         this.container = new THREE.Group();
-        this.container.name = 'Terrain container';
+        this.container.name = 'terrain-container';
         this.container.matrixAutoUpdate = false; // do not always update world matrix in updateMatrixWorld()
         this.container.matrixWorldAutoUpdate = false; // tell the parent to not always call updateMatrixWorld()
 

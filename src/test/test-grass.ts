@@ -155,6 +155,7 @@ class TestGrass extends TestBase {
         this.scene.add(ambientLight);
 
         const propsContainer = new THREE.Object3D();
+        propsContainer.name = 'props-container';
         this.scene.add(propsContainer);
 
         this.grassRepartition = params.repartitions.bluenoise;
@@ -188,6 +189,7 @@ class TestGrass extends TestBase {
         propsContainer.add(this.rocks.container);
 
         this.fakePlayer = new THREE.Object3D();
+        this.fakePlayer.name = 'fake-player';
         this.fakePlayer.position.set(0, 0.5, 0);
         const boardCenterControls = new THREE.TransformControls(this.camera, this.renderer.domElement);
         boardCenterControls.showY = false;
@@ -198,6 +200,7 @@ class TestGrass extends TestBase {
             new THREE.SphereGeometry(0.5, 12, 12),
             new THREE.MeshPhongMaterial({ color: 0xffffff, wireframe: false })
         );
+        fakePlayerMesh.name = 'fake-player-mesh';
         this.fakePlayer.add(fakePlayerMesh);
         boardCenterControls.attach(this.fakePlayer);
         this.scene.add(this.fakePlayer);
@@ -223,6 +226,7 @@ class TestGrass extends TestBase {
         groundTexture.minFilter = THREE.LinearMipMapLinearFilter;
         groundTexture.magFilter = THREE.NearestFilter;
         const ground = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshPhongMaterial({ map: groundTexture }));
+        ground.name = 'ground';
         ground.rotateX(-Math.PI / 2);
         ground.scale.set(groundSize, groundSize, 1);
         this.scene.add(ground);

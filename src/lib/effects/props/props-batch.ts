@@ -184,6 +184,7 @@ class PropsBatch {
         this.groupsDefinitions = new Map();
 
         this.instancedMesh = new THREE.InstancedMesh(params.bufferGeometry, this.material.material, this.maxInstancesCount);
+        this.instancedMesh.name = 'props-batch';
         this.instancedMesh.count = 0;
     }
 

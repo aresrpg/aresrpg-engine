@@ -39,6 +39,7 @@ return vec4(0.9, 0.9, 1, 1);
         this.instancedBillboard.initializePositions(renderer);
 
         this.container = new THREE.Group();
+        this.container.name = 'snow-container';
         this.instancedBillboard.container.position.copy(this.instancedBillboard.positionsRange.clone().multiplyScalar(-0.5));
         this.container.add(this.instancedBillboard.container);
     }

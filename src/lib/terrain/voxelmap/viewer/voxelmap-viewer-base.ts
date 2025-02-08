@@ -68,7 +68,7 @@ abstract class VoxelmapViewerBase {
 
     protected constructor(minChunkIdX: number, maxChunkIdY: number, chunkSize: VoxelsChunkSize) {
         this.container = new THREE.Group();
-        this.container.name = 'Voxelmap container';
+        this.container.name = 'voxelmap-viewer-container';
 
         this.minChunkIdY = minChunkIdX;
         this.maxChunkIdY = maxChunkIdY;

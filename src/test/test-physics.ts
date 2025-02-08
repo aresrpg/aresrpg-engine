@@ -114,6 +114,7 @@ class TestPhysics extends TestBase {
         this.displayMap();
 
         const rayGroup = new THREE.Group();
+        rayGroup.name = 'ray-group';
         rayGroup.position.set(0, 170, 0);
         rayGroup.rotateX(0.7 * Math.PI);
         this.scene.add(rayGroup);
@@ -151,7 +152,9 @@ class TestPhysics extends TestBase {
             new THREE.CylinderGeometry(playerSize.radius, playerSize.radius, playerSize.height),
             new THREE.MeshPhongMaterial({ color: 0xdddddd })
         );
+        playerMesh.name = 'player';
         const playerContainer = new THREE.Group();
+        playerContainer.name = 'player-container';
         playerContainer.add(playerMesh);
         playerMesh.position.y = playerSize.height / 2;
         playerContainer.position.y = 160;
@@ -165,6 +168,7 @@ class TestPhysics extends TestBase {
 
         const sphereRadius = 1.1;
         const sphereMesh = new THREE.Mesh(new THREE.SphereGeometry(sphereRadius), new THREE.MeshPhongMaterial({ color: 0xdddddd }));
+        sphereMesh.name = 'sphere';
 
         window.addEventListener('keyup', event => {
             if (event.code === 'KeyP') {

@@ -31,6 +31,7 @@ class BoardRenderableFactory extends VoxelsRenderableFactoryCpuWorker {
         const voxelsChunkData = this.buildBoardVoxelsChunkData(board, boardThickness);
 
         const container = new THREE.Group();
+        container.name = 'board-renderable';
         const voxelsRenderableList: VoxelsRenderable[] = [];
 
         const result = await super.buildVoxelsRenderable(voxelsChunkData);

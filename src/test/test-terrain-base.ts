@@ -52,6 +52,7 @@ abstract class TestTerrainBase extends TestBase {
             };
 
             const playerContainer = new THREE.Group();
+            playerContainer.name = 'player-container';
             playerContainer.position.x = 0;
             playerContainer.position.y = voxelMap.altitude.max + 1;
             playerContainer.position.z = 0;
@@ -133,17 +134,20 @@ abstract class TestTerrainBase extends TestBase {
 
     private setupLighting(): void {
         const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.name = 'dirlight';
         dirLight.target.position.set(0, 0, 0);
         dirLight.position.set(100, 50, 100);
         this.scene.add(dirLight);
         this.gui.add(dirLight, 'intensity', 0, 3).name('Directional light');
 
         const ambientLight = new THREE.AmbientLight(0xffffff);
+        ambientLight.name = 'ambient-light';
         this.scene.add(ambientLight);
         this.gui.add(ambientLight, 'intensity', 0, 3).name('Ambient light');
 
         if (this.enableShadows) {
             const planeReceivingShadows = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial());
+            planeReceivingShadows.name = 'shadows-plane';
             planeReceivingShadows.position.set(0, -20, 0);
             planeReceivingShadows.rotateOnAxis(new THREE.Vector3(1, 0, 0), -Math.PI / 4);
             planeReceivingShadows.rotateOnAxis(new THREE.Vector3(0, 1, 0), Math.PI / 4);

@@ -40,9 +40,10 @@ void main(void) {
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', positionsAttribute);
         this.mesh = new THREE.Mesh(geometry, this.material);
+        this.mesh.name = 'board-overlay-mesh';
         this.mesh.frustumCulled = false;
         this.container = new THREE.Group();
-        this.container.name = `board-overlay ${params.name}`;
+        this.container.name = `board-overlay-container ${params.name}`;
         this.container.add(this.mesh);
     }
 
