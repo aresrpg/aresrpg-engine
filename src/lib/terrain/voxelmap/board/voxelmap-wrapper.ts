@@ -32,7 +32,6 @@ class VoxelmapWrapper implements IVoxelMap {
     private readonly originGetLocalMapData: IVoxelMap['getLocalMapData'];
 
     private readonly boardxChunks: Record<number, BoardAndPatchesIds> = {};
-    private patchesModifiedByBoardx: Record<string, PatchId> = {};
     private hiddenColumns = new Map<string, HiddenColumn>();
 
     private readonly chunkSize: VoxelsChunkSize;
@@ -169,13 +168,8 @@ class VoxelmapWrapper implements IVoxelMap {
 
     private reevaluateBoardx(): void {
         this.hiddenColumns.clear();
-        this.patchesModifiedByBoardx = {};
 
         for (const boardChunks of Object.values(this.boardxChunks)) {
-            for (const patchId of boardChunks.modifiedPatchesIdsList) {
-                this.patchesModifiedByBoardx[patchId.asString] = patchId;
-            }
-
             for (const column of boardChunks.hiddenColumnsList) {
                 this.hiddenColumns.set(`${column.id.x}_${column.id.z}`, column);
             }
