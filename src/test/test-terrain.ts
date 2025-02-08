@@ -60,8 +60,8 @@ class TestTerrain extends TestTerrainBase {
         }
 
         const chunkSize = { xz: 64, y: 64 };
-        const minChunkIdY = Math.floor(map.minAltitude / chunkSize.y);
-        const maxChunkIdY = Math.floor(map.maxAltitude / chunkSize.y);
+        const minChunkIdY = Math.floor(map.altitude.min / chunkSize.y);
+        const maxChunkIdY = Math.floor(map.altitude.max / chunkSize.y);
 
         this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, this.voxelMaterialsStore, {
             patchSize: chunkSize,
@@ -353,6 +353,7 @@ return vec4(sampled.rgb / sampled.a, 1);
         const testPathFinding = true;
 
         const boardContainer = new THREE.Group();
+        boardContainer.name = 'board-container';
         this.scene.add(boardContainer);
         let currentBoard: {
             board: Board;
@@ -433,7 +434,9 @@ return vec4(sampled.rgb / sampled.a, 1);
         };
 
         const boardCenterContainer = new THREE.Group();
+        boardCenterContainer.name = 'board-center-container';
         const boardCenter = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0xffffff }));
+        boardCenter.name = 'board-center';
         boardCenter.position.set(0.5, 0.5, 0.5);
         boardCenterContainer.add(boardCenter);
 
