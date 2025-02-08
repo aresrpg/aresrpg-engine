@@ -62,11 +62,11 @@ type EntityCollisionOutput = {
 };
 
 function removeVoxelIdDuplicates(list: THREE.Vector3Like[]): THREE.Vector3Like[] {
-    const map: Record<string, THREE.Vector3Like> = {};
+    const map = new Map<string, THREE.Vector3Like>();
     for (const voxelId of list) {
-        map[`${voxelId.x}_${voxelId.y}_${voxelId.z}`] = voxelId;
+        map.set(`${voxelId.x}_${voxelId.y}_${voxelId.z}`, voxelId);
     }
-    return Object.values(map);
+    return Array.from(map.values());
 }
 
 class VoxelmapCollisions {
