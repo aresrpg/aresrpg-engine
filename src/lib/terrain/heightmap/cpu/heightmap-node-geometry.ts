@@ -31,7 +31,7 @@ class HeightmapNodeGeometry {
 
     private readonly quadsCount: number;
     private readonly positionsBuffer: Float32Array;
-    private readonly indexBuffers: Record<string, Indices> = {};
+    private readonly indexBuffers = new Map<string, Indices>();
 
     public constructor(baseSize: number, step: number) {
         this.quadsCount = baseSize / step;
@@ -52,7 +52,7 @@ class HeightmapNodeGeometry {
 
     public getIndices(edgesResolution: EdgesResolution): Indices {
         const cacheKey = this.buildEdgesCode(edgesResolution);
-        let result = this.indexBuffers[cacheKey];
+        let result = this.indexBuffers.get(cacheKey);
         if (!result) {
             const indexData: number[] = [];
 
@@ -160,7 +160,7 @@ class HeightmapNodeGeometry {
                 },
                 edges: { up, right, down, left },
             };
-            this.indexBuffers[cacheKey] = result;
+            this.indexBuffers.set(cacheKey, result);
         }
 
         return {
