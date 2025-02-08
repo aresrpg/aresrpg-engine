@@ -33,7 +33,7 @@ class HeightmapRoot {
     private readonly maxLevel: number;
     private readonly maxLevelSizeInVoxels: number;
 
-    private readonly topNodes: Record<string, HeightmapNode> = {};
+    private readonly topNodes = new Map<string, HeightmapNode>();
 
     private readonly garbageCollectInterval = 10000;
     private lastGarbageCollectTimestamp = performance.now();
@@ -58,18 +58,18 @@ class HeightmapRoot {
 
     public getOrBuildSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {
         const topNodeId = this.buildTopNodeId(nodeId);
-        let topNode = this.topNodes[topNodeId.asString()];
+        let topNode = this.topNodes.get(topNodeId.asString());
         if (!topNode) {
             topNode = new HeightmapNode(this.sampler, topNodeId, this);
             this.container.add(topNode.container);
-            this.topNodes[topNodeId.asString()] = topNode;
+            this.topNodes.set(topNodeId.asString(), topNode);
         }
         return topNode.getOrBuildSubNode(nodeId);
     }
 
     public getSubNode(nodeId: HeightmapNodeId): HeightmapNode | null {
         const topNodeId = this.buildTopNodeId(nodeId);
-        const topNode = this.topNodes[topNodeId.asString()];
+        const topNode = this.topNodes.get(topNodeId.asString());
         if (topNode) {
             return topNode.getSubNode(nodeId);
         }
@@ -139,17 +139,21 @@ class HeightmapRoot {
     }
 
     private garbageCollect(): void {
-        for (const [id, topNode] of Object.entries(this.topNodes)) {
+        const idsToRemove: string[] = [];
+        for (const [id, topNode] of this.topNodes.entries()) {
             if (!topNode.visible) {
                 topNode.dispose();
-                delete this.topNodes[id];
+                idsToRemove.push(id);
             }
+        }
+        for (const id of idsToRemove) {
+            this.topNodes.delete(id);
         }
         this.lastGarbageCollectTimestamp = performance.now();
     }
 
-    private get topNodesList(): HeightmapNode[] {
-        return Object.values(this.topNodes);
+    private get topNodesList(): Iterable<HeightmapNode> {
+        return this.topNodes.values();
     }
 
     private buildTopNodeId(nodeId: HeightmapNodeId): HeightmapNodeId {
