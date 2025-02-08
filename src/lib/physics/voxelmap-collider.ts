@@ -63,7 +63,7 @@ class VoxelmapCollider implements IVoxelmapCollider {
 
     private readonly voxelmapDataPacking = new VoxelmapDataPacking();
 
-    private readonly chunkCollidersMap: Record<string, ChunkCollider> = {};
+    private readonly chunkCollidersMap = new Map<string, ChunkCollider>();
 
     private readonly compactionWorkersPool: DedicatedWorkersPool | null = null;
 
@@ -144,14 +144,14 @@ class VoxelmapCollider implements IVoxelmapCollider {
 
     public setChunk(chunkId: THREE.Vector3Like, chunk: VoxelsChunkDataForCollisions): void {
         const patchId = new PatchId(chunkId);
-        if (this.chunkCollidersMap[patchId.asString]) {
+        if (this.chunkCollidersMap.has(patchId.asString)) {
             logger.debug(`Chunk "${patchId.asString}" already exists.`);
         }
 
         if (chunk.isEmpty) {
-            this.chunkCollidersMap[patchId.asString] = { isEmpty: true, isFull: false };
+            this.chunkCollidersMap.set(patchId.asString, { isEmpty: true, isFull: false });
         } else if (chunk.isFull) {
-            this.chunkCollidersMap[patchId.asString] = { isEmpty: false, isFull: true };
+            this.chunkCollidersMap.set(patchId.asString, { isEmpty: false, isFull: true });
         } else {
             if (chunk.dataOrdering !== this.voxelsChunkOrdering) {
                 throw new Error(`Invalid voxels chunk ordering: expected "${this.voxelsChunkOrdering}", received "${chunk.dataOrdering}".`);
@@ -159,26 +159,26 @@ class VoxelmapCollider implements IVoxelmapCollider {
 
             if (this.compactionWorkersPool) {
                 const rawChunkCollider: ChunkCollider = { isEmpty: false, isFull: false, type: 'raw', data: chunk.data };
-                this.chunkCollidersMap[patchId.asString] = rawChunkCollider;
+                this.chunkCollidersMap.set(patchId.asString, rawChunkCollider);
                 this.compactionWorkersPool.submitTask<Uint8Array>('compactChunk', chunk.data).then(data => {
-                    if (this.chunkCollidersMap[patchId.asString] === rawChunkCollider) {
-                        this.chunkCollidersMap[patchId.asString] = {
+                    if (this.chunkCollidersMap.get(patchId.asString) === rawChunkCollider) {
+                        this.chunkCollidersMap.set(patchId.asString, {
                             isEmpty: false,
                             isFull: false,
                             type: 'compacted',
                             data,
-                        };
+                        });
                     } else {
                         logger.warn(`Chunk collider "${patchId.asString}" changed unexpectedly.`);
                     }
                 });
             } else {
-                this.chunkCollidersMap[patchId.asString] = {
+                this.chunkCollidersMap.set(patchId.asString, {
                     isEmpty: false,
                     isFull: false,
                     type: 'compacted',
                     data: this.compactor.compactChunk(chunk.data),
-                };
+                });
             }
         }
     }
@@ -190,7 +190,7 @@ class VoxelmapCollider implements IVoxelmapCollider {
             z: Math.floor(worldVoxelCoords.z / this.chunkSize.z),
         });
         // console.log(patchId.asString);
-        const chunk = this.chunkCollidersMap[patchId.asString];
+        const chunk = this.chunkCollidersMap.get(patchId.asString);
         if (!chunk) {
             return EVoxelStatus.NOT_LOADED;
         }
@@ -249,7 +249,7 @@ class VoxelmapCollider implements IVoxelmapCollider {
             },
         };
 
-        for (const chunk of Object.values(this.chunkCollidersMap)) {
+        for (const chunk of this.chunkCollidersMap.values()) {
             statistics.totalChunksCount++;
 
             if (!chunk.isEmpty && !chunk.isFull) {
