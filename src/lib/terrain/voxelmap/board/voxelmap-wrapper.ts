@@ -33,7 +33,7 @@ class VoxelmapWrapper implements IVoxelMap {
 
     private readonly boardxChunks: Record<number, BoardAndPatchesIds> = {};
     private patchesModifiedByBoardx: Record<string, PatchId> = {};
-    private hiddenColumns: Record<string, HiddenColumn> = {};
+    private hiddenColumns = new Map<string, HiddenColumn>();
 
     private readonly chunkSize: VoxelsChunkSize;
     private readonly minChunkIdY: number;
@@ -64,7 +64,7 @@ class VoxelmapWrapper implements IVoxelMap {
             const columnWorld = { x: 0, y: 0, z: 0 };
             for (columnWorld.z = blockStart.z; columnWorld.z < blockEnd.z; columnWorld.z++) {
                 for (columnWorld.x = blockStart.x; columnWorld.x < blockEnd.x; columnWorld.x++) {
-                    const hiddenColumn = this.hiddenColumns[`${columnWorld.x}_${columnWorld.z}`];
+                    const hiddenColumn = this.hiddenColumns.get(`${columnWorld.x}_${columnWorld.z}`);
 
                     if (hiddenColumn) {
                         const localX = columnWorld.x - blockStart.x;
@@ -108,7 +108,7 @@ class VoxelmapWrapper implements IVoxelMap {
             throw new Error(`Cannot register the board "${board.id}" twice.`);
         }
 
-        const chunksColumns: Record<string, ColumnId> = {};
+        const chunksColumnsMap = new Map<string, ColumnId>();
         const hiddenColumnsList: HiddenColumn[] = [];
         const columnLocal = { x: 0, z: 0 };
         for (columnLocal.z = 0; columnLocal.z < board.size.z; columnLocal.z++) {
@@ -133,13 +133,12 @@ class VoxelmapWrapper implements IVoxelMap {
                     x: Math.floor(columnWorld.x / this.chunkSize.xz),
                     z: Math.floor(columnWorld.z / this.chunkSize.xz),
                 };
-                chunksColumns[`${chunkColumnId.x}_${chunkColumnId.z}`] = chunkColumnId;
+                chunksColumnsMap.set(`${chunkColumnId.x}_${chunkColumnId.z}`, chunkColumnId);
             }
         }
-        const chunksColumnsList = Object.values(chunksColumns);
 
         const modifiedPatchesIdsList: PatchId[] = [];
-        for (const chunkColumn of chunksColumnsList) {
+        for (const chunkColumn of chunksColumnsMap.values()) {
             const patchId = { x: chunkColumn.x, y: 0, z: chunkColumn.z };
             const fromPatchY = Math.floor((board.origin.y - 1) / this.chunkSize.y);
             for (patchId.y = Math.max(this.minChunkIdY, fromPatchY); patchId.y <= this.maxChunkIdY; patchId.y++) {
@@ -169,7 +168,7 @@ class VoxelmapWrapper implements IVoxelMap {
     }
 
     private reevaluateBoardx(): void {
-        this.hiddenColumns = {};
+        this.hiddenColumns.clear();
         this.patchesModifiedByBoardx = {};
 
         for (const boardChunks of Object.values(this.boardxChunks)) {
@@ -178,7 +177,7 @@ class VoxelmapWrapper implements IVoxelMap {
             }
 
             for (const column of boardChunks.hiddenColumnsList) {
-                this.hiddenColumns[`${column.id.x}_${column.id.z}`] = column;
+                this.hiddenColumns.set(`${column.id.x}_${column.id.z}`, column);
             }
         }
     }
