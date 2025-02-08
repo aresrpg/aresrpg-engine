@@ -12,7 +12,7 @@ class VoxelmapVisibilityComputer {
     public readonly minPatchIdY: number;
     public readonly maxPatchIdY: number;
 
-    private requestedPatches: Record<string, RequestedPatch> = {};
+    private readonly requestedPatches = new Map<string, RequestedPatch>();
 
     public constructor(chunkSize: THREE.Vector3Like, minPatchIdY: number, maxPatchIdY: number) {
         this.chunkSize = new THREE.Vector3().copy(chunkSize);
@@ -21,7 +21,7 @@ class VoxelmapVisibilityComputer {
     }
 
     public reset(): void {
-        this.requestedPatches = {};
+        this.requestedPatches.clear();
     }
 
     public showMapPortion(box: THREE.Box3): void {
@@ -85,16 +85,16 @@ class VoxelmapVisibilityComputer {
     }
 
     public getRequestedPatches(): Readonly<RequestedPatch>[] {
-        const list = Object.values(this.requestedPatches);
+        const list = Array.from(this.requestedPatches.values());
         list.sort((patch1, patch2) => patch2.priority - patch1.priority);
         return list;
     }
 
     private addPriority(patchId: PatchId, priority: number): void {
-        let requestedPatch = this.requestedPatches[patchId.asString];
+        let requestedPatch = this.requestedPatches.get(patchId.asString);
         if (!requestedPatch) {
             requestedPatch = { id: patchId, priority: 0 };
-            this.requestedPatches[patchId.asString] = requestedPatch;
+            this.requestedPatches.set(patchId.asString, requestedPatch);
         }
         requestedPatch.priority += priority;
     }
