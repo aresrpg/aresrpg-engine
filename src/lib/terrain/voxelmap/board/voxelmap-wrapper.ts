@@ -31,7 +31,7 @@ class VoxelmapWrapper implements IVoxelMap {
 
     private readonly originGetLocalMapData: IVoxelMap['getLocalMapData'];
 
-    private readonly boardxChunks: Record<number, BoardAndPatchesIds> = {};
+    private readonly boardxChunks = new Map<number, BoardAndPatchesIds>();
     private hiddenColumns = new Map<string, HiddenColumn>();
 
     private readonly chunkSize: VoxelsChunkSize;
@@ -103,7 +103,7 @@ class VoxelmapWrapper implements IVoxelMap {
     }
 
     public registerBoard(board: Board): void {
-        if (typeof this.boardxChunks[board.id] !== 'undefined') {
+        if (this.boardxChunks.has(board.id)) {
             throw new Error(`Cannot register the board "${board.id}" twice.`);
         }
 
@@ -145,17 +145,17 @@ class VoxelmapWrapper implements IVoxelMap {
             }
         }
 
-        this.boardxChunks[board.id] = { board, modifiedPatchesIdsList, hiddenColumnsList };
+        this.boardxChunks.set(board.id, { board, modifiedPatchesIdsList, hiddenColumnsList });
         this.reevaluateBoardx();
         this.triggerOnChange(modifiedPatchesIdsList);
     }
 
     public unregisterBoard(board: Board): void {
-        const boardAndPatchesIds = this.boardxChunks[board.id];
+        const boardAndPatchesIds = this.boardxChunks.get(board.id);
         if (typeof boardAndPatchesIds === 'undefined') {
             throw new Error(`Cannot unregister unknown board "${board.id}".`);
         }
-        delete this.boardxChunks[board.id];
+        this.boardxChunks.delete(board.id);
         this.reevaluateBoardx();
         this.triggerOnChange(boardAndPatchesIds.modifiedPatchesIdsList);
     }
@@ -169,7 +169,7 @@ class VoxelmapWrapper implements IVoxelMap {
     private reevaluateBoardx(): void {
         this.hiddenColumns.clear();
 
-        for (const boardChunks of Object.values(this.boardxChunks)) {
+        for (const boardChunks of this.boardxChunks.values()) {
             for (const column of boardChunks.hiddenColumnsList) {
                 this.hiddenColumns.set(`${column.id.x}_${column.id.z}`, column);
             }
