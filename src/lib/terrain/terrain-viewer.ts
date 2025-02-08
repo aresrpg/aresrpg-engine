@@ -1,7 +1,8 @@
 import * as THREE from '../libs/three-usage';
 
 import { type IHeightmapViewer } from './heightmap/i-heightmap-viewer';
-import { type VoxelmapStatistics, type VoxelmapViewerBase } from './voxelmap/viewer/voxelmap-viewer-base';
+import { type IVoxelmapViewer } from './voxelmap/viewer/i-voxelmap-viewer';
+import { type VoxelmapStatistics } from './voxelmap/viewer/voxelmap-viewer-base';
 
 type TerrainStatistics = {
     voxelmap: VoxelmapStatistics;
@@ -21,13 +22,13 @@ class TerrainViewer {
         },
     };
 
-    protected readonly voxelmapViewer: VoxelmapViewerBase;
+    protected readonly voxelmapViewer: IVoxelmapViewer;
     protected readonly heightmapViewer: IHeightmapViewer;
     protected heightmapViewerNeedsUpdate: boolean = true;
 
     private lastHeightmapUpdateTimestamp: number | null = null;
 
-    public constructor(heightmapViewer: IHeightmapViewer, voxelmapViewer: VoxelmapViewerBase) {
+    public constructor(heightmapViewer: IHeightmapViewer, voxelmapViewer: IVoxelmapViewer) {
         this.container = new THREE.Group();
         this.container.name = 'terrain-container';
         this.container.matrixAutoUpdate = false; // do not always update world matrix in updateMatrixWorld()
