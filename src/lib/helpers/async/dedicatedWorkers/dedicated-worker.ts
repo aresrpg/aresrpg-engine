@@ -31,11 +31,11 @@ type TaskResponseMessage =
 
 type RequestMessage = {
     readonly messageId: number;
-    readonly taskRequestMessagesList: ReadonlyArray<TaskRequestMessage>;
+    readonly taskRequestMessagesList: Iterable<TaskRequestMessage>;
 };
 type ResponseMessage = {
     readonly messageId: number;
-    readonly taskResponseMessagesList: ReadonlyArray<TaskResponseMessage>;
+    readonly taskResponseMessagesList: Iterable<TaskResponseMessage>;
 };
 
 type PendingTask = {
@@ -163,7 +163,7 @@ class DedicatedWorker {
         return this.pendingTasks.size;
     }
 
-    private sendTasksToWorker(tasksList: ReadonlyArray<TaskRequestMessage>, transfer: Transferable[]): void {
+    private sendTasksToWorker(tasksList: Iterable<TaskRequestMessage>, transfer: Transferable[]): void {
         if (!this.worker) {
             throw new Error('Worker has been terminated.');
         }

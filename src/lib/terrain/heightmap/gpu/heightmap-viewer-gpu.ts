@@ -90,7 +90,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         }
     }
 
-    public setHiddenPatches(patches: ReadonlyArray<{ x: number; z: number }>): void {
+    public setHiddenPatches(patches: Iterable<{ x: number; z: number }>): void {
         const quadtree = new Quadtree();
 
         this.applyVisibility(quadtree);

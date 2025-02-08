@@ -17,7 +17,7 @@ class CustomizableTexture {
     public readonly texture: THREE.Texture;
 
     public needsUpdate: boolean = true;
-    public get layerNames(): ReadonlyArray<string> {
+    public get layerNames(): string[] {
         return Array.from(this.layers.keys());
     }
 

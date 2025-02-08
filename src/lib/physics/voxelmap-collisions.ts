@@ -61,7 +61,7 @@ type EntityCollisionOutput = {
     missingVoxels?: THREE.Vector3Like[];
 };
 
-function removeVoxelIdDuplicates(list: THREE.Vector3Like[]): THREE.Vector3Like[] {
+function removeVoxelIdDuplicates(list: Iterable<THREE.Vector3Like>): THREE.Vector3Like[] {
     const map = new Map<string, THREE.Vector3Like>();
     for (const voxelId of list) {
         map.set(`${voxelId.x}_${voxelId.y}_${voxelId.z}`, voxelId);

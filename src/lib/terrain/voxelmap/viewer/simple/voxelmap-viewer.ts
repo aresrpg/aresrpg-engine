@@ -172,7 +172,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         }
     }
 
-    public setVisibility(visiblePatchesId: ReadonlyArray<THREE.Vector3Like>): void {
+    public setVisibility(visiblePatchesId: Iterable<THREE.Vector3Like>): void {
         const visiblePatchesIdsSet = new Set<string>();
         for (const visiblePatchId of visiblePatchesId) {
             const patchId = new PatchId(visiblePatchId);

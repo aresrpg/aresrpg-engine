@@ -12,7 +12,7 @@ interface IHeightmapViewer {
     wireframe: boolean;
 
     update(renderer: THREE.WebGLRenderer): void;
-    setHiddenPatches(patches: ReadonlyArray<{ x: number; z: number }>): void;
+    setHiddenPatches(patches: Iterable<{ x: number; z: number }>): void;
     getStatistics(): object;
 }
 

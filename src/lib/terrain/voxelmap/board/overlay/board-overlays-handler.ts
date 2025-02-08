@@ -49,7 +49,7 @@ class BoardOverlaysHandler {
         this.overlaySquares.clear();
     }
 
-    public displaySquares(coords: GridCoord[], color: THREE.Color, alpha: number = 1): void {
+    public displaySquares(coords: Iterable<GridCoord>, color: THREE.Color, alpha: number = 1): void {
         for (const cell of coords) {
             this.overlaySquares.enableCell(cell, color, alpha);
         }
@@ -63,7 +63,7 @@ class BoardOverlaysHandler {
         this.overlayBlob.clear(blobId);
     }
 
-    public displayBlob(blobId: number, coords: GridCoord[], color: THREE.Color, alpha: number): void {
+    public displayBlob(blobId: number, coords: Iterable<GridCoord>, color: THREE.Color, alpha: number): void {
         this.overlayBlob.setColor(blobId, color);
         this.overlayBlob.setAlpha(blobId, alpha);
 
