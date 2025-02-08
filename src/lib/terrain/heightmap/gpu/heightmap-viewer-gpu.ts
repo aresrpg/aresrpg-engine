@@ -63,8 +63,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         this.materialsStore = params.materialsStore;
         this.geometryStore = new TileGeometryStore({
             segmentsCount: params.basePatch.segmentsCount,
-            minAltitude: params.heightmap.minAltitude,
-            maxAltitude: params.heightmap.maxAltitude,
+            altitude: params.heightmap.altitude,
         });
         this.heightmap = params.heightmap;
         this.maxNesting = params.maxNesting;

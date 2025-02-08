@@ -10,8 +10,10 @@ type Parameters = {
     readonly baseCellSizeInTexels: number;
     readonly texelSizeInWorld: number;
     readonly maxNesting: number;
-    readonly minAltitude: number;
-    readonly maxAltitude: number;
+    readonly altitude: {
+        readonly min: number;
+        readonly max: number;
+    };
     readonly geometryStore: TileGeometryStore;
     readonly computeNormalsTexture: boolean;
 };
@@ -122,7 +124,7 @@ class HeightmapRootTexture {
 
                     return normalize(vec3(
                         altitudeLeft - altitudeRight,
-                        ${((2 * params.texelSizeInWorld) / (params.maxAltitude - params.minAltitude)).toFixed(5)},
+                        ${((2 * params.texelSizeInWorld) / (params.altitude.max - params.altitude.min)).toFixed(5)},
                         altitudeDown - altitudeUp
                     ));
                 }
@@ -166,8 +168,8 @@ class HeightmapRootTexture {
 
         const uniforms = {
             uNestingLevel: { value: 0 },
-            uMinAltitude: { value: params.minAltitude },
-            uMaxAltitude: { value: params.maxAltitude },
+            uMinAltitude: { value: params.altitude.min },
+            uMaxAltitude: { value: params.altitude.max },
             uUvScale: { value: 1 },
             uUvShift: { value: new THREE.Vector2() },
         };

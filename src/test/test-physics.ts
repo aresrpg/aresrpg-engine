@@ -74,8 +74,8 @@ class TestPhysics extends TestBase {
         this.map = map;
 
         const chunkSize = { xz: 64, y: 64 };
-        const minChunkIdY = Math.floor(map.minAltitude / chunkSize.y);
-        const maxChunkIdY = Math.floor(map.maxAltitude / chunkSize.y);
+        const minChunkIdY = Math.floor(map.altitude.min / chunkSize.y);
+        const maxChunkIdY = Math.floor(map.altitude.max / chunkSize.y);
 
         const voxelsChunkOrdering: VoxelsChunkOrdering = 'zyx';
 

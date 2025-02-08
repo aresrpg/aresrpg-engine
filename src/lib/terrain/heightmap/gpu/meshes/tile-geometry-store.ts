@@ -18,8 +18,10 @@ function buildEdgesResolutionId(edgesResolution: EdgesResolution): string {
 
 type Parameters = {
     readonly segmentsCount: number;
-    readonly minAltitude: number;
-    readonly maxAltitude: number;
+    readonly altitude: {
+        readonly min: number;
+        readonly max: number;
+    };
 };
 
 class TileGeometryStore {
@@ -49,8 +51,8 @@ class TileGeometryStore {
                         bufferGeometry.setIndex(TileGeometryStore.getIndices(params.segmentsCount, edgesResolution));
 
                         const boundingBox = new THREE.Box3(
-                            new THREE.Vector3(0, params.minAltitude, 0),
-                            new THREE.Vector3(1, params.maxAltitude, 1)
+                            new THREE.Vector3(0, params.altitude.min, 0),
+                            new THREE.Vector3(1, params.altitude.max, 1)
                         );
                         bufferGeometry.boundingBox = boundingBox;
                         bufferGeometry.boundingSphere = boundingBox.getBoundingSphere(new THREE.Sphere());

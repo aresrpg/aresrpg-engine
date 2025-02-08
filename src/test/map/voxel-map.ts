@@ -2,8 +2,8 @@ import alea from 'alea';
 import { createNoise2D, type NoiseFunction2D } from 'simplex-noise';
 import * as THREE from 'three-usage-test';
 
+import { voxelmapDataPacking, type HeightmapSamples, type IHeightmap, type IVoxelMap, type LocalMapData } from '../../lib';
 import { safeModulo } from '../../lib/helpers/math';
-import { type HeightmapSamples, voxelmapDataPacking, type IHeightmap, type IVoxelMap, type LocalMapData } from '../../lib';
 
 import { colorMapping } from './color-mapping';
 import { RepeatableBluenoise } from './repeatable-bluenoise';
@@ -41,8 +41,10 @@ class VoxelMap implements IVoxelMap, IHeightmap {
     public readonly scaleY: number;
     public readonly voxelMaterialsList = colorMapping.materialsList;
 
-    public readonly minAltitude: number = -1;
-    public readonly maxAltitude: number;
+    public readonly altitude: {
+        readonly min: number;
+        readonly max: number;
+    };
 
     private readonly noise2D: NoiseFunction2D;
     private readonly coordsShift: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
@@ -65,7 +67,10 @@ class VoxelMap implements IVoxelMap, IHeightmap {
     public constructor(scaleXZ: number, altitude: number, seed: string, includeTreesInLod: boolean) {
         this.scaleXZ = scaleXZ;
         this.scaleY = altitude;
-        this.maxAltitude = altitude + 1;
+        this.altitude = {
+            min: -1,
+            max: altitude + 1,
+        };
         this.includeTreesInLod = includeTreesInLod;
 
         this.thresholdWater = 0.1 * this.scaleY;
@@ -268,7 +273,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         const noise = this.noise2D(x / this.scaleXZ, z / this.scaleXZ);
         let altitude = (0.5 + 0.5 * noise) * this.scaleY;
         if (altitude >= this.thresholdGrass) {
-            const margin = this.maxAltitude - 1 - this.thresholdGrass;
+            const margin = this.altitude.max - 1 - this.thresholdGrass;
             const distanceToRock = altitude - this.thresholdGrass;
             const relativeDistance = distanceToRock / margin;
             altitude = this.thresholdGrass + Math.pow(relativeDistance, 0.25) * margin;

@@ -1,8 +1,9 @@
-import * as THREE from '../../../../libs/three-usage';
 import { DisposableMap } from '../../../../helpers/disposable-map';
 import { logger } from '../../../../helpers/logger';
 import { vec3ToString } from '../../../../helpers/string';
-import { type VoxelsChunkSize, type IVoxelMap, type VoxelsChunkOrdering } from '../../i-voxelmap';
+import * as THREE from '../../../../libs/three-usage';
+import { MaterialsStore } from '../../../materials-store';
+import { type IVoxelMap, type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../i-voxelmap';
 import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-cpu';
 import { PatchFactoryGpuOptimized } from '../../patch/patch-factory/merged/patch-factory-gpu-optimized';
 import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
@@ -10,7 +11,6 @@ import { type PatchFactoryBase } from '../../patch/patch-factory/patch-factory-b
 import { PatchId } from '../../patch/patch-id';
 import { VoxelmapVisibilityComputer } from '../../voxelmap-visibility-computer';
 import { VoxelmapViewerBase, type ComputedPatch, type PatchRenderable } from '../voxelmap-viewer-base';
-import { MaterialsStore } from '../../../materials-store';
 
 import { AsyncPatch } from './async-patch';
 
@@ -81,8 +81,8 @@ class VoxelmapViewerAutonomous extends VoxelmapViewerBase {
         const patchSize = patchFactory.maxPatchSize.clone();
         logger.info(`Using max patch size ${vec3ToString(patchSize)}.`);
 
-        const minPatchIdY = Math.floor(map.minAltitude / patchSize.y);
-        const maxPatchIdY = Math.floor(map.maxAltitude / patchSize.y);
+        const minPatchIdY = Math.floor(map.altitude.min / patchSize.y);
+        const maxPatchIdY = Math.floor(map.altitude.max / patchSize.y);
         super(minPatchIdY, maxPatchIdY, voxelsChunksSize);
 
         this.map = map;

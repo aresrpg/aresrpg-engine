@@ -41,8 +41,8 @@ abstract class TestTerrainBase extends TestBase {
             setTimeout(() => {
                 this.showMapPortion(
                     new THREE.Box3(
-                        new THREE.Vector3(-size, voxelMap.minAltitude - 1, -size),
-                        new THREE.Vector3(size, voxelMap.maxAltitude, size)
+                        new THREE.Vector3(-size, voxelMap.altitude.min - 1, -size),
+                        new THREE.Vector3(size, voxelMap.altitude.max, size)
                     )
                 );
             }, 0);
@@ -53,7 +53,7 @@ abstract class TestTerrainBase extends TestBase {
 
             const playerContainer = new THREE.Group();
             playerContainer.position.x = 0;
-            playerContainer.position.y = voxelMap.maxAltitude + 1;
+            playerContainer.position.y = voxelMap.altitude.max + 1;
             playerContainer.position.z = 0;
             // const player = new THREE.Mesh(new THREE.SphereGeometry(2), new THREE.MeshBasicMaterial({ color: '#FF0000' }));
             // playerContainer.add(player);

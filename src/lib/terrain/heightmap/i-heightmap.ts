@@ -7,8 +7,10 @@ type HeightmapSamples = {
  * Interface for a class storing a 2D heightmap (Y-up).
  */
 interface IHeightmap {
-    readonly minAltitude: number;
-    readonly maxAltitude: number;
+    readonly altitude: {
+        readonly min: number;
+        readonly max: number;
+    };
 
     /**
      * Samples points on the heightmap, synchronously or asynchronously.

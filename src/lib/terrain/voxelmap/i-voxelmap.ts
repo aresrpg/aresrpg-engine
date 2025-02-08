@@ -48,8 +48,10 @@ type LocalMapData =
  * Each voxel should have integer coordinates.
  */
 interface IVoxelMap {
-    readonly minAltitude: number;
-    readonly maxAltitude: number;
+    readonly altitude: {
+        readonly min: number;
+        readonly max: number;
+    };
 
     /**
      * @returns an array of all the possible voxel materials contained in the map.
@@ -67,4 +69,4 @@ interface IVoxelMap {
 
 const voxelmapDataPacking = new VoxelmapDataPacking();
 
-export { voxelmapDataPacking, type LocalMapData, type IVoxelMap, type IVoxelMaterial, type VoxelsChunkOrdering, type VoxelsChunkSize };
+export { voxelmapDataPacking, type IVoxelMap, type IVoxelMaterial, type LocalMapData, type VoxelsChunkOrdering, type VoxelsChunkSize };

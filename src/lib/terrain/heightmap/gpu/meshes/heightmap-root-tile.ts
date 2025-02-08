@@ -40,8 +40,7 @@ class HeightmapRootTile extends HeightmapTile {
             texelSizeInWorld: params.baseCell.worldSize / baseCellSizeInTexels,
             maxNesting: params.maxNesting,
             geometryStore: params.geometryStore,
-            minAltitude: params.heightmap.minAltitude,
-            maxAltitude: params.heightmap.maxAltitude,
+            altitude: params.heightmap.altitude,
             computeNormalsTexture: true,
         });
 

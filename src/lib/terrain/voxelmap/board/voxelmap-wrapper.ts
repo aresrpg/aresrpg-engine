@@ -1,5 +1,5 @@
-import * as THREE from '../../../libs/three-usage';
 import { processAsap } from '../../../helpers/async/async-sync';
+import * as THREE from '../../../libs/three-usage';
 import { voxelmapDataPacking, type IVoxelMap, type IVoxelMaterial, type LocalMapData, type VoxelsChunkSize } from '../i-voxelmap';
 import { PatchId } from '../patch/patch-id';
 
@@ -21,8 +21,11 @@ type BoardAndPatchesIds = {
 };
 
 class VoxelmapWrapper implements IVoxelMap {
-    public readonly minAltitude: number;
-    public readonly maxAltitude: number;
+    public readonly altitude: {
+        readonly min: number;
+        readonly max: number;
+    };
+
     public readonly voxelMaterialsList: readonly IVoxelMaterial[];
 
     public readonly includeBoard: boolean;
@@ -39,8 +42,7 @@ class VoxelmapWrapper implements IVoxelMap {
     private readonly maxChunkIdY: number;
 
     public constructor(map: IVoxelMap, voxelsChunkSize: VoxelsChunkSize, minChunkIdY: number, maxChunkIdY: number, includeBoard: boolean) {
-        this.minAltitude = map.minAltitude;
-        this.maxAltitude = map.maxAltitude;
+        this.altitude = { ...map.altitude };
         this.voxelMaterialsList = map.voxelMaterialsList;
         this.originGetLocalMapData = map.getLocalMapData.bind(map);
 
