@@ -55,7 +55,7 @@ class PatchFactoryGpuOptimized extends PatchFactoryBase {
             const patchId = this.nextPatchId++;
             // logger.diagnostic(`Asking for patch ${patchId}`);
 
-            const onGeometryAndMaterialsListComputed = (geometryAndMaterialsList: GeometryAndMaterial[]) => {
+            const onGeometryAndMaterialsListComputed = (geometryAndMaterialsList: ReadonlyArray<GeometryAndMaterial>) => {
                 const voxelsRenderable = this.voxelsRenderableFactory.assembleVoxelsRenderable(patchSize, geometryAndMaterialsList);
                 resolve(voxelsRenderable);
             };

@@ -66,7 +66,7 @@ class VoxelsRenderable {
         }
     }
 
-    public constructor(patchMeshes: PatchMesh[]) {
+    public constructor(patchMeshes: ReadonlyArray<PatchMesh>) {
         this.gpuResources = { patchMeshes };
 
         if (patchMeshes.length === 1) {

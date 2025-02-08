@@ -102,7 +102,10 @@ abstract class VoxelsRenderableFactoryBase {
         this.noiseTexture.dispose();
     }
 
-    public assembleVoxelsRenderable(size: THREE.Vector3, geometryAndMaterialsList: GeometryAndMaterial[]): VoxelsRenderable | null {
+    public assembleVoxelsRenderable(
+        size: THREE.Vector3,
+        geometryAndMaterialsList: ReadonlyArray<GeometryAndMaterial>
+    ): VoxelsRenderable | null {
         if (geometryAndMaterialsList.length === 0) {
             return null;
         }
