@@ -1,5 +1,10 @@
 import type * as THREE from '../../libs/three-usage';
 
+type PatchId = {
+    readonly x: number;
+    readonly z: number;
+};
+
 interface IHeightmapViewer {
     readonly container: THREE.Object3D;
 
@@ -12,8 +17,8 @@ interface IHeightmapViewer {
     wireframe: boolean;
 
     update(renderer: THREE.WebGLRenderer): void;
-    setHiddenPatches(patches: Iterable<{ x: number; z: number }>): void;
+    setHiddenPatches(patches: Iterable<PatchId>): void;
     getStatistics(): object;
 }
 
-export { type IHeightmapViewer };
+export type { IHeightmapViewer, PatchId };

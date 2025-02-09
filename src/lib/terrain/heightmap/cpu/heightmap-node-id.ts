@@ -24,17 +24,17 @@ class HeightmapNodeId {
         this.box = new THREE.Box2(fromVoxel, toVoxel);
     }
 
-    public contains(patchId: HeightmapNodeId): boolean {
-        const levelPatchSizeInVoxels = this.getLevelSizeInVoxels(patchId.level);
-        const patchMiddleVoxel = new THREE.Vector2().copy(patchId.coordsInLevel).addScalar(0.5).multiplyScalar(levelPatchSizeInVoxels);
-        return this.box.containsPoint(patchMiddleVoxel);
+    public contains(nodeId: HeightmapNodeId): boolean {
+        const levelTileSizeInVoxels = this.getLevelSizeInVoxels(nodeId.level);
+        const tileMiddleVoxel = new THREE.Vector2().copy(nodeId.coordsInLevel).addScalar(0.5).multiplyScalar(levelTileSizeInVoxels);
+        return this.box.containsPoint(tileMiddleVoxel);
     }
 
-    public equals(patchId: HeightmapNodeId): boolean {
+    public equals(nodeId: HeightmapNodeId): boolean {
         return (
-            this.level === patchId.level &&
-            this.coordsInLevel.x === patchId.coordsInLevel.x &&
-            this.coordsInLevel.y === patchId.coordsInLevel.y
+            this.level === nodeId.level &&
+            this.coordsInLevel.x === nodeId.coordsInLevel.x &&
+            this.coordsInLevel.y === nodeId.coordsInLevel.y
         );
     }
 

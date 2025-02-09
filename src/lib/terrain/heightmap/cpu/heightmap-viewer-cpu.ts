@@ -1,7 +1,7 @@
 import { type MeshesStatistics } from '../../../helpers/meshes-statistics';
 import * as THREE from '../../../libs/three-usage';
 import { type IHeightmap } from '../i-heightmap';
-import { type IHeightmapViewer } from '../i-heightmap-viewer';
+import { type PatchId, type IHeightmapViewer } from '../i-heightmap-viewer';
 
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapRoot, type HeightmapRootOptions } from './heightmap-root';
@@ -33,7 +33,7 @@ class HeightmapViewerCpu implements IHeightmapViewer {
 
     public update(): void {}
 
-    public setHiddenPatches(patches: Iterable<{ x: number; z: number }>): void {
+    public setHiddenPatches(patches: Iterable<PatchId>): void {
         this.resetSubdivisions();
         for (const completeChunksColumn of patches) {
             this.hidePatch(completeChunksColumn.x, completeChunksColumn.z);

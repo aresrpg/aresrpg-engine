@@ -1,7 +1,7 @@
 import * as THREE from '../../../libs/three-usage';
 import { type MaterialsStore } from '../../materials-store';
 import { type IHeightmap } from '../i-heightmap';
-import { type IHeightmapViewer } from '../i-heightmap-viewer';
+import { type PatchId, type IHeightmapViewer } from '../i-heightmap-viewer';
 
 import { HeightmapRootTile } from './meshes/heightmap-root-tile';
 import { type HeightmapTile } from './meshes/heightmap-tile';
@@ -90,7 +90,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         }
     }
 
-    public setHiddenPatches(patches: Iterable<{ x: number; z: number }>): void {
+    public setHiddenPatches(patches: Iterable<PatchId>): void {
         const quadtree = new Quadtree();
 
         this.applyVisibility(quadtree);
