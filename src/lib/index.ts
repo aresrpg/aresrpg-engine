@@ -18,10 +18,6 @@ export {
     type VoxelsChunkOrdering,
     type VoxelsChunkSize,
 } from './terrain/voxelmap/i-voxelmap';
-export {
-    VoxelmapViewerAutonomous,
-    type VoxelmapViewerAutonomousOptions,
-} from './terrain/voxelmap/viewer/autonomous/voxelmap-viewer-autonomous';
 export type { IVoxelmapViewer } from './terrain/voxelmap/viewer/i-voxelmap-viewer';
 export {
     EComputationMethod,

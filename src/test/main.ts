@@ -8,7 +8,6 @@ import { TestGrass } from './test-grass';
 import { TestParticles } from './test-particles';
 import { TestPhysics } from './test-physics';
 import { TestTerrain } from './test-terrain';
-import { TestTerrainAutonomous } from './test-terrain-autonomous';
 import { TestTextureCustomization } from './test-texture-customization';
 import { TestWeather } from './test-weather';
 
@@ -16,7 +15,6 @@ setVerbosity(ELogLevel.WARN);
 
 enum ETest {
     TERRAIN,
-    TERRAIN_OLD,
     WEATHER,
     TEXTURE_CUSTOMIZATION,
     PHYSICS,
@@ -36,8 +34,6 @@ function createVoxelMap(): VoxelMap {
 async function buildTestScene(test: ETest): Promise<TestBase> {
     if (test === ETest.TERRAIN) {
         return new TestTerrain(createVoxelMap());
-    } else if (test === ETest.TERRAIN_OLD) {
-        return new TestTerrainAutonomous(createVoxelMap());
     } else if (test === ETest.WEATHER) {
         return new TestWeather();
     } else if (test === ETest.TEXTURE_CUSTOMIZATION) {

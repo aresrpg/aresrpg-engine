@@ -1,8 +1,5 @@
-import { PromisesQueue } from '../../../../../helpers/async/promises-queue';
-import type * as THREE from '../../../../../libs/three-usage';
 import { type MaterialsStore } from '../../../../materials-store';
-import { type IVoxelMap, type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../../i-voxelmap';
-import { type VoxelsRenderable } from '../../../voxelsRenderable/voxels-renderable';
+import { type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../../i-voxelmap';
 import { VoxelsRenderableFactoryCpuWorker } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/cpu/voxels-renderable-factory-cpu-worker';
 import { type CheckerboardType } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 import { PatchFactoryBase } from '../patch-factory-base';
@@ -18,7 +15,6 @@ type Parameters = {
 
 class PatchFactoryCpuWorker extends PatchFactoryBase {
     public readonly maxPatchesComputedInParallel: number;
-    private readonly throttler: PromisesQueue;
 
     public constructor(params: Parameters) {
         const voxelsRenderableFactory = new VoxelsRenderableFactoryCpuWorker({
@@ -31,19 +27,7 @@ class PatchFactoryCpuWorker extends PatchFactoryBase {
         });
         super(voxelsRenderableFactory);
 
-        this.throttler = new PromisesQueue(voxelsRenderableFactory.workersPoolSize);
         this.maxPatchesComputedInParallel = params.workersPoolSize;
-    }
-
-    protected override queryMapAndBuildVoxelsRenderable(
-        patchStart: THREE.Vector3,
-        patchEnd: THREE.Vector3,
-        map: IVoxelMap
-    ): Promise<VoxelsRenderable | null> {
-        return this.throttler.run(async () => {
-            const localMapData = await PatchFactoryBase.buildLocalMapData(patchStart, patchEnd, map);
-            return await this.voxelsRenderableFactory.buildVoxelsRenderable(localMapData);
-        });
     }
 }
 
