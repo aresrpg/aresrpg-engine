@@ -18,6 +18,8 @@ type VertexData = {
 abstract class PatchFactoryBase {
     public readonly maxPatchSize: THREE.Vector3;
 
+    public abstract readonly maxPatchesComputedInParallel: number;
+
     protected readonly voxelsRenderableFactory: VoxelsRenderableFactoryBase;
 
     protected constructor(voxelsRenderableFactory: VoxelsRenderableFactoryBase) {

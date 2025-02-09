@@ -12,6 +12,8 @@ type Parameters = {
 };
 
 class PatchFactoryGpuSequential extends PatchFactoryBase {
+    public override readonly maxPatchesComputedInParallel = 1;
+
     public constructor(params: Parameters) {
         const voxelsRenderableFactory = new VoxelsRenderableFactoryGpu({
             voxelMaterialsStore: params.voxelMaterialsStore,

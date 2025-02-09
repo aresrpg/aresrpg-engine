@@ -13,6 +13,8 @@ type Parameters = {
 };
 
 class PatchFactoryCpu extends PatchFactoryBase {
+    public override readonly maxPatchesComputedInParallel = 1;
+
     public constructor(params: Parameters) {
         const voxelsRenderableFactory = new VoxelsRenderableFactoryCpu({
             voxelMaterialsStore: params.voxelMaterialsStore,

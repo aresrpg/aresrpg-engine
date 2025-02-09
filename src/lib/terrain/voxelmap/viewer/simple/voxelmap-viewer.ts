@@ -77,7 +77,6 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                 greedyMeshing: this.computationOptions.greedyMeshing ?? true,
                 voxelsChunkOrdering,
             });
-            this.maxPatchesComputedInParallel = 1;
         } else if (this.computationOptions.method === EComputationMethod.CPU_MULTITHREADED) {
             this.patchFactory = new PatchFactoryCpuWorker({
                 voxelMaterialsStore,
@@ -87,7 +86,6 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                 greedyMeshing: this.computationOptions.greedyMeshing ?? true,
                 voxelsChunkOrdering,
             });
-            this.maxPatchesComputedInParallel = this.computationOptions.threadsCount;
         } else {
             this.patchFactory = new PatchFactoryGpuSequential({
                 voxelMaterialsStore,
@@ -95,8 +93,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                 voxelsChunkOrdering,
                 checkerboardType,
             });
-            this.maxPatchesComputedInParallel = 1;
         }
+        this.maxPatchesComputedInParallel = this.patchFactory.maxPatchesComputedInParallel;
 
         this.promiseThrottler = new PromisesQueue(this.maxPatchesComputedInParallel);
 
