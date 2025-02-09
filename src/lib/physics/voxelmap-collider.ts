@@ -3,7 +3,7 @@ import { DedicatedWorkersPool } from '../helpers/async/dedicatedWorkers/dedicate
 import { logger } from '../helpers/logger';
 import type * as THREE from '../libs/three-usage';
 import { type VoxelsChunkOrdering } from '../terrain/voxelmap/i-voxelmap';
-import { PatchId } from '../terrain/voxelmap/patch/patch-id';
+import { ChunkId } from '../terrain/voxelmap/patch/chunk-id';
 import { VoxelmapDataPacking } from '../terrain/voxelmap/voxelmap-data-packing';
 import { type VoxelsChunkData } from '../terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
@@ -143,15 +143,15 @@ class VoxelmapCollider implements IVoxelmapCollider {
     }
 
     public setChunk(chunkId: THREE.Vector3Like, chunk: VoxelsChunkDataForCollisions): void {
-        const patchId = new PatchId(chunkId);
-        if (this.chunkCollidersMap.has(patchId.asString)) {
-            logger.debug(`Chunk "${patchId.asString}" already exists.`);
+        const chunkIdString = new ChunkId(chunkId).asString;
+        if (this.chunkCollidersMap.has(chunkIdString)) {
+            logger.debug(`Chunk "${chunkIdString}" already exists.`);
         }
 
         if (chunk.isEmpty) {
-            this.chunkCollidersMap.set(patchId.asString, { isEmpty: true, isFull: false });
+            this.chunkCollidersMap.set(chunkIdString, { isEmpty: true, isFull: false });
         } else if (chunk.isFull) {
-            this.chunkCollidersMap.set(patchId.asString, { isEmpty: false, isFull: true });
+            this.chunkCollidersMap.set(chunkIdString, { isEmpty: false, isFull: true });
         } else {
             if (chunk.dataOrdering !== this.voxelsChunkOrdering) {
                 throw new Error(`Invalid voxels chunk ordering: expected "${this.voxelsChunkOrdering}", received "${chunk.dataOrdering}".`);
@@ -159,21 +159,21 @@ class VoxelmapCollider implements IVoxelmapCollider {
 
             if (this.compactionWorkersPool) {
                 const rawChunkCollider: ChunkCollider = { isEmpty: false, isFull: false, type: 'raw', data: chunk.data };
-                this.chunkCollidersMap.set(patchId.asString, rawChunkCollider);
+                this.chunkCollidersMap.set(chunkIdString, rawChunkCollider);
                 this.compactionWorkersPool.submitTask<Uint8Array>('compactChunk', chunk.data).then(data => {
-                    if (this.chunkCollidersMap.get(patchId.asString) === rawChunkCollider) {
-                        this.chunkCollidersMap.set(patchId.asString, {
+                    if (this.chunkCollidersMap.get(chunkIdString) === rawChunkCollider) {
+                        this.chunkCollidersMap.set(chunkIdString, {
                             isEmpty: false,
                             isFull: false,
                             type: 'compacted',
                             data,
                         });
                     } else {
-                        logger.warn(`Chunk collider "${patchId.asString}" changed unexpectedly.`);
+                        logger.warn(`Chunk collider "${chunkIdString}" changed unexpectedly.`);
                     }
                 });
             } else {
-                this.chunkCollidersMap.set(patchId.asString, {
+                this.chunkCollidersMap.set(chunkIdString, {
                     isEmpty: false,
                     isFull: false,
                     type: 'compacted',
@@ -184,13 +184,12 @@ class VoxelmapCollider implements IVoxelmapCollider {
     }
 
     public getVoxel(worldVoxelCoords: THREE.Vector3Like): EVoxelStatus {
-        const patchId = new PatchId({
+        const chunkId = new ChunkId({
             x: Math.floor(worldVoxelCoords.x / this.chunkSize.x),
             y: Math.floor(worldVoxelCoords.y / this.chunkSize.y),
             z: Math.floor(worldVoxelCoords.z / this.chunkSize.z),
         });
-        // console.log(patchId.asString);
-        const chunk = this.chunkCollidersMap.get(patchId.asString);
+        const chunk = this.chunkCollidersMap.get(chunkId.asString);
         if (!chunk) {
             return EVoxelStatus.NOT_LOADED;
         }
@@ -202,9 +201,9 @@ class VoxelmapCollider implements IVoxelmapCollider {
         }
 
         const localVoxelCoords = {
-            x: worldVoxelCoords.x - patchId.x * this.chunkSize.x + 1,
-            y: worldVoxelCoords.y - patchId.y * this.chunkSize.y + 1,
-            z: worldVoxelCoords.z - patchId.z * this.chunkSize.z + 1,
+            x: worldVoxelCoords.x - chunkId.x * this.chunkSize.x + 1,
+            y: worldVoxelCoords.y - chunkId.y * this.chunkSize.y + 1,
+            z: worldVoxelCoords.z - chunkId.z * this.chunkSize.z + 1,
         };
 
         const voxelIndex =

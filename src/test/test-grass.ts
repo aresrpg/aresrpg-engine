@@ -166,7 +166,7 @@ class TestGrass extends TestBase {
             material: params.propDefinitions.grass2D.material,
             reactToPlayer: true,
             reactToWind: true,
-            patchSize: new THREE.Vector3(this.patchSize, this.patchSize, this.patchSize),
+            chunkSize: new THREE.Vector3(this.patchSize, this.patchSize, this.patchSize),
             garbageCollect: {
                 interval: 5000,
                 invisibleGroupsCacheSize: 5,
@@ -177,7 +177,7 @@ class TestGrass extends TestBase {
             bufferGeometry: params.propDefinitions.grass3D.bufferGeometry,
             material: params.propDefinitions.grass3D.material,
             reactToPlayer: true,
-            patchSize: new THREE.Vector3(this.patchSize, this.patchSize, this.patchSize),
+            chunkSize: new THREE.Vector3(this.patchSize, this.patchSize, this.patchSize),
         });
         propsContainer.add(this.grass3D.container);
 
@@ -291,7 +291,7 @@ class TestGrass extends TestBase {
                 const patchStart = patchId.clone().multiplyScalar(this.patchSize);
                 const patchEnd = patchStart.clone().addScalar(this.patchSize);
 
-                if ((patchId.x + patchId.z) % 2 === 0 && !this.grass2D.hasPatchProps(patchId)) {
+                if ((patchId.x + patchId.z) % 2 === 0 && !this.grass2D.hasChunkProps(patchId)) {
                     const grassParticlesPositions = this.grassRepartition.getAllItems(
                         { x: patchStart.x, y: patchStart.z },
                         { x: patchEnd.x, y: patchEnd.z }
@@ -302,13 +302,13 @@ class TestGrass extends TestBase {
                             new THREE.Matrix4().makeRotationY((Math.PI / 2) * Math.random()) // Math.floor(4 * Math.random())),
                         )
                     );
-                    this.grass2D.setPatchPropsFromWorldMatrices(patchId, grassParticlesMatricesWorld);
+                    this.grass2D.setChunkPropsFromWorldMatrices(patchId, grassParticlesMatricesWorld);
 
                     const worldToLocal = new THREE.Matrix4().makeTranslation(-patchStart.x, -patchStart.y, -patchStart.z);
                     const grassParticlesMatricesLocal = grassParticlesMatricesWorld.map(matrixWorld =>
                         new THREE.Matrix4().multiplyMatrices(worldToLocal, matrixWorld)
                     );
-                    this.grass3D.setPatchPropsFromLocalMatrices(patchId, grassParticlesMatricesLocal);
+                    this.grass3D.setChunkPropsFromLocalMatrices(patchId, grassParticlesMatricesLocal);
                 }
 
                 const patchIdString = `${patchId.x}_${patchId.y}_${patchId.z}`;

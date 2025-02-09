@@ -3,46 +3,46 @@ import * as THREE from '../../libs/three-usage';
 import { PropsHandler, type Parameters as PropshandlerParameters } from './props-handler';
 
 type Parameters = PropshandlerParameters & {
-    readonly patchSize: THREE.Vector3Like;
+    readonly chunkSize: THREE.Vector3Like;
 };
 
-type PatchId = THREE.Vector3Like;
+type ChunkId = THREE.Vector3Like;
 
-function buildPatchIdString(patchId: PatchId): string {
-    return `${patchId.x}_${patchId.y}_${patchId.z}`;
+function buildChunkIdString(chunkId: ChunkId): string {
+    return `${chunkId.x}_${chunkId.y}_${chunkId.z}`;
 }
 
 class PropsViewer extends PropsHandler {
-    private readonly patchSize: THREE.Vector3Like;
+    private readonly chunkSize: THREE.Vector3Like;
 
     public constructor(params: Parameters) {
         super(params);
 
-        this.patchSize = new THREE.Vector3().copy(params.patchSize);
+        this.chunkSize = new THREE.Vector3().copy(params.chunkSize);
     }
 
-    public setPatchPropsFromLocalMatrices(patchId: THREE.Vector3Like, localMatricesList: ReadonlyArray<THREE.Matrix4>): void {
-        const patchWorldOrigin = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
-        const patchTransformMatrix = new THREE.Matrix4().makeTranslation(patchWorldOrigin);
+    public setChunkPropsFromLocalMatrices(chunkId: THREE.Vector3Like, localMatricesList: ReadonlyArray<THREE.Matrix4>): void {
+        const chunkWorldOrigin = new THREE.Vector3().multiplyVectors(chunkId, this.chunkSize);
+        const chunkTransformMatrix = new THREE.Matrix4().makeTranslation(chunkWorldOrigin);
         const worldMatricesList = localMatricesList.map(localMatrix =>
-            new THREE.Matrix4().multiplyMatrices(patchTransformMatrix, localMatrix)
+            new THREE.Matrix4().multiplyMatrices(chunkTransformMatrix, localMatrix)
         );
-        this.setPatchPropsFromWorldMatrices(patchId, worldMatricesList);
+        this.setChunkPropsFromWorldMatrices(chunkId, worldMatricesList);
     }
 
-    public setPatchPropsFromWorldMatrices(patchId: THREE.Vector3Like, worldMatricesList: ReadonlyArray<THREE.Matrix4>): void {
-        const patchIdString = buildPatchIdString(patchId);
-        this.setGroup(patchIdString, worldMatricesList);
+    public setChunkPropsFromWorldMatrices(chunkId: THREE.Vector3Like, worldMatricesList: ReadonlyArray<THREE.Matrix4>): void {
+        const chunkIdString = buildChunkIdString(chunkId);
+        this.setGroup(chunkIdString, worldMatricesList);
     }
 
-    public deletePatchProps(patchId: THREE.Vector3Like): void {
-        const patchIdString = buildPatchIdString(patchId);
-        this.deleteGroup(patchIdString);
+    public deleteChunkProps(chunkId: THREE.Vector3Like): void {
+        const chunkIdString = buildChunkIdString(chunkId);
+        this.deleteGroup(chunkIdString);
     }
 
-    public hasPatchProps(patchId: THREE.Vector3Like): boolean {
-        const patchIdString = buildPatchIdString(patchId);
-        return this.hasGroup(patchIdString);
+    public hasChunkProps(chunkId: THREE.Vector3Like): boolean {
+        const chunkIdString = buildChunkIdString(chunkId);
+        return this.hasGroup(chunkIdString);
     }
 }
 

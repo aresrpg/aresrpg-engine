@@ -1,6 +1,6 @@
 import { Transition } from '../../../../helpers/transition';
 import type * as THREE from '../../../../libs/three-usage';
-import { type PatchId } from '../../patch/patch-id';
+import { type ChunkId } from '../../patch/chunk-id';
 import { EVoxelMaterialQuality } from '../../voxelsRenderable/voxels-material';
 import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
 
@@ -23,12 +23,12 @@ type AdaptativeQualityParameters = {
 
 type Parameters = {
     readonly parent: THREE.Object3D;
-    readonly id: PatchId;
+    readonly id: ChunkId;
     readonly transitionTime: number;
 };
 
 class StoredPatch {
-    public readonly id: PatchId;
+    public readonly id: ChunkId;
     public readonly onVisibilityChange: VoidFunction[] = [];
 
     private readonly transitionTime: number;

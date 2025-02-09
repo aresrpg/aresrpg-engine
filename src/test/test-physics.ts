@@ -319,18 +319,18 @@ class TestPhysics extends TestBase {
     }
 
     private async displayMap(): Promise<void> {
-        const patchesToDisplay = this.voxelmapVisibilityComputer.getRequestedPatches();
-        const patchesIdToDisplay = patchesToDisplay.map(patchToDisplay => patchToDisplay.id);
+        const chunksToDisplay = this.voxelmapVisibilityComputer.getRequestedChunks();
+        const chunksIdsToDisplay = chunksToDisplay.map(patchToDisplay => patchToDisplay.id);
 
-        this.voxelmapViewer.setVisibility(patchesIdToDisplay);
+        this.voxelmapViewer.setVisibility(chunksIdsToDisplay);
 
         this.promisesQueue.cancelAll();
-        for (const patchId of patchesIdToDisplay) {
-            if (this.voxelmapViewer.doesPatchRequireVoxelsData(patchId)) {
+        for (const chunkId of chunksIdsToDisplay) {
+            if (this.voxelmapViewer.doesPatchRequireVoxelsData(chunkId)) {
                 this.promisesQueue.run(
                     async () => {
-                        if (this.voxelmapViewer.doesPatchRequireVoxelsData(patchId)) {
-                            const voxelsChunkBox = this.voxelmapViewer.getPatchVoxelsBox(patchId);
+                        if (this.voxelmapViewer.doesPatchRequireVoxelsData(chunkId)) {
+                            const voxelsChunkBox = this.voxelmapViewer.getPatchVoxelsBox(chunkId);
                             const blockStart = voxelsChunkBox.min;
                             const blockEnd = voxelsChunkBox.max;
 
@@ -339,15 +339,15 @@ class TestPhysics extends TestBase {
                                 size: new THREE.Vector3().subVectors(blockEnd, blockStart),
                             });
 
-                            this.voxelmapCollider.setChunk(patchId, {
+                            this.voxelmapCollider.setChunk(chunkId, {
                                 ...voxelsChunkData,
                                 isFull: false,
                             });
-                            await this.voxelmapViewer.enqueuePatch(patchId, voxelsChunkData);
+                            await this.voxelmapViewer.enqueuePatch(chunkId, voxelsChunkData);
                         }
                     },
                     () => {
-                        this.voxelmapViewer.dequeuePatch(patchId);
+                        this.voxelmapViewer.dequeuePatch(chunkId);
                     }
                 );
             }

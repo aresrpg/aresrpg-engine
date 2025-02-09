@@ -3,7 +3,7 @@ import type * as THREE from '../../../libs/three-usage';
 import type { VoxelsChunkSize } from '../i-voxelmap';
 
 type VoxelmapStatistics = MeshesStatistics & {
-    patchSize: THREE.Vector3Like;
+    chunkSize: THREE.Vector3Like;
 };
 
 interface IVoxelmapViewer {

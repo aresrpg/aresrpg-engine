@@ -6,7 +6,7 @@ import {
     type VoxelsChunkDataNotEmpty,
     type VoxelsRenderableFactoryBase,
 } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
-import { type PatchId } from '../patch-id';
+import { type ChunkId } from '../chunk-id';
 
 type VertexData = {
     readonly localPosition: THREE.Vector3;
@@ -28,7 +28,7 @@ abstract class PatchFactoryBase {
     }
 
     public async buildPatchFromVoxelsChunk(
-        patchId: PatchId,
+        chunkId: ChunkId,
         patchStart: THREE.Vector3,
         patchEnd: THREE.Vector3,
         voxelsChunkData: VoxelsChunkDataNotEmpty
@@ -54,7 +54,7 @@ abstract class PatchFactoryBase {
         }
         const voxelsRenderable = await buildResult;
         if (voxelsRenderable) {
-            voxelsRenderable.container.name = `voxels-patch-${patchId.asString}`;
+            voxelsRenderable.container.name = `voxels-patch-${chunkId.asString}`;
             voxelsRenderable.container.position.set(patchStart.x, patchStart.y, patchStart.z);
             voxelsRenderable.container.updateWorldMatrix(false, true);
             voxelsRenderable.boundingBox.translate(new THREE.Vector3().copy(patchStart));

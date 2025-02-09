@@ -85,7 +85,7 @@ class TestBoard extends TestBase {
         this.scene.add(this.terrainViewer.container);
 
         this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(
-            this.voxelmapViewer.patchSize,
+            this.voxelmapViewer.chunkSizeVec3,
             this.voxelmapViewer.minChunkIdY,
             this.voxelmapViewer.maxChunkIdY
         );
@@ -113,7 +113,7 @@ class TestBoard extends TestBase {
     }
 
     private applyVisibility(): void {
-        const patchesToDisplay = this.voxelmapVisibilityComputer.getRequestedPatches();
+        const patchesToDisplay = this.voxelmapVisibilityComputer.getRequestedChunks();
         const patchesIdToDisplay = patchesToDisplay.map(patchToDisplay => patchToDisplay.id);
 
         this.voxelmapViewer.setVisibility(patchesIdToDisplay);

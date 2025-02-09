@@ -2,19 +2,19 @@ import { logger } from '../../../helpers/logger';
 import { createMeshesStatistics } from '../../../helpers/meshes-statistics';
 import * as THREE from '../../../libs/three-usage';
 import { type VoxelsChunkSize } from '../i-voxelmap';
-import { PatchId } from '../patch/patch-id';
+import { ChunkId } from '../patch/chunk-id';
 import { EVoxelsDisplayMode } from '../voxelsRenderable/voxels-material';
 import { type VoxelsRenderable } from '../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryBase } from '../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
 import { type IVoxelmapViewer, type VoxelmapStatistics } from './i-voxelmap-viewer';
 
-type PatchRenderable = {
-    readonly id: PatchId;
+type ChunkRenderable = {
+    readonly id: ChunkId;
     readonly voxelsRenderable: VoxelsRenderable;
 };
 
-type ComputedPatch = {
+type ComputedChunk = {
     readonly isVisible: boolean;
     readonly voxelsRenderable: VoxelsRenderable;
 };
@@ -57,11 +57,11 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
     public readonly minChunkIdY: number;
     public readonly maxChunkIdY: number;
     public readonly chunkSize: VoxelsChunkSize;
-    public readonly patchSize: THREE.Vector3Like;
+    public readonly chunkSizeVec3: THREE.Vector3Like;
 
     public readonly onChange: VoidFunction[] = [];
 
-    private maxPatchesInCache = 200;
+    private maxChunksInCache = 200;
     private garbageCollectionHandle: number | null;
 
     protected constructor(minChunkIdX: number, maxChunkIdY: number, chunkSize: VoxelsChunkSize) {
@@ -71,15 +71,15 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         this.minChunkIdY = minChunkIdX;
         this.maxChunkIdY = maxChunkIdY;
         this.chunkSize = chunkSize;
-        this.patchSize = { x: chunkSize.xz, y: chunkSize.y, z: chunkSize.xz };
+        this.chunkSizeVec3 = { x: chunkSize.xz, y: chunkSize.y, z: chunkSize.xz };
 
-        this.garbageCollectionHandle = window.setInterval(() => this.garbageCollectPatches(this.maxPatchesInCache), 5000);
+        this.garbageCollectionHandle = window.setInterval(() => this.garbageCollect(this.maxChunksInCache), 5000);
     }
 
     public update(): void {
         const voxelsSettings = this.parameters;
-        for (const patch of this.allVisiblePatches) {
-            const voxelsRenderable = patch.voxelsRenderable;
+        for (const chunk of this.allVisibleChunks) {
+            const voxelsRenderable = chunk.voxelsRenderable;
 
             voxelsRenderable.parameters.voxels.displayMode = voxelsSettings.faces.displayMode;
             voxelsRenderable.parameters.voxels.noiseStrength = voxelsSettings.faces.noiseContrast;
@@ -113,22 +113,20 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
 
         const columns = new Map<string, Column>();
 
-        const minPatchIdY = this.minChunkIdY;
-        const maxPatchIdY = this.maxChunkIdY;
-        const requiredPatchIdYList: number[] = [];
-        for (let iY = minPatchIdY; iY < maxPatchIdY; iY++) {
-            requiredPatchIdYList.push(iY);
+        const requiredChunksIdsYList: number[] = [];
+        for (let iY = this.minChunkIdY; iY < this.maxChunkIdY; iY++) {
+            requiredChunksIdsYList.push(iY);
         }
 
-        for (const patch of this.allVisiblePatches) {
-            for (const y of requiredPatchIdYList) {
-                const id = new PatchId({ x: patch.id.x, y, z: patch.id.z });
-                if (this.isPatchAttached(id)) {
-                    const columnId = `${patch.id.x}_${patch.id.z}`;
+        for (const chunk of this.allVisibleChunks) {
+            for (const y of requiredChunksIdsYList) {
+                const id = new ChunkId({ x: chunk.id.x, y, z: chunk.id.z });
+                if (this.isChunkAttached(id)) {
+                    const columnId = `${chunk.id.x}_${chunk.id.z}`;
                     let column = columns.get(columnId);
                     if (!column) {
                         column = {
-                            id: { x: patch.id.x, z: patch.id.z },
+                            id: { x: chunk.id.x, z: chunk.id.z },
                             yFilled: [],
                         };
                         columns.set(columnId, column);
@@ -142,7 +140,7 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         for (const column of columns.values()) {
             const missingYList: number[] = [];
 
-            for (const y of requiredPatchIdYList) {
+            for (const y of requiredChunksIdsYList) {
                 if (!column.yFilled.includes(y)) {
                     missingYList.push(y);
                 }
@@ -158,21 +156,21 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
     }
 
     /**
-     * Gets the maximum size of the GPU LRU cache of invisible patches.
+     * Gets the maximum size of the GPU LRU cache of invisible chunks.
      */
-    public get patchesCacheSize(): number {
-        return this.maxPatchesInCache;
+    public get chunksCacheSize(): number {
+        return this.maxChunksInCache;
     }
 
     /**
-     * Sets the maximum size of the GPU LRU cache of invisible patches.
+     * Sets the maximum size of the GPU LRU cache of invisible chunks.
      */
-    public set patchesCacheSize(value: number) {
+    public set chunksCacheSize(value: number) {
         if (value <= 0) {
-            throw new Error(`Invalid patches cache size "${value}".`);
+            throw new Error(`Invalid chunks cache size "${value}".`);
         }
-        this.maxPatchesInCache = value;
-        this.garbageCollectPatches(this.maxPatchesInCache);
+        this.maxChunksInCache = value;
+        this.garbageCollect(this.maxChunksInCache);
     }
 
     /**
@@ -180,19 +178,19 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
      */
     public getStatistics(): VoxelmapStatistics {
         const result = Object.assign(createMeshesStatistics(), {
-            patchSize: new THREE.Vector3().copy(this.patchSize),
+            chunkSize: new THREE.Vector3().copy(this.chunkSizeVec3),
         });
 
-        for (const patch of this.allLoadedPatches) {
+        for (const chunk of this.allLoadedChunks) {
             result.meshes.loadedCount++;
-            result.triangles.loadedCount += patch.voxelsRenderable.trianglesCount;
+            result.triangles.loadedCount += chunk.voxelsRenderable.trianglesCount;
 
-            if (patch.isVisible) {
+            if (chunk.isVisible) {
                 result.meshes.visibleCount++;
-                result.triangles.visibleCount += patch.voxelsRenderable.trianglesCount;
+                result.triangles.visibleCount += chunk.voxelsRenderable.trianglesCount;
             }
 
-            result.gpuMemoryBytes += patch.voxelsRenderable.gpuMemoryBytes;
+            result.gpuMemoryBytes += chunk.voxelsRenderable.gpuMemoryBytes;
         }
 
         return result;
@@ -211,10 +209,10 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         }
     }
 
-    protected abstract get allLoadedPatches(): ComputedPatch[];
-    protected abstract get allVisiblePatches(): PatchRenderable[];
-    protected abstract isPatchAttached(patchId: PatchId): boolean;
-    protected abstract garbageCollectPatches(maxInvisiblePatchesInPatch: number): void;
+    protected abstract get allLoadedChunks(): ComputedChunk[];
+    protected abstract get allVisibleChunks(): ChunkRenderable[];
+    protected abstract isChunkAttached(chunkId: ChunkId): boolean;
+    protected abstract garbageCollect(maxInvisibleChunksInCache: number): void;
 }
 
-export { VoxelmapViewerBase, type ComputedPatch, type PatchRenderable, type VoxelmapStatistics };
+export { VoxelmapViewerBase, type ChunkRenderable, type ComputedChunk, type VoxelmapStatistics };

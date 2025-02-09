@@ -8,9 +8,9 @@ import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-
 import { PatchFactoryCpuWorker } from '../../patch/patch-factory/merged/patch-factory-cpu-worker';
 import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
 import { type PatchFactoryBase } from '../../patch/patch-factory/patch-factory-base';
-import { PatchId } from '../../patch/patch-id';
+import { ChunkId } from '../../patch/chunk-id';
 import { type CheckerboardType, type VoxelsChunkData } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
-import { VoxelmapViewerBase, type ComputedPatch, type PatchRenderable } from '../voxelmap-viewer-base';
+import { type ChunkRenderable, type ComputedChunk, VoxelmapViewerBase } from '../voxelmap-viewer-base';
 
 import { EComputationResult, StoredPatch, type AdaptativeQualityParameters } from './stored-patch';
 
@@ -110,26 +110,26 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     }
 
     public doesPatchRequireVoxelsData(id: THREE.Vector3Like): boolean {
-        const patchId = new PatchId(id);
-        const storedPatch = this.storedPatches.get(patchId.asString);
+        const chunkId = new ChunkId(id);
+        const storedPatch = this.storedPatches.get(chunkId.asString);
         return !storedPatch || storedPatch.needsNewData();
     }
 
     public async enqueuePatch(id: THREE.Vector3Like, voxelsChunkData: VoxelsChunkData): Promise<EComputationResult> {
         const voxelsChunkInnerSize = voxelsChunkData.size.clone().subScalar(2);
-        if (!voxelsChunkInnerSize.equals(this.patchSize)) {
+        if (!voxelsChunkInnerSize.equals(this.chunkSizeVec3)) {
             throw new Error(`Invalid voxels chunk size ${vec3ToString(voxelsChunkData.size)}.`);
         }
 
-        const patchId = new PatchId(id);
-        let storedPatch = this.storedPatches.get(patchId.asString);
+        const chunkId = new ChunkId(id);
+        let storedPatch = this.storedPatches.get(chunkId.asString);
         if (!storedPatch) {
-            storedPatch = new StoredPatch({ parent: this.container, id: patchId, transitionTime: this.transitionTime });
+            storedPatch = new StoredPatch({ parent: this.container, id: chunkId, transitionTime: this.transitionTime });
             storedPatch.onVisibilityChange.push(() => this.notifyChange());
-            this.storedPatches.set(patchId.asString, storedPatch);
+            this.storedPatches.set(chunkId.asString, storedPatch);
         }
         if (!storedPatch.needsNewData()) {
-            logger.debug(`Skipping unnecessary computation of up-do-date patch "${patchId.asString}".`);
+            logger.debug(`Skipping unnecessary computation of up-do-date patch "${chunkId.asString}".`);
             return Promise.resolve(EComputationResult.SKIPPED);
         }
 
@@ -137,9 +137,9 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             if (voxelsChunkData.isEmpty) {
                 return null;
             }
-            const patchStart = new THREE.Vector3().multiplyVectors(patchId, this.patchSize);
-            const patchEnd = new THREE.Vector3().addVectors(patchStart, this.patchSize);
-            return await this.patchFactory.buildPatchFromVoxelsChunk(patchId, patchStart, patchEnd, voxelsChunkData);
+            const patchStart = new THREE.Vector3().multiplyVectors(chunkId, this.chunkSizeVec3);
+            const patchEnd = new THREE.Vector3().addVectors(patchStart, this.chunkSizeVec3);
+            return await this.patchFactory.buildPatchFromVoxelsChunk(chunkId, patchStart, patchEnd, voxelsChunkData);
         };
 
         return storedPatch.scheduleNewComputation(computationTask, this.promiseThrottler);
@@ -150,20 +150,20 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     }
 
     public dequeuePatch(id: THREE.Vector3Like): void {
-        const patchId = new PatchId(id);
-        const storedPatch = this.storedPatches.get(patchId.asString);
+        const chunkId = new ChunkId(id);
+        const storedPatch = this.storedPatches.get(chunkId.asString);
         storedPatch?.cancelScheduledComputation();
     }
 
     public invalidatePatch(id: THREE.Vector3Like): void {
-        const patchId = new PatchId(id);
-        const storedPatch = this.storedPatches.get(patchId.asString);
+        const chunkId = new ChunkId(id);
+        const storedPatch = this.storedPatches.get(chunkId.asString);
         storedPatch?.flagAsObsolete();
     }
 
     public deletePatch(id: THREE.Vector3Like): void {
-        const patchId = new PatchId(id);
-        const storedPatch = this.storedPatches.get(patchId.asString);
+        const chunkId = new ChunkId(id);
+        const storedPatch = this.storedPatches.get(chunkId.asString);
         if (storedPatch) {
             storedPatch.cancelScheduledComputation();
             storedPatch.deleteComputationResults();
@@ -173,7 +173,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     public setVisibility(visiblePatchesId: Iterable<THREE.Vector3Like>): void {
         const visiblePatchesIdsSet = new Set<string>();
         for (const visiblePatchId of visiblePatchesId) {
-            const patchId = new PatchId(visiblePatchId);
+            const patchId = new ChunkId(visiblePatchId);
             visiblePatchesIdsSet.add(patchId.asString);
 
             if (!this.storedPatches.has(patchId.asString)) {
@@ -196,8 +196,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     }
 
     public getPatchVoxelsBox(id: THREE.Vector3Like): THREE.Box3 {
-        const voxelFrom = new THREE.Vector3().multiplyVectors(id, this.patchSize).subScalar(1);
-        const voxelTo = voxelFrom.clone().add(this.patchSize).addScalar(2);
+        const voxelFrom = new THREE.Vector3().multiplyVectors(id, this.chunkSizeVec3).subScalar(1);
+        const voxelTo = voxelFrom.clone().add(this.chunkSizeVec3).addScalar(2);
         return new THREE.Box3(voxelFrom, voxelTo);
     }
 
@@ -207,8 +207,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         }
     }
 
-    protected override get allLoadedPatches(): ComputedPatch[] {
-        const result: ComputedPatch[] = [];
+    protected override get allLoadedChunks(): ComputedChunk[] {
+        const result: ComputedChunk[] = [];
         for (const storedPatch of this.storedPatches.values()) {
             const voxelsRenderable = storedPatch.tryGetVoxelsRenderable();
             if (voxelsRenderable)
@@ -220,8 +220,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         return result;
     }
 
-    protected override get allVisiblePatches(): PatchRenderable[] {
-        const result: PatchRenderable[] = [];
+    protected override get allVisibleChunks(): ChunkRenderable[] {
+        const result: ChunkRenderable[] = [];
 
         for (const storedPatch of this.storedPatches.values()) {
             const voxelsRenderable = storedPatch.tryGetVoxelsRenderable();
@@ -233,15 +233,15 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         return result;
     }
 
-    protected override isPatchAttached(patchId: PatchId): boolean {
-        const storedPatch = this.storedPatches.get(patchId.asString);
+    protected override isChunkAttached(chunkId: ChunkId): boolean {
+        const storedPatch = this.storedPatches.get(chunkId.asString);
         if (storedPatch) {
             return storedPatch.isAttached();
         }
         return false;
     }
 
-    protected override garbageCollectPatches(maxInvisiblePatchesInPatch: number): void {
+    protected override garbageCollect(maxInvisibleChunksInPatch: number): void {
         type InvisiblePatch = {
             readonly storedPatch: StoredPatch;
             readonly invisibleSinceTimestamp: number;
@@ -258,7 +258,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         invisiblePatchesList.sort((ip1: InvisiblePatch, ip2: InvisiblePatch) => ip2.invisibleSinceTimestamp - ip1.invisibleSinceTimestamp);
 
         let nextPatchToDelete = invisiblePatchesList.pop();
-        while (nextPatchToDelete && invisiblePatchesList.length > maxInvisiblePatchesInPatch) {
+        while (nextPatchToDelete && invisiblePatchesList.length > maxInvisibleChunksInPatch) {
             nextPatchToDelete.storedPatch.dispose();
             this.storedPatches.delete(nextPatchToDelete.storedPatch.id.asString);
 

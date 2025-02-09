@@ -1,11 +1,11 @@
 import { processAsap } from '../../../helpers/async/async-sync';
 import * as THREE from '../../../libs/three-usage';
 import { voxelmapDataPacking, type IVoxelMap, type IVoxelMaterial, type LocalMapData, type VoxelsChunkSize } from '../i-voxelmap';
-import { PatchId } from '../patch/patch-id';
+import { ChunkId } from '../patch/chunk-id';
 
 import { EBoardSquareType, type Board } from './board';
 
-type OnLocalMapDataChange = (modifiedPatchesIdsList: ReadonlyArray<PatchId>) => unknown;
+type OnLocalMapDataChange = (modifiedChunksIdsList: ReadonlyArray<ChunkId>) => unknown;
 
 type ColumnId = { readonly x: number; readonly z: number };
 type HiddenColumn = {
@@ -14,9 +14,9 @@ type HiddenColumn = {
     readonly boardSquareType: EBoardSquareType.FLAT | EBoardSquareType.OBSTACLE | EBoardSquareType.HOLE;
     readonly materialId: number;
 };
-type BoardAndPatchesIds = {
+type BoardAndChunksIds = {
     readonly board: Board;
-    readonly modifiedPatchesIdsList: ReadonlyArray<PatchId>;
+    readonly modifiedChunksIdsList: ReadonlyArray<ChunkId>;
     readonly hiddenColumnsList: ReadonlyArray<HiddenColumn>;
 };
 
@@ -34,7 +34,7 @@ class VoxelmapWrapper implements IVoxelMap {
 
     private readonly originGetLocalMapData: IVoxelMap['getLocalMapData'];
 
-    private readonly boardxChunks = new Map<number, BoardAndPatchesIds>();
+    private readonly boardxChunks = new Map<number, BoardAndChunksIds>();
     private hiddenColumns = new Map<string, HiddenColumn>();
 
     private readonly chunkSize: VoxelsChunkSize;
@@ -138,33 +138,33 @@ class VoxelmapWrapper implements IVoxelMap {
             }
         }
 
-        const modifiedPatchesIdsList: PatchId[] = [];
+        const modifiedChunksIdsList: ChunkId[] = [];
         for (const chunkColumn of chunksColumnsMap.values()) {
-            const patchId = { x: chunkColumn.x, y: 0, z: chunkColumn.z };
-            const fromPatchY = Math.floor((board.origin.y - 1) / this.chunkSize.y);
-            for (patchId.y = Math.max(this.minChunkIdY, fromPatchY); patchId.y <= this.maxChunkIdY; patchId.y++) {
-                modifiedPatchesIdsList.push(new PatchId(patchId));
+            const chunkId = { x: chunkColumn.x, y: 0, z: chunkColumn.z };
+            const fromChunkY = Math.floor((board.origin.y - 1) / this.chunkSize.y);
+            for (chunkId.y = Math.max(this.minChunkIdY, fromChunkY); chunkId.y <= this.maxChunkIdY; chunkId.y++) {
+                modifiedChunksIdsList.push(new ChunkId(chunkId));
             }
         }
 
-        this.boardxChunks.set(board.id, { board, modifiedPatchesIdsList, hiddenColumnsList });
+        this.boardxChunks.set(board.id, { board, modifiedChunksIdsList, hiddenColumnsList });
         this.reevaluateBoardx();
-        this.triggerOnChange(modifiedPatchesIdsList);
+        this.triggerOnChange(modifiedChunksIdsList);
     }
 
     public unregisterBoard(board: Board): void {
-        const boardAndPatchesIds = this.boardxChunks.get(board.id);
-        if (typeof boardAndPatchesIds === 'undefined') {
+        const boardAndChunksIds = this.boardxChunks.get(board.id);
+        if (typeof boardAndChunksIds === 'undefined') {
             throw new Error(`Cannot unregister unknown board "${board.id}".`);
         }
         this.boardxChunks.delete(board.id);
         this.reevaluateBoardx();
-        this.triggerOnChange(boardAndPatchesIds.modifiedPatchesIdsList);
+        this.triggerOnChange(boardAndChunksIds.modifiedChunksIdsList);
     }
 
-    private triggerOnChange(modifiedPatchesIdsList: ReadonlyArray<PatchId>): void {
+    private triggerOnChange(modifiedChunksIdsList: ReadonlyArray<ChunkId>): void {
         for (const callback of this.onChange) {
-            callback(modifiedPatchesIdsList);
+            callback(modifiedChunksIdsList);
         }
     }
 

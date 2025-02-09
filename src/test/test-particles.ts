@@ -225,7 +225,7 @@ return vec4(sampled.rgb / sampled.a, 1);
         }
 
         this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(
-            this.voxelmapViewer.patchSize,
+            this.voxelmapViewer.chunkSizeVec3,
             this.voxelmapViewer.minChunkIdY,
             this.voxelmapViewer.maxChunkIdY
         );
@@ -289,7 +289,7 @@ return vec4(sampled.rgb / sampled.a, 1);
     }
 
     private applyVisibility(): void {
-        const patchesToDisplay = this.voxelmapVisibilityComputer.getRequestedPatches();
+        const patchesToDisplay = this.voxelmapVisibilityComputer.getRequestedChunks();
         const patchesIdToDisplay = patchesToDisplay.map(patchToDisplay => patchToDisplay.id);
 
         this.voxelmapViewer.setVisibility(patchesIdToDisplay);

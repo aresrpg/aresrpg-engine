@@ -1,42 +1,42 @@
 import * as THREE from '../../libs/three-usage';
 
-import { PatchId } from './patch/patch-id';
+import { ChunkId } from './patch/chunk-id';
 
-type RequestedPatch = {
-    readonly id: PatchId;
+type RequestedChunk = {
+    readonly id: ChunkId;
     priority: number;
 };
 
 class VoxelmapVisibilityComputer {
     private readonly chunkSize: THREE.Vector3Like;
-    public readonly minPatchIdY: number;
-    public readonly maxPatchIdY: number;
+    public readonly minChunkIdY: number;
+    public readonly maxChunkIdY: number;
 
-    private readonly requestedPatches = new Map<string, RequestedPatch>();
+    private readonly requestedChunks = new Map<string, RequestedChunk>();
 
-    public constructor(chunkSize: THREE.Vector3Like, minPatchIdY: number, maxPatchIdY: number) {
+    public constructor(chunkSize: THREE.Vector3Like, minChunkIdY: number, maxChunkIdY: number) {
         this.chunkSize = new THREE.Vector3().copy(chunkSize);
-        this.minPatchIdY = minPatchIdY;
-        this.maxPatchIdY = maxPatchIdY;
+        this.minChunkIdY = minChunkIdY;
+        this.maxChunkIdY = maxChunkIdY;
     }
 
     public reset(): void {
-        this.requestedPatches.clear();
+        this.requestedChunks.clear();
     }
 
     public showMapPortion(box: THREE.Box3): void {
-        const patchIdFrom = box.min.divide(this.chunkSize).floor();
-        const patchIdTo = box.max.divide(this.chunkSize).ceil();
+        const chunkIdFrom = box.min.divide(this.chunkSize).floor();
+        const chunkIdTo = box.max.divide(this.chunkSize).ceil();
 
-        patchIdFrom.y = Math.max(patchIdFrom.y, this.minPatchIdY);
-        patchIdTo.y = Math.min(patchIdTo.y, this.maxPatchIdY);
+        chunkIdFrom.y = Math.max(chunkIdFrom.y, this.minChunkIdY);
+        chunkIdTo.y = Math.min(chunkIdTo.y, this.maxChunkIdY);
 
-        const iPatchId = new THREE.Vector3();
-        for (iPatchId.x = patchIdFrom.x; iPatchId.x < patchIdTo.x; iPatchId.x++) {
-            for (iPatchId.y = patchIdFrom.y; iPatchId.y < patchIdTo.y; iPatchId.y++) {
-                for (iPatchId.z = patchIdFrom.z; iPatchId.z < patchIdTo.z; iPatchId.z++) {
-                    const patchId = new PatchId(iPatchId);
-                    this.addPriority(patchId, 1);
+        const iChunkId = new THREE.Vector3();
+        for (iChunkId.x = chunkIdFrom.x; iChunkId.x < chunkIdTo.x; iChunkId.x++) {
+            for (iChunkId.y = chunkIdFrom.y; iChunkId.y < chunkIdTo.y; iChunkId.y++) {
+                for (iChunkId.z = chunkIdFrom.z; iChunkId.z < chunkIdTo.z; iChunkId.z++) {
+                    const chunkId = new ChunkId(iChunkId);
+                    this.addPriority(chunkId, 1);
                 }
             }
         }
@@ -46,58 +46,58 @@ class VoxelmapVisibilityComputer {
         position = new THREE.Vector3().copy(position);
         const voxelFrom = new THREE.Vector3().copy(position).subScalar(radius);
         const voxelTo = new THREE.Vector3().copy(position).addScalar(radius);
-        const patchIdFrom = voxelFrom.divide(this.chunkSize).floor();
-        const patchIdTo = voxelTo.divide(this.chunkSize).floor();
-        const patchIdCenter = new THREE.Vector3().copy(position).divide(this.chunkSize).floor();
+        const chunkIdFrom = voxelFrom.divide(this.chunkSize).floor();
+        const chunkIdTo = voxelTo.divide(this.chunkSize).floor();
+        const chunkIdCenter = new THREE.Vector3().copy(position).divide(this.chunkSize).floor();
 
         const visibilitySphere = new THREE.Sphere(new THREE.Vector3().copy(position), radius);
 
         const positionXZ = new THREE.Vector2(position.x, position.z);
-        const patchCenterXZ = new THREE.Vector2();
+        const chunkCenterXZ = new THREE.Vector2();
         const boundingBox = new THREE.Box3();
-        const iPatchId = new THREE.Vector3();
-        for (iPatchId.x = patchIdFrom.x; iPatchId.x <= patchIdTo.x; iPatchId.x++) {
-            for (iPatchId.z = patchIdFrom.z; iPatchId.z <= patchIdTo.z; iPatchId.z++) {
-                iPatchId.y = patchIdCenter.y;
+        const iChunkId = new THREE.Vector3();
+        for (iChunkId.x = chunkIdFrom.x; iChunkId.x <= chunkIdTo.x; iChunkId.x++) {
+            for (iChunkId.z = chunkIdFrom.z; iChunkId.z <= chunkIdTo.z; iChunkId.z++) {
+                iChunkId.y = chunkIdCenter.y;
 
-                boundingBox.min.multiplyVectors(iPatchId, this.chunkSize);
+                boundingBox.min.multiplyVectors(iChunkId, this.chunkSize);
                 boundingBox.max.addVectors(boundingBox.min, this.chunkSize);
                 if (visibilitySphere.intersectsBox(boundingBox)) {
-                    patchCenterXZ.set((iPatchId.x + 0.5) * this.chunkSize.x, (iPatchId.z + 0.5) * this.chunkSize.z);
-                    const distanceXZ = positionXZ.distanceTo(patchCenterXZ);
+                    chunkCenterXZ.set((iChunkId.x + 0.5) * this.chunkSize.x, (iChunkId.z + 0.5) * this.chunkSize.z);
+                    const distanceXZ = positionXZ.distanceTo(chunkCenterXZ);
                     const basePriority = 1 - Math.min(1, distanceXZ / radius);
 
-                    for (iPatchId.y = this.minPatchIdY; iPatchId.y <= this.maxPatchIdY; iPatchId.y++) {
-                        const patchCenterY = iPatchId.y + 0.5 + this.chunkSize.y;
-                        const distanceY = Math.abs(position.y - patchCenterY);
+                    for (iChunkId.y = this.minChunkIdY; iChunkId.y <= this.maxChunkIdY; iChunkId.y++) {
+                        const chunkCenterY = iChunkId.y + 0.5 + this.chunkSize.y;
+                        const distanceY = Math.abs(position.y - chunkCenterY);
                         const secondaryPriority = 1 - Math.min(1, distanceY / 1000);
 
-                        const patchId = new PatchId(iPatchId);
+                        const chunkId = new ChunkId(iChunkId);
                         const distancePriority = 10 * basePriority + secondaryPriority;
                         const closenessPriority = distanceXZ < 100 ? 20 : 0;
                         const visibilityPriority = frustum?.intersectsBox(boundingBox) ? 10 : 0;
                         const priority = distancePriority + closenessPriority + visibilityPriority;
-                        this.addPriority(patchId, priority);
+                        this.addPriority(chunkId, priority);
                     }
                 }
             }
         }
     }
 
-    public getRequestedPatches(): Readonly<RequestedPatch>[] {
-        const list = Array.from(this.requestedPatches.values());
-        list.sort((patch1, patch2) => patch2.priority - patch1.priority);
-        return list;
+    public getRequestedChunks(): Readonly<RequestedChunk>[] {
+        const requestedChunksList = Array.from(this.requestedChunks.values());
+        requestedChunksList.sort((chunk1, chunk2) => chunk2.priority - chunk1.priority);
+        return requestedChunksList;
     }
 
-    private addPriority(patchId: PatchId, priority: number): void {
-        let requestedPatch = this.requestedPatches.get(patchId.asString);
-        if (!requestedPatch) {
-            requestedPatch = { id: patchId, priority: 0 };
-            this.requestedPatches.set(patchId.asString, requestedPatch);
+    private addPriority(chunkId: ChunkId, priority: number): void {
+        let requestedChunk = this.requestedChunks.get(chunkId.asString);
+        if (!requestedChunk) {
+            requestedChunk = { id: chunkId, priority: 0 };
+            this.requestedChunks.set(chunkId.asString, requestedChunk);
         }
-        requestedPatch.priority += priority;
+        requestedChunk.priority += priority;
     }
 }
 
-export { VoxelmapVisibilityComputer, type RequestedPatch };
+export { VoxelmapVisibilityComputer, type RequestedChunk };

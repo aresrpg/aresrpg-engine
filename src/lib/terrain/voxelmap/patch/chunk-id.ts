@@ -1,7 +1,7 @@
 import type * as THREE from '../../../libs/three-usage';
 import { vec3ToString } from '../../../helpers/string';
 
-class PatchId {
+class ChunkId {
     public readonly x: number;
     public readonly y: number;
     public readonly z: number;
@@ -17,4 +17,4 @@ class PatchId {
     }
 }
 
-export { PatchId };
+export { ChunkId };
