@@ -18,7 +18,7 @@ export {
     type VoxelsChunkOrdering,
     type VoxelsChunkSize,
 } from './terrain/voxelmap/i-voxelmap';
-export type { IVoxelmapViewer } from './terrain/voxelmap/viewer/i-voxelmap-viewer';
+export type { IVoxelmapViewer } from './terrain/voxelmap/i-voxelmap-viewer';
 export {
     EComputationMethod,
     EComputationResult,
@@ -26,7 +26,7 @@ export {
     type ComputationOptions,
     type VoxelmapViewerOptions,
     type VoxelsChunkData,
-} from './terrain/voxelmap/viewer/simple/voxelmap-viewer';
+} from './terrain/voxelmap/viewer/voxelmap-viewer';
 export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibility-computer';
 export { EVoxelsDisplayMode } from './terrain/voxelmap/voxelsRenderable/voxels-material';
 export { type CheckerboardType } from './terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';

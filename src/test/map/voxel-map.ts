@@ -188,19 +188,19 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         const localPos = new THREE.Vector3();
         const worldPos = { x: 0, y: 0, z: 0 };
 
-        let isFullPatch = true;
+        let isFullChunk = true;
         const samples: HeightmapSample[] = [];
         for (worldPos.z = blockStart.z; worldPos.z < blockEnd.z; worldPos.z++) {
             for (worldPos.x = blockStart.x; worldPos.x < blockEnd.x; worldPos.x++) {
                 const sample = this.sampleHeightmapBaseTerrain(worldPos.x, worldPos.z);
                 samples.push(sample);
                 if (sample.altitude <= blockEnd.y) {
-                    isFullPatch = false;
+                    isFullChunk = false;
                 }
             }
         }
 
-        if (!isFullPatch) {
+        if (!isFullChunk) {
             for (worldPos.z = blockStart.z; worldPos.z < blockEnd.z; worldPos.z++) {
                 for (worldPos.x = blockStart.x; worldPos.x < blockEnd.x; worldPos.x++) {
                     localPos.subVectors(worldPos, blockStart);

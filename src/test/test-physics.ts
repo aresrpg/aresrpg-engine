@@ -85,7 +85,7 @@ class TestPhysics extends TestBase {
         });
 
         this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, voxelMaterialsStore, {
-            patchSize: chunkSize,
+            chunkSize,
             computationOptions: {
                 method: EComputationMethod.CPU_MULTITHREADED,
                 threadsCount: 4,
@@ -96,7 +96,7 @@ class TestPhysics extends TestBase {
         });
 
         this.scene.add(this.voxelmapViewer.container);
-        this.promisesQueue = new PromisesQueue(this.voxelmapViewer.maxPatchesComputedInParallel + 5);
+        this.promisesQueue = new PromisesQueue(this.voxelmapViewer.maxChunksComputedInParallel + 5);
 
         this.voxelmapCollider = new VoxelmapCollider({
             chunkSize: { x: chunkSize.xz, y: chunkSize.y, z: chunkSize.xz },
@@ -320,22 +320,22 @@ class TestPhysics extends TestBase {
 
     private async displayMap(): Promise<void> {
         const chunksToDisplay = this.voxelmapVisibilityComputer.getRequestedChunks();
-        const chunksIdsToDisplay = chunksToDisplay.map(patchToDisplay => patchToDisplay.id);
+        const chunksIdsToDisplay = chunksToDisplay.map(chunkToDisplay => chunkToDisplay.id);
 
         this.voxelmapViewer.setVisibility(chunksIdsToDisplay);
 
         this.promisesQueue.cancelAll();
         for (const chunkId of chunksIdsToDisplay) {
-            if (this.voxelmapViewer.doesPatchRequireVoxelsData(chunkId)) {
+            if (this.voxelmapViewer.doesChunkRequireVoxelsData(chunkId)) {
                 this.promisesQueue.run(
                     async () => {
-                        if (this.voxelmapViewer.doesPatchRequireVoxelsData(chunkId)) {
-                            const voxelsChunkBox = this.voxelmapViewer.getPatchVoxelsBox(chunkId);
+                        if (this.voxelmapViewer.doesChunkRequireVoxelsData(chunkId)) {
+                            const voxelsChunkBox = this.voxelmapViewer.getChunkBox(chunkId);
                             const blockStart = voxelsChunkBox.min;
                             const blockEnd = voxelsChunkBox.max;
 
-                            const patchMapData = await this.map.getLocalMapData(blockStart, blockEnd);
-                            const voxelsChunkData = Object.assign(patchMapData, {
+                            const chunkMapData = await this.map.getLocalMapData(blockStart, blockEnd);
+                            const voxelsChunkData = Object.assign(chunkMapData, {
                                 size: new THREE.Vector3().subVectors(blockEnd, blockStart),
                             });
 
@@ -343,11 +343,11 @@ class TestPhysics extends TestBase {
                                 ...voxelsChunkData,
                                 isFull: false,
                             });
-                            await this.voxelmapViewer.enqueuePatch(chunkId, voxelsChunkData);
+                            await this.voxelmapViewer.enqueueChunk(chunkId, voxelsChunkData);
                         }
                     },
                     () => {
-                        this.voxelmapViewer.dequeuePatch(chunkId);
+                        this.voxelmapViewer.dequeueChunk(chunkId);
                     }
                 );
             }

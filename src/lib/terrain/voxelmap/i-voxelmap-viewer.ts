@@ -1,6 +1,7 @@
-import { type MeshesStatistics } from '../../../helpers/meshes-statistics';
-import type * as THREE from '../../../libs/three-usage';
-import type { VoxelsChunkSize } from '../i-voxelmap';
+import { type MeshesStatistics } from '../../helpers/meshes-statistics';
+import type * as THREE from '../../libs/three-usage';
+
+import type { VoxelsChunkSize } from './i-voxelmap';
 
 type VoxelmapStatistics = MeshesStatistics & {
     chunkSize: THREE.Vector3Like;

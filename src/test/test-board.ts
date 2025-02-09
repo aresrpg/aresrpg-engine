@@ -62,7 +62,7 @@ class TestBoard extends TestBase {
             maxShininess: 400,
         });
         this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, this.voxelMaterialsStore, {
-            patchSize: chunkSize,
+            chunkSize,
             computationOptions: {
                 method: EComputationMethod.CPU_MULTITHREADED,
                 threadsCount: 4,
@@ -94,15 +94,15 @@ class TestBoard extends TestBase {
         this.setupBoard(map);
 
         this.map = new VoxelmapWrapper(map, chunkSize, minChunkIdY, maxChunkIdY, true);
-        this.map.onChange.push(modifiedPatchesIdsList => {
-            if (modifiedPatchesIdsList.length > 0) {
+        this.map.onChange.push(modifiedChunksIdsList => {
+            if (modifiedChunksIdsList.length > 0) {
                 this.promisesQueue.cancelAll();
-                for (const patchId of modifiedPatchesIdsList) {
-                    this.voxelmapViewer.invalidatePatch(patchId);
+                for (const chunkId of modifiedChunksIdsList) {
+                    this.voxelmapViewer.invalidateChunk(chunkId);
                 }
             }
         });
-        this.promisesQueue = new PromisesQueue(this.voxelmapViewer.maxPatchesComputedInParallel + 5);
+        this.promisesQueue = new PromisesQueue(this.voxelmapViewer.maxChunksComputedInParallel + 5);
 
         this.applyVisibility();
         setInterval(() => this.applyVisibility(), 200);
@@ -113,33 +113,33 @@ class TestBoard extends TestBase {
     }
 
     private applyVisibility(): void {
-        const patchesToDisplay = this.voxelmapVisibilityComputer.getRequestedChunks();
-        const patchesIdToDisplay = patchesToDisplay.map(patchToDisplay => patchToDisplay.id);
+        const chunksToDisplay = this.voxelmapVisibilityComputer.getRequestedChunks();
+        const chunksIdsToDisplay = chunksToDisplay.map(chunkToDisplay => chunkToDisplay.id);
 
-        this.voxelmapViewer.setVisibility(patchesIdToDisplay);
+        this.voxelmapViewer.setVisibility(chunksIdsToDisplay);
 
         this.promisesQueue.cancelAll();
-        for (const patchId of patchesIdToDisplay) {
-            if (this.voxelmapViewer.doesPatchRequireVoxelsData(patchId)) {
+        for (const chunkId of chunksIdsToDisplay) {
+            if (this.voxelmapViewer.doesChunkRequireVoxelsData(chunkId)) {
                 this.promisesQueue.run(
                     async () => {
-                        if (this.voxelmapViewer.doesPatchRequireVoxelsData(patchId)) {
-                            const voxelsChunkBox = this.voxelmapViewer.getPatchVoxelsBox(patchId);
+                        if (this.voxelmapViewer.doesChunkRequireVoxelsData(chunkId)) {
+                            const voxelsChunkBox = this.voxelmapViewer.getChunkBox(chunkId);
                             const blockStart = voxelsChunkBox.min;
                             const blockEnd = voxelsChunkBox.max;
 
-                            const patchMapData = await this.map.getLocalMapData(blockStart, blockEnd);
-                            const voxelsChunkData = Object.assign(patchMapData, {
+                            const chunkMapData = await this.map.getLocalMapData(blockStart, blockEnd);
+                            const voxelsChunkData = Object.assign(chunkMapData, {
                                 size: new THREE.Vector3().subVectors(blockEnd, blockStart),
                             });
                             // const computationStatus =
-                            await this.voxelmapViewer.enqueuePatch(patchId, voxelsChunkData);
-                            // console.log(`${patchId.asString} computation status: ${computationStatus}`);
+                            await this.voxelmapViewer.enqueueChunk(chunkId, voxelsChunkData);
+                            // console.log(`${chunkId.asString} computation status: ${computationStatus}`);
                         }
                     },
                     () => {
-                        this.voxelmapViewer.dequeuePatch(patchId);
-                        // console.log(`${patchId.asString} query & computation cancelled`);
+                        this.voxelmapViewer.dequeueChunk(chunkId);
+                        // console.log(`${chunkId.asString} query & computation cancelled`);
                     }
                 );
             }

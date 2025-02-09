@@ -1,8 +1,8 @@
-import { Transition } from '../../../../helpers/transition';
-import type * as THREE from '../../../../libs/three-usage';
-import { type ChunkId } from '../../chunk/chunk-id';
-import { EVoxelMaterialQuality } from '../../voxelsRenderable/voxels-material';
-import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
+import { Transition } from '../../../helpers/transition';
+import type * as THREE from '../../../libs/three-usage';
+import { type ChunkId } from '../chunk/chunk-id';
+import { EVoxelMaterialQuality } from '../voxelsRenderable/voxels-material';
+import { type VoxelsRenderable } from '../voxelsRenderable/voxels-renderable';
 
 enum EComputationResult {
     SKIPPED = 'skipped',
@@ -27,7 +27,7 @@ type Parameters = {
     readonly transitionTime: number;
 };
 
-class StoredPatch {
+class AsyncChunkRenderable {
     public readonly id: ChunkId;
     public readonly onVisibilityChange: VoidFunction[] = [];
 
@@ -122,7 +122,7 @@ class StoredPatch {
         if (voxelsRenderable) {
             return !!voxelsRenderable.container.parent && voxelsRenderable.parameters.dissolveRatio === 0;
         } else {
-            // the patch was computed, but there is no mesh -> it is as if it was in the scene
+            // the chunk was computed, but there is no mesh -> it is as if it was in the scene
             return true;
         }
     }
@@ -139,7 +139,7 @@ class StoredPatch {
 
         const voxelsRenerable = this.tryGetVoxelsRenderable();
         if (voxelsRenerable) {
-            StoredPatch.enforceDisplayQuality(voxelsRenerable, this.latestAdaptativeQualityParameters);
+            AsyncChunkRenderable.enforceDisplayQuality(voxelsRenerable, this.latestAdaptativeQualityParameters);
         }
     }
 
@@ -148,10 +148,10 @@ class StoredPatch {
         taskRunner: TaskRunner
     ): Promise<EComputationResult> {
         if (this.disposed) {
-            throw new Error(`Cannot compute disposed patch "${this.id.asString}".`);
+            throw new Error(`Cannot compute disposed chunk "${this.id.asString}".`);
         }
 
-        const computationId = Symbol('stored-patch-computation');
+        const computationId = Symbol('async-chunk-renderable-computation');
         this.latestComputationId = computationId;
         this.hasLatestData = true;
 
@@ -194,7 +194,7 @@ class StoredPatch {
                 };
 
                 if (computedVoxelsRenderable) {
-                    StoredPatch.enforceDisplayQuality(computedVoxelsRenderable, this.latestAdaptativeQualityParameters);
+                    AsyncChunkRenderable.enforceDisplayQuality(computedVoxelsRenderable, this.latestAdaptativeQualityParameters);
                     if (this.shouldBeAttached) {
                         this.parent.add(computedVoxelsRenderable.container);
 
@@ -231,7 +231,7 @@ class StoredPatch {
 
     public dispose(): void {
         if (this.disposed) {
-            throw new Error(`Patch "${this.id.asString}" was disposed twice.`);
+            throw new Error(`AsyncChunkRenderable "${this.id.asString}" was disposed twice.`);
         }
         this.disposed = true;
 
@@ -271,4 +271,4 @@ class StoredPatch {
     }
 }
 
-export { EComputationResult, StoredPatch, type AdaptativeQualityParameters };
+export { EComputationResult, AsyncChunkRenderable, type AdaptativeQualityParameters };

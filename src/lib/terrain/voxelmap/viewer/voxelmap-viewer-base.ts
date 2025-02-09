@@ -6,8 +6,7 @@ import { ChunkId } from '../chunk/chunk-id';
 import { EVoxelsDisplayMode } from '../voxelsRenderable/voxels-material';
 import { type VoxelsRenderable } from '../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryBase } from '../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
-
-import { type IVoxelmapViewer, type VoxelmapStatistics } from './i-voxelmap-viewer';
+import { type IVoxelmapViewer, type VoxelmapStatistics } from '../i-voxelmap-viewer';
 
 type ChunkRenderable = {
     readonly id: ChunkId;
