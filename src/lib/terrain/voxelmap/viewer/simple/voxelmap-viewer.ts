@@ -8,7 +8,7 @@ import { PatchFactoryCpu } from '../../patch/patch-factory/merged/patch-factory-
 import { PatchFactoryCpuWorker } from '../../patch/patch-factory/merged/patch-factory-cpu-worker';
 import { PatchFactoryGpuSequential } from '../../patch/patch-factory/merged/patch-factory-gpu-sequential';
 import { type PatchFactoryBase } from '../../patch/patch-factory/patch-factory-base';
-import { ChunkId } from '../../patch/chunk-id';
+import { ChunkId } from '../../chunk/chunk-id';
 import { type CheckerboardType, type VoxelsChunkData } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 import { type ChunkRenderable, type ComputedChunk, VoxelmapViewerBase } from '../voxelmap-viewer-base';
 

@@ -1,7 +1,7 @@
 import { processAsap } from '../../../helpers/async/async-sync';
 import * as THREE from '../../../libs/three-usage';
 import { voxelmapDataPacking, type IVoxelMap, type IVoxelMaterial, type LocalMapData, type VoxelsChunkSize } from '../i-voxelmap';
-import { ChunkId } from '../patch/chunk-id';
+import { ChunkId } from '../chunk/chunk-id';
 
 import { EBoardSquareType, type Board } from './board';
 

@@ -6,7 +6,7 @@ import {
     type VoxelsChunkDataNotEmpty,
     type VoxelsRenderableFactoryBase,
 } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
-import { type ChunkId } from '../chunk-id';
+import { type ChunkId } from '../../chunk/chunk-id';
 
 type VertexData = {
     readonly localPosition: THREE.Vector3;

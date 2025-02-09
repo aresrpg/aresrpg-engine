@@ -1,6 +1,6 @@
 import * as THREE from '../../libs/three-usage';
 
-import { ChunkId } from './patch/chunk-id';
+import { ChunkId } from './chunk/chunk-id';
 
 type RequestedChunk = {
     readonly id: ChunkId;

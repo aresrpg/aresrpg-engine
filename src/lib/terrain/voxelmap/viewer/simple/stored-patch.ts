@@ -1,6 +1,6 @@
 import { Transition } from '../../../../helpers/transition';
 import type * as THREE from '../../../../libs/three-usage';
-import { type ChunkId } from '../../patch/chunk-id';
+import { type ChunkId } from '../../chunk/chunk-id';
 import { EVoxelMaterialQuality } from '../../voxelsRenderable/voxels-material';
 import { type VoxelsRenderable } from '../../voxelsRenderable/voxels-renderable';
 
