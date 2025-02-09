@@ -2,7 +2,7 @@ import * as THREE from '../../../libs/three-usage';
 
 import { EVoxelMaterialQuality, EVoxelsDisplayMode, type VoxelsMaterials } from './voxels-material';
 
-type PatchMesh = {
+type VoxelsRenderablePart = {
     readonly mesh: THREE.Mesh;
     readonly materials: VoxelsMaterials;
     readonly trianglesCount: number;
@@ -45,7 +45,7 @@ class VoxelsRenderable {
     };
 
     private gpuResources: {
-        readonly patchMeshes: ReadonlyArray<PatchMesh>;
+        readonly parts: ReadonlyArray<VoxelsRenderablePart>;
     } | null = null;
 
     public readonly trianglesCount: number;
@@ -66,23 +66,23 @@ class VoxelsRenderable {
         }
     }
 
-    public constructor(patchMeshes: ReadonlyArray<PatchMesh>) {
-        this.gpuResources = { patchMeshes };
+    public constructor(parts: ReadonlyArray<VoxelsRenderablePart>) {
+        this.gpuResources = { parts };
 
-        if (patchMeshes.length === 1) {
-            const patchMesh = patchMeshes[0]!;
-            this.container = patchMesh.mesh;
-            this.trianglesCount = patchMesh.trianglesCount;
-            this.gpuMemoryBytes = patchMesh.gpuMemoryBytes;
+        if (parts.length === 1) {
+            const part = parts[0]!;
+            this.container = part.mesh;
+            this.trianglesCount = part.trianglesCount;
+            this.gpuMemoryBytes = part.gpuMemoryBytes;
         } else {
             let trianglesCount = 0;
             let gpuMemoryBytes = 0;
 
             this.container = new THREE.Group();
-            for (const patchMesh of patchMeshes) {
-                this.container.add(patchMesh.mesh);
-                trianglesCount += patchMesh.trianglesCount;
-                gpuMemoryBytes += patchMesh.gpuMemoryBytes;
+            for (const part of parts) {
+                this.container.add(part.mesh);
+                trianglesCount += part.trianglesCount;
+                gpuMemoryBytes += part.gpuMemoryBytes;
             }
             this.trianglesCount = trianglesCount;
             this.gpuMemoryBytes = gpuMemoryBytes;
@@ -90,8 +90,8 @@ class VoxelsRenderable {
         this.container.name = 'voxels-renderable';
 
         this.boundingBox = new THREE.Box3();
-        for (const patchMesh of patchMeshes) {
-            this.boundingBox.union(patchMesh.mesh.geometry.boundingBox!);
+        for (const part of parts) {
+            this.boundingBox.union(part.mesh.geometry.boundingBox!);
         }
 
         this.enforceMaterials();
@@ -100,8 +100,8 @@ class VoxelsRenderable {
 
     public updateUniforms(): void {
         if (this.gpuResources) {
-            for (const patchMesh of this.gpuResources.patchMeshes) {
-                const material = patchMesh.materials.materials[this.currentQuality];
+            for (const part of this.gpuResources.parts) {
+                const material = part.materials.materials[this.currentQuality];
                 const uniforms = material.userData.uniforms;
 
                 uniforms.uAoStrength.value = +this.parameters.ao.enabled * this.parameters.ao.strength;
@@ -121,22 +121,22 @@ class VoxelsRenderable {
 
                 material.needsUpdate = true;
 
-                patchMesh.mesh.receiveShadow = this.parameters.shadows.receive;
-                patchMesh.mesh.castShadow = this.parameters.shadows.cast;
+                part.mesh.receiveShadow = this.parameters.shadows.receive;
+                part.mesh.castShadow = this.parameters.shadows.cast;
             }
         }
     }
 
     public dispose(): void {
         if (this.gpuResources) {
-            for (const patchMesh of this.gpuResources.patchMeshes) {
-                patchMesh.mesh.removeFromParent();
-                patchMesh.mesh.geometry.dispose();
+            for (const part of this.gpuResources.parts) {
+                part.mesh.removeFromParent();
+                part.mesh.geometry.dispose();
 
-                for (const material of Object.values(patchMesh.materials.materials)) {
+                for (const material of Object.values(part.materials.materials)) {
                     material.dispose();
                 }
-                patchMesh.materials.shadowMaterial.dispose();
+                part.materials.shadowMaterial.dispose();
             }
 
             this.gpuResources = null;
@@ -145,8 +145,8 @@ class VoxelsRenderable {
 
     private enforceMaterials(): void {
         if (this.gpuResources) {
-            for (const patchMesh of this.gpuResources.patchMeshes) {
-                patchMesh.mesh.material = patchMesh.materials.materials[this.currentQuality];
+            for (const part of this.gpuResources.parts) {
+                part.mesh.material = part.materials.materials[this.currentQuality];
             }
         }
     }
