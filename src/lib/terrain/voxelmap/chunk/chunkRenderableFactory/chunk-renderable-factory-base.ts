@@ -30,18 +30,11 @@ abstract class ChunkRenderableFactoryBase {
     public async buildChunkRenderable(
         chunkId: ChunkId,
         chunkStart: THREE.Vector3,
-        chunkEnd: THREE.Vector3,
         voxelsChunkData: VoxelsChunkDataNotEmpty
     ): Promise<VoxelsRenderable | null> {
         chunkStart = chunkStart.clone();
-        chunkEnd = chunkEnd.clone();
 
-        const chunkSize = new THREE.Vector3().subVectors(chunkEnd, chunkStart);
-        if (chunkSize.x > this.maxChunkSize.x || chunkSize.y > this.maxChunkSize.y || chunkSize.z > this.maxChunkSize.z) {
-            throw new Error(`Chunk is too big ${vec3ToString(chunkSize)} (max is ${vec3ToString(this.maxChunkSize)})`);
-        }
-
-        const expectedChunkSize = chunkSize.clone().addScalar(2);
+        const expectedChunkSize = voxelsChunkData.size.clone().addScalar(2);
         if (!voxelsChunkData.size.equals(expectedChunkSize)) {
             throw new Error(
                 `Voxels chunk is not coherent with chunk size: expected ${vec3ToString(expectedChunkSize)} but received ${vec3ToString(voxelsChunkData.size)}.`
