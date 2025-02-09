@@ -46,7 +46,11 @@ abstract class PatchFactoryBase {
             );
         }
 
-        const voxelsRenderable = await this.buildVoxelsRenderable(voxelsChunkData);
+        const buildResult = this.buildVoxelsRenderable(voxelsChunkData);
+        if (buildResult === null) {
+            return null;
+        }
+        const voxelsRenderable = await buildResult;
         if (voxelsRenderable) {
             voxelsRenderable.container.name = `voxels-patch-${patchId.asString}`;
             voxelsRenderable.container.position.set(patchStart.x, patchStart.y, patchStart.z);
