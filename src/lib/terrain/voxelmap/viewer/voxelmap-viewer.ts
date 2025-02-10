@@ -138,7 +138,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
                 return null;
             }
             const chunkStart = new THREE.Vector3().multiplyVectors(chunkId, this.chunkSizeVec3);
-            return await this.chunkRenderableFactory.buildChunkRenderable(chunkId, chunkStart, voxelsChunkData);
+            const chunkEnd = new THREE.Vector3().addVectors(chunkStart, this.chunkSizeVec3);
+            return await this.chunkRenderableFactory.buildChunkRenderable(chunkId, chunkStart, chunkEnd, voxelsChunkData);
         };
 
         return asyncChunk.scheduleNewComputation(computationTask, this.promiseThrottler);
