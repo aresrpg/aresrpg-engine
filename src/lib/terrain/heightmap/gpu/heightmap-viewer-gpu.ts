@@ -1,7 +1,7 @@
 import * as THREE from '../../../libs/three-usage';
 import { type MaterialsStore } from '../../materials-store';
 import { type IHeightmap } from '../i-heightmap';
-import { type PatchId, type IHeightmapViewer } from '../i-heightmap-viewer';
+import { type IHeightmapViewer, type PatchId } from '../i-heightmap-viewer';
 
 import { HeightmapRootTile } from './meshes/heightmap-root-tile';
 import { type HeightmapTile } from './meshes/heightmap-tile';

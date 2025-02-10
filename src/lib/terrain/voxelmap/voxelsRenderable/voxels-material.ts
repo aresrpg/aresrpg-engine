@@ -37,4 +37,4 @@ type VoxelsMaterials = {
     readonly shadowMaterial: THREE.Material;
 };
 
-export { EVoxelMaterialQuality, EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterialUniforms, type VoxelsMaterials };
+export { EVoxelMaterialQuality, EVoxelsDisplayMode, type VoxelsMaterial, type VoxelsMaterials, type VoxelsMaterialUniforms };

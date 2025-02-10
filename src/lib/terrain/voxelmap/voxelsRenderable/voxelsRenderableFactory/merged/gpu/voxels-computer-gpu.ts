@@ -7,7 +7,7 @@ import { getGpuDevice } from '../../../../../../helpers/webgpu/webgpu-device';
 import type * as THREE from '../../../../../../libs/three-usage';
 import { voxelmapDataPacking, type VoxelsChunkOrdering } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
-import { type VoxelsChunkDataNotEmpty, type CheckerboardType } from '../../voxels-renderable-factory-base';
+import { type CheckerboardType, type VoxelsChunkDataNotEmpty } from '../../voxels-renderable-factory-base';
 import { type VertexData1Encoder } from '../vertex-data1-encoder';
 import { type VertexData2Encoder } from '../vertex-data2-encoder';
 

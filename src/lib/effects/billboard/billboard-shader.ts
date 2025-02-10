@@ -158,8 +158,8 @@ function createBillboardInstancedBufferGeometry(): THREE.InstancedBufferGeometry
 }
 
 export {
-    createBillboardMaterial,
     createBillboardInstancedBufferGeometry,
+    createBillboardMaterial,
     type AttributeDefinition,
     type UniformDefinition,
     type VaryingDefinition,

@@ -2,8 +2,8 @@ import { type WorkerDefinition } from '../helpers/async/dedicatedWorkers/dedicat
 import { DedicatedWorkersPool } from '../helpers/async/dedicatedWorkers/dedicated-workers-pool';
 import { logger } from '../helpers/logger';
 import type * as THREE from '../libs/three-usage';
-import { type VoxelsChunkOrdering } from '../terrain/voxelmap/i-voxelmap';
 import { ChunkId } from '../terrain/voxelmap/chunk/chunk-id';
+import { type VoxelsChunkOrdering } from '../terrain/voxelmap/i-voxelmap';
 import { VoxelmapDataPacking } from '../terrain/voxelmap/voxelmap-data-packing';
 import { type VoxelsChunkData } from '../terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 

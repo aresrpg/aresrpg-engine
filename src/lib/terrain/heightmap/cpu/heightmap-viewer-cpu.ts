@@ -1,7 +1,7 @@
 import { type MeshesStatistics } from '../../../helpers/meshes-statistics';
 import * as THREE from '../../../libs/three-usage';
 import { type IHeightmap } from '../i-heightmap';
-import { type PatchId, type IHeightmapViewer } from '../i-heightmap-viewer';
+import { type IHeightmapViewer, type PatchId } from '../i-heightmap-viewer';
 
 import { HeightmapNodeId } from './heightmap-node-id';
 import { HeightmapRoot, type HeightmapRootOptions } from './heightmap-root';

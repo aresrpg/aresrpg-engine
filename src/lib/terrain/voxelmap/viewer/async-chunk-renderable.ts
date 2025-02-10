@@ -271,4 +271,4 @@ class AsyncChunkRenderable {
     }
 }
 
-export { EComputationResult, AsyncChunkRenderable, type AdaptativeQualityParameters };
+export { AsyncChunkRenderable, EComputationResult, type AdaptativeQualityParameters };

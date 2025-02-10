@@ -3,16 +3,16 @@ import { logger } from '../../../helpers/logger';
 import { vec3ToString } from '../../../helpers/string';
 import * as THREE from '../../../libs/three-usage';
 import { type MaterialsStore } from '../../materials-store';
-import { type VoxelsChunkOrdering, type VoxelsChunkSize } from '../i-voxelmap';
+import { ChunkId } from '../chunk/chunk-id';
+import { type ChunkRenderableFactoryBase } from '../chunk/chunkRenderableFactory/chunk-renderable-factory-base';
 import { ChunkRenderableFactoryCpu } from '../chunk/chunkRenderableFactory/cpu/chunk-renderable-factory-cpu';
 import { ChunkRenderableFactoryCpuWorker } from '../chunk/chunkRenderableFactory/cpu/chunk-renderable-factory-cpu-worker';
 import { ChunkRenderableFactoryGpu } from '../chunk/chunkRenderableFactory/gpu/chunk-renderable-facory-gpu';
-import { type ChunkRenderableFactoryBase } from '../chunk/chunkRenderableFactory/chunk-renderable-factory-base';
-import { ChunkId } from '../chunk/chunk-id';
+import { type VoxelsChunkOrdering, type VoxelsChunkSize } from '../i-voxelmap';
 import { type CheckerboardType, type VoxelsChunkData } from '../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
-import { type ChunkRenderable, type ComputedChunk, VoxelmapViewerBase } from './voxelmap-viewer-base';
-import { EComputationResult, AsyncChunkRenderable, type AdaptativeQualityParameters } from './async-chunk-renderable';
+import { AsyncChunkRenderable, EComputationResult, type AdaptativeQualityParameters } from './async-chunk-renderable';
+import { VoxelmapViewerBase, type ChunkRenderable, type ComputedChunk } from './voxelmap-viewer-base';
 
 enum EComputationMethod {
     CPU_MONOTHREADED,

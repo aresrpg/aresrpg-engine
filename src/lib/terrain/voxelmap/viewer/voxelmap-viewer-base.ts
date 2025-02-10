@@ -1,12 +1,12 @@
 import { logger } from '../../../helpers/logger';
 import { createMeshesStatistics } from '../../../helpers/meshes-statistics';
 import * as THREE from '../../../libs/three-usage';
-import { type VoxelsChunkSize } from '../i-voxelmap';
 import { ChunkId } from '../chunk/chunk-id';
+import { type VoxelsChunkSize } from '../i-voxelmap';
+import { type IVoxelmapViewer, type VoxelmapStatistics } from '../i-voxelmap-viewer';
 import { EVoxelsDisplayMode } from '../voxelsRenderable/voxels-material';
 import { type VoxelsRenderable } from '../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryBase } from '../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
-import { type IVoxelmapViewer, type VoxelmapStatistics } from '../i-voxelmap-viewer';
 
 type ChunkRenderable = {
     readonly id: ChunkId;

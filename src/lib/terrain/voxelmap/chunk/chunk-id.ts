@@ -1,5 +1,5 @@
-import type * as THREE from '../../../libs/three-usage';
 import { vec3ToString } from '../../../helpers/string';
+import type * as THREE from '../../../libs/three-usage';
 
 class ChunkId {
     public readonly x: number;
