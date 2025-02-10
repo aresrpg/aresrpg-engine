@@ -1,9 +1,8 @@
-import { type MaterialsStore } from '../../../materials-store';
-import { type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../i-voxelmap';
-import { VoxelsRenderableFactoryGpu } from '../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
-import { type CheckerboardType } from '../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
-
-import { ChunkRenderableFactoryBase } from './chunk-renderable-factory-base';
+import { type MaterialsStore } from '../../../../materials-store';
+import { type VoxelsChunkOrdering, type VoxelsChunkSize } from '../../../i-voxelmap';
+import { VoxelsRenderableFactoryGpu } from '../../../voxelsRenderable/voxelsRenderableFactory/merged/gpu/voxels-renderable-factory-gpu';
+import { type CheckerboardType } from '../../../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
+import { ChunkRenderableFactoryBase } from '../chunk-renderable-factory-base';
 
 type Parameters = {
     readonly voxelMaterialsStore: MaterialsStore;
