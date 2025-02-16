@@ -23,27 +23,26 @@ enum ETest {
     GRASS,
 }
 
-function createVoxelMap(): VoxelMap {
+function createVoxelMap(includeTreesInLod: boolean): VoxelMap {
     const mapScaleXZ = 800;
     const mapScaleY = 200;
     const mapSeed = 'fixed_seed';
-    const includeTreesInLod = true;
     return new VoxelMap(mapScaleXZ, mapScaleY, mapSeed, includeTreesInLod);
 }
 
 async function buildTestScene(test: ETest): Promise<TestBase> {
     if (test === ETest.TERRAIN) {
-        return new TestTerrain(createVoxelMap());
+        return new TestTerrain(createVoxelMap(false));
     } else if (test === ETest.WEATHER) {
         return new TestWeather();
     } else if (test === ETest.TEXTURE_CUSTOMIZATION) {
         return new TestTextureCustomization();
     } else if (test === ETest.PHYSICS) {
-        return new TestPhysics(createVoxelMap());
+        return new TestPhysics(createVoxelMap(true));
     } else if (test === ETest.PARTICLES) {
-        return new TestParticles(createVoxelMap());
+        return new TestParticles(createVoxelMap(true));
     } else if (test === ETest.BOARD) {
-        return new TestBoard(createVoxelMap());
+        return new TestBoard(createVoxelMap(true));
     } else if (test === ETest.GRASS) {
         logger.verbosity = ELogLevel.DEBUG;
         return await TestGrass.instanciate();
