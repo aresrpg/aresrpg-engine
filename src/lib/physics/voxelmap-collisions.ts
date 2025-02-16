@@ -427,13 +427,21 @@ class VoxelmapCollisions {
             return true;
         };
 
-        const previousLevel = Math.floor(previousPosition.y);
-        const newLevel = Math.floor(playerPosition.y);
+        const previousFeetLevel = Math.floor(previousPosition.y);
+        const newFeetLevel = Math.floor(playerPosition.y);
 
-        if (newLevel < previousLevel && !isLevelFree(previousLevel - 1)) {
+        const previousHeadLevel = Math.floor(previousPosition.y + entityCollider.height);
+        const newHeadLevel = Math.floor(playerPosition.y + entityCollider.height);
+
+        if (newFeetLevel < previousFeetLevel && !isLevelFree(previousFeetLevel - 1)) {
             // we just entered the ground -> rollback
             playerVelocity.y = 0;
-            playerPosition.y = previousLevel;
+            playerPosition.y = previousFeetLevel;
+        }
+        if (newHeadLevel > previousHeadLevel && !isLevelFree(previousHeadLevel + 1)) {
+            // we just entered the ceiling -> rollback
+            playerVelocity.y = 0;
+            playerPosition.y = previousHeadLevel - entityCollider.height;
         }
 
         let isOnGround = false;
