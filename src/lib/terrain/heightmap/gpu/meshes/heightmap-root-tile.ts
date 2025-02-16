@@ -24,7 +24,7 @@ class HeightmapRootTile extends HeightmapTile {
 
     public constructor(params: Parameters) {
         const worldSize = params.baseCell.worldSize * 2 ** params.maxNesting;
-        const originWorld = {
+        const worldOrigin = {
             x: worldSize * params.tileId.x,
             z: worldSize * params.tileId.z,
         };
@@ -49,22 +49,14 @@ class HeightmapRootTile extends HeightmapTile {
                 heightmap: params.heightmap,
                 geometryStore: params.geometryStore,
                 texture: rootTexture,
-                convertToWorldPositions: (localTileId: TileId, normalizedPositions: Float32Array): Float32Array => {
+                getWorldTransform(localTileId: TileId) {
                     const tileSize = getWorldSize(localTileId.nestingLevel);
                     const tileOriginWorld = {
-                        x: originWorld.x + tileSize * localTileId.localCoords.x,
-                        z: originWorld.z + tileSize * localTileId.localCoords.z,
+                        x: worldOrigin.x + tileSize * localTileId.localCoords.x,
+                        z: worldOrigin.z + tileSize * localTileId.localCoords.z,
                     };
-
-                    const positionsCount = normalizedPositions.length / 2;
-                    const positions = new Float32Array(2 * positionsCount);
-                    for (let i = 0; i < positionsCount; i++) {
-                        positions[2 * i + 0] = tileOriginWorld.x + tileSize * normalizedPositions[2 * i + 0]!;
-                        positions[2 * i + 1] = tileOriginWorld.z + tileSize * normalizedPositions[2 * i + 1]!;
-                    }
-                    return positions;
+                    return { size: tileSize, origin: tileOriginWorld };
                 },
-                getWorldSize,
             },
             localTileId: { nestingLevel: 0, localCoords: { x: 0, z: 0 } },
             flatShading: params.flatShading,

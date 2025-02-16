@@ -1,3 +1,4 @@
+import { disableMatrixAutoupdate } from '../helpers/misc';
 import * as THREE from '../libs/three-usage';
 
 import { type IHeightmapViewer } from './heightmap/i-heightmap-viewer';
@@ -31,8 +32,7 @@ class TerrainViewer {
     public constructor(heightmapViewer: IHeightmapViewer, voxelmapViewer: IVoxelmapViewer) {
         this.container = new THREE.Group();
         this.container.name = 'terrain-container';
-        this.container.matrixAutoUpdate = false; // do not always update world matrix in updateMatrixWorld()
-        this.container.matrixWorldAutoUpdate = false; // tell the parent to not always call updateMatrixWorld()
+        disableMatrixAutoupdate(this.container);
 
         if (voxelmapViewer.chunkSize.xz !== heightmapViewer.basePatchSize) {
             throw new Error(

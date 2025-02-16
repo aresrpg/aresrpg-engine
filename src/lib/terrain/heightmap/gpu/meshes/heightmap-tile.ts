@@ -1,4 +1,5 @@
 import { AsyncTask } from '../../../../helpers/async/async-task';
+import { disableMatrixAutoupdate } from '../../../../helpers/misc';
 import { applyReplacements } from '../../../../helpers/string';
 import * as THREE from '../../../../libs/three-usage';
 import { type HeightmapSamples, type IHeightmap } from '../../i-heightmap';
@@ -18,8 +19,10 @@ type Parameters = {
         readonly heightmap: IHeightmap;
         readonly geometryStore: TileGeometryStore;
         readonly texture: HeightmapRootTexture;
-        convertToWorldPositions(localTileId: TileId, normalizedPositions: Float32Array): Float32Array;
-        getWorldSize(nestingLevel: number): number;
+        getWorldTransform(localTileId: TileId): {
+            readonly size: number;
+            readonly origin: { readonly x: number; readonly z: number };
+        };
     };
     readonly localTileId: TileId;
     readonly flatShading: boolean;
@@ -42,13 +45,7 @@ class HeightmapTile {
     private readonly childrenContainer: THREE.Object3D;
     private readonly selfContainer: THREE.Object3D;
 
-    protected readonly root: {
-        readonly heightmap: IHeightmap;
-        readonly geometryStore: TileGeometryStore;
-        readonly texture: HeightmapRootTexture;
-        convertToWorldPositions(localTileId: TileId, normalizedPositions: Float32Array): Float32Array;
-        getWorldSize(nestingLevel: number): number;
-    };
+    protected readonly root: Parameters['root'];
 
     private readonly self: {
         readonly localTileId: TileId;
@@ -79,14 +76,24 @@ class HeightmapTile {
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
         this.container.name = 'heightmap-tile';
+        disableMatrixAutoupdate(this.container);
 
         this.childrenContainer = new THREE.Group();
         this.childrenContainer.name = 'children';
+        disableMatrixAutoupdate(this.childrenContainer);
 
         this.selfContainer = new THREE.Group();
         this.selfContainer.name = 'self';
         this.selfContainer.visible = false;
         this.container.add(this.selfContainer);
+        disableMatrixAutoupdate(this.selfContainer);
+
+        const worldTransform = params.root.getWorldTransform(params.localTileId);
+
+        const selfMatrix = new THREE.Matrix4().multiplyMatrices(
+            new THREE.Matrix4().makeTranslation(worldTransform.origin.x, 0, worldTransform.origin.z),
+            new THREE.Matrix4().makeScale(worldTransform.size, 1, worldTransform.size)
+        );
 
         this.root = params.root;
         this.flatShading = params.flatShading;
@@ -99,7 +106,7 @@ class HeightmapTile {
             uUvShift: { value: new THREE.Vector2().copy(uvChunk.shift) },
             uMinAltitude: { value: this.root.heightmap.altitude.min },
             uMaxAltitude: { value: this.root.heightmap.altitude.max },
-            uSizeWorld: { value: this.root.getWorldSize(params.localTileId.nestingLevel) },
+            uSizeWorld: { value: worldTransform.size },
             uDropUp: { value: 0 },
             uDropDown: { value: 0 },
             uDropLeft: { value: 0 },
@@ -256,6 +263,8 @@ vColor = texture0Sample.rgb;
                         mesh.customDepthMaterial = this.self.shader.shadowMaterial;
                         mesh.receiveShadow = true;
                         mesh.castShadow = true;
+                        mesh.matrixWorld.copy(selfMatrix);
+                        disableMatrixAutoupdate(mesh);
                         const id = buildEdgesResolutionId(edgeResolution);
                         this.self.meshes.set(id, mesh);
                     }
@@ -271,7 +280,13 @@ vColor = texture0Sample.rgb;
         });
 
         this.dataQuery = new AsyncTask(async () => {
-            const worldCoords = this.root.convertToWorldPositions(this.self.localTileId, this.root.texture.tilePositions);
+            const normalizedPositions = this.root.texture.tilePositions;
+            const positionsCount = normalizedPositions.length / 2;
+            const worldCoords = new Float32Array(2 * positionsCount);
+            for (let i = 0; i < positionsCount; i++) {
+                worldCoords[2 * i + 0] = worldTransform.origin.x + worldTransform.size * normalizedPositions[2 * i + 0]!;
+                worldCoords[2 * i + 1] = worldTransform.origin.z + worldTransform.size * normalizedPositions[2 * i + 1]!;
+            }
             return await this.root.heightmap.sampleHeightmap(worldCoords);
         });
     }
@@ -290,8 +305,6 @@ vColor = texture0Sample.rgb;
                     },
                     flatShading: this.flatShading,
                 });
-                childTile.container.applyMatrix4(new THREE.Matrix4().makeTranslation(x, 0, z));
-                childTile.container.applyMatrix4(new THREE.Matrix4().makeScale(0.5, 1, 0.5));
                 childTile.wireframe = this.wireframe;
                 this.childrenContainer.add(childTile.container);
                 return childTile;

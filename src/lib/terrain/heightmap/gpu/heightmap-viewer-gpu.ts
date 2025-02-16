@@ -1,3 +1,4 @@
+import { disableMatrixAutoupdate } from '../../../helpers/misc';
 import * as THREE from '../../../libs/three-usage';
 import { type MaterialsStore } from '../../materials-store';
 import { type IHeightmap } from '../i-heightmap';
@@ -59,6 +60,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
         this.container.name = 'heightmapviewer-gpu-container';
+        disableMatrixAutoupdate(this.container);
 
         this.materialsStore = params.materialsStore;
         this.geometryStore = new TileGeometryStore({
