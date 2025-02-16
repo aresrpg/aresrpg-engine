@@ -306,8 +306,6 @@ class VoxelmapCollisions {
     }
 
     public entityMovement(entityCollider: EntityCollider, options: EntityCollisionOptions): EntityCollisionOutput {
-        const maxDeltaTime = 10 / 1000;
-
         const missingVoxels: THREE.Vector3Like[] | null = options.missingVoxels.exportAsList ? [] : null;
 
         let currentState = entityCollider;
@@ -343,9 +341,20 @@ class VoxelmapCollisions {
             }
         };
 
+        const maxDeltaTime = 10 / 1000;
+        const maxVelocityNormPerStep = 0.1;
         let remainingDeltaTime = options.deltaTime;
         while (remainingDeltaTime > 0) {
-            const localDeltaTime = Math.min(remainingDeltaTime, maxDeltaTime);
+            const fullVelocityNorm = new THREE.Vector3().copy(currentState.velocity).length();
+            const naiveStepVelocityNorm = remainingDeltaTime * fullVelocityNorm;
+            let localDeltaTime: number;
+            if (naiveStepVelocityNorm <= maxVelocityNormPerStep) {
+                localDeltaTime = remainingDeltaTime;
+            } else {
+                localDeltaTime = remainingDeltaTime * (maxVelocityNormPerStep / naiveStepVelocityNorm);
+            }
+            localDeltaTime = Math.min(localDeltaTime, maxDeltaTime);
+
             remainingDeltaTime -= localDeltaTime;
             applyAndMergeStep(localDeltaTime);
         }
