@@ -46,7 +46,7 @@ async function buildTestScene(test: ETest): Promise<TestBase> {
         return new TestBoard(createVoxelMap());
     } else if (test === ETest.GRASS) {
         logger.verbosity = ELogLevel.DEBUG;
-        return TestGrass.instanciate();
+        return await TestGrass.instanciate();
     } else {
         throw new Error(`Unknown test "${test}".`);
     }
