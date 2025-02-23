@@ -91,7 +91,7 @@ abstract class TestBase {
                 }
                 this.update(now - this.lastUpdateTimestamp);
                 this.lastUpdateTimestamp = now;
-                this.renderer.render(this.scene, this.camera);
+                this.render();
                 lastRenderTimestamp = now;
             }
             window.requestAnimationFrame(render);
@@ -99,7 +99,12 @@ abstract class TestBase {
         window.requestAnimationFrame(render);
     }
 
+    protected render(): void {
+        this.renderer.render(this.scene, this.camera);
+    }
+
     protected abstract update(deltaMilliseconds: number): void;
 }
 
 export { TestBase };
+

@@ -10,6 +10,7 @@ import {
     HeightmapViewerCpu,
     HeightmapViewerGpu,
     InstancedBillboard,
+    Minimap,
     PromisesQueue,
     TerrainViewer,
     VoxelmapViewer,
@@ -28,6 +29,8 @@ import { TestTerrainBase, type ITerrainMap } from './test-terrain-base';
 
 class TestTerrain extends TestTerrainBase {
     protected override readonly terrainViewer: TerrainViewer;
+
+    private readonly minimap: Minimap;
 
     private readonly voxelmapViewer: VoxelmapViewer;
     private readonly voxelmapVisibilityComputer: VoxelmapVisibilityComputer;
@@ -84,22 +87,22 @@ class TestTerrain extends TestTerrainBase {
         const testHeightmapViewerGpu = true;
         const heightmapViewer = testHeightmapViewerGpu
             ? new HeightmapViewerGpu({
-                  materialsStore: this.voxelMaterialsStore,
-                  basePatch: {
-                      worldSize: chunkSize.xz,
-                      segmentsCount: chunkSize.xz / 2,
-                  },
-                  maxNesting: 5,
-                  heightmap: map,
-                  flatShading: true,
-              })
+                materialsStore: this.voxelMaterialsStore,
+                basePatch: {
+                    worldSize: chunkSize.xz,
+                    segmentsCount: chunkSize.xz / 2,
+                },
+                maxNesting: 5,
+                heightmap: map,
+                flatShading: true,
+            })
             : new HeightmapViewerCpu(map, {
-                  materialsStore: this.voxelMaterialsStore,
-                  basePatchSize: chunkSize.xz,
-                  maxLevel: 5,
-                  voxelRatio: 2,
-                  flatShading: true,
-              });
+                materialsStore: this.voxelMaterialsStore,
+                basePatchSize: chunkSize.xz,
+                maxLevel: 5,
+                voxelRatio: 2,
+                flatShading: true,
+            });
 
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
         this.voxelmapViewer.parameters.shadows.cast = this.enableShadows;
@@ -107,6 +110,8 @@ class TestTerrain extends TestTerrainBase {
         // this.terrainViewer.parameters.lod.enabled = false;
         // this.terrainViewer.parameters.lod.wireframe = true;
         this.scene.add(this.terrainViewer.container);
+
+        this.minimap = new Minimap(this.terrainViewer, new THREE.TextureLoader().load("resources/minimap-arrow.png"));
 
         if (!(map as VoxelMap).includeTreesInLod) {
             const perPatch = new Map<string, THREE.Vector3Like[]>();
@@ -273,6 +278,10 @@ return vec4(sampled.rgb / sampled.a, 1);
             lodFolder.add(this.terrainViewer.parameters.lod, 'wireframe');
             lodFolder.open();
         }
+        {
+            const minimapFolder = this.gui.addFolder("Minimap");
+            minimapFolder.add(this.minimap, "radius", 50, 500);
+        }
     }
 
     private updateTreeBillboards(): void {
@@ -297,6 +306,19 @@ return vec4(sampled.rgb / sampled.a, 1);
                 });
             }
         }
+    }
+
+    protected override update(): void {
+        super.update();
+
+        const playerPosition = this.getPlayerPosition();
+        this.minimap.setCenter({x: playerPosition.x, y: playerPosition.z});
+    }
+
+    protected override render(): void {
+        super.render();
+
+        this.minimap.render(this.renderer);
     }
 
     protected override showMapPortion(box: THREE.Box3): void {

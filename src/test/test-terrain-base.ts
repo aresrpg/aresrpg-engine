@@ -16,6 +16,7 @@ abstract class TestTerrainBase extends TestBase {
     protected readonly enableShadows: boolean = true;
 
     private readonly playerVisibility: null | {
+        readonly playerContainer: THREE.Object3D;
         readonly fakeCamera: THREE.PerspectiveCamera;
         readonly fakeCameraHelper: THREE.CameraHelper;
         readonly visibilityFrustum: THREE.Frustum;
@@ -87,6 +88,7 @@ abstract class TestTerrainBase extends TestBase {
                 playerContainer.add(fakeCamera);
 
                 this.playerVisibility = {
+                    playerContainer,
                     fakeCamera,
                     fakeCameraHelper,
                     visibilityFrustum: new THREE.Frustum(),
@@ -130,6 +132,14 @@ abstract class TestTerrainBase extends TestBase {
         }
 
         this.terrainViewer.update(this.renderer);
+    }
+
+    protected getPlayerPosition(): THREE.Vector3 {
+        if (this.playerVisibility) {
+            return this.playerVisibility.playerContainer.getWorldPosition(new THREE.Vector3());
+        } else {
+            return new THREE.Vector3(0, 0, 0);
+        }
     }
 
     private setupLighting(): void {

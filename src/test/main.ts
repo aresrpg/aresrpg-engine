@@ -32,7 +32,7 @@ function createVoxelMap(includeTreesInLod: boolean): VoxelMap {
 
 async function buildTestScene(test: ETest): Promise<TestBase> {
     if (test === ETest.TERRAIN) {
-        return new TestTerrain(createVoxelMap(false));
+        return new TestTerrain(createVoxelMap(true));
     } else if (test === ETest.WEATHER) {
         return new TestWeather();
     } else if (test === ETest.TEXTURE_CUSTOMIZATION) {

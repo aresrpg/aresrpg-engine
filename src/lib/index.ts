@@ -16,7 +16,7 @@ export {
     type IVoxelMaterial,
     type LocalMapData,
     type VoxelsChunkOrdering,
-    type VoxelsChunkSize,
+    type VoxelsChunkSize
 } from './terrain/voxelmap/i-voxelmap';
 export type { IVoxelmapViewer } from './terrain/voxelmap/i-voxelmap-viewer';
 export {
@@ -25,11 +25,13 @@ export {
     VoxelmapViewer,
     type ComputationOptions,
     type VoxelmapViewerOptions,
-    type VoxelsChunkData,
+    type VoxelsChunkData
 } from './terrain/voxelmap/viewer/voxelmap-viewer';
 export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibility-computer';
 export { EVoxelsDisplayMode } from './terrain/voxelmap/voxelsRenderable/voxels-material';
 export { type CheckerboardType } from './terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
+
+export { Minimap } from "./terrain/minimap";
 
 export { EVoxelStatus, type IVoxelmapCollider } from './physics/i-voxelmap-collider';
 export { VoxelmapCollider } from './physics/voxelmap-collider';
@@ -46,3 +48,4 @@ export { CustomizableTexture } from './helpers/customizable-texture';
 
 export { PropsHandler, type PropsHandlerStatistics } from './effects/props/props-handler';
 export { PropsViewer } from './effects/props/props-viewer';
+
