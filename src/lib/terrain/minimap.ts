@@ -1,6 +1,7 @@
-import { TerrainViewer } from "./terrain-viewer";
 import * as THREE from "../libs/three-usage";
 import { createFullscreenQuad } from "../helpers/fullscreen-quad";
+
+import type { TerrainViewer } from "./terrain-viewer";
 
 enum EMinimapShape {
     SQUARE = 0,
@@ -35,9 +36,9 @@ class Minimap {
         arrowTexture.wrapT = THREE.ClampToEdgeWrapping;
 
         this.scene = new THREE.Scene();
-        const ambientLight = new THREE.AmbientLight(0xffffff, 2.5);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 2);
         this.scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 3);
         directionalLight.position.set(1, 1, -1);
         directionalLight.target.position.set(0, 0, 0);
         this.scene.add(directionalLight);

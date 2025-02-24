@@ -43,6 +43,12 @@ class TestTerrain extends TestTerrainBase {
         readonly instancedBillboard: InstancedBillboard;
     } | null = null;
 
+    private readonly params = {
+        minimap: {
+            enabled: true,
+        },
+    };
+
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
         super(map);
 
@@ -280,6 +286,7 @@ return vec4(sampled.rgb / sampled.a, 1);
         }
         {
             const minimapFolder = this.gui.addFolder("Minimap");
+            minimapFolder.add(this.params.minimap, "enabled");
             minimapFolder.add(this.minimap, "radius", 50, 500);
         }
     }
@@ -312,13 +319,15 @@ return vec4(sampled.rgb / sampled.a, 1);
         super.update();
 
         const playerPosition = this.getPlayerPosition();
-        this.minimap.setCenter({x: playerPosition.x, y: playerPosition.z});
+        this.minimap.setCenter({ x: playerPosition.x, y: playerPosition.z });
     }
 
     protected override render(): void {
         super.render();
 
-        this.minimap.render(this.renderer);
+        if (this.params.minimap.enabled) {
+            this.minimap.render(this.renderer);
+        }
     }
 
     protected override showMapPortion(box: THREE.Box3): void {
