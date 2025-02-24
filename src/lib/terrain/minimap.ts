@@ -106,9 +106,11 @@ class Minimap {
                 }
                 vec4 arrow = texture(uArrowTexture, arrowUv);
 
-                fragColor = vec4(mix(textureSample.rgb, arrow.rgb, arrow.a), 1);
+                fragColor = vec4(mix(textureSample.rgb, arrow.rgb, arrow.a), max(textureSample.a, arrow.a));
             }
             `,
+            blending: THREE.NormalBlending,
+            transparent: true,
         });
         this.quad.material = this.copyMaterial;
 
@@ -158,7 +160,7 @@ class Minimap {
 
         renderer.autoClear = false;
 
-        renderer.setClearColor(0x000000, 1);
+        renderer.setClearColor(0x000000, 0);
         renderer.setRenderTarget(this.renderTarget);
 
         renderer.clear(true, true);
