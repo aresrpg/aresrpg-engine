@@ -73,6 +73,17 @@ abstract class TestTerrainBase extends TestBase {
             playerControls.attach(playerContainer);
             this.scene.add(playerControls.getHelper());
 
+            window.addEventListener("keydown", event => {
+                if (event.code === "ControlLeft") {
+                    playerControls.setMode("rotate");
+                }
+            });
+            window.addEventListener("keyup", event => {
+                if (event.code === "ControlLeft") {
+                    playerControls.setMode("translate");
+                }
+            });
+
             const testPlayerVisilibityFrustum = true;
             if (testPlayerVisilibityFrustum) {
                 const fakeCamera = new THREE.PerspectiveCamera(60, 1, 1, 2000);
@@ -142,6 +153,15 @@ abstract class TestTerrainBase extends TestBase {
         }
     }
 
+    protected getPlayerOrientation(): number {
+        if (this.playerVisibility) {
+            const direction = this.playerVisibility.playerContainer.getWorldDirection(new THREE.Vector3());
+            return Math.atan2(direction.z, direction.x);
+        } else {
+            return 0;
+        }
+    }
+
     private setupLighting(): void {
         const dirLight = new THREE.DirectionalLight(0xffffff, 1);
         dirLight.name = 'dirlight';
@@ -198,3 +218,4 @@ abstract class TestTerrainBase extends TestBase {
 }
 
 export { TestTerrainBase, type ITerrainMap };
+

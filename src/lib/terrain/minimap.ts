@@ -1,5 +1,5 @@
-import * as THREE from "../libs/three-usage";
 import { createFullscreenQuad } from "../helpers/fullscreen-quad";
+import * as THREE from "../libs/three-usage";
 
 import type { TerrainViewer } from "./terrain-viewer";
 
@@ -17,6 +17,7 @@ class Minimap {
     private readonly shapeUniform: THREE.IUniform<number>;
     private readonly sizeUniform: THREE.IUniform<number>;
     private readonly orientationUniform: THREE.IUniform<number>;
+    private readonly lockNorthUniform: THREE.IUniform<number>;
 
     private readonly camera: THREE.OrthographicCamera;
 
@@ -24,6 +25,7 @@ class Minimap {
 
     public shape = EMinimapShape.ROUND;
     public readonly sizeInPixels = 512;
+    public lockNorth: boolean = true;
 
     public constructor(terrainViewer: TerrainViewer, arrowTexture: THREE.Texture) {
         this.terrainViewer = terrainViewer;
@@ -38,8 +40,8 @@ class Minimap {
         this.scene = new THREE.Scene();
         const ambientLight = new THREE.AmbientLight(0xffffff, 2);
         this.scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 3);
-        directionalLight.position.set(1, 1, -1);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 4);
+        directionalLight.position.set(100, 100, -100);
         directionalLight.target.position.set(0, 0, 0);
         this.scene.add(directionalLight);
 
@@ -48,6 +50,7 @@ class Minimap {
         this.shapeUniform = { value: this.shape };
         this.sizeUniform = { value: this.sizeInPixels };
         this.orientationUniform = { value: Math.PI / 2 };
+        this.lockNorthUniform = { value: Number(this.lockNorth) };
         this.copyMaterial = new THREE.RawShaderMaterial({
             glslVersion: "300 es",
             uniforms: {
@@ -56,6 +59,7 @@ class Minimap {
                 uOrientation: this.orientationUniform,
                 uShape: this.shapeUniform,
                 uSize: this.sizeUniform,
+                uLockNorth: this.lockNorthUniform,
             },
             vertexShader: `
             in vec2 position;
@@ -72,6 +76,7 @@ class Minimap {
             uniform sampler2D uTexture;
             uniform sampler2D uArrowTexture;
             uniform float uOrientation;
+            uniform int uLockNorth;
             uniform int uShape;
             uniform float uSize;
 
@@ -86,10 +91,19 @@ class Minimap {
                     }
                 }
 
-                vec4 textureSample = texture(uTexture, vUv);
+                vec2 textureUv = vUv;
+                if (uLockNorth == 0) {
+                    mat2 orientation = mat2(cos(uOrientation), sin(uOrientation), -sin(uOrientation), cos(uOrientation));
+                    textureUv = 0.5 + orientation * (textureUv - 0.5);
+                }
+                vec4 textureSample = texture(uTexture, textureUv);
+
                 float arrowUvSize = uSize / 32.0;
-                mat2 orientation = mat2(cos(uOrientation), sin(uOrientation), -sin(uOrientation), cos(uOrientation));
-                vec2 arrowUv = orientation * arrowUvSize * (vUv - 0.5) + 0.5;
+                vec2 arrowUv = arrowUvSize * (vUv - 0.5) + 0.5;
+                if (uLockNorth == 1) {
+                    mat2 orientation = mat2(cos(uOrientation), -sin(uOrientation), sin(uOrientation), cos(uOrientation));
+                    arrowUv = 0.5 + orientation * (arrowUv - 0.5);
+                }
                 vec4 arrow = texture(uArrowTexture, arrowUv);
 
                 fragColor = vec4(mix(textureSample.rgb, arrow.rgb, arrow.a), 1);
@@ -153,6 +167,7 @@ class Minimap {
 
         renderer.sortObjects = false;
         this.shapeUniform.value = this.shape;
+        this.lockNorthUniform.value = Number(this.lockNorth);
         renderer.setRenderTarget(previousState.renderTarget);
         renderer.setViewport(16, 16, this.renderTarget.width, this.renderTarget.height);
         renderer.render(this.quad, this.camera);
@@ -169,3 +184,4 @@ class Minimap {
 export {
     Minimap
 };
+
