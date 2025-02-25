@@ -47,6 +47,10 @@ class TestTerrain extends TestTerrainBase {
         minimap: {
             enabled: true,
         },
+        lod: {
+            focusDistance: 150,
+            maxDistance: 3000,
+        }
     };
 
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
@@ -198,6 +202,11 @@ return vec4(sampled.rgb / sampled.a, 1);
         });
         this.promisesQueue = new PromisesQueue(this.voxelmapViewer.maxChunksComputedInParallel + 5);
 
+
+        setInterval(() => {
+            this.terrainViewer.setLod(this.camera.position, this.params.lod.focusDistance, this.params.lod.maxDistance);
+        }, 200);
+
         {
             const texturingOptions = {
                 textured: EVoxelsDisplayMode.TEXTURED,
@@ -282,6 +291,8 @@ return vec4(sampled.rgb / sampled.a, 1);
             lodFolder.add(this.terrainViewer.parameters.lod, 'enabled');
             lodFolder.add(heightmapViewer.container.scale, 'y', 0.00001, 1).name('Y scale');
             lodFolder.add(this.terrainViewer.parameters.lod, 'wireframe');
+            lodFolder.add(this.params.lod, "focusDistance", 0, 1000).name("Focus distance");
+            lodFolder.add(this.params.lod, "maxDistance", 0, 10000).name("Max distance");
             lodFolder.open();
         }
         {

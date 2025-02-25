@@ -116,10 +116,6 @@ abstract class TestTerrainBase extends TestBase {
 
             this.gui.add(viewParams, 'playerViewRadius', 1, 1000, 1);
         }
-
-        setInterval(() => {
-            this.terrainViewer.setLod(this.camera.position, 100, 3000);
-        }, 200);
     }
 
     protected abstract showMapPortion(box: THREE.Box3): void;
