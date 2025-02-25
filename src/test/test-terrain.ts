@@ -121,7 +121,11 @@ class TestTerrain extends TestTerrainBase {
         // this.terrainViewer.parameters.lod.wireframe = true;
         this.scene.add(this.terrainViewer.container);
 
-        this.minimap = new Minimap(this.terrainViewer, new THREE.TextureLoader().load("resources/minimap-arrow.png"));
+        this.minimap = new Minimap(
+            this.terrainViewer,
+            new THREE.TextureLoader().load("resources/minimap-arrow.png"),
+            new THREE.TextureLoader().load("resources/compass.png"),
+        );
 
         if (!(map as VoxelMap).includeTreesInLod) {
             const perPatch = new Map<string, THREE.Vector3Like[]>();
