@@ -6,6 +6,7 @@ import {
     computeBoard,
     EBoardSquareType,
     EComputationMethod,
+    EMinimapShape,
     EVoxelsDisplayMode,
     HeightmapViewerCpu,
     HeightmapViewerGpu,
@@ -304,6 +305,7 @@ return vec4(sampled.rgb / sampled.a, 1);
             minimapFolder.add(this.params.minimap, "enabled").name("Enabled");
             minimapFolder.add(this.minimap, "lockNorth").name("Lock north");
             minimapFolder.add(this.minimap, "radius", 50, 500).name("World radius");
+            minimapFolder.add(this.minimap, "shape", [EMinimapShape.SQUARE, EMinimapShape.ROUND]).name("Shape");
         }
     }
 

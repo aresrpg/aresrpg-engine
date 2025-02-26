@@ -25,7 +25,7 @@ class Minimap {
     private readonly gridMaterial: THREE.ShaderMaterial;
     private readonly shapeUniform: THREE.IUniform<number>;
 
-    public shape = EMinimapShape.SQUARE;
+    public shape = EMinimapShape.ROUND;
     public readonly sizeInPixels = 512;
     public lockNorth: boolean = true;
 
@@ -138,6 +138,7 @@ class Minimap {
         renderer.clearDepth();
         renderer.setViewport(16, 16, this.sizeInPixels, this.sizeInPixels);
 
+        this.shapeUniform.value = this.shape;
         this.scene.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), this.orientation);
         renderer.render(this.scene, this.camera);
 
@@ -148,6 +149,7 @@ class Minimap {
 }
 
 export {
+    EMinimapShape,
     Minimap
 };
 

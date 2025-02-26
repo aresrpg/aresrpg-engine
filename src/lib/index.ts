@@ -31,7 +31,7 @@ export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibili
 export { EVoxelsDisplayMode } from './terrain/voxelmap/voxelsRenderable/voxels-material';
 export { type CheckerboardType } from './terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
-export { Minimap } from "./terrain/minimap2";
+export { EMinimapShape, Minimap } from "./terrain/minimap2";
 
 export { EVoxelStatus, type IVoxelmapCollider } from './physics/i-voxelmap-collider';
 export { VoxelmapCollider } from './physics/voxelmap-collider';
