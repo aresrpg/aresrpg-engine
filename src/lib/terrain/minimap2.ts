@@ -33,7 +33,7 @@ class Minimap {
         this.terrainViewer = terrainViewer;
 
         this.camera = new THREE.PerspectiveCamera(30, 1, .1, 500);
-        this.camera.position.set(2, 2, 2);
+        this.camera.position.set(0, 2, 2).normalize().multiplyScalar(3);
         this.camera.lookAt(0, 0, 0);
 
         this.tileGeometryStore = new TileGeometryStore({ segmentsCount: 63, altitude: { min: 0, max: 1 } });
@@ -53,9 +53,9 @@ class Minimap {
         this.gridMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 uShape: this.shapeUniform,
-                uAmbient: { value: 0.4 },
+                uAmbient: { value: 0.5 },
                 uLightDirection: { value: new THREE.Vector3(-1, -1, 1).normalize() },
-                uDirectionalLightIntensity: { value: 0.75 },
+                uDirectionalLightIntensity: { value: 0.6 },
             },
             vertexShader: `
             varying vec2 vUv;
@@ -139,7 +139,8 @@ class Minimap {
         renderer.setViewport(16, 16, this.sizeInPixels, this.sizeInPixels);
 
         this.shapeUniform.value = this.shape;
-        this.scene.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), this.orientation);
+        const rotation = this.lockNorth ? 0 : this.orientation;
+        this.scene.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
         renderer.render(this.scene, this.camera);
 
         renderer.sortObjects = previousState.sortObjects;
