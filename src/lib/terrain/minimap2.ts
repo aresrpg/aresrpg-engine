@@ -14,7 +14,6 @@ class Minimap {
     private readonly tileGeometryStore: TileGeometryStore;
 
     private readonly centerOnWorld = new THREE.Vector3(0, 0, 0);
-    private worldSize: number = 100
     public orientation: number = 0;
 
     private readonly scene: THREE.Scene;
@@ -23,7 +22,9 @@ class Minimap {
     private readonly compass: THREE.Mesh;
 
     private readonly gridMaterial: THREE.ShaderMaterial;
+    private readonly mapTextureUniform: THREE.IUniform<THREE.Texture | null>;
     private readonly shapeUniform: THREE.IUniform<number>;
+    private readonly viewRadiusUniform: THREE.IUniform<number>;
 
     public shape = EMinimapShape.ROUND;
     public readonly sizeInPixels = 512;
@@ -50,21 +51,38 @@ class Minimap {
         this.scene.add(directionalLight);
 
         this.shapeUniform = { value: this.shape };
+        this.mapTextureUniform = { value: null };
+        this.viewRadiusUniform = { value: 100 };
+
         this.gridMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 uShape: this.shapeUniform,
-                uAmbient: { value: 0.5 },
+                uMapTexture: this.mapTextureUniform,
+                uMapTextureSize: { value: 400 },
+                uViewRadius: this.viewRadiusUniform,
+                uAmbient: { value: 0.7 },
                 uLightDirection: { value: new THREE.Vector3(-1, -1, 1).normalize() },
-                uDirectionalLightIntensity: { value: 0.6 },
+                uDirectionalLightIntensity: { value: 1 },
             },
             vertexShader: `
+            uniform sampler2D uMapTexture;
+            uniform float uMapTextureSize;
+            uniform float uViewRadius;
+
             varying vec2 vUv;
             varying vec3 vViewPosition;
+            varying vec3 vColor;
 
             void main() {
                 vUv = position.xz;
+                
+                vec2 sampleUv = uViewRadius / uMapTextureSize * (vUv - 0.5) + 0.5;
+                vec4 mapSample = texture(uMapTexture, sampleUv);
+                float altitude = mapSample.a;
+                vColor = mapSample.rgb;
+
                 vec3 displacedPosition = position;
-                displacedPosition.y += 0.2 * sin(10.0 * length(vUv));
+                displacedPosition.y += 0.2 * altitude;
 
                 vec4 mvPosition = modelViewMatrix * vec4( displacedPosition, 1.0 );
                 vViewPosition = - mvPosition.xyz; // vector from vertex to camera
@@ -80,6 +98,7 @@ class Minimap {
 
             varying vec2 vUv;
             varying vec3 vViewPosition;
+            varying vec3 vColor;
 
             void main() {
                 if (uShape == ${EMinimapShape.ROUND}) {
@@ -90,10 +109,9 @@ class Minimap {
 
                 vec3 normal = normalize(cross(dFdx(vViewPosition), dFdy(vViewPosition)));
 
-                vec3 color = vec3(1);
                 float light = uAmbient + uDirectionalLightIntensity * (0.5 + 0.5 * dot(normal, -uLightDirection));
 
-                gl_FragColor = vec4(color * light, 1);
+                gl_FragColor = vec4(vColor * light, 1);
             }
             `,
             // wireframe: true,
@@ -110,19 +128,19 @@ class Minimap {
         this.scene.add(this.compass);
 
         this.setCenter({ x: 0, y: 0 });
-        this.radius = 100;
+        this.viewRadius = 100;
     }
 
     public setCenter(center: THREE.Vector2Like): void {
         this.centerOnWorld.set(center.x, 0, center.y);
     }
 
-    public get radius(): number {
-        return this.worldSize;
+    public get viewRadius(): number {
+        return this.viewRadiusUniform.value;
     }
 
-    public set radius(radius: number) {
-        this.worldSize = radius;
+    public set viewRadius(radius: number) {
+        this.viewRadiusUniform.value = radius;
     }
 
     public render(renderer: THREE.WebGLRenderer): void {
@@ -139,6 +157,7 @@ class Minimap {
         renderer.setViewport(16, 16, this.sizeInPixels, this.sizeInPixels);
 
         this.shapeUniform.value = this.shape;
+        this.mapTextureUniform.value = (window as any).rootTexture;
         const rotation = this.lockNorth ? 0 : this.orientation;
         this.scene.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
         renderer.render(this.scene, this.camera);

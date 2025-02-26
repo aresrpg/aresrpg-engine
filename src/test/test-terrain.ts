@@ -304,7 +304,7 @@ return vec4(sampled.rgb / sampled.a, 1);
             const minimapFolder = this.gui.addFolder("Minimap");
             minimapFolder.add(this.params.minimap, "enabled").name("Enabled");
             minimapFolder.add(this.minimap, "lockNorth").name("Lock north");
-            minimapFolder.add(this.minimap, "radius", 50, 500).name("World radius");
+            minimapFolder.add(this.minimap, "viewRadius", 50, 500).name("World radius");
             minimapFolder.add(this.minimap, "shape", [EMinimapShape.SQUARE, EMinimapShape.ROUND]).name("Shape");
         }
     }

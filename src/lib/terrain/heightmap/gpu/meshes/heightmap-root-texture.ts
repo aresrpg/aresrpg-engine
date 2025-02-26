@@ -227,6 +227,8 @@ class HeightmapRootTexture {
         mesh.frustumCulled = false;
 
         this.tile = { mesh, materialIdAttribute, altitudeAttribute, shader: { material, uniforms } };
+
+        (window as   any).rootTexture = this.textures.colorAndAltitude;
     }
 
     public dispose(): void {
