@@ -53,19 +53,33 @@ class Minimap {
         this.gridMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 uShape: this.shapeUniform,
+                uAmbient: { value: 0.4 },
+                uLightDirection: { value: new THREE.Vector3(-1, -1, 1).normalize() },
+                uDirectionalLightIntensity: { value: 0.75 },
             },
             vertexShader: `
             varying vec2 vUv;
+            varying vec3 vViewPosition;
 
             void main() {
-                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1);
                 vUv = position.xz;
+                vec3 displacedPosition = position;
+                displacedPosition.y += 0.2 * sin(10.0 * length(vUv));
+
+                vec4 mvPosition = modelViewMatrix * vec4( displacedPosition, 1.0 );
+                vViewPosition = - mvPosition.xyz; // vector from vertex to camera
+
+                gl_Position = projectionMatrix * mvPosition;
             }
             `,
             fragmentShader: `
             uniform int uShape;
+            uniform float uAmbient;
+            uniform vec3 uLightDirection;
+            uniform float uDirectionalLightIntensity;
 
             varying vec2 vUv;
+            varying vec3 vViewPosition;
 
             void main() {
                 if (uShape == ${EMinimapShape.ROUND}) {
@@ -74,10 +88,15 @@ class Minimap {
                     }
                 }
 
-                gl_FragColor = vec4(vUv, 0, 1);
+                vec3 normal = normalize(cross(dFdx(vViewPosition), dFdy(vViewPosition)));
+
+                vec3 color = vec3(1);
+                float light = uAmbient + uDirectionalLightIntensity * (0.5 + 0.5 * dot(normal, -uLightDirection));
+
+                gl_FragColor = vec4(color * light, 1);
             }
             `,
-            wireframe: true,
+            // wireframe: true,
         });
         this.grid = new THREE.Mesh(this.tileGeometryStore.getBaseTile(), this.gridMaterial);
         this.grid.applyMatrix4(new THREE.Matrix4().makeTranslation(-.5, 0, -.5));
