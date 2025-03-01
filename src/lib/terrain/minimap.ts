@@ -1,7 +1,7 @@
-import { createFullscreenQuad } from "../helpers/fullscreen-quad";
-import * as THREE from "../libs/three-usage";
+import { createFullscreenQuad } from '../helpers/fullscreen-quad';
+import * as THREE from '../libs/three-usage';
 
-import type { TerrainViewer } from "./terrain-viewer";
+import type { TerrainViewer } from './terrain-viewer';
 
 enum EMinimapShape {
     SQUARE = 0,
@@ -31,7 +31,7 @@ class Minimap {
         this.terrainViewer = terrainViewer;
 
         this.camera = new THREE.OrthographicCamera();
-        this.camera.near = .1;
+        this.camera.near = 0.1;
         this.camera.far = 500;
 
         arrowTexture.wrapS = THREE.ClampToEdgeWrapping;
@@ -46,13 +46,13 @@ class Minimap {
         this.scene.add(directionalLight);
 
         this.renderTarget = new THREE.WebGLRenderTarget(this.sizeInPixels, this.sizeInPixels);
-        this.quad = createFullscreenQuad("position");
+        this.quad = createFullscreenQuad('position');
         this.shapeUniform = { value: this.shape };
         this.sizeUniform = { value: this.sizeInPixels };
         this.orientationUniform = { value: Math.PI / 2 };
         this.lockNorthUniform = { value: Number(this.lockNorth) };
         this.copyMaterial = new THREE.RawShaderMaterial({
-            glslVersion: "300 es",
+            glslVersion: '300 es',
             uniforms: {
                 uTexture: { value: this.renderTarget.texture },
                 uArrowTexture: { value: arrowTexture },
@@ -183,7 +183,4 @@ class Minimap {
     }
 }
 
-export {
-    Minimap
-};
-
+export { Minimap };

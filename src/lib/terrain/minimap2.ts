@@ -1,7 +1,7 @@
-import * as THREE from "../libs/three-usage";
+import * as THREE from '../libs/three-usage';
 
-import { TileGeometryStore } from "./heightmap/gpu/meshes/tile-geometry-store";
-import type { TerrainViewer } from "./terrain-viewer";
+import { TileGeometryStore } from './heightmap/gpu/tile-geometry-store';
+import type { TerrainViewer } from './terrain-viewer';
 
 enum EMinimapShape {
     SQUARE = 0,
@@ -33,7 +33,7 @@ class Minimap {
     public constructor(terrainViewer: TerrainViewer, arrowTexture: THREE.Texture, compassTexture: THREE.Texture) {
         this.terrainViewer = terrainViewer;
 
-        this.camera = new THREE.PerspectiveCamera(30, 1, .1, 500);
+        this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 500);
         this.camera.position.set(0, 2, 2).normalize().multiplyScalar(3);
         this.camera.lookAt(0, 0, 0);
 
@@ -118,7 +118,7 @@ class Minimap {
             // wireframe: true,
         });
         this.grid = new THREE.Mesh(this.tileGeometryStore.getBaseTile(), this.gridMaterial);
-        this.grid.applyMatrix4(new THREE.Matrix4().makeTranslation(-.5, 0, -.5));
+        this.grid.applyMatrix4(new THREE.Matrix4().makeTranslation(-0.5, 0, -0.5));
         this.scene.add(this.grid);
 
         const compassGeometry = new THREE.PlaneGeometry();
@@ -169,8 +169,4 @@ class Minimap {
     }
 }
 
-export {
-    EMinimapShape,
-    Minimap
-};
-
+export { EMinimapShape, Minimap };

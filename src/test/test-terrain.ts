@@ -51,7 +51,7 @@ class TestTerrain extends TestTerrainBase {
         lod: {
             focusDistance: 150,
             maxDistance: 3000,
-        }
+        },
     };
 
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
@@ -108,12 +108,12 @@ class TestTerrain extends TestTerrainBase {
                 flatShading: true,
             })
             : new HeightmapViewerCpu(map, {
-                materialsStore: this.voxelMaterialsStore,
-                basePatchSize: chunkSize.xz,
-                maxLevel: 5,
-                voxelRatio: 2,
-                flatShading: true,
-            });
+                  materialsStore: this.voxelMaterialsStore,
+                  basePatchSize: chunkSize.xz,
+                  maxLevel: 5,
+                  voxelRatio: 2,
+                  flatShading: true,
+              });
 
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
         this.voxelmapViewer.parameters.shadows.cast = this.enableShadows;
@@ -124,8 +124,8 @@ class TestTerrain extends TestTerrainBase {
 
         this.minimap = new Minimap(
             this.terrainViewer,
-            new THREE.TextureLoader().load("resources/minimap-arrow.png"),
-            new THREE.TextureLoader().load("resources/compass.png"),
+            new THREE.TextureLoader().load('resources/minimap-arrow.png'),
+            new THREE.TextureLoader().load('resources/compass.png')
         );
 
         if (!(map as VoxelMap).includeTreesInLod) {
@@ -296,16 +296,16 @@ return vec4(sampled.rgb / sampled.a, 1);
             lodFolder.add(this.terrainViewer.parameters.lod, 'enabled');
             lodFolder.add(heightmapViewer.container.scale, 'y', 0.00001, 1).name('Y scale');
             lodFolder.add(this.terrainViewer.parameters.lod, 'wireframe');
-            lodFolder.add(this.params.lod, "focusDistance", 0, 1000).name("Focus distance");
-            lodFolder.add(this.params.lod, "maxDistance", 0, 10000).name("Max distance");
+            lodFolder.add(this.params.lod, 'focusDistance', 0, 1000).name('Focus distance');
+            lodFolder.add(this.params.lod, 'maxDistance', 0, 10000).name('Max distance');
             lodFolder.open();
         }
         {
-            const minimapFolder = this.gui.addFolder("Minimap");
-            minimapFolder.add(this.params.minimap, "enabled").name("Enabled");
-            minimapFolder.add(this.minimap, "lockNorth").name("Lock north");
-            minimapFolder.add(this.minimap, "viewRadius", 50, 500).name("World radius");
-            minimapFolder.add(this.minimap, "shape", [EMinimapShape.SQUARE, EMinimapShape.ROUND]).name("Shape");
+            const minimapFolder = this.gui.addFolder('Minimap');
+            minimapFolder.add(this.params.minimap, 'enabled').name('Enabled');
+            minimapFolder.add(this.minimap, 'lockNorth').name('Lock north');
+            minimapFolder.add(this.minimap, 'viewRadius', 50, 500).name('World radius');
+            minimapFolder.add(this.minimap, 'shape', [EMinimapShape.SQUARE, EMinimapShape.ROUND]).name('Shape');
         }
     }
 
@@ -514,4 +514,3 @@ return vec4(sampled.rgb / sampled.a, 1);
 }
 
 export { TestTerrain };
-

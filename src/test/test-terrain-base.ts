@@ -73,14 +73,14 @@ abstract class TestTerrainBase extends TestBase {
             playerControls.attach(playerContainer);
             this.scene.add(playerControls.getHelper());
 
-            window.addEventListener("keydown", event => {
-                if (event.code === "ControlLeft") {
-                    playerControls.setMode("rotate");
+            window.addEventListener('keydown', event => {
+                if (event.code === 'ControlLeft') {
+                    playerControls.setMode('rotate');
                 }
             });
-            window.addEventListener("keyup", event => {
-                if (event.code === "ControlLeft") {
-                    playerControls.setMode("translate");
+            window.addEventListener('keyup', event => {
+                if (event.code === 'ControlLeft') {
+                    playerControls.setMode('translate');
                 }
             });
 
@@ -214,4 +214,3 @@ abstract class TestTerrainBase extends TestBase {
 }
 
 export { TestTerrainBase, type ITerrainMap };
-
