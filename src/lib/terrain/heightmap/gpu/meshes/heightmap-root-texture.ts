@@ -69,8 +69,6 @@ class HeightmapRootTexture {
             readonly material: THREE.RawShaderMaterial;
             readonly uniforms: {
                 readonly uNestingLevel: THREE.IUniform<number>;
-                readonly uUvScale: THREE.IUniform<number>;
-                readonly uUvShift: THREE.IUniform<THREE.Vector2Like>;
             };
         };
     };
@@ -170,8 +168,6 @@ class HeightmapRootTexture {
             uNestingLevel: { value: 0 },
             uMinAltitude: { value: params.altitude.min },
             uMaxAltitude: { value: params.altitude.max },
-            uUvScale: { value: 1 },
-            uUvShift: { value: new THREE.Vector2() },
         };
         const material = new THREE.RawShaderMaterial({
             glslVersion: '300 es',
@@ -181,8 +177,6 @@ class HeightmapRootTexture {
             },
             vertexShader: `
             uniform sampler2D uMaterialsTexture;
-            uniform vec2 uUvShift;
-            uniform float uUvScale;
             uniform float uNestingLevel;
             uniform float uMinAltitude;
             uniform float uMaxAltitude;
@@ -197,8 +191,7 @@ class HeightmapRootTexture {
             ${params.materialsStore.glslDeclaration}
             
             void main() {
-                vec2 uv = uUvShift + position.xz * uUvScale;
-                gl_Position = vec4(2.0 * uv - 1.0, 1.0 - uNestingLevel / 200.0, 1);
+                gl_Position = vec4(2.0 * position.xz - 1.0, 1.0 - uNestingLevel / 200.0, 1);
                 vColor = getVoxelMaterial(materialId, uMaterialsTexture, 0.0).color;
                 vAltitude = (altitude - uMinAltitude) / (uMaxAltitude - uMinAltitude);
             }
@@ -262,6 +255,7 @@ class HeightmapRootTexture {
             clearColor: renderer.getClearColor(new THREE.Color()),
             clearAlpha: renderer.getClearAlpha(),
             renderTarget: renderer.getRenderTarget(),
+            viewport: renderer.getViewport(new THREE.Vector4()),
         };
 
         renderer.autoClear = false;
@@ -277,8 +271,12 @@ class HeightmapRootTexture {
         }
 
         const uvChunk = this.getTileUv(tileId);
-        this.tile.shader.uniforms.uUvScale.value = uvChunk.scale;
-        this.tile.shader.uniforms.uUvShift.value = uvChunk.shift;
+        renderer.setViewport(
+            uvChunk.shift.x * this.rawRendertarget.width,
+            uvChunk.shift.y * this.rawRendertarget.height,
+            uvChunk.scale * this.rawRendertarget.width,
+            uvChunk.scale * this.rawRendertarget.height,
+        );
         this.tile.shader.uniforms.uNestingLevel.value = tileId.nestingLevel;
         this.tile.shader.material.uniformsNeedUpdate = true;
 
@@ -300,6 +298,7 @@ class HeightmapRootTexture {
         renderer.autoClearDepth = previousState.autoClearDepth;
         renderer.setClearColor(previousState.clearColor, previousState.clearAlpha);
         renderer.setRenderTarget(previousState.renderTarget);
+        renderer.setViewport(previousState.viewport);
 
         if (this.finalization) {
             this.needsUpdate = true;
