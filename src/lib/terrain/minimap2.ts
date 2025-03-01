@@ -76,9 +76,10 @@ class Minimap {
             void main() {
                 vUv = position.xz;
                 
+                float scaling = uViewRadius / uMapTextureSize;
                 vec2 sampleUv = uViewRadius / uMapTextureSize * (vUv - 0.5) + 0.5;
                 vec4 mapSample = texture(uMapTexture, sampleUv);
-                float altitude = mapSample.a;
+                float altitude = mapSample.a / scaling;
                 vColor = mapSample.rgb;
 
                 vec3 displacedPosition = position;
