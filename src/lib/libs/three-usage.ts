@@ -60,5 +60,6 @@ export {
     type TypedArray,
     type Vector2Like,
     type Vector3Like,
+    type Vector4Like,
     type WebGLRenderer,
 } from 'three';

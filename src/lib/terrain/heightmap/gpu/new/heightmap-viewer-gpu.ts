@@ -1,28 +1,20 @@
-import { disableMatrixAutoupdate } from '../../../helpers/misc';
-import * as THREE from '../../../libs/three-usage';
-import { type MaterialsStore } from '../../materials-store';
-import { type IHeightmap } from '../i-heightmap';
-import { type IHeightmapViewer, type PatchId } from '../i-heightmap-viewer';
+import { disableMatrixAutoupdate } from '../../../../helpers/misc';
+import * as THREE from '../../../../libs/three-usage';
+import type { HeightmapAtlas } from '../../atlas/heightmap-atlas';
+import type { IHeightmapViewer, PatchId } from '../../i-heightmap-viewer';
+import { Quadtree } from '../quadtree/quadtree';
+import type { QuadtreeNode, ReadonlyQuadtreeNode } from '../quadtree/quadtree-node';
+import { EEdgeResolution, TileGeometryStore } from '../tile-geometry-store';
 
 import { HeightmapRootTile } from './meshes/heightmap-root-tile';
-import { type HeightmapTile } from './meshes/heightmap-tile';
-import { EEdgeResolution, TileGeometryStore } from './meshes/tile-geometry-store';
-import { Quadtree } from './quadtree/quadtree';
-import { type QuadtreeNode, type ReadonlyQuadtreeNode } from './quadtree/quadtree-node';
+import type { HeightmapTile } from './meshes/heightmap-tile';
 
 type HeightmapViewerGpuStatistics = {
     rootTilesCount: number;
-    gpuMemoryBytes: number;
 };
 
 type Parameters = {
-    readonly materialsStore: MaterialsStore;
-    readonly basePatch: {
-        readonly worldSize: number;
-        readonly segmentsCount: number;
-    };
-    readonly maxNesting: number;
-    readonly heightmap: IHeightmap;
+    readonly heightmapAtlas: HeightmapAtlas;
     readonly flatShading: boolean;
     readonly garbageCollecting?: {
         readonly maxInvisibleRootTilesInCache?: number;
@@ -33,7 +25,9 @@ type Parameters = {
 class HeightmapViewerGpu implements IHeightmapViewer {
     public readonly container: THREE.Object3D;
 
-    public readonly basePatchSize: number;
+    public get basePatchSize(): number {
+        return this.heightmapAtlas.leafTileSizeInWorld;
+    }
 
     focusPoint: THREE.Vector2Like = new THREE.Vector2();
     focusDistance: number = 3;
@@ -41,11 +35,17 @@ class HeightmapViewerGpu implements IHeightmapViewer {
 
     public wireframe: boolean = false;
 
-    private readonly materialsStore: MaterialsStore;
+    private readonly heightmapAtlas: HeightmapAtlas;
     private readonly geometryStore: TileGeometryStore;
-    private readonly heightmap: IHeightmap;
-    private readonly maxNesting: number;
     private readonly flatShading: boolean;
+
+    private get rootTileSize(): number {
+        return this.heightmapAtlas.rootTileSizeInWorld;
+    }
+
+    private get maxNesting(): number {
+        return this.heightmapAtlas.maxNestingLevel;
+    }
 
     private readonly garbageCollecting: {
         readonly maxInvisibleRootTilesInCache: number;
@@ -53,7 +53,6 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         handle: number | null;
     };
 
-    private readonly rootTileSize: number;
     private readonly rootTilesMap = new Map<string, HeightmapRootTile>();
 
     public constructor(params: Parameters) {
@@ -61,13 +60,11 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         this.container.name = 'heightmapviewer-gpu-container';
         disableMatrixAutoupdate(this.container);
 
-        this.materialsStore = params.materialsStore;
+        this.heightmapAtlas = params.heightmapAtlas;
         this.geometryStore = new TileGeometryStore({
-            segmentsCount: params.basePatch.segmentsCount,
-            altitude: params.heightmap.altitude,
+            segmentsCount: params.heightmapAtlas.leafTileSizeInTexels, // will not be texel-perfect but decimation requires an even count
+            altitude: params.heightmapAtlas.heightmap.altitude,
         });
-        this.heightmap = params.heightmap;
-        this.maxNesting = params.maxNesting;
         this.flatShading = params.flatShading;
 
         this.garbageCollecting = {
@@ -78,15 +75,12 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         this.garbageCollecting.handle = window.setInterval(() => {
             this.garbageCollect();
         }, this.garbageCollecting.frequency);
-
-        this.basePatchSize = params.basePatch.worldSize;
-        this.rootTileSize = this.basePatchSize * 2 ** this.maxNesting;
     }
 
-    public update(renderer: THREE.WebGLRenderer): void {
+    public update(): void {
         for (const rootTile of this.rootTilesMap.values()) {
             rootTile.wireframe = this.wireframe;
-            rootTile.update(renderer);
+            rootTile.update();
         }
     }
 
@@ -111,13 +105,8 @@ class HeightmapViewerGpu implements IHeightmapViewer {
 
     public getStatistics(): HeightmapViewerGpuStatistics {
         const result = {
-            rootTilesCount: 0,
-            gpuMemoryBytes: 0,
+            rootTilesCount: this.rootTilesMap.size,
         };
-        for (const rootTile of this.rootTilesMap.values()) {
-            result.rootTilesCount++;
-            result.gpuMemoryBytes += rootTile.getTotalGpuMemoryBytes();
-        }
         return result;
     }
 
@@ -222,24 +211,11 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                 let rootTile = this.rootTilesMap.get(rootTileId);
                 if (!rootTile) {
                     rootTile = new HeightmapRootTile({
-                        materialsStore: this.materialsStore,
                         geometryStore: this.geometryStore,
-                        heightmap: this.heightmap,
-                        baseCell: {
-                            worldSize: this.basePatchSize,
-                        },
+                        heightmapAtlas: this.heightmapAtlas,
                         tileId: rootQuadtreeNode.nodeId.worldCoordsInLevel,
-                        maxNesting: this.maxNesting,
                         flatShading: this.flatShading,
                     });
-                    rootTile.container.applyMatrix4(
-                        new THREE.Matrix4().makeTranslation(
-                            rootQuadtreeNode.nodeId.worldCoordsInLevel.x,
-                            0,
-                            rootQuadtreeNode.nodeId.worldCoordsInLevel.z
-                        )
-                    );
-                    rootTile.container.applyMatrix4(new THREE.Matrix4().makeScale(this.rootTileSize, 1, this.rootTileSize));
                     this.container.add(rootTile.container);
                     this.rootTilesMap.set(rootTileId, rootTile);
                 }

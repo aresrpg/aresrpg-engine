@@ -1,4 +1,4 @@
-import * as THREE from '../../../../libs/three-usage';
+import * as THREE from '../../../libs/three-usage';
 
 enum EEdgeResolution {
     SIMPLE = 0,

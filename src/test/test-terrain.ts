@@ -8,6 +8,7 @@ import {
     EComputationMethod,
     EMinimapShape,
     EVoxelsDisplayMode,
+    HeightmapAtlas,
     HeightmapViewerCpu,
     HeightmapViewerGpu,
     InstancedBillboard,
@@ -38,6 +39,7 @@ class TestTerrain extends TestTerrainBase {
     private readonly promisesQueue: PromisesQueue;
 
     private readonly map: VoxelmapWrapper;
+    private readonly heightmapAtlas: HeightmapAtlas;
 
     private readonly trees: {
         readonly perPatch: Map<string, THREE.Vector3Like[]>;
@@ -56,6 +58,13 @@ class TestTerrain extends TestTerrainBase {
 
     public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
         super(map);
+
+        this.heightmapAtlas = new HeightmapAtlas({
+            heightmap: map,
+            materialsStore: this.voxelMaterialsStore,
+            texelSizeInWorld: 2,
+            leafTileSizeInWorld: 64,
+        });
 
         const fakeCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         const helper = new THREE.CameraHelper(fakeCamera);
@@ -98,15 +107,9 @@ class TestTerrain extends TestTerrainBase {
         const testHeightmapViewerGpu = true;
         const heightmapViewer = testHeightmapViewerGpu
             ? new HeightmapViewerGpu({
-                materialsStore: this.voxelMaterialsStore,
-                basePatch: {
-                    worldSize: chunkSize.xz,
-                    segmentsCount: chunkSize.xz / 2,
-                },
-                maxNesting: 5,
-                heightmap: map,
-                flatShading: true,
-            })
+                  heightmapAtlas: this.heightmapAtlas,
+                  flatShading: true,
+              })
             : new HeightmapViewerCpu(map, {
                   materialsStore: this.voxelMaterialsStore,
                   basePatchSize: chunkSize.xz,
@@ -339,6 +342,8 @@ return vec4(sampled.rgb / sampled.a, 1);
         const playerPosition = this.getPlayerPosition();
         this.minimap.setCenter({ x: playerPosition.x, y: playerPosition.z });
         this.minimap.orientation = this.getPlayerOrientation();
+
+        this.heightmapAtlas.update(this.renderer);
     }
 
     protected override render(): void {

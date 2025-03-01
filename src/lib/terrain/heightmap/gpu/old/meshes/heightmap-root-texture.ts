@@ -1,9 +1,9 @@
-import { createFullscreenQuad } from '../../../../helpers/fullscreen-quad';
-import * as THREE from '../../../../libs/three-usage';
-import { type MaterialsStore } from '../../../materials-store';
-import { type HeightmapSamples } from '../../i-heightmap';
+import { createFullscreenQuad } from '../../../../../helpers/fullscreen-quad';
+import * as THREE from '../../../../../libs/three-usage';
+import { type MaterialsStore } from '../../../../materials-store';
+import { type HeightmapSamples } from '../../../i-heightmap';
 
-import { type TileGeometryStore } from './tile-geometry-store';
+import { type TileGeometryStore } from '../../tile-geometry-store';
 
 type Parameters = {
     readonly materialsStore: MaterialsStore;

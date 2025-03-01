@@ -1,11 +1,11 @@
-import { AsyncTask } from '../../../../helpers/async/async-task';
-import { disableMatrixAutoupdate } from '../../../../helpers/misc';
-import { applyReplacements } from '../../../../helpers/string';
-import * as THREE from '../../../../libs/three-usage';
-import { type HeightmapSamples, type IHeightmap } from '../../i-heightmap';
+import { AsyncTask } from '../../../../../helpers/async/async-task';
+import { disableMatrixAutoupdate } from '../../../../../helpers/misc';
+import { applyReplacements } from '../../../../../helpers/string';
+import * as THREE from '../../../../../libs/three-usage';
+import { type HeightmapSamples, type IHeightmap } from '../../../i-heightmap';
+import { buildEdgesResolutionId, type EdgesResolution, EEdgeResolution, type TileGeometryStore } from '../../tile-geometry-store';
 
 import { type HeightmapRootTexture, type TileId } from './heightmap-root-texture';
-import { buildEdgesResolutionId, type EdgesResolution, EEdgeResolution, type TileGeometryStore } from './tile-geometry-store';
 
 type Children = {
     readonly mm: HeightmapTile;
