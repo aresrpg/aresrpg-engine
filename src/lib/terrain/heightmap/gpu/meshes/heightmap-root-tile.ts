@@ -14,7 +14,6 @@ type Parameters = {
     readonly tileId: { x: number; z: number };
     readonly baseCell: {
         readonly worldSize: number;
-        readonly segmentsCount: number;
     };
     readonly flatShading: boolean;
 };
@@ -33,7 +32,7 @@ class HeightmapRootTile extends HeightmapTile {
             return worldSize / 2 ** nestingLevel;
         };
 
-        const baseCellSizeInTexels = params.baseCell.segmentsCount;
+        const baseCellSizeInTexels = params.geometryStore.segmentsCount;
         const rootTexture = new HeightmapRootTexture({
             materialsStore: params.materialsStore,
             baseCellSizeInTexels,

@@ -25,12 +25,16 @@ type Parameters = {
 };
 
 class TileGeometryStore {
+    public readonly segmentsCount: number;
+
     private readonly bufferGeometries: Map<string, THREE.BufferGeometry>;
 
     public constructor(params: Parameters) {
         if (!Number.isInteger(params.segmentsCount)) {
             throw new Error();
         }
+
+        this.segmentsCount = params.segmentsCount;
 
         const positions: number[] = [];
         for (let iZ = params.segmentsCount; iZ >= 0; iZ--) {

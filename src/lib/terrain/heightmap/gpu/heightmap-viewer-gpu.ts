@@ -45,7 +45,6 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     private readonly geometryStore: TileGeometryStore;
     private readonly heightmap: IHeightmap;
     private readonly maxNesting: number;
-    private readonly segmentsCount: number;
     private readonly flatShading: boolean;
 
     private readonly garbageCollecting: {
@@ -69,7 +68,6 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         });
         this.heightmap = params.heightmap;
         this.maxNesting = params.maxNesting;
-        this.segmentsCount = params.basePatch.segmentsCount;
         this.flatShading = params.flatShading;
 
         this.garbageCollecting = {
@@ -229,7 +227,6 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                         heightmap: this.heightmap,
                         baseCell: {
                             worldSize: this.basePatchSize,
-                            segmentsCount: this.segmentsCount,
                         },
                         tileId: rootQuadtreeNode.nodeId.worldCoordsInLevel,
                         maxNesting: this.maxNesting,
