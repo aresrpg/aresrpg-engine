@@ -4,7 +4,6 @@ import * as THREE from '../../../../../libs/three-usage';
 import type { AtlasTileId, HeightmapAtlas, HeightmapAtlasTileView } from '../../../atlas/heightmap-atlas';
 import { buildEdgesResolutionId, type EdgesResolution, EEdgeResolution, type TileGeometryStore } from '../../tile-geometry-store';
 
-
 type Children = {
     readonly mm: HeightmapTile;
     readonly mp: HeightmapTile;

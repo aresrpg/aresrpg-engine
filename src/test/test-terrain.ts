@@ -210,7 +210,6 @@ return vec4(sampled.rgb / sampled.a, 1);
         });
         this.promisesQueue = new PromisesQueue(this.voxelmapViewer.maxChunksComputedInParallel + 5);
 
-
         setInterval(() => {
             this.terrainViewer.setLod(this.camera.position, this.params.lod.focusDistance, this.params.lod.maxDistance);
         }, 200);

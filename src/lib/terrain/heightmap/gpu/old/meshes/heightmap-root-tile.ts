@@ -1,10 +1,10 @@
 import type * as THREE from '../../../../../libs/three-usage';
 import { type MaterialsStore } from '../../../../materials-store';
 import { type IHeightmap } from '../../../i-heightmap';
+import { type TileGeometryStore } from '../../tile-geometry-store';
 
 import { HeightmapRootTexture, type TileId } from './heightmap-root-texture';
 import { HeightmapTile } from './heightmap-tile';
-import { type TileGeometryStore } from '../../tile-geometry-store';
 
 type Parameters = {
     readonly materialsStore: MaterialsStore;

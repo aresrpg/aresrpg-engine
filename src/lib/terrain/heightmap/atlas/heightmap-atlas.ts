@@ -243,7 +243,7 @@ class HeightmapAtlas {
             for (let iLeafY = tileLocalInfos.fromLeaf.y; iLeafY < tileLocalInfos.toLeaf.y; iLeafY++) {
                 for (let iLeafX = tileLocalInfos.fromLeaf.x; iLeafX < tileLocalInfos.toLeaf.x; iLeafX++) {
                     const id = `${iLeafX}_${iLeafY}`;
-                    const previousPrecision = tileLocalInfos.rootTexture.dataPerLeafTile.get(id) ??  -Infinity;
+                    const previousPrecision = tileLocalInfos.rootTexture.dataPerLeafTile.get(id) ?? -Infinity;
                     const newPrecision = Math.max(previousPrecision, pendingUpdate.tileId.nestingLevel);
                     tileLocalInfos.rootTexture.dataPerLeafTile.set(id, newPrecision);
                 }

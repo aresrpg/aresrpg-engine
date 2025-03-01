@@ -2,7 +2,6 @@ import { createFullscreenQuad } from '../../../../../helpers/fullscreen-quad';
 import * as THREE from '../../../../../libs/three-usage';
 import { type MaterialsStore } from '../../../../materials-store';
 import { type HeightmapSamples } from '../../../i-heightmap';
-
 import { type TileGeometryStore } from '../../tile-geometry-store';
 
 type Parameters = {
@@ -275,7 +274,7 @@ class HeightmapRootTexture {
             uvChunk.shift.x * this.rawRendertarget.width,
             uvChunk.shift.y * this.rawRendertarget.height,
             uvChunk.scale * this.rawRendertarget.width,
-            uvChunk.scale * this.rawRendertarget.height,
+            uvChunk.scale * this.rawRendertarget.height
         );
         this.tile.shader.uniforms.uNestingLevel.value = tileId.nestingLevel;
         this.tile.shader.material.uniformsNeedUpdate = true;

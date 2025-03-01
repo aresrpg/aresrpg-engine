@@ -5,10 +5,10 @@ import { type IHeightmap } from '../../i-heightmap';
 import { type IHeightmapViewer, type PatchId } from '../../i-heightmap-viewer';
 import { Quadtree } from '../quadtree/quadtree';
 import { type QuadtreeNode, type ReadonlyQuadtreeNode } from '../quadtree/quadtree-node';
+import { EEdgeResolution, TileGeometryStore } from '../tile-geometry-store';
 
 import { HeightmapRootTile } from './meshes/heightmap-root-tile';
 import { type HeightmapTile } from './meshes/heightmap-tile';
-import { EEdgeResolution, TileGeometryStore } from '../tile-geometry-store';
 
 type HeightmapViewerGpuStatistics = {
     rootTilesCount: number;
