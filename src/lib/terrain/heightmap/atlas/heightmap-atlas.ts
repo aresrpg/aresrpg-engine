@@ -14,7 +14,7 @@ type AtlasTexture = {
     readonly renderTarget: THREE.WebGLRenderTarget;
     readonly texture: THREE.Texture;
     hasBeenClearedOnce: boolean;
-    readonly dataPerLeafTile: Map<string, number>;
+    readonly dataPerLeafTile: Int8Array;
 };
 
 type AtlasTileLocalInfos = {
@@ -69,6 +69,7 @@ class HeightmapAtlas {
     public readonly leafTileSizeInTexels: number;
 
     public readonly maxNestingLevel: number;
+    private readonly twoPowerMaxNestingLevel: number;
 
     private readonly fakeCamera = new THREE.PerspectiveCamera();
 
@@ -110,6 +111,7 @@ class HeightmapAtlas {
         this.leafTileSizeInWorld = params.leafTileSizeInWorld;
 
         this.maxNestingLevel = maxNestingLevel;
+        this.twoPowerMaxNestingLevel = 2 ** this.maxNestingLevel;
 
         const materialIdAttribute = new THREE.Uint32BufferAttribute(new Uint32Array(this.leafTileSizeInTexels ** 2), 1);
         const altitudeAttribute = new THREE.Float32BufferAttribute(new Float32Array(this.leafTileSizeInTexels ** 2), 1);
@@ -242,10 +244,10 @@ class HeightmapAtlas {
 
             for (let iLeafY = tileLocalInfos.fromLeaf.y; iLeafY < tileLocalInfos.toLeaf.y; iLeafY++) {
                 for (let iLeafX = tileLocalInfos.fromLeaf.x; iLeafX < tileLocalInfos.toLeaf.x; iLeafX++) {
-                    const id = `${iLeafX}_${iLeafY}`;
-                    const previousPrecision = tileLocalInfos.rootTexture.dataPerLeafTile.get(id) ?? -Infinity;
+                    const leafIndex = this.buildLeafIndex(iLeafX, iLeafY);
+                    const previousPrecision = tileLocalInfos.rootTexture.dataPerLeafTile[leafIndex]!;
                     const newPrecision = Math.max(previousPrecision, pendingUpdate.tileId.nestingLevel);
-                    tileLocalInfos.rootTexture.dataPerLeafTile.set(id, newPrecision);
+                    tileLocalInfos.rootTexture.dataPerLeafTile[leafIndex] = newPrecision;
                 }
             }
         }
@@ -289,8 +291,8 @@ class HeightmapAtlas {
         const tileLocalInfos = this.getTileLocalInfos(tileId);
         for (let iLeafY = tileLocalInfos.fromLeaf.y; iLeafY < tileLocalInfos.toLeaf.y; iLeafY++) {
             for (let iLeafX = tileLocalInfos.fromLeaf.x; iLeafX < tileLocalInfos.toLeaf.x; iLeafX++) {
-                const id = `${iLeafX}_${iLeafY}`;
-                if (!tileLocalInfos.rootTexture.dataPerLeafTile.has(id)) {
+                const leafIndex = this.buildLeafIndex(iLeafX, iLeafY);
+                if (tileLocalInfos.rootTexture.dataPerLeafTile[leafIndex]! < 0) {
                     return false;
                 }
             }
@@ -309,9 +311,9 @@ class HeightmapAtlas {
         const tileLocalInfos = this.getTileLocalInfos(tileId);
         for (let iLeafY = tileLocalInfos.fromLeaf.y; iLeafY < tileLocalInfos.toLeaf.y; iLeafY++) {
             for (let iLeafX = tileLocalInfos.fromLeaf.x; iLeafX < tileLocalInfos.toLeaf.x; iLeafX++) {
-                const id = `${iLeafX}_${iLeafY}`;
-                const leafTilePrecision = tileLocalInfos.rootTexture.dataPerLeafTile.get(id);
-                if (typeof leafTilePrecision === 'undefined') {
+                const leafIndex = this.buildLeafIndex(iLeafX, iLeafY);
+                const leafTilePrecision = tileLocalInfos.rootTexture.dataPerLeafTile[leafIndex]!;
+                if (leafTilePrecision < 0) {
                     return undefined;
                 }
                 if (minimumPrecision === undefined) {
@@ -358,22 +360,24 @@ class HeightmapAtlas {
     }
 
     private getTileLocalInfos(tileId: AtlasTileId): AtlasTileLocalInfos {
+        const twoPowerTileNestingLevel = 2 ** tileId.nestingLevel;
+
         const rootTileId = {
-            x: Math.floor(tileId.x / 2 ** tileId.nestingLevel),
-            y: Math.floor(tileId.y / 2 ** tileId.nestingLevel),
+            x: Math.floor(tileId.x / twoPowerTileNestingLevel),
+            y: Math.floor(tileId.y / twoPowerTileNestingLevel),
         };
 
         const localTileId = {
-            x: safeModulo(tileId.x, 2 ** tileId.nestingLevel),
-            y: safeModulo(tileId.y, 2 ** tileId.nestingLevel),
+            x: safeModulo(tileId.x, twoPowerTileNestingLevel),
+            y: safeModulo(tileId.y, twoPowerTileNestingLevel),
         };
 
-        const uvSize = 1 / 2 ** tileId.nestingLevel;
+        const uvSize = 1 / twoPowerTileNestingLevel;
         const uvX = localTileId.x * uvSize;
         const uvY = localTileId.y * uvSize;
         const viewportUv = new THREE.Vector4(uvX, uvY, uvSize, uvSize);
 
-        const worldSize = this.rootTileSizeInWorld / 2 ** tileId.nestingLevel;
+        const worldSize = this.rootTileSizeInWorld / twoPowerTileNestingLevel;
         const viewportWorld = new THREE.Vector4(tileId.x * worldSize, tileId.y * worldSize, worldSize, worldSize);
 
         const factor = 2 ** (this.maxNestingLevel - tileId.nestingLevel);
@@ -397,10 +401,16 @@ class HeightmapAtlas {
                 stencilBuffer: false,
             });
             const texture = renderTarget.texture;
-            rootTexture = { renderTarget, texture, hasBeenClearedOnce: false, dataPerLeafTile: new Map() };
+            const dataPerLeafTile = new Int8Array(this.twoPowerMaxNestingLevel ** 2);
+            dataPerLeafTile.fill(-1);
+            rootTexture = { renderTarget, texture, hasBeenClearedOnce: false, dataPerLeafTile };
             this.rootTextures.set(rootIdString, rootTexture);
         }
         return rootTexture;
+    }
+
+    private buildLeafIndex(x: number, y: number): number {
+        return x + y * this.twoPowerMaxNestingLevel;
     }
 }
 
