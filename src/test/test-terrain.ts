@@ -66,6 +66,10 @@ class TestTerrain extends TestTerrainBase {
             leafTileSizeInWorld: 64,
         });
 
+        setInterval(() => {
+            console.log(this.heightmapAtlas.getStatistics());
+        }, 4000);
+
         const fakeCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         const helper = new THREE.CameraHelper(fakeCamera);
         this.scene.add(helper);

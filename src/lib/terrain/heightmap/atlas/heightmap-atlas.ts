@@ -10,6 +10,12 @@ type Parameters = {
     readonly leafTileSizeInWorld: number;
 };
 
+type HeightmapAtlasStatistics = {
+    rootNodesCount: number;
+    rootNodeTextureSize: number;
+    totalGpuMemoryBytes: number;
+};
+
 type AtlasTexture = {
     readonly renderTarget: THREE.WebGLRenderTarget;
     readonly texture: THREE.Texture;
@@ -285,6 +291,14 @@ class HeightmapAtlas {
         };
     }
 
+    public getStatistics(): HeightmapAtlasStatistics {
+        return {
+            rootNodesCount: this.rootTextures.size,
+            rootNodeTextureSize: this.rootTileSizeInTexels,
+            totalGpuMemoryBytes: this.rootTextures.size * (4 + 4) * this.rootTileSizeInTexels ** 2,
+        };
+    }
+
     private hasDataForTile(tileId: AtlasTileId): boolean {
         const tileLocalInfos = this.getTileLocalInfos(tileId);
         for (let iLeafY = tileLocalInfos.fromLeaf.y; iLeafY < tileLocalInfos.toLeaf.y; iLeafY++) {
@@ -404,4 +418,4 @@ class HeightmapAtlas {
     }
 }
 
-export { HeightmapAtlas, type AtlasTileId, type HeightmapAtlasTileView, type Parameters };
+export { HeightmapAtlas, type HeightmapAtlasStatistics, type AtlasTileId, type HeightmapAtlasTileView, type Parameters };
