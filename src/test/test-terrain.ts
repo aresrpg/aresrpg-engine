@@ -66,10 +66,6 @@ class TestTerrain extends TestTerrainBase {
             leafTileSizeInWorld: 64,
         });
 
-        setInterval(() => {
-            console.log(this.heightmapAtlas.getStatistics());
-        }, 4000);
-
         const fakeCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         const helper = new THREE.CameraHelper(fakeCamera);
         this.scene.add(helper);
@@ -129,11 +125,13 @@ class TestTerrain extends TestTerrainBase {
         // this.terrainViewer.parameters.lod.wireframe = true;
         this.scene.add(this.terrainViewer.container);
 
-        this.minimap = new Minimap(
-            this.terrainViewer,
-            new THREE.TextureLoader().load('resources/minimap-arrow.png'),
-            new THREE.TextureLoader().load('resources/compass.png')
-        );
+        this.minimap = new Minimap({
+            heightmapAtlas: this.heightmapAtlas,
+            arrowTexture: new THREE.TextureLoader().load('resources/minimap-arrow.png'),
+            compassTexture: new THREE.TextureLoader().load('resources/compass.png'),
+            meshPrecision: 64,
+            maxViewDistance: 500,
+        });
 
         if (!(map as VoxelMap).includeTreesInLod) {
             const perPatch = new Map<string, THREE.Vector3Like[]>();
@@ -310,7 +308,7 @@ return vec4(sampled.rgb / sampled.a, 1);
             const minimapFolder = this.gui.addFolder('Minimap');
             minimapFolder.add(this.params.minimap, 'enabled').name('Enabled');
             minimapFolder.add(this.minimap, 'lockNorth').name('Lock north');
-            minimapFolder.add(this.minimap, 'viewRadius', 50, 500).name('World radius');
+            minimapFolder.add(this.minimap, 'viewDistance', 50, this.minimap.maxViewDistance).name('World radius');
             minimapFolder.add(this.minimap, 'shape', [EMinimapShape.SQUARE, EMinimapShape.ROUND]).name('Shape');
         }
     }
@@ -343,7 +341,7 @@ return vec4(sampled.rgb / sampled.a, 1);
         super.update();
 
         const playerPosition = this.getPlayerPosition();
-        this.minimap.setCenter({ x: playerPosition.x, y: playerPosition.z });
+        this.minimap.centerWorld.set(playerPosition.x, playerPosition.z);
         this.minimap.orientation = this.getPlayerOrientation();
 
         this.heightmapAtlas.update(this.renderer);

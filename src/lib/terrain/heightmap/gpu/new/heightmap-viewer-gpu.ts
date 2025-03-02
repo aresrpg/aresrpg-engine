@@ -111,7 +111,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         };
 
         this.container.traverseVisible(child => {
-            if ("isMesh" in child && child.isMesh) {
+            if ('isMesh' in child && child.isMesh) {
                 result.tilesCount++;
             }
         });
