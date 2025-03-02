@@ -11,6 +11,7 @@ import type { HeightmapTile } from './meshes/heightmap-tile';
 
 type HeightmapViewerGpuStatistics = {
     rootTilesCount: number;
+    tilesCount: number;
 };
 
 type Parameters = {
@@ -106,7 +107,14 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     public getStatistics(): HeightmapViewerGpuStatistics {
         const result = {
             rootTilesCount: this.rootTilesMap.size,
+            tilesCount: 0,
         };
+
+        this.container.traverseVisible(child => {
+            if ("isMesh" in child && child.isMesh) {
+                result.tilesCount++;
+            }
+        });
         return result;
     }
 
