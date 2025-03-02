@@ -8,6 +8,7 @@ type Parameters = {
     readonly materialsStore: MaterialsStore;
     readonly texelSizeInWorld: number;
     readonly leafTileSizeInWorld: number;
+    readonly maxTextureSize?: number;
 };
 
 type HeightmapAtlasStatistics = {
@@ -98,7 +99,7 @@ class HeightmapAtlas {
             throw new Error(`Invalid parameters ${JSON.stringify(params)}`);
         }
 
-        const maxTextureSize = 2048; // to be safe
+        const maxTextureSize = params.maxTextureSize ?? 1024;
         const maxNestingLevel = Math.floor(Math.log2(maxTextureSize / leafTileSizeInTexels));
         const rootTileSizeInTexels = leafTileSizeInTexels * 2 ** maxNestingLevel;
         if (rootTileSizeInTexels > maxTextureSize) {
@@ -404,8 +405,8 @@ class HeightmapAtlas {
             const renderTarget = new THREE.WebGLRenderTarget(this.rootTileSizeInTexels, this.rootTileSizeInTexels, {
                 wrapS: THREE.ClampToEdgeWrapping,
                 wrapT: THREE.ClampToEdgeWrapping,
-                minFilter: THREE.LinearFilter,
-                magFilter: THREE.LinearFilter,
+                minFilter: THREE.NearestFilter,
+                magFilter: THREE.NearestFilter,
                 generateMipmaps: false,
                 depthBuffer: true,
                 stencilBuffer: false,
