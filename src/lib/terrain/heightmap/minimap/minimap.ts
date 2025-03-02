@@ -1,9 +1,8 @@
-import { createFullscreenQuad } from '../helpers/fullscreen-quad';
-import { clamp } from '../helpers/math';
-import * as THREE from '../libs/three-usage';
-
-import type { HeightmapAtlas } from './heightmap/atlas/heightmap-atlas';
-import { TileGeometryStore } from './heightmap/gpu/tile-geometry-store';
+import { createFullscreenQuad } from '../../../helpers/fullscreen-quad';
+import { clamp } from '../../../helpers/math';
+import * as THREE from '../../../libs/three-usage';
+import type { HeightmapAtlas } from '../atlas/heightmap-atlas';
+import { TileGeometryStore } from '../gpu/tile-geometry-store';
 
 type Parameters = {
     readonly heightmapAtlas: HeightmapAtlas;
