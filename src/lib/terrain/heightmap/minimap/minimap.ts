@@ -15,6 +15,7 @@ class Minimap {
     private readonly heightmapAtlas: HeightmapAtlas;
 
     public centerPosition = new THREE.Vector3(0, 0, 0);
+    public verticalAngle: number = Math.PI / 4;
     public orientation: number = 0;
     public viewDistance: number = 100;
     public maxHeight: number = 0.4;
@@ -61,8 +62,6 @@ class Minimap {
         this.maxViewDistance = params.maxViewDistance;
 
         this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 500);
-        this.camera.position.set(0, 2, 2).normalize().multiplyScalar(3);
-        this.camera.lookAt(0, 0, 0);
 
         const marginFactor = 1.5;
         const textureWorldSize = marginFactor * 2 * params.maxViewDistance;
@@ -309,6 +308,9 @@ class Minimap {
         renderer.clearDepth();
         renderer.setRenderTarget(previousState.renderTarget);
         renderer.setViewport(this.screenPosition.x, this.screenPosition.y, this.screenSize, this.screenSize);
+
+        this.camera.position.copy(new THREE.Vector3().setFromSphericalCoords(3, this.verticalAngle, 0));
+        this.camera.lookAt(0, 0, 0);
 
         const rotation = this.lockNorth ? 0 : this.orientation;
         this.grid.boxMesh.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
