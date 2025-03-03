@@ -37,7 +37,7 @@ class TestTerrain extends TestTerrainBase {
     private readonly voxelmapVisibilityComputer: VoxelmapVisibilityComputer;
     private readonly promisesQueue: PromisesQueue;
 
-    private readonly map: VoxelmapWrapper;
+    private readonly mapWithBoards: VoxelmapWrapper;
     private readonly heightmapAtlas: HeightmapAtlas;
 
     private readonly trees: {
@@ -200,8 +200,8 @@ return vec4(sampled.rgb / sampled.a, 1);
             this.voxelmapViewer.maxChunkIdY
         );
 
-        this.map = new VoxelmapWrapper(map, chunkSize, minChunkIdY, maxChunkIdY, true);
-        this.map.onChange.push(modifiedChunksIdsList => {
+        this.mapWithBoards = new VoxelmapWrapper(map, chunkSize, minChunkIdY, maxChunkIdY, true);
+        this.mapWithBoards.onChange.push(modifiedChunksIdsList => {
             if (modifiedChunksIdsList.length > 0) {
                 this.promisesQueue.cancelAll();
                 for (const chunkid of modifiedChunksIdsList) {
@@ -339,7 +339,7 @@ return vec4(sampled.rgb / sampled.a, 1);
         super.update();
 
         const playerPosition = this.getPlayerPosition();
-        this.minimap.centerWorld.set(playerPosition.x, playerPosition.z);
+        this.minimap.centerPosition.set(playerPosition.x, playerPosition.y, playerPosition.z);
         this.minimap.orientation = this.getPlayerOrientation();
 
         this.heightmapAtlas.update(this.renderer);
@@ -433,15 +433,15 @@ return vec4(sampled.rgb / sampled.a, 1);
             boardContainer.clear();
             if (currentBoard) {
                 currentBoard.renderable.dispose();
-                this.map.unregisterBoard(currentBoard.board);
+                this.mapWithBoards.unregisterBoard(currentBoard.board);
                 boardOverlaysHandler.container.removeFromParent();
             }
             currentBoard = { renderable, board };
 
-            if (!this.map.includeBoard) {
+            if (!this.mapWithBoards.includeBoard) {
                 boardContainer.add(currentBoard.renderable.container);
             }
-            this.map.registerBoard(currentBoard.board);
+            this.mapWithBoards.registerBoard(currentBoard.board);
             this.scene.add(boardOverlaysHandler.container);
 
             boardOverlaysHandler.clearSquares();

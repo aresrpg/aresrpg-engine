@@ -14,7 +14,7 @@ type Parameters = {
 class Minimap {
     private readonly heightmapAtlas: HeightmapAtlas;
 
-    public centerWorld = new THREE.Vector2(0, 0);
+    public centerPosition = new THREE.Vector3(0, 0, 0);
     public orientation: number = 0;
     public viewDistance: number = 100;
 
@@ -41,6 +41,7 @@ class Minimap {
         readonly material: THREE.ShaderMaterial;
         readonly playerPositionUvUniform: THREE.IUniform<THREE.Vector2>;
         readonly playerViewDistanceUvUniform: THREE.IUniform<number>;
+        readonly playerAltitudeUniform: THREE.IUniform<number>;
     };
 
     public readonly sizeInPixels = 512;
@@ -115,14 +116,16 @@ class Minimap {
 
         const playerPositionUvUniform = { value: new THREE.Vector2() };
         const playerViewDistanceUvUniform = { value: 1 };
+        const playerAltitudeUniform = { value: this.centerPosition.y };
 
-        const altitudeRange = this.heightmapAtlas.heightmap.altitude.max - this.heightmapAtlas.heightmap.altitude.min;
+        // const altitudeRange = this.heightmapAtlas.heightmap.altitude.max - this.heightmapAtlas.heightmap.altitude.min;
 
         const gridMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 uMapTexture: { value: this.texture.renderTarget.texture },
                 uPlayerPositionUv: playerPositionUvUniform,
                 uPlayerViewDistanceUv: playerViewDistanceUvUniform,
+                uPlayerAltitude: playerAltitudeUniform,
                 uAmbient: { value: 0.7 },
                 uLightDirection: { value: new THREE.Vector3(-1, -1, 1).normalize() },
                 uDirectionalLightIntensity: { value: 1 },
@@ -131,6 +134,7 @@ class Minimap {
             uniform sampler2D uMapTexture;
             uniform vec2 uPlayerPositionUv;
             uniform float uPlayerViewDistanceUv;
+            uniform float uPlayerAltitude;
 
             varying vec3 vViewPosition;
             varying vec3 vColor;
@@ -139,21 +143,23 @@ class Minimap {
                 vec3 adjustedPosition = position;
                 vec2 rawUv = position.xz;
                 float isOnEdge = float(rawUv.x < 0.0 || rawUv.y < 0.0 || rawUv.x > 1.0 || rawUv.y > 1.0);
-                
+
                 adjustedPosition.xz = clamp(adjustedPosition.xz, vec2(0.0), vec2(1.0));
                 vec2 adjustedUv = adjustedPosition.xz;
-                
-                float altitudeScale = ${altitudeRange / this.texture.worldSize} / uPlayerViewDistanceUv;
 
                 vec2 uv = uPlayerPositionUv + uPlayerViewDistanceUv * 2.0 * (adjustedUv - 0.5);
                 vec4 mapSample = texture(uMapTexture, uv);
                 vColor = mapSample.rgb;
-                float altitude = mapSample.a * altitudeScale;
-                
-                float playerAltitude = texture(uMapTexture, uPlayerPositionUv).a * altitudeScale;
+
+                float altitude = mix(
+                    ${this.heightmapAtlas.heightmap.altitude.min.toFixed(1)},
+                    ${this.heightmapAtlas.heightmap.altitude.max.toFixed(1)},
+                    mapSample.a
+                );
+                altitude -= uPlayerAltitude;
+                altitude /= ${this.texture.worldSize.toFixed(1)} * uPlayerViewDistanceUv;
 
                 adjustedPosition.y += altitude;
-                adjustedPosition.y -= playerAltitude;
                 adjustedPosition.y -= 100.0 * isOnEdge;
 
                 // adjustedPosition.y = clamp(adjustedPosition.y, -0.4, 0.4);
@@ -218,6 +224,7 @@ class Minimap {
             material: gridMaterial,
             playerPositionUvUniform,
             playerViewDistanceUvUniform,
+            playerAltitudeUniform,
         };
 
         const compassGeometry = new THREE.PlaneGeometry();
@@ -253,15 +260,15 @@ class Minimap {
             renderer.setRenderTarget(this.texture.renderTarget);
             const textureViewDistance = 0.5 * this.texture.renderTarget.width * this.heightmapAtlas.texelSizeInWorld;
             const atlasRootFrom = {
-                x: Math.floor((this.centerWorld.x - textureViewDistance) / this.heightmapAtlas.rootTileSizeInWorld),
-                y: Math.floor((this.centerWorld.y - textureViewDistance) / this.heightmapAtlas.rootTileSizeInWorld),
+                x: Math.floor((this.centerPosition.x - textureViewDistance) / this.heightmapAtlas.rootTileSizeInWorld),
+                y: Math.floor((this.centerPosition.z - textureViewDistance) / this.heightmapAtlas.rootTileSizeInWorld),
             };
             const atlasRootTo = {
-                x: Math.floor((this.centerWorld.x + textureViewDistance) / this.heightmapAtlas.rootTileSizeInWorld),
-                y: Math.floor((this.centerWorld.y + textureViewDistance) / this.heightmapAtlas.rootTileSizeInWorld),
+                x: Math.floor((this.centerPosition.x + textureViewDistance) / this.heightmapAtlas.rootTileSizeInWorld),
+                y: Math.floor((this.centerPosition.z + textureViewDistance) / this.heightmapAtlas.rootTileSizeInWorld),
             };
             const atlasRootId = { x: 0, y: 0 };
-            this.texture.centerWorld = { ...this.centerWorld };
+            this.texture.centerWorld = { ...this.centerPosition };
             const textureCornerWorld = {
                 x: this.texture.centerWorld.x - 0.5 * this.texture.worldSize,
                 y: this.texture.centerWorld.y - 0.5 * this.texture.worldSize,
@@ -290,11 +297,12 @@ class Minimap {
         renderer.setViewport(16, 16, this.sizeInPixels, this.sizeInPixels);
 
         this.grid.playerPositionUvUniform.value.set(
-            (this.centerWorld.x - 0.5 * (this.texture.centerWorld.x - this.texture.worldSize)) / this.texture.worldSize,
-            (this.centerWorld.y - 0.5 * (this.texture.centerWorld.y - this.texture.worldSize)) / this.texture.worldSize
+            (this.centerPosition.x - 0.5 * (this.texture.centerWorld.x - this.texture.worldSize)) / this.texture.worldSize,
+            (this.centerPosition.z - 0.5 * (this.texture.centerWorld.y - this.texture.worldSize)) / this.texture.worldSize
         );
         this.viewDistance = clamp(this.viewDistance, 1, this.maxViewDistance);
         this.grid.playerViewDistanceUvUniform.value = this.viewDistance / this.texture.worldSize;
+        this.grid.playerAltitudeUniform.value = this.centerPosition.y;
         const rotation = this.lockNorth ? 0 : this.orientation;
         this.scene.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
         renderer.render(this.scene, this.camera);

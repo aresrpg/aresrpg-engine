@@ -35,7 +35,7 @@ class TestParticles extends TestTerrainBase {
     private readonly voxelmapVisibilityComputer: VoxelmapVisibilityComputer;
     private readonly promisesQueue: PromisesQueue;
 
-    private readonly map: VoxelmapWrapper;
+    private readonly wrappedMap: VoxelmapWrapper;
 
     private readonly trees: {
         readonly perPatch: Map<string, THREE.Vector3Like[]>;
@@ -230,8 +230,8 @@ return vec4(sampled.rgb / sampled.a, 1);
             this.voxelmapViewer.maxChunkIdY
         );
 
-        this.map = new VoxelmapWrapper(map, chunkSize, minChunkIdY, maxChunkIdY, true);
-        this.map.onChange.push(modifiedChunksIdsList => {
+        this.wrappedMap = new VoxelmapWrapper(map, chunkSize, minChunkIdY, maxChunkIdY, true);
+        this.wrappedMap.onChange.push(modifiedChunksIdsList => {
             if (modifiedChunksIdsList.length > 0) {
                 this.promisesQueue.cancelAll();
                 for (const chunkId of modifiedChunksIdsList) {
@@ -357,15 +357,15 @@ return vec4(sampled.rgb / sampled.a, 1);
             boardContainer.clear();
             if (currentBoard) {
                 currentBoard.renderable.dispose();
-                this.map.unregisterBoard(currentBoard.board);
+                this.wrappedMap.unregisterBoard(currentBoard.board);
                 boardOverlaysHandler.container.removeFromParent();
             }
             currentBoard = { renderable, board };
 
-            if (!this.map.includeBoard) {
+            if (!this.wrappedMap.includeBoard) {
                 boardContainer.add(currentBoard.renderable.container);
             }
-            this.map.registerBoard(currentBoard.board);
+            this.wrappedMap.registerBoard(currentBoard.board);
             this.scene.add(boardOverlaysHandler.container);
 
             boardOverlaysHandler.clearSquares();

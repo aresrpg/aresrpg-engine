@@ -13,6 +13,8 @@ interface ITerrainMap {
 abstract class TestTerrainBase extends TestBase {
     protected abstract readonly terrainViewer: TerrainViewer;
 
+    protected readonly map: IHeightmap & IVoxelMap & ITerrainMap;
+
     protected readonly enableShadows: boolean = true;
 
     private readonly playerVisibility: null | {
@@ -28,6 +30,8 @@ abstract class TestTerrainBase extends TestBase {
 
     public constructor(voxelMap: IHeightmap & IVoxelMap & ITerrainMap) {
         super();
+
+        this.map = voxelMap;
 
         this.voxelMaterialsStore = new MaterialsStore({
             voxelMaterialsList: voxelMap.voxelMaterialsList,
@@ -143,7 +147,10 @@ abstract class TestTerrainBase extends TestBase {
 
     protected getPlayerPosition(): THREE.Vector3 {
         if (this.playerVisibility) {
-            return this.playerVisibility.playerContainer.getWorldPosition(new THREE.Vector3());
+            const position = this.playerVisibility.playerContainer.getWorldPosition(new THREE.Vector3());
+            const terrainSample = this.map.sampleHeightmapBaseTerrain(position.x, position.z);
+            position.y = terrainSample.altitude;
+            return position;
         } else {
             return new THREE.Vector3(0, 0, 0);
         }
