@@ -21,6 +21,8 @@ class Minimap {
     public lockNorth: boolean = false;
     public backgroundColor = new THREE.Color(0x333333);
     public backgroundOpacity: number = 0.5;
+    public screenPosition = new THREE.Vector2(16, 16);
+    public screenSize: number = 512;
 
     public readonly maxViewDistance: number;
 
@@ -52,8 +54,6 @@ class Minimap {
             readonly uMaxHeight: THREE.IUniform<number>;
         };
     };
-
-    public readonly sizeInPixels = 512;
 
     public constructor(params: Parameters) {
         this.heightmapAtlas = params.heightmapAtlas;
@@ -308,7 +308,7 @@ class Minimap {
 
         renderer.clearDepth();
         renderer.setRenderTarget(previousState.renderTarget);
-        renderer.setViewport(16, 16, this.sizeInPixels, this.sizeInPixels);
+        renderer.setViewport(this.screenPosition.x, this.screenPosition.y, this.screenSize, this.screenSize);
 
         const rotation = this.lockNorth ? 0 : this.orientation;
         this.grid.boxMesh.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
