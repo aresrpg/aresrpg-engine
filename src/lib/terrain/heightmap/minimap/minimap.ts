@@ -42,9 +42,12 @@ class Minimap {
         centerWorld: THREE.Vector2Like;
     };
 
-    private readonly grid: {
+    private readonly background: {
         readonly boxMesh: THREE.Mesh;
         readonly boxMaterial: THREE.MeshBasicMaterial;
+    };
+
+    private readonly grid: {
         readonly mesh: THREE.Mesh;
         readonly material: THREE.ShaderMaterial;
         readonly uniforms: {
@@ -219,6 +222,11 @@ class Minimap {
         const gridMesh = new THREE.Mesh(gridBufferGeometry, gridMaterial);
         gridMesh.applyMatrix4(new THREE.Matrix4().makeTranslation(-0.5, 0, -0.5));
         this.scene.add(gridMesh);
+        this.grid = {
+            mesh: gridMesh,
+            material: gridMaterial,
+            uniforms: gridUniforms,
+        };
 
         const boxMaterial = new THREE.MeshBasicMaterial({
             color: 0x444444,
@@ -227,14 +235,8 @@ class Minimap {
             depthWrite: false,
         });
         const boxMesh = new THREE.Mesh(new THREE.BoxGeometry(), boxMaterial);
+        this.background = { boxMaterial, boxMesh };
 
-        this.grid = {
-            boxMesh,
-            boxMaterial,
-            mesh: gridMesh,
-            material: gridMaterial,
-            uniforms: gridUniforms,
-        };
 
         const compassGeometry = new THREE.PlaneGeometry();
         compassGeometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
@@ -309,11 +311,11 @@ class Minimap {
         this.camera.lookAt(0, 0, 0);
 
         const rotation = this.lockNorth ? 0 : this.orientation;
-        this.grid.boxMesh.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
-        this.grid.boxMesh.scale.set(1, this.maxHeight, 1);
-        this.grid.boxMaterial.color.set(this.backgroundColor);
-        this.grid.boxMaterial.opacity = this.backgroundOpacity;
-        renderer.render(this.grid.boxMesh, this.camera);
+        this.background.boxMesh.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
+        this.background.boxMesh.scale.set(1, this.maxHeight, 1);
+        this.background.boxMaterial.color.set(this.backgroundColor);
+        this.background.boxMaterial.opacity = this.backgroundOpacity;
+        renderer.render(this.background.boxMesh, this.camera);
 
         this.compass.position.y = Math.max(0.4, 0.5 * this.maxHeight + 0.05);
 
