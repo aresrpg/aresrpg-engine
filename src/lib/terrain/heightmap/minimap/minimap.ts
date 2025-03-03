@@ -19,6 +19,8 @@ class Minimap {
     public viewDistance: number = 100;
     public maxHeight: number = 0.4;
     public lockNorth: boolean = false;
+    public backgroundColor = new THREE.Color(0x333333);
+    public backgroundOpacity: number = 0.5;
 
     public readonly maxViewDistance: number;
 
@@ -39,8 +41,9 @@ class Minimap {
     };
 
     private readonly grid: {
-        readonly mesh: THREE.Mesh;
         readonly boxMesh: THREE.Mesh;
+        readonly boxMaterial: THREE.MeshBasicMaterial;
+        readonly mesh: THREE.Mesh;
         readonly material: THREE.ShaderMaterial;
         readonly uniforms: {
             readonly uPlayerPositionUv: THREE.IUniform<THREE.Vector2>;
@@ -222,16 +225,18 @@ class Minimap {
         gridMesh.applyMatrix4(new THREE.Matrix4().makeTranslation(-0.5, 0, -0.5));
         this.scene.add(gridMesh);
 
-        const boxMesh = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial({
+        const boxMaterial = new THREE.MeshBasicMaterial({
             color: 0x444444,
             opacity: 0.5,
             transparent: true,
             depthWrite: false,
-        }));
+        });
+        const boxMesh = new THREE.Mesh(new THREE.BoxGeometry(), boxMaterial);
 
         this.grid = {
-            mesh: gridMesh,
             boxMesh,
+            boxMaterial,
+            mesh: gridMesh,
             material: gridMaterial,
             uniforms: gridUniforms,
         };
@@ -308,6 +313,8 @@ class Minimap {
         const rotation = this.lockNorth ? 0 : this.orientation;
         this.grid.boxMesh.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
         this.grid.boxMesh.scale.set(1, this.maxHeight, 1);
+        this.grid.boxMaterial.color.set(this.backgroundColor);
+        this.grid.boxMaterial.opacity = this.backgroundOpacity;
         renderer.render(this.grid.boxMesh, this.camera);
 
         this.compass.position.y = Math.max(0.4, 0.5 * this.maxHeight + 0.05);

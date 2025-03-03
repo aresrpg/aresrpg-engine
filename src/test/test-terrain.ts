@@ -309,6 +309,8 @@ return vec4(sampled.rgb / sampled.a, 1);
             minimapFolder.add(this.minimap, 'lockNorth').name('Lock north');
             minimapFolder.add(this.minimap, 'viewDistance', 50, this.minimap.maxViewDistance).name('World radius');
             minimapFolder.add(this.minimap, 'maxHeight', 0.01, 1).name('Max height');
+            minimapFolder.add(this.minimap, 'backgroundOpacity', 0, 1).name("Background opacity");
+            minimapFolder.addColor(this.minimap, 'backgroundColor').name("Background color");
         }
     }
 
