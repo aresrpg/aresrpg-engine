@@ -17,6 +17,8 @@ class Minimap {
     public centerPosition = new THREE.Vector3(0, 0, 0);
     public orientation: number = 0;
     public viewDistance: number = 100;
+    public altitudeRange: number = 200;
+    public lockNorth: boolean = false;
 
     public readonly maxViewDistance: number;
 
@@ -43,11 +45,11 @@ class Minimap {
             readonly uPlayerPositionUv: THREE.IUniform<THREE.Vector2>;
             readonly uPlayerViewDistanceUv: THREE.IUniform<number>;
             readonly uPlayerAltitude: THREE.IUniform<number>;
-        }
+            readonly uAltitudeRange: THREE.IUniform<number>;
+        };
     };
 
     public readonly sizeInPixels = 512;
-    public lockNorth: boolean = true;
 
     public constructor(params: Parameters) {
         this.heightmapAtlas = params.heightmapAtlas;
@@ -120,6 +122,7 @@ class Minimap {
             uPlayerPositionUv: { value: new THREE.Vector2() },
             uPlayerViewDistanceUv: { value: 1 },
             uPlayerAltitude: { value: this.centerPosition.y },
+            uAltitudeRange: { value: this.altitudeRange },
         };
 
         const gridMaterial = new THREE.ShaderMaterial({
@@ -135,6 +138,7 @@ class Minimap {
             uniform vec2 uPlayerPositionUv;
             uniform float uPlayerViewDistanceUv;
             uniform float uPlayerAltitude;
+            uniform float uAltitudeRange;
 
             varying vec3 vViewPosition;
             varying vec3 vColor;
@@ -151,18 +155,17 @@ class Minimap {
                 vec4 mapSample = texture(uMapTexture, uv);
                 vColor = mapSample.rgb;
 
-                float altitude = mix(
-                    ${this.heightmapAtlas.heightmap.altitude.min.toFixed(1)},
-                    ${this.heightmapAtlas.heightmap.altitude.max.toFixed(1)},
-                    mapSample.a
-                );
+                const float minAltitude = ${this.heightmapAtlas.heightmap.altitude.min.toFixed(1)};
+                const float maxAltitude = ${this.heightmapAtlas.heightmap.altitude.max.toFixed(1)};
+                float altitude = mix(minAltitude, maxAltitude, mapSample.a);
                 altitude -= uPlayerAltitude;
                 altitude /= ${this.texture.worldSize.toFixed(1)} * uPlayerViewDistanceUv;
 
                 adjustedPosition.y += altitude;
                 adjustedPosition.y -= 100.0 * isOnEdge;
 
-                // adjustedPosition.y = clamp(adjustedPosition.y, -0.4, 0.4);
+                float yRange = 0.5 * uAltitudeRange / (maxAltitude - minAltitude);
+                adjustedPosition.y = clamp(adjustedPosition.y, -yRange, yRange);
 
                 vec4 mvPosition = modelViewMatrix * vec4(adjustedPosition, 1.0);
                 vViewPosition = -mvPosition.xyz;
@@ -301,6 +304,7 @@ class Minimap {
         this.viewDistance = clamp(this.viewDistance, 1, this.maxViewDistance);
         this.grid.uniforms.uPlayerViewDistanceUv.value = this.viewDistance / this.texture.worldSize;
         this.grid.uniforms.uPlayerAltitude.value = this.centerPosition.y;
+        this.grid.uniforms.uAltitudeRange.value = this.altitudeRange;
         const rotation = this.lockNorth ? 0 : this.orientation;
         this.scene.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
         renderer.render(this.scene, this.camera);

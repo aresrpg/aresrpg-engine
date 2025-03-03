@@ -308,6 +308,7 @@ return vec4(sampled.rgb / sampled.a, 1);
             minimapFolder.add(this.params.minimap, 'enabled').name('Enabled');
             minimapFolder.add(this.minimap, 'lockNorth').name('Lock north');
             minimapFolder.add(this.minimap, 'viewDistance', 50, this.minimap.maxViewDistance).name('World radius');
+            minimapFolder.add(this.minimap, 'altitudeRange', 1, 300).name('Altitude range');
         }
     }
 
