@@ -19,6 +19,7 @@ class Minimap {
     public viewDistance: number = 100;
     public maxHeight: number = 0.4;
     public lockNorth: boolean = false;
+    public crustThickness: number = 0.05;
     public backgroundColor = new THREE.Color(0x333333);
     public backgroundOpacity: number = 0.5;
     public screenPosition = new THREE.Vector2(16, 16);
@@ -55,6 +56,7 @@ class Minimap {
             readonly uPlayerViewDistanceUv: THREE.IUniform<number>;
             readonly uPlayerAltitude: THREE.IUniform<number>;
             readonly uMaxHeight: THREE.IUniform<number>;
+            readonly uCrustThickness: THREE.IUniform<number>;
         };
     };
 
@@ -125,6 +127,7 @@ class Minimap {
             uPlayerViewDistanceUv: { value: 1 },
             uPlayerAltitude: { value: this.centerPosition.y },
             uMaxHeight: { value: this.maxHeight },
+            uCrustThickness: { value: this.crustThickness },
         };
 
         const gridMaterial = new THREE.ShaderMaterial({
@@ -141,6 +144,7 @@ class Minimap {
             uniform float uPlayerViewDistanceUv;
             uniform float uPlayerAltitude;
             uniform float uMaxHeight;
+            uniform float uCrustThickness;
 
             varying vec3 vViewPosition;
             varying vec3 vColor;
@@ -164,9 +168,8 @@ class Minimap {
                 altitude /= ${this.texture.worldSize.toFixed(1)} * uPlayerViewDistanceUv;
 
                 adjustedPosition.y += altitude;
-                adjustedPosition.y -= 100.0 * isOnEdge;
-
                 adjustedPosition.y = clamp(adjustedPosition.y, -0.5 * uMaxHeight, 0.5 * uMaxHeight);
+                adjustedPosition.y -= uCrustThickness * isOnEdge;
 
                 vec4 mvPosition = modelViewMatrix * vec4(adjustedPosition, 1.0);
                 vViewPosition = -mvPosition.xyz;
@@ -327,6 +330,7 @@ class Minimap {
         this.grid.uniforms.uPlayerViewDistanceUv.value = this.viewDistance / this.texture.worldSize;
         this.grid.uniforms.uPlayerAltitude.value = this.centerPosition.y;
         this.grid.uniforms.uMaxHeight.value = this.maxHeight;
+        this.grid.uniforms.uCrustThickness.value = this.crustThickness;
         this.scene.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
         renderer.render(this.scene, this.camera);
 

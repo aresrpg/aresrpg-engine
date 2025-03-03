@@ -314,6 +314,7 @@ return vec4(sampled.rgb / sampled.a, 1);
             minimapFolder.add(this.minimap.screenPosition, 'y', 0, 200).name('Screenpos Y');
             minimapFolder.add(this.minimap, 'screenSize', 0, 600).name('Screenpos size');
             minimapFolder.add(this.minimap, 'verticalAngle', 0, Math.PI / 2).name('Camera angle');
+            minimapFolder.add(this.minimap, "crustThickness", 0, 1).name("Crust thickness");
         }
     }
 
