@@ -21,7 +21,7 @@ class Minimap {
     public lockNorth: boolean = false;
     public crustThickness: number = 0.05;
     public backgroundColor = new THREE.Color(0x333333);
-    public backgroundOpacity: number = 0.5;
+    public backgroundOpacity: number = 0;
     public screenPosition = new THREE.Vector2(16, 16);
     public screenSize: number = 512;
 
@@ -314,11 +314,14 @@ class Minimap {
         this.camera.lookAt(0, 0, 0);
 
         const rotation = this.lockNorth ? 0 : this.orientation;
-        this.background.boxMesh.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
-        this.background.boxMesh.scale.set(1, this.maxHeight, 1);
-        this.background.boxMaterial.color.set(this.backgroundColor);
-        this.background.boxMaterial.opacity = this.backgroundOpacity;
-        renderer.render(this.background.boxMesh, this.camera);
+
+        if (this.backgroundOpacity > 0) {
+            this.background.boxMesh.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
+            this.background.boxMesh.scale.set(1, this.maxHeight, 1);
+            this.background.boxMaterial.color.set(this.backgroundColor);
+            this.background.boxMaterial.opacity = this.backgroundOpacity;
+            renderer.render(this.background.boxMesh, this.camera);
+        }
 
         this.compass.position.y = Math.max(0.4, 0.5 * this.maxHeight + 0.05);
 
