@@ -126,7 +126,6 @@ class TestTerrain extends TestTerrainBase {
 
         this.minimap = new Minimap({
             heightmapAtlas: this.heightmapAtlas,
-            arrowTexture: new THREE.TextureLoader().load('resources/minimap-arrow.png'),
             compassTexture: new THREE.TextureLoader().load('resources/compass.png'),
             meshPrecision: 64,
             maxViewDistance: 500,

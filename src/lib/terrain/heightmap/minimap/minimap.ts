@@ -5,7 +5,6 @@ import type { HeightmapAtlas } from '../atlas/heightmap-atlas';
 
 type Parameters = {
     readonly heightmapAtlas: HeightmapAtlas;
-    readonly arrowTexture: THREE.Texture;
     readonly compassTexture: THREE.Texture;
     readonly meshPrecision: number;
     readonly maxViewDistance: number;
@@ -109,9 +108,6 @@ class Minimap {
             lastUpdateTimestamp: null,
             centerWorld: { x: 0, y: 0 },
         };
-
-        params.arrowTexture.wrapS = THREE.ClampToEdgeWrapping;
-        params.arrowTexture.wrapT = THREE.ClampToEdgeWrapping;
 
         this.scene = new THREE.Scene();
         const ambientLight = new THREE.AmbientLight(0xffffff, 2);
