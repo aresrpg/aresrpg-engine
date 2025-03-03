@@ -17,7 +17,7 @@ class Minimap {
     public centerPosition = new THREE.Vector3(0, 0, 0);
     public orientation: number = 0;
     public viewDistance: number = 100;
-    public altitudeRange: number = 200;
+    public maxHeight: number = 0.4;
     public lockNorth: boolean = false;
 
     public readonly maxViewDistance: number;
@@ -40,12 +40,13 @@ class Minimap {
 
     private readonly grid: {
         readonly mesh: THREE.Mesh;
+        readonly boxMesh: THREE.Mesh;
         readonly material: THREE.ShaderMaterial;
         readonly uniforms: {
             readonly uPlayerPositionUv: THREE.IUniform<THREE.Vector2>;
             readonly uPlayerViewDistanceUv: THREE.IUniform<number>;
             readonly uPlayerAltitude: THREE.IUniform<number>;
-            readonly uAltitudeRange: THREE.IUniform<number>;
+            readonly uMaxHeight: THREE.IUniform<number>;
         };
     };
 
@@ -122,7 +123,7 @@ class Minimap {
             uPlayerPositionUv: { value: new THREE.Vector2() },
             uPlayerViewDistanceUv: { value: 1 },
             uPlayerAltitude: { value: this.centerPosition.y },
-            uAltitudeRange: { value: this.altitudeRange },
+            uMaxHeight: { value: this.maxHeight },
         };
 
         const gridMaterial = new THREE.ShaderMaterial({
@@ -138,7 +139,7 @@ class Minimap {
             uniform vec2 uPlayerPositionUv;
             uniform float uPlayerViewDistanceUv;
             uniform float uPlayerAltitude;
-            uniform float uAltitudeRange;
+            uniform float uMaxHeight;
 
             varying vec3 vViewPosition;
             varying vec3 vColor;
@@ -164,8 +165,7 @@ class Minimap {
                 adjustedPosition.y += altitude;
                 adjustedPosition.y -= 100.0 * isOnEdge;
 
-                float yRange = 0.5 * uAltitudeRange / (maxAltitude - minAltitude);
-                adjustedPosition.y = clamp(adjustedPosition.y, -yRange, yRange);
+                adjustedPosition.y = clamp(adjustedPosition.y, -0.5 * uMaxHeight, 0.5 * uMaxHeight);
 
                 vec4 mvPosition = modelViewMatrix * vec4(adjustedPosition, 1.0);
                 vViewPosition = -mvPosition.xyz;
@@ -222,8 +222,16 @@ class Minimap {
         gridMesh.applyMatrix4(new THREE.Matrix4().makeTranslation(-0.5, 0, -0.5));
         this.scene.add(gridMesh);
 
+        const boxMesh = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial({
+            color: 0x444444,
+            opacity: 0.5,
+            transparent: true,
+            depthWrite: false,
+        }));
+
         this.grid = {
             mesh: gridMesh,
+            boxMesh,
             material: gridMaterial,
             uniforms: gridUniforms,
         };
@@ -297,6 +305,11 @@ class Minimap {
         renderer.setRenderTarget(previousState.renderTarget);
         renderer.setViewport(16, 16, this.sizeInPixels, this.sizeInPixels);
 
+        const rotation = this.lockNorth ? 0 : this.orientation;
+        this.grid.boxMesh.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
+        this.grid.boxMesh.scale.set(1, this.maxHeight, 1);
+        renderer.render(this.grid.boxMesh, this.camera);
+
         this.grid.uniforms.uPlayerPositionUv.value.set(
             (this.centerPosition.x - 0.5 * (this.texture.centerWorld.x - this.texture.worldSize)) / this.texture.worldSize,
             (this.centerPosition.z - 0.5 * (this.texture.centerWorld.y - this.texture.worldSize)) / this.texture.worldSize
@@ -304,8 +317,7 @@ class Minimap {
         this.viewDistance = clamp(this.viewDistance, 1, this.maxViewDistance);
         this.grid.uniforms.uPlayerViewDistanceUv.value = this.viewDistance / this.texture.worldSize;
         this.grid.uniforms.uPlayerAltitude.value = this.centerPosition.y;
-        this.grid.uniforms.uAltitudeRange.value = this.altitudeRange;
-        const rotation = this.lockNorth ? 0 : this.orientation;
+        this.grid.uniforms.uMaxHeight.value = this.maxHeight;
         this.scene.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
         renderer.render(this.scene, this.camera);
 
