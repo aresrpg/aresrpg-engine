@@ -310,6 +310,8 @@ class Minimap {
         this.grid.boxMesh.scale.set(1, this.maxHeight, 1);
         renderer.render(this.grid.boxMesh, this.camera);
 
+        this.compass.position.y = Math.max(0.4, 0.5 * this.maxHeight + 0.05);
+
         this.grid.uniforms.uPlayerPositionUv.value.set(
             (this.centerPosition.x - 0.5 * (this.texture.centerWorld.x - this.texture.worldSize)) / this.texture.worldSize,
             (this.centerPosition.z - 0.5 * (this.texture.centerWorld.y - this.texture.worldSize)) / this.texture.worldSize
