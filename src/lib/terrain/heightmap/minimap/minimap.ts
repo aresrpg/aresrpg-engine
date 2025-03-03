@@ -39,9 +39,11 @@ class Minimap {
     private readonly grid: {
         readonly mesh: THREE.Mesh;
         readonly material: THREE.ShaderMaterial;
-        readonly playerPositionUvUniform: THREE.IUniform<THREE.Vector2>;
-        readonly playerViewDistanceUvUniform: THREE.IUniform<number>;
-        readonly playerAltitudeUniform: THREE.IUniform<number>;
+        readonly uniforms: {
+            readonly uPlayerPositionUv: THREE.IUniform<THREE.Vector2>;
+            readonly uPlayerViewDistanceUv: THREE.IUniform<number>;
+            readonly uPlayerAltitude: THREE.IUniform<number>;
+        }
     };
 
     public readonly sizeInPixels = 512;
@@ -114,21 +116,19 @@ class Minimap {
         directionalLight.target.position.set(0, 0, 0);
         this.scene.add(directionalLight);
 
-        const playerPositionUvUniform = { value: new THREE.Vector2() };
-        const playerViewDistanceUvUniform = { value: 1 };
-        const playerAltitudeUniform = { value: this.centerPosition.y };
-
-        // const altitudeRange = this.heightmapAtlas.heightmap.altitude.max - this.heightmapAtlas.heightmap.altitude.min;
+        const gridUniforms = {
+            uPlayerPositionUv: { value: new THREE.Vector2() },
+            uPlayerViewDistanceUv: { value: 1 },
+            uPlayerAltitude: { value: this.centerPosition.y },
+        };
 
         const gridMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 uMapTexture: { value: this.texture.renderTarget.texture },
-                uPlayerPositionUv: playerPositionUvUniform,
-                uPlayerViewDistanceUv: playerViewDistanceUvUniform,
-                uPlayerAltitude: playerAltitudeUniform,
                 uAmbient: { value: 0.7 },
                 uLightDirection: { value: new THREE.Vector3(-1, -1, 1).normalize() },
                 uDirectionalLightIntensity: { value: 1 },
+                ...gridUniforms,
             },
             vertexShader: `
             uniform sampler2D uMapTexture;
@@ -222,9 +222,7 @@ class Minimap {
         this.grid = {
             mesh: gridMesh,
             material: gridMaterial,
-            playerPositionUvUniform,
-            playerViewDistanceUvUniform,
-            playerAltitudeUniform,
+            uniforms: gridUniforms,
         };
 
         const compassGeometry = new THREE.PlaneGeometry();
@@ -296,13 +294,13 @@ class Minimap {
         renderer.setRenderTarget(previousState.renderTarget);
         renderer.setViewport(16, 16, this.sizeInPixels, this.sizeInPixels);
 
-        this.grid.playerPositionUvUniform.value.set(
+        this.grid.uniforms.uPlayerPositionUv.value.set(
             (this.centerPosition.x - 0.5 * (this.texture.centerWorld.x - this.texture.worldSize)) / this.texture.worldSize,
             (this.centerPosition.z - 0.5 * (this.texture.centerWorld.y - this.texture.worldSize)) / this.texture.worldSize
         );
         this.viewDistance = clamp(this.viewDistance, 1, this.maxViewDistance);
-        this.grid.playerViewDistanceUvUniform.value = this.viewDistance / this.texture.worldSize;
-        this.grid.playerAltitudeUniform.value = this.centerPosition.y;
+        this.grid.uniforms.uPlayerViewDistanceUv.value = this.viewDistance / this.texture.worldSize;
+        this.grid.uniforms.uPlayerAltitude.value = this.centerPosition.y;
         const rotation = this.lockNorth ? 0 : this.orientation;
         this.scene.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
         renderer.render(this.scene, this.camera);
