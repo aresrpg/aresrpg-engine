@@ -2,7 +2,6 @@ import { createFullscreenQuad } from '../../../helpers/fullscreen-quad';
 import { clamp } from '../../../helpers/math';
 import * as THREE from '../../../libs/three-usage';
 import type { HeightmapAtlas } from '../atlas/heightmap-atlas';
-import { TileGeometryStore } from '../gpu/tile-geometry-store';
 
 type Parameters = {
     readonly heightmapAtlas: HeightmapAtlas;
@@ -12,15 +11,8 @@ type Parameters = {
     readonly maxViewDistance: number;
 };
 
-enum EMinimapShape {
-    SQUARE = 0,
-    ROUND = 1,
-}
-
 class Minimap {
     private readonly heightmapAtlas: HeightmapAtlas;
-
-    private readonly tileGeometryStore: TileGeometryStore;
 
     public centerWorld = new THREE.Vector2(0, 0);
     public orientation: number = 0;
@@ -47,12 +39,10 @@ class Minimap {
     private readonly grid: {
         readonly mesh: THREE.Mesh;
         readonly material: THREE.ShaderMaterial;
-        readonly shapeUniform: THREE.IUniform<number>;
         readonly playerPositionUvUniform: THREE.IUniform<THREE.Vector2>;
         readonly playerViewDistanceUvUniform: THREE.IUniform<number>;
     };
 
-    public shape = EMinimapShape.ROUND;
     public readonly sizeInPixels = 512;
     public lockNorth: boolean = true;
 
@@ -64,8 +54,6 @@ class Minimap {
         this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 500);
         this.camera.position.set(0, 2, 2).normalize().multiplyScalar(3);
         this.camera.lookAt(0, 0, 0);
-
-        this.tileGeometryStore = new TileGeometryStore({ segmentsCount: params.meshPrecision - 1, altitude: { min: 0, max: 1 } });
 
         const marginFactor = 1.5;
         const textureWorldSize = marginFactor * 2 * params.maxViewDistance;
@@ -127,13 +115,11 @@ class Minimap {
 
         const playerPositionUvUniform = { value: new THREE.Vector2() };
         const playerViewDistanceUvUniform = { value: 1 };
-        const shapeUniform = { value: this.shape };
 
         const altitudeRange = this.heightmapAtlas.heightmap.altitude.max - this.heightmapAtlas.heightmap.altitude.min;
 
         const gridMaterial = new THREE.ShaderMaterial({
             uniforms: {
-                uShape: shapeUniform,
                 uMapTexture: { value: this.texture.renderTarget.texture },
                 uPlayerPositionUv: playerPositionUvUniform,
                 uPlayerViewDistanceUv: playerViewDistanceUvUniform,
@@ -146,49 +132,47 @@ class Minimap {
             uniform vec2 uPlayerPositionUv;
             uniform float uPlayerViewDistanceUv;
 
-            varying vec2 vMeshUv;
             varying vec3 vViewPosition;
             varying vec3 vColor;
 
             void main() {
-                vMeshUv = position.xz;
+                vec3 adjustedPosition = position;
+                vec2 rawUv = position.xz;
+                float isOnEdge = float(rawUv.x < 0.0 || rawUv.y < 0.0 || rawUv.x > 1.0 || rawUv.y > 1.0);
+                
+                adjustedPosition.xz = clamp(adjustedPosition.xz, vec2(0.0), vec2(1.0));
+                vec2 adjustedUv = adjustedPosition.xz;
                 
                 float altitudeScale = ${altitudeRange / this.texture.worldSize} / uPlayerViewDistanceUv;
 
-                vec2 uv = uPlayerPositionUv + uPlayerViewDistanceUv * 2.0 * (vMeshUv - 0.5);
+                vec2 uv = uPlayerPositionUv + uPlayerViewDistanceUv * 2.0 * (adjustedUv - 0.5);
                 vec4 mapSample = texture(uMapTexture, uv);
                 vColor = mapSample.rgb;
                 float altitude = mapSample.a * altitudeScale;
                 
                 float playerAltitude = texture(uMapTexture, uPlayerPositionUv).a * altitudeScale;
 
-                vec3 displacedPosition = position;
-                displacedPosition.y += altitude;
-                displacedPosition.y -= playerAltitude;
+                adjustedPosition.y += altitude;
+                adjustedPosition.y -= playerAltitude;
+                adjustedPosition.y -= 100.0 * isOnEdge;
 
-                vec4 mvPosition = modelViewMatrix * vec4( displacedPosition, 1.0 );
-                vViewPosition = - mvPosition.xyz; // vector from vertex to camera
+                // adjustedPosition.y = clamp(adjustedPosition.y, -0.4, 0.4);
+
+                vec4 mvPosition = modelViewMatrix * vec4(adjustedPosition, 1.0);
+                vViewPosition = -mvPosition.xyz;
 
                 gl_Position = projectionMatrix * mvPosition;
             }
             `,
             fragmentShader: `
-            uniform int uShape;
             uniform float uAmbient;
             uniform vec3 uLightDirection;
             uniform float uDirectionalLightIntensity;
 
-            varying vec2 vMeshUv;
             varying vec3 vViewPosition;
             varying vec3 vColor;
 
             void main() {
-                if (uShape == ${EMinimapShape.ROUND}) {
-                    if (length(vMeshUv - 0.5) >= 0.5) {
-                        discard;
-                    }
-                }
-
                 vec3 normal = normalize(cross(dFdx(vViewPosition), dFdy(vViewPosition)));
 
                 float light = uAmbient + uDirectionalLightIntensity * (0.5 + 0.5 * dot(normal, -uLightDirection));
@@ -198,7 +182,34 @@ class Minimap {
             `,
             // wireframe: true,
         });
-        const gridMesh = new THREE.Mesh(this.tileGeometryStore.getBaseTile(), gridMaterial);
+
+        const gridPositions: number[] = [];
+        for (let iZ = -1; iZ <= params.meshPrecision; iZ++) {
+            for (let iX = -1; iX <= params.meshPrecision; iX++) {
+                gridPositions.push(iX / (params.meshPrecision - 1), 0, iZ / (params.meshPrecision - 1));
+            }
+        }
+        const buildIndex = (x: number, z: number): number => {
+            if (x < -1 || z < -1 || x > params.meshPrecision || z > params.meshPrecision) {
+                throw new Error();
+            }
+            return x + 1 + (z + 1) * (params.meshPrecision + 2);
+        };
+        const gridIndices: number[] = [];
+        for (let iZ = -1; iZ < params.meshPrecision; iZ++) {
+            for (let iX = -1; iX < params.meshPrecision; iX++) {
+                const i00 = buildIndex(iX, iZ);
+                const i10 = buildIndex(iX + 1, iZ);
+                const i01 = buildIndex(iX, iZ + 1);
+                const i11 = buildIndex(iX + 1, iZ + 1);
+                gridIndices.push(i00, i11, i10, i00, i01, i11);
+            }
+        }
+        const gridBufferGeometry = new THREE.BufferGeometry();
+        gridBufferGeometry.setAttribute('position', new THREE.Float32BufferAttribute(gridPositions, 3));
+        gridBufferGeometry.setIndex(gridIndices);
+
+        const gridMesh = new THREE.Mesh(gridBufferGeometry, gridMaterial);
         gridMesh.applyMatrix4(new THREE.Matrix4().makeTranslation(-0.5, 0, -0.5));
         this.scene.add(gridMesh);
 
@@ -207,7 +218,6 @@ class Minimap {
             material: gridMaterial,
             playerPositionUvUniform,
             playerViewDistanceUvUniform,
-            shapeUniform,
         };
 
         const compassGeometry = new THREE.PlaneGeometry();
@@ -279,7 +289,6 @@ class Minimap {
         renderer.setRenderTarget(previousState.renderTarget);
         renderer.setViewport(16, 16, this.sizeInPixels, this.sizeInPixels);
 
-        this.grid.shapeUniform.value = this.shape;
         this.grid.playerPositionUvUniform.value.set(
             (this.centerWorld.x - 0.5 * (this.texture.centerWorld.x - this.texture.worldSize)) / this.texture.worldSize,
             (this.centerWorld.y - 0.5 * (this.texture.centerWorld.y - this.texture.worldSize)) / this.texture.worldSize
@@ -297,4 +306,4 @@ class Minimap {
     }
 }
 
-export { EMinimapShape, Minimap };
+export { Minimap };
