@@ -306,7 +306,7 @@ return vec4(sampled.rgb / sampled.a, 1);
             const minimapFolder = this.gui.addFolder('Minimap');
             minimapFolder.add(this.params.minimap, 'enabled').name('Enabled');
             minimapFolder.add(this.minimap, 'lockNorth').name('Lock north');
-            minimapFolder.add(this.minimap, 'viewDistance', 50, this.minimap.maxViewDistance).name('World radius');
+            minimapFolder.add(this.minimap, 'viewDistance', 50, this.minimap.maxViewDistance).name('View distance');
             minimapFolder.add(this.minimap, 'altitudeScaling', 0.01, 2).name('Altitude scaling');
             minimapFolder.add(this.minimap, 'maxHeight', 0.01, 1).name('Max height');
             minimapFolder.add(this.minimap, 'backgroundOpacity', 0, 1).name('Background opacity');
@@ -315,7 +315,7 @@ return vec4(sampled.rgb / sampled.a, 1);
             minimapFolder.add(this.minimap.screenPosition, 'y', 0, 200).name('Screenpos Y');
             minimapFolder.add(this.minimap, 'screenSize', 0, 600).name('Screenpos size');
             minimapFolder.add(this.minimap, 'verticalAngle', 0, Math.PI / 2).name('Camera angle');
-            minimapFolder.add(this.minimap, "crustThickness", 0, 1).name("Crust thickness");
+            minimapFolder.add(this.minimap, 'crustThickness', 0, 1).name('Crust thickness');
         }
     }
 
@@ -349,6 +349,8 @@ return vec4(sampled.rgb / sampled.a, 1);
         const playerPosition = this.getPlayerPosition();
         this.minimap.centerPosition.set(playerPosition.x, playerPosition.y, playerPosition.z);
         this.minimap.orientation = this.getPlayerOrientation();
+        this.minimap.setMarker('player', playerPosition);
+        this.minimap.setMarker('origin', new THREE.Vector3(0, 142, 0));
 
         this.heightmapAtlas.update(this.renderer);
     }

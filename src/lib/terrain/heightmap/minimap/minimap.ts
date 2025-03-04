@@ -10,6 +10,12 @@ type Parameters = {
     readonly maxViewDistance: number;
 };
 
+type MinimapMarker = {
+    worldPosition: THREE.Vector3;
+    readonly object3D: THREE.Object3D;
+    dispose(): void;
+};
+
 class Minimap {
     private readonly heightmapAtlas: HeightmapAtlas;
 
@@ -62,6 +68,8 @@ class Minimap {
         };
     };
 
+    private readonly markers = new Map<string, MinimapMarker>();
+
     public constructor(params: Parameters) {
         this.heightmapAtlas = params.heightmapAtlas;
 
@@ -70,8 +78,9 @@ class Minimap {
         this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 500);
 
         const marginFactor = 1.5;
-        const textureWorldSize = marginFactor * 2 * params.maxViewDistance;
-        const textureSize = textureWorldSize / params.heightmapAtlas.texelSizeInWorld;
+        const textureSize = Math.ceil((marginFactor * 2 * params.maxViewDistance) / params.heightmapAtlas.texelSizeInWorld);
+        const textureWorldSize = textureSize * params.heightmapAtlas.texelSizeInWorld;
+
         const fullscreenQuad = createFullscreenQuad('position');
         const atlasTextureUniform = { value: null };
         const copyAtlasMaterial = new THREE.RawShaderMaterial({
@@ -165,9 +174,11 @@ class Minimap {
                 vec4 mapSample = texture(uMapTexture, uv);
                 vColor = mapSample.rgb;
 
-                const float minAltitude = ${this.heightmapAtlas.heightmap.altitude.min.toFixed(1)};
-                const float maxAltitude = ${this.heightmapAtlas.heightmap.altitude.max.toFixed(1)};
-                float altitude = mix(minAltitude, maxAltitude, mapSample.a);
+                float altitude = mix(
+                    ${this.heightmapAtlas.heightmap.altitude.min.toFixed(1)}, 
+                    ${this.heightmapAtlas.heightmap.altitude.max.toFixed(1)},
+                    mapSample.a
+                );
                 altitude -= uPlayerAltitude;
                 altitude /= ${this.texture.worldSize.toFixed(1)} * uPlayerViewDistanceUv;
                 altitude *= uAltitudeScaling;
@@ -245,74 +256,27 @@ class Minimap {
         const boxMesh = new THREE.Mesh(new THREE.BoxGeometry(), boxMaterial);
         this.background = { boxMaterial, boxMesh };
 
-
         const compassGeometry = new THREE.PlaneGeometry();
         compassGeometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
         this.compass = new THREE.Mesh(compassGeometry, new THREE.MeshBasicMaterial({ map: params.compassTexture, alphaTest: 0.9 }));
         this.compass.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 2, 0));
         this.compass.applyMatrix4(new THREE.Matrix4().makeScale(0.2, 0.2, 0.2));
-        this.scene.add(this.compass);
+        // this.scene.add(this.compass);
     }
 
     public render(renderer: THREE.WebGLRenderer): void {
+        this.updateTexture(renderer);
+
         const previousState = {
             autoClear: renderer.autoClear,
-            clearColor: renderer.getClearColor(new THREE.Color()),
-            clearAlpha: renderer.getClearAlpha(),
             viewport: renderer.getViewport(new THREE.Vector4()),
             sortObjects: renderer.sortObjects,
             renderTarget: renderer.getRenderTarget(),
         };
 
         renderer.autoClear = false;
-        renderer.sortObjects = false;
-
-        if (this.texture.lastUpdateTimestamp === null) {
-            renderer.setRenderTarget(this.texture.renderTarget);
-            renderer.setClearColor(0x000000, 0);
-            renderer.clear(true);
-            this.texture.lastUpdateTimestamp = -Infinity;
-        }
-
-        const now = performance.now();
-        if (now - this.texture.lastUpdateTimestamp > this.texture.updatePeriod) {
-            renderer.setRenderTarget(this.texture.renderTarget);
-            const textureViewDistance = 0.5 * this.texture.renderTarget.width * this.heightmapAtlas.texelSizeInWorld;
-            const atlasRootFrom = {
-                x: Math.floor((this.centerPosition.x - textureViewDistance) / this.heightmapAtlas.rootTileSizeInWorld),
-                y: Math.floor((this.centerPosition.z - textureViewDistance) / this.heightmapAtlas.rootTileSizeInWorld),
-            };
-            const atlasRootTo = {
-                x: Math.floor((this.centerPosition.x + textureViewDistance) / this.heightmapAtlas.rootTileSizeInWorld),
-                y: Math.floor((this.centerPosition.z + textureViewDistance) / this.heightmapAtlas.rootTileSizeInWorld),
-            };
-            const atlasRootId = { x: 0, y: 0 };
-            this.texture.centerWorld = { ...this.centerPosition };
-            const textureCornerWorld = {
-                x: this.texture.centerWorld.x - 0.5 * this.texture.worldSize,
-                y: this.texture.centerWorld.y - 0.5 * this.texture.worldSize,
-            };
-            for (atlasRootId.y = atlasRootFrom.y; atlasRootId.y <= atlasRootTo.y; atlasRootId.y++) {
-                for (atlasRootId.x = atlasRootFrom.x; atlasRootId.x <= atlasRootTo.x; atlasRootId.x++) {
-                    const rootTileView = this.heightmapAtlas.getTileView({ nestingLevel: 0, ...atlasRootId });
-
-                    const viewport = new THREE.Vector4(
-                        (rootTileView.coords.world.origin.x - textureCornerWorld.x) / this.heightmapAtlas.texelSizeInWorld,
-                        (rootTileView.coords.world.origin.y - textureCornerWorld.y) / this.heightmapAtlas.texelSizeInWorld,
-                        this.heightmapAtlas.rootTileSizeInTexels,
-                        this.heightmapAtlas.rootTileSizeInTexels
-                    );
-                    this.texture.atlasTextureUniform.value = rootTileView.texture;
-                    this.texture.copyAtlasMaterial.uniformsNeedUpdate = true;
-                    renderer.setViewport(viewport);
-                    renderer.render(this.texture.fullscreenQuad, this.camera);
-                }
-            }
-            this.texture.lastUpdateTimestamp = now;
-        }
-
-        renderer.clearDepth();
         renderer.setRenderTarget(previousState.renderTarget);
+        renderer.clearDepth();
         renderer.setViewport(this.screenPosition.x, this.screenPosition.y, this.screenSize, this.screenSize);
 
         this.camera.position.copy(new THREE.Vector3().setFromSphericalCoords(3, this.verticalAngle, 0));
@@ -330,6 +294,23 @@ class Minimap {
 
         this.compass.position.y = Math.max(0.4, 0.5 * this.maxHeight + 0.05);
 
+        if (this.markers.size > 0) {
+            for (const marker of this.markers.values()) {
+                const localPosition = {
+                    x: (marker.worldPosition.x - (this.centerPosition.x - this.viewDistance)) / (2 * this.viewDistance) - 0.5,
+                    y: ((marker.worldPosition.y - this.centerPosition.y) / this.viewDistance) * this.altitudeScaling,
+                    z: (marker.worldPosition.z - (this.centerPosition.z - this.viewDistance)) / (2 * this.viewDistance) - 0.5,
+                };
+                if (localPosition.x < -0.5 || localPosition.x > 0.5 || localPosition.z < -0.5 || localPosition.z > 0.5) {
+                    marker.object3D.removeFromParent();
+                } else {
+                    localPosition.y = clamp(localPosition.y, -0.5 * this.maxHeight, 0.5 * this.maxHeight);
+                    marker.object3D.position.copy(localPosition);
+                    this.scene.add(marker.object3D);
+                }
+            }
+        }
+
         this.grid.uniforms.uPlayerPositionUv.value.set(
             (this.centerPosition.x - 0.5 * (this.texture.centerWorld.x - this.texture.worldSize)) / this.texture.worldSize,
             (this.centerPosition.z - 0.5 * (this.texture.centerWorld.y - this.texture.worldSize)) / this.texture.worldSize
@@ -344,8 +325,97 @@ class Minimap {
         renderer.render(this.scene, this.camera);
 
         renderer.autoClear = previousState.autoClear;
+        renderer.setViewport(previousState.viewport);
+        renderer.sortObjects = previousState.sortObjects;
+    }
+
+    public setMarker(name: string, worldPosition: THREE.Vector3): void {
+        let marker = this.markers.get(name);
+        if (!marker) {
+            const geometry = new THREE.SphereGeometry(0.05, 12, 12);
+            const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+            const ball = new THREE.Mesh(geometry, material);
+
+            marker = {
+                worldPosition: worldPosition.clone(),
+                object3D: ball,
+                dispose(): void {
+                    geometry.dispose();
+                    material.dispose();
+                },
+            };
+            this.markers.set(name, marker);
+        }
+        marker.worldPosition.copy(worldPosition);
+    }
+
+    public deleteMarker(name: string): void {
+        const marker = this.markers.get(name);
+        if (marker) {
+            marker.dispose();
+            marker.object3D.removeFromParent();
+            this.markers.delete(name);
+        }
+    }
+
+    private updateTexture(renderer: THREE.WebGLRenderer): void {
+        const previousState = {
+            autoClear: renderer.autoClear,
+            clearColor: renderer.getClearColor(new THREE.Color()),
+            clearAlpha: renderer.getClearAlpha(),
+            viewport: renderer.getViewport(new THREE.Vector4()),
+            sortObjects: renderer.sortObjects,
+            renderTarget: renderer.getRenderTarget(),
+        };
+
+        if (this.texture.lastUpdateTimestamp === null) {
+            renderer.setRenderTarget(this.texture.renderTarget);
+            renderer.setClearColor(0x000000, 0);
+            renderer.clear(true);
+            this.texture.lastUpdateTimestamp = -Infinity;
+        }
+
+        const now = performance.now();
+        if (now - this.texture.lastUpdateTimestamp > this.texture.updatePeriod) {
+            renderer.autoClear = false;
+            renderer.sortObjects = false;
+
+            renderer.setRenderTarget(this.texture.renderTarget);
+            const atlasRootFrom = {
+                x: Math.floor((this.centerPosition.x - 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
+                y: Math.floor((this.centerPosition.z - 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
+            };
+            const atlasRootTo = {
+                x: Math.floor((this.centerPosition.x + 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
+                y: Math.floor((this.centerPosition.z + 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
+            };
+            this.texture.centerWorld = { x: this.centerPosition.x, y: this.centerPosition.z };
+            const atlasRootId = { x: 0, y: 0 };
+            for (atlasRootId.y = atlasRootFrom.y; atlasRootId.y <= atlasRootTo.y; atlasRootId.y++) {
+                for (atlasRootId.x = atlasRootFrom.x; atlasRootId.x <= atlasRootTo.x; atlasRootId.x++) {
+                    const rootTileView = this.heightmapAtlas.getTileView({ nestingLevel: 0, ...atlasRootId });
+
+                    const viewport = new THREE.Vector4(
+                        (rootTileView.coords.world.origin.x - 0.5 * (this.texture.centerWorld.x - this.texture.worldSize)) /
+                            this.heightmapAtlas.texelSizeInWorld,
+                        (rootTileView.coords.world.origin.y - 0.5 * (this.texture.centerWorld.y - this.texture.worldSize)) /
+                            this.heightmapAtlas.texelSizeInWorld,
+                        this.heightmapAtlas.rootTileSizeInTexels,
+                        this.heightmapAtlas.rootTileSizeInTexels
+                    );
+                    this.texture.atlasTextureUniform.value = rootTileView.texture;
+                    this.texture.copyAtlasMaterial.uniformsNeedUpdate = true;
+                    renderer.setViewport(viewport);
+                    renderer.render(this.texture.fullscreenQuad, this.camera);
+                }
+            }
+            this.texture.lastUpdateTimestamp = now;
+        }
+
+        renderer.setRenderTarget(previousState.renderTarget);
         renderer.setClearColor(previousState.clearColor, previousState.clearAlpha);
         renderer.setViewport(previousState.viewport);
+        renderer.autoClear = previousState.autoClear;
         renderer.sortObjects = previousState.sortObjects;
     }
 }

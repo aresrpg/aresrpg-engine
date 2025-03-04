@@ -41,6 +41,7 @@ export {
     Scene,
     ShaderMaterial,
     Sphere,
+    SphereGeometry,
     SrcAlphaFactor,
     SRGBColorSpace,
     Texture,
