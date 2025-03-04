@@ -129,6 +129,7 @@ class TestTerrain extends TestTerrainBase {
             compassTexture: new THREE.TextureLoader().load('resources/compass.png'),
             meshPrecision: 64,
             maxViewDistance: 750,
+            markersSize: 0.05,
         });
 
         if (!(map as VoxelMap).includeTreesInLod) {

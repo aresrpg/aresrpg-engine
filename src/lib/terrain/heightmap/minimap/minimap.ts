@@ -8,6 +8,7 @@ type Parameters = {
     readonly compassTexture: THREE.Texture;
     readonly meshPrecision: number;
     readonly maxViewDistance: number;
+    readonly markersSize: number;
 };
 
 type MinimapMarker = {
@@ -68,7 +69,10 @@ class Minimap {
         };
     };
 
-    private readonly markers = new Map<string, MinimapMarker>();
+    private readonly markers: {
+        readonly size: number;
+        readonly map: Map<string, MinimapMarker>;
+    };
 
     public constructor(params: Parameters) {
         this.heightmapAtlas = params.heightmapAtlas;
@@ -77,6 +81,10 @@ class Minimap {
 
         this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 500);
 
+        this.markers = {
+            size: params.markersSize,
+            map: new Map(),
+        }
         const marginFactor = 1.5;
         const textureSize = Math.ceil((marginFactor * 2 * params.maxViewDistance) / params.heightmapAtlas.texelSizeInWorld);
         const textureWorldSize = textureSize * params.heightmapAtlas.texelSizeInWorld;
@@ -295,7 +303,7 @@ class Minimap {
         this.compass.position.y = Math.max(0.4, 0.5 * this.maxHeight + 0.05);
 
         if (this.markers.size > 0) {
-            for (const marker of this.markers.values()) {
+            for (const marker of this.markers.map.values()) {
                 const localPosition = {
                     x: (marker.worldPosition.x - (this.centerPosition.x - this.viewDistance)) / (2 * this.viewDistance) - 0.5,
                     y: ((marker.worldPosition.y - this.centerPosition.y) / this.viewDistance) * this.altitudeScaling,
@@ -330,9 +338,9 @@ class Minimap {
     }
 
     public setMarker(name: string, worldPosition: THREE.Vector3): void {
-        let marker = this.markers.get(name);
+        let marker = this.markers.map.get(name);
         if (!marker) {
-            const geometry = new THREE.SphereGeometry(0.05, 12, 12);
+            const geometry = new THREE.SphereGeometry(this.markers.size, 12, 12);
             const material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
             const ball = new THREE.Mesh(geometry, material);
 
@@ -344,17 +352,17 @@ class Minimap {
                     material.dispose();
                 },
             };
-            this.markers.set(name, marker);
+            this.markers.map.set(name, marker);
         }
         marker.worldPosition.copy(worldPosition);
     }
 
     public deleteMarker(name: string): void {
-        const marker = this.markers.get(name);
+        const marker = this.markers.map.get(name);
         if (marker) {
             marker.dispose();
             marker.object3D.removeFromParent();
-            this.markers.delete(name);
+            this.markers.map.delete(name);
         }
     }
 
