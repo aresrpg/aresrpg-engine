@@ -5,7 +5,7 @@ import type { HeightmapAtlas } from '../atlas/heightmap-atlas';
 
 type Parameters = {
     readonly heightmapAtlas: HeightmapAtlas;
-    readonly compassTexture: THREE.Texture;
+    readonly compassTexture?: THREE.Texture;
     readonly meshPrecision: number;
     readonly minViewDistance: number;
     readonly maxViewDistance: number;
@@ -39,7 +39,7 @@ class Minimap {
 
     private readonly scene: THREE.Scene;
     private readonly camera: THREE.PerspectiveCamera;
-    private readonly compass: THREE.Mesh;
+    private readonly compass: THREE.Mesh | null = null;
 
     private readonly texture: {
         readonly renderTarget: THREE.WebGLRenderTarget;
@@ -267,12 +267,14 @@ class Minimap {
         const boxMesh = new THREE.Mesh(new THREE.BoxGeometry(), boxMaterial);
         this.background = { boxMaterial, boxMesh };
 
-        const compassGeometry = new THREE.PlaneGeometry();
-        compassGeometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
-        this.compass = new THREE.Mesh(compassGeometry, new THREE.MeshBasicMaterial({ map: params.compassTexture, alphaTest: 0.9 }));
-        this.compass.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 2, 0));
-        this.compass.applyMatrix4(new THREE.Matrix4().makeScale(0.2, 0.2, 0.2));
-        // this.scene.add(this.compass);
+        if (params.compassTexture) {
+            const compassGeometry = new THREE.PlaneGeometry();
+            compassGeometry.applyMatrix4(new THREE.Matrix4().makeRotationX(-Math.PI / 2));
+            this.compass = new THREE.Mesh(compassGeometry, new THREE.MeshBasicMaterial({ map: params.compassTexture, alphaTest: 0.9 }));
+            this.compass.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 2, 0));
+            this.compass.applyMatrix4(new THREE.Matrix4().makeScale(0.2, 0.2, 0.2));
+            this.scene.add(this.compass);
+        }
     }
 
     public update(renderer: THREE.WebGLRenderer): void {
@@ -380,7 +382,9 @@ class Minimap {
             renderer.render(this.background.boxMesh, this.camera);
         }
 
-        this.compass.position.y = Math.max(0.4, 0.5 * this.maxHeight + 0.05);
+        if (this.compass) {
+            this.compass.position.y = Math.max(0.4, 0.5 * this.maxHeight + 0.05);
+        }
 
         if (this.markers.size > 0) {
             for (const marker of this.markers.map.values()) {
