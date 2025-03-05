@@ -89,7 +89,7 @@ class HeightmapAtlas {
     };
 
     private readonly pendingHeightmapRequests = new Map<string, Promise<void>>();
-    private readonly pendingAtlasUpdates = new Set<AtlasUpdateData>();
+    private readonly pendingAtlasUpdates = new Map<string, AtlasUpdateData>();
 
     private readonly rootTextures = new Map<string, AtlasTexture>();
 
@@ -227,7 +227,7 @@ class HeightmapAtlas {
         renderer.autoClear = false;
         renderer.sortObjects = false;
 
-        for (const pendingUpdate of this.pendingAtlasUpdates) {
+        for (const pendingUpdate of this.pendingAtlasUpdates.values()) {
             const tileLocalInfos = this.getTileLocalInfos(pendingUpdate.tileId);
             renderer.setRenderTarget(tileLocalInfos.rootTexture.renderTarget);
 
@@ -341,12 +341,16 @@ class HeightmapAtlas {
     }
 
     private requestTileData(tileId: AtlasTileId): void {
+        const tileIdString = tileIdToString(tileId);
+        if (this.pendingHeightmapRequests.has(tileIdString) || this.pendingAtlasUpdates.has(tileIdString)) {
+            return;
+        }
+
         const worldPositions = this.getTileWorldPositions(tileId);
         const result = this.heightmap.sampleHeightmap(worldPositions);
         if (result instanceof Promise) {
-            const tileIdString = tileIdToString(tileId);
             const promise = result.then(heightmapSamples => {
-                this.pendingAtlasUpdates.add({ tileId, heightmapSamples });
+                this.pendingAtlasUpdates.set(tileIdString, { tileId, heightmapSamples });
 
                 if (this.pendingHeightmapRequests.get(tileIdString) === promise) {
                     this.pendingHeightmapRequests.delete(tileIdString);
@@ -354,7 +358,7 @@ class HeightmapAtlas {
             });
             this.pendingHeightmapRequests.set(tileIdString, promise);
         } else {
-            this.pendingAtlasUpdates.add({
+            this.pendingAtlasUpdates.set(tileIdString, {
                 tileId,
                 heightmapSamples: result,
             });
@@ -419,4 +423,5 @@ class HeightmapAtlas {
     }
 }
 
-export { HeightmapAtlas, type HeightmapAtlasStatistics, type AtlasTileId, type HeightmapAtlasTileView, type Parameters };
+export { HeightmapAtlas, type AtlasTileId, type HeightmapAtlasStatistics, type HeightmapAtlasTileView, type Parameters };
+
