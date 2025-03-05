@@ -120,7 +120,7 @@ class TestTerrain extends TestTerrainBase {
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
         this.voxelmapViewer.parameters.shadows.cast = this.enableShadows;
         this.voxelmapViewer.parameters.shadows.receive = this.enableShadows;
-        // this.terrainViewer.parameters.lod.enabled = false;
+        this.terrainViewer.parameters.lod.enabled = false;
         // this.terrainViewer.parameters.lod.wireframe = true;
         this.scene.add(this.terrainViewer.container);
 
@@ -357,6 +357,7 @@ return vec4(sampled.rgb / sampled.a, 1);
         this.minimap.setMarker('origin', new THREE.Vector3(0, 142, 0));
 
         this.heightmapAtlas.update(this.renderer);
+        this.minimap.update(this.renderer);
     }
 
     protected override render(): void {

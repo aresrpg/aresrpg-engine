@@ -275,9 +275,68 @@ class Minimap {
         // this.scene.add(this.compass);
     }
 
-    public render(renderer: THREE.WebGLRenderer): void {
-        this.updateTexture(renderer);
+    public update(renderer: THREE.WebGLRenderer): void {
+        const previousState = {
+            autoClear: renderer.autoClear,
+            clearColor: renderer.getClearColor(new THREE.Color()),
+            clearAlpha: renderer.getClearAlpha(),
+            viewport: renderer.getViewport(new THREE.Vector4()),
+            sortObjects: renderer.sortObjects,
+            renderTarget: renderer.getRenderTarget(),
+        };
 
+        if (this.texture.lastUpdateTimestamp === null) {
+            renderer.setRenderTarget(this.texture.renderTarget);
+            renderer.setClearColor(0x000000, 0);
+            renderer.clear(true);
+            this.texture.lastUpdateTimestamp = -Infinity;
+        }
+
+        const now = performance.now();
+        if (now - this.texture.lastUpdateTimestamp > this.texture.updatePeriod) {
+            renderer.autoClear = false;
+            renderer.sortObjects = false;
+
+            renderer.setRenderTarget(this.texture.renderTarget);
+            const atlasRootFrom = {
+                x: Math.floor((this.centerPosition.x - 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
+                y: Math.floor((this.centerPosition.z - 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
+            };
+            const atlasRootTo = {
+                x: Math.floor((this.centerPosition.x + 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
+                y: Math.floor((this.centerPosition.z + 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
+            };
+            this.texture.centerWorld = { x: this.centerPosition.x, y: this.centerPosition.z };
+            const atlasRootId = { x: 0, y: 0 };
+            for (atlasRootId.y = atlasRootFrom.y; atlasRootId.y <= atlasRootTo.y; atlasRootId.y++) {
+                for (atlasRootId.x = atlasRootFrom.x; atlasRootId.x <= atlasRootTo.x; atlasRootId.x++) {
+                    const rootTileView = this.heightmapAtlas.getTileView({ nestingLevel: 0, ...atlasRootId });
+
+                    const viewport = new THREE.Vector4(
+                        (rootTileView.coords.world.origin.x - 0.5 * (this.texture.centerWorld.x - this.texture.worldSize)) /
+                            this.heightmapAtlas.texelSizeInWorld,
+                        (rootTileView.coords.world.origin.y - 0.5 * (this.texture.centerWorld.y - this.texture.worldSize)) /
+                            this.heightmapAtlas.texelSizeInWorld,
+                        this.heightmapAtlas.rootTileSizeInTexels,
+                        this.heightmapAtlas.rootTileSizeInTexels
+                    );
+                    this.texture.atlasTextureUniform.value = rootTileView.texture;
+                    this.texture.copyAtlasMaterial.uniformsNeedUpdate = true;
+                    renderer.setViewport(viewport);
+                    renderer.render(this.texture.fullscreenQuad, this.camera);
+                }
+            }
+            this.texture.lastUpdateTimestamp = now;
+        }
+
+        renderer.setRenderTarget(previousState.renderTarget);
+        renderer.setClearColor(previousState.clearColor, previousState.clearAlpha);
+        renderer.setViewport(previousState.viewport);
+        renderer.autoClear = previousState.autoClear;
+        renderer.sortObjects = previousState.sortObjects;
+    }
+
+    public render(renderer: THREE.WebGLRenderer): void {
         const previousState = {
             autoClear: renderer.autoClear,
             viewport: renderer.getViewport(new THREE.Vector4()),
@@ -367,67 +426,6 @@ class Minimap {
             marker.object3D.removeFromParent();
             this.markers.map.delete(name);
         }
-    }
-
-    private updateTexture(renderer: THREE.WebGLRenderer): void {
-        const previousState = {
-            autoClear: renderer.autoClear,
-            clearColor: renderer.getClearColor(new THREE.Color()),
-            clearAlpha: renderer.getClearAlpha(),
-            viewport: renderer.getViewport(new THREE.Vector4()),
-            sortObjects: renderer.sortObjects,
-            renderTarget: renderer.getRenderTarget(),
-        };
-
-        if (this.texture.lastUpdateTimestamp === null) {
-            renderer.setRenderTarget(this.texture.renderTarget);
-            renderer.setClearColor(0x000000, 0);
-            renderer.clear(true);
-            this.texture.lastUpdateTimestamp = -Infinity;
-        }
-
-        const now = performance.now();
-        if (now - this.texture.lastUpdateTimestamp > this.texture.updatePeriod) {
-            renderer.autoClear = false;
-            renderer.sortObjects = false;
-
-            renderer.setRenderTarget(this.texture.renderTarget);
-            const atlasRootFrom = {
-                x: Math.floor((this.centerPosition.x - 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
-                y: Math.floor((this.centerPosition.z - 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
-            };
-            const atlasRootTo = {
-                x: Math.floor((this.centerPosition.x + 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
-                y: Math.floor((this.centerPosition.z + 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
-            };
-            this.texture.centerWorld = { x: this.centerPosition.x, y: this.centerPosition.z };
-            const atlasRootId = { x: 0, y: 0 };
-            for (atlasRootId.y = atlasRootFrom.y; atlasRootId.y <= atlasRootTo.y; atlasRootId.y++) {
-                for (atlasRootId.x = atlasRootFrom.x; atlasRootId.x <= atlasRootTo.x; atlasRootId.x++) {
-                    const rootTileView = this.heightmapAtlas.getTileView({ nestingLevel: 0, ...atlasRootId });
-
-                    const viewport = new THREE.Vector4(
-                        (rootTileView.coords.world.origin.x - 0.5 * (this.texture.centerWorld.x - this.texture.worldSize)) /
-                            this.heightmapAtlas.texelSizeInWorld,
-                        (rootTileView.coords.world.origin.y - 0.5 * (this.texture.centerWorld.y - this.texture.worldSize)) /
-                            this.heightmapAtlas.texelSizeInWorld,
-                        this.heightmapAtlas.rootTileSizeInTexels,
-                        this.heightmapAtlas.rootTileSizeInTexels
-                    );
-                    this.texture.atlasTextureUniform.value = rootTileView.texture;
-                    this.texture.copyAtlasMaterial.uniformsNeedUpdate = true;
-                    renderer.setViewport(viewport);
-                    renderer.render(this.texture.fullscreenQuad, this.camera);
-                }
-            }
-            this.texture.lastUpdateTimestamp = now;
-        }
-
-        renderer.setRenderTarget(previousState.renderTarget);
-        renderer.setClearColor(previousState.clearColor, previousState.clearAlpha);
-        renderer.setViewport(previousState.viewport);
-        renderer.autoClear = previousState.autoClear;
-        renderer.sortObjects = previousState.sortObjects;
     }
 }
 
