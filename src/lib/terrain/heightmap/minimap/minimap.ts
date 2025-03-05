@@ -298,25 +298,18 @@ class Minimap {
             renderer.sortObjects = false;
 
             renderer.setRenderTarget(this.texture.renderTarget);
-            const atlasRootFrom = {
-                x: Math.floor((this.centerPosition.x - 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
-                y: Math.floor((this.centerPosition.z - 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
-            };
-            const atlasRootTo = {
-                x: Math.floor((this.centerPosition.x + 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
-                y: Math.floor((this.centerPosition.z + 0.5 * this.texture.worldSize) / this.heightmapAtlas.rootTileSizeInWorld),
-            };
             this.texture.centerWorld = { x: this.centerPosition.x, y: this.centerPosition.z };
+            const textureCornerWorld = new THREE.Vector2().copy(this.texture.centerWorld).subScalar(0.5 * this.texture.worldSize);
+            const atlasRootFrom = textureCornerWorld.clone().divideScalar(this.heightmapAtlas.rootTileSizeInWorld).floor();
+            const atlasRootTo = textureCornerWorld.clone().addScalar(this.texture.worldSize).divideScalar(this.heightmapAtlas.rootTileSizeInWorld).floor();
             const atlasRootId = { x: 0, y: 0 };
             for (atlasRootId.y = atlasRootFrom.y; atlasRootId.y <= atlasRootTo.y; atlasRootId.y++) {
                 for (atlasRootId.x = atlasRootFrom.x; atlasRootId.x <= atlasRootTo.x; atlasRootId.x++) {
                     const rootTileView = this.heightmapAtlas.getTileView({ nestingLevel: 0, ...atlasRootId });
 
                     const viewport = new THREE.Vector4(
-                        (rootTileView.coords.world.origin.x - 0.5 * (this.texture.centerWorld.x - this.texture.worldSize)) /
-                            this.heightmapAtlas.texelSizeInWorld,
-                        (rootTileView.coords.world.origin.y - 0.5 * (this.texture.centerWorld.y - this.texture.worldSize)) /
-                            this.heightmapAtlas.texelSizeInWorld,
+                        (rootTileView.coords.world.origin.x - textureCornerWorld.x) / this.heightmapAtlas.texelSizeInWorld,
+                        (rootTileView.coords.world.origin.y - textureCornerWorld.y) / this.heightmapAtlas.texelSizeInWorld,
                         this.heightmapAtlas.rootTileSizeInTexels,
                         this.heightmapAtlas.rootTileSizeInTexels
                     );
@@ -382,8 +375,8 @@ class Minimap {
         }
 
         this.grid.uniforms.uPlayerPositionUv.value.set(
-            (this.centerPosition.x - 0.5 * (this.texture.centerWorld.x - this.texture.worldSize)) / this.texture.worldSize,
-            (this.centerPosition.z - 0.5 * (this.texture.centerWorld.y - this.texture.worldSize)) / this.texture.worldSize
+            (this.centerPosition.x - this.texture.centerWorld.x) / this.texture.worldSize + 0.5,
+            (this.centerPosition.z - this.texture.centerWorld.y) / this.texture.worldSize + 0.5,
         );
         this.viewDistance = clamp(this.viewDistance, this.minViewDistance, this.maxViewDistance);
         this.grid.uniforms.uPlayerViewDistanceUv.value = this.viewDistance / this.texture.worldSize;
