@@ -87,7 +87,7 @@ class Minimap {
         this.markers = {
             size: params.markersSize,
             map: new Map(),
-        }
+        };
         const marginFactor = 1.5;
         const textureSize = Math.ceil((marginFactor * 2 * params.maxViewDistance) / params.heightmapAtlas.texelSizeInWorld);
         const textureWorldSize = textureSize * params.heightmapAtlas.texelSizeInWorld;
