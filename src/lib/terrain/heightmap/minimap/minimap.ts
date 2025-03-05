@@ -7,6 +7,7 @@ type Parameters = {
     readonly heightmapAtlas: HeightmapAtlas;
     readonly compassTexture: THREE.Texture;
     readonly meshPrecision: number;
+    readonly minViewDistance: number;
     readonly maxViewDistance: number;
     readonly markersSize: number;
 };
@@ -33,6 +34,7 @@ class Minimap {
     public screenPosition = new THREE.Vector2(16, 16);
     public screenSize: number = 512;
 
+    public readonly minViewDistance: number;
     public readonly maxViewDistance: number;
 
     private readonly scene: THREE.Scene;
@@ -77,6 +79,7 @@ class Minimap {
     public constructor(params: Parameters) {
         this.heightmapAtlas = params.heightmapAtlas;
 
+        this.minViewDistance = params.minViewDistance;
         this.maxViewDistance = params.maxViewDistance;
 
         this.camera = new THREE.PerspectiveCamera(30, 1, 0.1, 500);
@@ -323,7 +326,7 @@ class Minimap {
             (this.centerPosition.x - 0.5 * (this.texture.centerWorld.x - this.texture.worldSize)) / this.texture.worldSize,
             (this.centerPosition.z - 0.5 * (this.texture.centerWorld.y - this.texture.worldSize)) / this.texture.worldSize
         );
-        this.viewDistance = clamp(this.viewDistance, 1, this.maxViewDistance);
+        this.viewDistance = clamp(this.viewDistance, this.minViewDistance, this.maxViewDistance);
         this.grid.uniforms.uPlayerViewDistanceUv.value = this.viewDistance / this.texture.worldSize;
         this.grid.uniforms.uPlayerAltitude.value = this.centerPosition.y;
         this.grid.uniforms.uAltitudeScaling.value = this.altitudeScaling;

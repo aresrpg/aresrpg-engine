@@ -128,6 +128,7 @@ class TestTerrain extends TestTerrainBase {
             heightmapAtlas: this.heightmapAtlas,
             compassTexture: new THREE.TextureLoader().load('resources/compass.png'),
             meshPrecision: 64,
+            minViewDistance: 100,
             maxViewDistance: 750,
             markersSize: 0.05,
         });
@@ -307,7 +308,7 @@ return vec4(sampled.rgb / sampled.a, 1);
             const minimapFolder = this.gui.addFolder('Minimap');
             minimapFolder.add(this.params.minimap, 'enabled').name('Enabled');
             minimapFolder.add(this.minimap, 'lockNorth').name('Lock north');
-            minimapFolder.add(this.minimap, 'viewDistance', 50, this.minimap.maxViewDistance).name('View distance');
+            minimapFolder.add(this.minimap, 'viewDistance', this.minimap.minViewDistance, this.minimap.maxViewDistance).name('View distance');
             minimapFolder.add(this.minimap, 'altitudeScaling', 0.01, 2).name('Altitude scaling');
             minimapFolder.add(this.minimap, 'maxHeight', 0.01, 1).name('Max height');
             minimapFolder.add(this.minimap, 'backgroundOpacity', 0, 1).name('Background opacity');
