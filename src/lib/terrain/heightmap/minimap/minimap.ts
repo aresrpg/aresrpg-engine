@@ -294,12 +294,29 @@ class Minimap {
 
         const now = performance.now();
         if (now - this.texture.lastUpdateTimestamp > this.texture.updatePeriod) {
+            this.texture.centerWorld = { x: this.centerPosition.x, y: this.centerPosition.z };
+            const textureCornerWorld = new THREE.Vector2().copy(this.texture.centerWorld).subScalar(0.5 * this.texture.worldSize);
+
+            const atlasLeafFrom = textureCornerWorld.clone().divideScalar(this.heightmapAtlas.leafTileSizeInWorld).floor();
+            const atlasLeafTo = textureCornerWorld.clone().addScalar(this.texture.worldSize).divideScalar(this.heightmapAtlas.leafTileSizeInWorld).floor();
+            const atlasLeafId = { x: 0, y: 0 };
+            for (atlasLeafId.y = atlasLeafFrom.y; atlasLeafId.y <= atlasLeafTo.y; atlasLeafId.y++) {
+                for (atlasLeafId.x = atlasLeafFrom.x; atlasLeafId.x <= atlasLeafTo.x; atlasLeafId.x++) {
+                    const leafView = this.heightmapAtlas.getTileView({
+                        nestingLevel: this.heightmapAtlas.maxNestingLevel,
+                        ...atlasLeafId,
+                    });
+                    if (!leafView.hasOptimalData()) {
+                        leafView.requestData();
+                    }
+                }
+            }
+
             renderer.autoClear = false;
             renderer.sortObjects = false;
 
             renderer.setRenderTarget(this.texture.renderTarget);
-            this.texture.centerWorld = { x: this.centerPosition.x, y: this.centerPosition.z };
-            const textureCornerWorld = new THREE.Vector2().copy(this.texture.centerWorld).subScalar(0.5 * this.texture.worldSize);
+
             const atlasRootFrom = textureCornerWorld.clone().divideScalar(this.heightmapAtlas.rootTileSizeInWorld).floor();
             const atlasRootTo = textureCornerWorld.clone().addScalar(this.texture.worldSize).divideScalar(this.heightmapAtlas.rootTileSizeInWorld).floor();
             const atlasRootId = { x: 0, y: 0 };
