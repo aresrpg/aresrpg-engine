@@ -424,4 +424,3 @@ class HeightmapAtlas {
 }
 
 export { HeightmapAtlas, type AtlasTileId, type HeightmapAtlasStatistics, type HeightmapAtlasTileView, type Parameters };
-
