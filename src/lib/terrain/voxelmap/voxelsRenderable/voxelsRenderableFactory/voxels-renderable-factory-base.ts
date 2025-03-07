@@ -1,3 +1,4 @@
+import { buildNoiseTexture } from '../../../../helpers/misc';
 import { vec3ToString } from '../../../../helpers/string';
 import { type PackedUintFragment } from '../../../../helpers/uint-packing';
 import * as THREE from '../../../../libs/three-usage';
@@ -66,8 +67,7 @@ abstract class VoxelsRenderableFactoryBase {
             this.checkerboardType = params.checkerboardType;
         }
 
-        this.noiseTexture = VoxelsRenderableFactoryBase.buildNoiseTexture(this.noiseTextureSize);
-        this.noiseTexture.needsUpdate = true;
+        this.noiseTexture = buildNoiseTexture(this.noiseTextureSize);
 
         const maxVoxelTypesSupported = params.voxelTypeEncoder.maxValue + 1;
         if (params.voxelMaterialsStore.materialsCount > maxVoxelTypesSupported) {
@@ -152,18 +152,6 @@ abstract class VoxelsRenderableFactoryBase {
             uGridColor: { value: new THREE.Vector3(-0.2, -0.2, -0.2) },
             uShininessStrength: { value: 1 },
         };
-    }
-
-    private static buildNoiseTexture(resolution: number): THREE.DataTexture {
-        const textureWidth = resolution;
-        const textureHeight = resolution;
-        const textureData = new Uint8Array(textureWidth * textureHeight);
-
-        for (let i = 0; i < textureData.length; i++) {
-            textureData[i] = 256 * Math.random();
-        }
-
-        return new THREE.DataTexture(textureData, textureWidth, textureHeight, THREE.RedFormat);
     }
 }
 
