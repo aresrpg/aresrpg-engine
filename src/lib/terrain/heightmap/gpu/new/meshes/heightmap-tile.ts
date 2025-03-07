@@ -197,15 +197,6 @@ vColor = texture0Sample.rgb;
                 uniform float uMinAltitude;
                 uniform float uMaxAltitude;
 
-                uniform float uDropUp;
-                uniform float uDropDown;
-                uniform float uDropLeft;
-                uniform float uDropRight;
-                uniform float uDropDownLeft;
-                uniform float uDropDownRight;
-                uniform float uDropUpLeft;
-                uniform float uDropUpRight;
-
                 out vec2 vHighPrecisionZW;
 
                 void main() {
