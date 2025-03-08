@@ -8,6 +8,7 @@ type Parameters = {
     readonly heightmapAtlas: HeightmapAtlas;
     readonly tileId: { x: number; z: number };
     readonly flatShading: boolean;
+    readonly transitionTime: number;
 };
 
 class HeightmapRootTile extends HeightmapTile {
@@ -21,6 +22,7 @@ class HeightmapRootTile extends HeightmapTile {
             },
             atlasTileId: { nestingLevel: 0, x: params.tileId.x, y: params.tileId.z },
             flatShading: params.flatShading,
+            transitionTime: params.transitionTime,
         });
     }
 

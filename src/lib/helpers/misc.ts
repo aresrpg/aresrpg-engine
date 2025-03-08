@@ -27,4 +27,3 @@ function buildNoiseTexture(resolution: number): THREE.DataTexture {
 }
 
 export { buildNoiseTexture, copyMap, disableMatrixAutoupdate };
-

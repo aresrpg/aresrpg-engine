@@ -1,5 +1,6 @@
 import { buildNoiseTexture, disableMatrixAutoupdate } from '../../../../../helpers/misc';
 import { applyReplacements } from '../../../../../helpers/string';
+import { Transition } from '../../../../../helpers/transition';
 import * as THREE from '../../../../../libs/three-usage';
 import type { AtlasTileId, HeightmapAtlas, HeightmapAtlasTileView } from '../../../atlas/heightmap-atlas';
 import { buildEdgesResolutionId, type EdgesResolution, EEdgeResolution, type TileGeometryStore } from '../../tile-geometry-store';
@@ -18,6 +19,7 @@ type Parameters = {
     };
     readonly atlasTileId: AtlasTileId;
     readonly flatShading: boolean;
+    readonly transitionTime: number;
 };
 
 type TileEdgesDrop = {
@@ -63,6 +65,9 @@ class HeightmapTile {
     };
 
     private readonly flatShading: boolean;
+    private readonly transitionTime: number;
+    private shouldBeVisible: boolean = true;
+    private dissolveTransition = new Transition(0, 0, 0);
 
     private hasBasicData: boolean;
     private hasOptimalData: boolean;
@@ -95,6 +100,7 @@ class HeightmapTile {
 
         this.common = params.common;
         this.flatShading = params.flatShading;
+        this.transitionTime = params.transitionTime;
 
         this.hasBasicData = atlasTileView.hasData();
         this.hasOptimalData = atlasTileView.hasOptimalData();
@@ -300,6 +306,7 @@ vColor = texture0Sample.rgb;
                         y: 2 * this.self.atlasTileView.tileId.y + z,
                     },
                     flatShading: this.flatShading,
+                    transitionTime: this.transitionTime,
                 });
                 childTile.wireframe = this.wireframe;
                 this.childrenContainer.add(childTile.container);
@@ -373,7 +380,14 @@ vColor = texture0Sample.rgb;
     }
 
     public setVisibility(visible: boolean): void {
-        this.container.visible = visible;
+        if (this.shouldBeVisible !== visible) {
+            this.shouldBeVisible = visible;
+            if (visible) {
+                this.dissolveTransition = new Transition(0, 0, 0);
+            } else {
+                this.dissolveTransition = new Transition(this.transitionTime, this.dissolveTransition.currentValue, 1);
+            }
+        }
     }
 
     public get wireframe(): boolean {
@@ -399,6 +413,9 @@ vColor = texture0Sample.rgb;
             }
         }
 
+        const dissolveRatio = this.dissolveTransition.currentValue;
+        this.container.visible = dissolveRatio < 1;
+
         if (!this.subdivided) {
             this.hasOptimalData = this.hasOptimalData || this.self.atlasTileView.hasOptimalData();
             this.hasBasicData = this.hasOptimalData || this.hasBasicData || this.self.atlasTileView.hasData();
@@ -411,6 +428,8 @@ vColor = texture0Sample.rgb;
             if (!this.selfContainer.visible && this.hasBasicData) {
                 this.selfContainer.visible = true;
             }
+
+            this.self.shader.uniforms.uDissolveRatio.value = dissolveRatio;
         }
     }
 }

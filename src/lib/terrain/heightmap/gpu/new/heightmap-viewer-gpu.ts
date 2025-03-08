@@ -17,6 +17,7 @@ type HeightmapViewerGpuStatistics = {
 type Parameters = {
     readonly heightmapAtlas: HeightmapAtlas;
     readonly flatShading: boolean;
+    readonly transitionTime?: number;
     readonly garbageCollecting?: {
         readonly maxInvisibleRootTilesInCache?: number;
         readonly frequency?: number;
@@ -39,6 +40,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     private readonly heightmapAtlas: HeightmapAtlas;
     private readonly geometryStore: TileGeometryStore;
     private readonly flatShading: boolean;
+    private readonly transitionTime: number;
 
     private get rootTileSize(): number {
         return this.heightmapAtlas.rootTileSizeInWorld;
@@ -67,6 +69,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
             altitude: params.heightmapAtlas.heightmap.altitude,
         });
         this.flatShading = params.flatShading;
+        this.transitionTime = params.transitionTime ?? 250;
 
         this.garbageCollecting = {
             maxInvisibleRootTilesInCache: params.garbageCollecting?.maxInvisibleRootTilesInCache ?? 10,
@@ -225,6 +228,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                         heightmapAtlas: this.heightmapAtlas,
                         tileId: rootQuadtreeNode.nodeId.worldCoordsInLevel,
                         flatShading: this.flatShading,
+                        transitionTime: this.transitionTime,
                     });
                     this.container.add(rootTile.container);
                     this.rootTilesMap.set(rootTileId, rootTile);
