@@ -87,19 +87,8 @@ class HeightmapViewerGpu implements IHeightmapViewer {
 
     public setHiddenPatches(patches: Iterable<PatchId>): void {
         const quadtree = new Quadtree();
-
-        this.applyVisibility(quadtree);
-
-        for (const patch of patches) {
-            const quadtreeNode = quadtree.getOrBuildNode({ nestingLevel: this.maxNesting, worldCoordsInLevel: patch });
-            quadtreeNode.setVisible(false);
-
-            for (let dX = -1; dX <= 1; dX++) {
-                for (let dZ = -1; dZ <= 1; dZ++) {
-                    quadtree.getOrBuildNode({ nestingLevel: this.maxNesting, worldCoordsInLevel: { x: patch.x + dX, z: patch.z + dZ } });
-                }
-            }
-        }
+        this.applyFocusToQuadtree(quadtree);
+        this.hideLeafsInQuatree(quadtree, patches);
 
         this.updateMeshes(quadtree);
     }
@@ -118,7 +107,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         return result;
     }
 
-    private applyVisibility(quadtree: Quadtree): void {
+    private applyFocusToQuadtree(quadtree: Quadtree): void {
         for (const rootNode of quadtree.getRootNodes()) {
             rootNode.setVisible(false);
         }
@@ -150,6 +139,19 @@ class HeightmapViewerGpu implements IHeightmapViewer {
             for (let iZ = cellNodeFrom.y; iZ <= cellNodeTo.y; iZ++) {
                 const node = quadtree.getOrBuildNode({ nestingLevel: this.maxNesting, worldCoordsInLevel: { x: iX, z: iZ } });
                 node.setVisible(true);
+            }
+        }
+    }
+
+    private hideLeafsInQuatree(quadtree: Quadtree, patches: Iterable<PatchId>): void {
+        for (const patch of patches) {
+            const quadtreeNode = quadtree.getOrBuildNode({ nestingLevel: this.maxNesting, worldCoordsInLevel: patch });
+            quadtreeNode.setVisible(false);
+
+            for (let dX = -1; dX <= 1; dX++) {
+                for (let dZ = -1; dZ <= 1; dZ++) {
+                    quadtree.getOrBuildNode({ nestingLevel: this.maxNesting, worldCoordsInLevel: { x: patch.x + dX, z: patch.z + dZ } });
+                }
             }
         }
     }
