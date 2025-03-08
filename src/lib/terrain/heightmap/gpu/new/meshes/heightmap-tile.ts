@@ -60,7 +60,9 @@ class HeightmapTile {
 
     private readonly flatShading: boolean;
 
-    private needToRequestData: boolean;
+    private hasBasicData: boolean;
+    private hasOptimalData: boolean;
+    private didRequestData: boolean = false;
 
     private subdivided: boolean = false;
     public children: Children | null = null;
@@ -90,7 +92,8 @@ class HeightmapTile {
         this.common = params.common;
         this.flatShading = params.flatShading;
 
-        this.needToRequestData = !atlasTileView.hasOptimalData();
+        this.hasBasicData = atlasTileView.hasData();
+        this.hasOptimalData = atlasTileView.hasOptimalData();
 
         const uniforms = {
             uTexture0: { value: atlasTileView.texture },
@@ -375,14 +378,15 @@ vColor = texture0Sample.rgb;
         }
 
         if (!this.subdivided) {
-            if (this.needToRequestData) {
-                if (!this.self.atlasTileView.hasOptimalData()) {
-                    this.self.atlasTileView.requestData();
-                }
-                this.needToRequestData = false;
+            this.hasOptimalData = this.hasOptimalData || this.self.atlasTileView.hasOptimalData();
+            this.hasBasicData = this.hasOptimalData || this.hasBasicData || this.self.atlasTileView.hasData();
+
+            if (!this.hasOptimalData && !this.didRequestData) {
+                this.self.atlasTileView.requestData();
+                this.didRequestData = true;
             }
 
-            if (!this.selfContainer.visible && this.self.atlasTileView.hasData()) {
+            if (!this.selfContainer.visible && this.hasBasicData) {
                 this.selfContainer.visible = true;
             }
         }
