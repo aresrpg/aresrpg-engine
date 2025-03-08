@@ -125,7 +125,9 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         let asyncChunk = this.asyncChunks.get(chunkId.asString);
         if (!asyncChunk) {
             asyncChunk = new AsyncChunkRenderable({ parent: this.container, id: chunkId, transitionTime: this.transitionTime });
-            asyncChunk.onVisibilityChange.push(() => this.notifyChange());
+            asyncChunk.onVisibilityChange.push(() => {
+                this.notifyChange();
+            });
             this.asyncChunks.set(chunkId.asString, asyncChunk);
         }
         if (!asyncChunk.needsNewData()) {
@@ -173,14 +175,15 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     public setVisibility(visibleChunksIds: Iterable<THREE.Vector3Like>): void {
         const visibleChunksIdsSet = new Set<string>();
         for (const visibleChunkId of visibleChunksIds) {
-            const chunkid = new ChunkId(visibleChunkId);
-            visibleChunksIdsSet.add(chunkid.asString);
+            const chunkId = new ChunkId(visibleChunkId);
+            visibleChunksIdsSet.add(chunkId.asString);
 
-            if (!this.asyncChunks.has(chunkid.asString)) {
-                this.asyncChunks.set(
-                    chunkid.asString,
-                    new AsyncChunkRenderable({ parent: this.container, id: chunkid, transitionTime: this.transitionTime })
-                );
+            if (!this.asyncChunks.has(chunkId.asString)) {
+                const asyncChunk = new AsyncChunkRenderable({ parent: this.container, id: chunkId, transitionTime: this.transitionTime });
+                asyncChunk.onVisibilityChange.push(() => {
+                    this.notifyChange();
+                });
+                this.asyncChunks.set(chunkId.asString, asyncChunk);
             }
         }
 
