@@ -1,4 +1,4 @@
-import { disableMatrixAutoupdate } from '../../../../../helpers/misc';
+import { buildNoiseTexture, disableMatrixAutoupdate } from '../../../../../helpers/misc';
 import { applyReplacements } from '../../../../../helpers/string';
 import * as THREE from '../../../../../libs/three-usage';
 import type { AtlasTileId, HeightmapAtlas, HeightmapAtlasTileView } from '../../../atlas/heightmap-atlas';
@@ -34,6 +34,9 @@ type TileEdgesDrop = {
 class HeightmapTile {
     public readonly container: THREE.Object3D;
 
+    private static readonly noiseTextureSize = 64;
+    private static readonly noiseTexture = buildNoiseTexture(HeightmapTile.noiseTextureSize);
+
     private readonly childrenContainer: THREE.Object3D;
     private readonly selfContainer: THREE.Object3D;
 
@@ -53,6 +56,7 @@ class HeightmapTile {
                 readonly uDropDownRight: THREE.IUniform<number>;
                 readonly uDropUpLeft: THREE.IUniform<number>;
                 readonly uDropUpRight: THREE.IUniform<number>;
+                readonly uDissolveRatio: THREE.IUniform<number>;
             };
         };
         readonly meshes: Map<string, THREE.Mesh>;
@@ -111,6 +115,7 @@ class HeightmapTile {
             uDropDownRight: { value: 0 },
             uDropUpLeft: { value: 0 },
             uDropUpRight: { value: 0 },
+            uDissolveRatio: { value: Math.random() },
         };
 
         const hasNormalsTexture = false;
@@ -122,6 +127,7 @@ class HeightmapTile {
             parameters.uniforms = {
                 ...parameters.uniforms,
                 ...uniforms,
+                uNoiseTexture: { value: HeightmapTile.noiseTexture },
             };
 
             parameters.vertexShader = applyReplacements(parameters.vertexShader, {
@@ -183,6 +189,22 @@ vColor = texture0Sample.rgb;
                 `,
                 });
             }
+
+            parameters.fragmentShader = applyReplacements(parameters.fragmentShader, {
+                'void main() {': `
+                uniform sampler2D uNoiseTexture;
+                uniform float uDissolveRatio;
+
+                void main() {
+                    if (uDissolveRatio > 0.0) {
+                        vec2 dissolveUv = mod(gl_FragCoord.xy, vec2(${HeightmapTile.noiseTextureSize})) / vec2(${HeightmapTile.noiseTextureSize});
+                        float dissolveSample = texture(uNoiseTexture, dissolveUv, 0.0).r;
+                        if (dissolveSample <= uDissolveRatio) {
+                            discard;
+                        }
+                    }
+                `,
+            });
         };
 
         // Custom shadow material using RGBA depth packing.
