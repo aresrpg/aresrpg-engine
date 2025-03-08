@@ -293,11 +293,22 @@ class HeightmapAtlas {
     }
 
     public getStatistics(): HeightmapAtlasStatistics {
-        return {
+        const result = {
             rootNodesCount: this.rootTextures.size,
             rootNodeTextureSize: this.rootTileSizeInTexels,
-            totalGpuMemoryBytes: this.rootTextures.size * (4 + 4) * this.rootTileSizeInTexels ** 2,
+            totalGpuMemoryBytes: 0,
         };
+
+        for (const rootTexture of this.rootTextures.values()) {
+            const pixelsCount = rootTexture.renderTarget.width * rootTexture.renderTarget.height;
+            let pixelSize = 4 * rootTexture.renderTarget.textures.length;
+            if (rootTexture.renderTarget.depthBuffer) {
+                pixelSize += 4;
+            }
+            result.totalGpuMemoryBytes += pixelsCount * pixelSize;
+        }
+
+        return result;
     }
 
     private hasDataForTile(tileId: AtlasTileId): boolean {
