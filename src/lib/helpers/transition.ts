@@ -21,6 +21,10 @@ class Transition {
     }
 
     public get progress(): number {
+        if (this.duration === 0) {
+            return 1;
+        }
+
         const progress = (performance.now() - this.startTimestamp) / this.duration;
         if (progress < 0) {
             return 0;
