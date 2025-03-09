@@ -35,6 +35,8 @@ export {
 export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibility-computer';
 export { EVoxelsDisplayMode } from './terrain/voxelmap/voxelsRenderable/voxels-material';
 export { type CheckerboardType } from './terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
+export { type IWaterMap } from './terrain/water/i-watermap';
+export { WaterData } from './terrain/water/water-data';
 
 export { Minimap } from './terrain/heightmap/minimap/minimap';
 

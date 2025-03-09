@@ -1,11 +1,13 @@
 import { createFullscreenQuad } from '../../../helpers/fullscreen-quad';
 import { clamp } from '../../../helpers/math';
 import * as THREE from '../../../libs/three-usage';
+import { type WaterData } from '../../water/water-data';
 import type { HeightmapAtlas } from '../atlas/heightmap-atlas';
 
 type Parameters = {
     readonly heightmapAtlas: HeightmapAtlas;
     readonly compassTexture?: THREE.Texture;
+    readonly waterData?: WaterData;
     readonly meshPrecision: number;
     readonly minViewDistance: number;
     readonly maxViewDistance: number;
@@ -29,8 +31,6 @@ class Minimap {
     public maxHeight: number = 0.4;
     public lockNorth: boolean = false;
     public crustThickness: number = 0.05;
-    public backgroundColor = new THREE.Color(0x333333);
-    public backgroundOpacity: number = 0;
     public screenPosition = new THREE.Vector2(16, 16);
     public screenSize: number = 512;
 
@@ -53,11 +53,6 @@ class Minimap {
         centerWorld: THREE.Vector2Like;
     };
 
-    private readonly background: {
-        readonly boxMesh: THREE.Mesh;
-        readonly boxMaterial: THREE.MeshBasicMaterial;
-    };
-
     private readonly grid: {
         readonly mesh: THREE.Mesh;
         readonly material: THREE.ShaderMaterial;
@@ -70,6 +65,21 @@ class Minimap {
             readonly uCrustThickness: THREE.IUniform<number>;
         };
     };
+
+    private readonly water: {
+        readonly waterMesh: THREE.Mesh;
+        readonly waterMaterial: THREE.ShaderMaterial;
+        readonly uniforms: {
+            readonly uWaterLevel: THREE.IUniform<number>;
+            readonly uWaterLevelBottom: THREE.IUniform<number>;
+            readonly uWaterLevelTop: THREE.IUniform<number>;
+            readonly uWaterUvFrom: THREE.IUniform<THREE.Vector2>;
+            readonly uWaterUvTo: THREE.IUniform<THREE.Vector2>;
+            readonly uPlayerPositionUv: THREE.IUniform<THREE.Vector2>;
+            readonly uPlayerViewDistanceUv: THREE.IUniform<number>;
+        };
+        readonly data: WaterData;
+    } | null = null;
 
     private readonly markers: {
         readonly size: number;
@@ -259,14 +269,105 @@ class Minimap {
             uniforms: gridUniforms,
         };
 
-        const boxMaterial = new THREE.MeshBasicMaterial({
-            color: 0x444444,
-            opacity: 0.5,
-            transparent: true,
-            depthWrite: false,
-        });
-        const boxMesh = new THREE.Mesh(new THREE.BoxGeometry(), boxMaterial);
-        this.background = { boxMaterial, boxMesh };
+        if (params.waterData) {
+            const waterMaterialUniforms = {
+                uWaterLevel: { value: params.waterData.map.waterLevel },
+                uWaterLevelBottom: { value: 0 },
+                uWaterLevelTop: { value: 0 },
+                uWaterUvFrom: { value: new THREE.Vector2() },
+                uWaterUvTo: { value: new THREE.Vector2() },
+                uMaxHeight: gridUniforms.uMaxHeight,
+                uPlayerPositionUv: gridUniforms.uPlayerPositionUv,
+                uPlayerViewDistanceUv: gridUniforms.uPlayerViewDistanceUv,
+                uMapTexture: { value: this.texture.renderTarget.texture },
+                uAmbient: { value: 0.5 },
+                uLightDirection: { value: new THREE.Vector3(-1, -3, 0.7).normalize() },
+                uDirectionalLightIntensity: { value: 0.75 },
+                uWaterTexture: { value: params.waterData.texture },
+            };
+
+            const waterMaterial = new THREE.ShaderMaterial({
+                glslVersion: '300 es',
+                uniforms: waterMaterialUniforms,
+                vertexShader: `                
+                uniform vec2 uPlayerPositionUv;
+                uniform float uPlayerViewDistanceUv;
+                uniform float uWaterLevel;
+                uniform float uWaterLevelBottom;
+                uniform float uWaterLevelTop;
+                uniform vec2 uWaterUvFrom;
+                uniform vec2 uWaterUvTo;
+                uniform float uAmbient;
+                uniform vec3 uLightDirection;
+                uniform float uDirectionalLightIntensity;
+
+                out vec2 vWaterUv;
+                out vec2 vUv;
+                out float vAltitudeWorld;
+                out float vLight;
+                out float vY;
+
+                void main() {
+                    gl_Position = modelMatrix * vec4(position, 1);
+                    vY = gl_Position.y;
+                    gl_Position = projectionMatrix * viewMatrix * gl_Position;
+
+                    vUv = position.xz + 0.5;
+                    vUv = uPlayerPositionUv + uPlayerViewDistanceUv * 2.0 * (vUv - 0.5);
+
+                    if (normal.y > 0.0) {
+                        vAltitudeWorld = uWaterLevel;
+                    } else {
+                        vAltitudeWorld = mix(uWaterLevelTop, uWaterLevelBottom, -position.y);
+                    }
+
+                    vLight = uAmbient + uDirectionalLightIntensity * (0.5 + 0.5 * dot(normal, -uLightDirection));
+
+                    vWaterUv = mix(uWaterUvFrom, uWaterUvTo, position.xz + 0.5);
+                }`,
+                fragmentShader: `
+                precision mediump float;
+
+                uniform sampler2D uMapTexture;
+                uniform sampler2D uWaterTexture;
+                uniform float uMaxHeight;
+                
+                in vec2 vWaterUv;
+                in vec2 vUv;
+                in float vAltitudeWorld;
+                in float vLight;
+                in float vY;
+
+                out vec4 fragColor;
+
+                void main() {
+                    float terrainAltitude = mix(
+                        ${this.heightmapAtlas.heightmap.altitude.min.toFixed(1)}, 
+                        ${this.heightmapAtlas.heightmap.altitude.max.toFixed(1)},
+                        texture(uMapTexture, vUv).a
+                    );
+                    if (vAltitudeWorld < terrainAltitude) {
+                        discard;
+                    }
+                    if (vY < -0.5 * uMaxHeight) {
+                        discard;
+                    }
+
+                    vec3 color = texture(uWaterTexture, vWaterUv).rgb;
+                    color *= vLight;
+                    fragColor = vec4(color, 0.75);
+                }
+                `,
+                transparent: true,
+                depthWrite: false,
+                depthFunc: THREE.LessEqualDepth,
+            });
+
+            const waterMesh = new THREE.Mesh(new THREE.BoxGeometry(1.001, 1, 1.001), waterMaterial);
+            waterMesh.geometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, -0.5, 0));
+            this.water = { waterMesh, waterMaterial, data: params.waterData, uniforms: waterMaterialUniforms };
+            this.scene.add(this.water.waterMesh);
+        }
 
         if (params.compassTexture) {
             const compassGeometry = new THREE.PlaneGeometry();
@@ -375,16 +476,8 @@ class Minimap {
 
         const rotation = this.lockNorth ? 0 : this.orientation;
 
-        if (this.backgroundOpacity > 0) {
-            this.background.boxMesh.setRotationFromAxisAngle(new THREE.Vector3(0, 1, 0), rotation);
-            this.background.boxMesh.scale.set(1, this.maxHeight, 1);
-            this.background.boxMaterial.color.set(this.backgroundColor);
-            this.background.boxMaterial.opacity = this.backgroundOpacity;
-            renderer.render(this.background.boxMesh, this.camera);
-        }
-
         if (this.compass) {
-            this.compass.position.y = Math.max(0.4, 0.5 * this.maxHeight + 0.05);
+            this.compass.position.y = 0.2;
         }
 
         const convertToLocalY = (worldY: number) =>
@@ -393,6 +486,7 @@ class Minimap {
                 -0.5 * this.maxHeight,
                 0.5 * this.maxHeight
             );
+        const convertToWorldY = (localY: number) => (2 * this.viewDistance * localY) / this.altitudeScaling + this.centerPosition.y;
 
         if (this.markers.size > 0) {
             for (const marker of this.markers.map.values()) {
@@ -408,6 +502,27 @@ class Minimap {
                     this.scene.add(marker.object3D);
                 }
             }
+        }
+
+        if (this.water) {
+            this.water.waterMesh.position.y = convertToLocalY(this.water.data.map.waterLevel) + 0.001;
+            this.water.uniforms.uWaterLevel.value = this.water.data.map.waterLevel;
+            this.water.uniforms.uWaterLevelTop.value = convertToWorldY(this.water.waterMesh.position.y);
+            this.water.uniforms.uWaterLevelBottom.value = convertToWorldY(this.water.waterMesh.position.y - 1);
+
+            const waterOriginPatch = this.water.data.getWaterOriginPatch();
+            this.water.uniforms.uWaterUvFrom.value.set(
+                ((this.centerPosition.x - this.viewDistance) / this.water.data.patchSize - waterOriginPatch.x) /
+                    this.water.data.patchesCount,
+                ((this.centerPosition.z - this.viewDistance) / this.water.data.patchSize - waterOriginPatch.y) /
+                    this.water.data.patchesCount
+            );
+            this.water.uniforms.uWaterUvTo.value.set(
+                ((this.centerPosition.x + this.viewDistance) / this.water.data.patchSize - waterOriginPatch.x) /
+                    this.water.data.patchesCount,
+                ((this.centerPosition.z + this.viewDistance) / this.water.data.patchSize - waterOriginPatch.y) /
+                    this.water.data.patchesCount
+            );
         }
 
         this.grid.uniforms.uPlayerPositionUv.value.set(

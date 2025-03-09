@@ -9,6 +9,7 @@ import {
     EComputationMethod,
     HeightmapViewerCpu,
     InstancedBillboard,
+    type IWaterMap,
     PromisesQueue,
     Snow,
     TerrainViewer,
@@ -48,7 +49,7 @@ class TestParticles extends TestTerrainBase {
     private readonly snow: Snow;
     private readonly heal: BuffAscendEffect;
 
-    public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
+    public constructor(map: IVoxelMap & IHeightmap & IWaterMap & ITerrainMap) {
         super(map);
 
         this.puff1 = new Puff({
