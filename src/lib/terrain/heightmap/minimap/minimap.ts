@@ -171,7 +171,7 @@ class Minimap {
             uniform float uCrustThickness;
 
             varying vec3 vViewPosition;
-            varying vec3 vColor;
+            varying vec2 vUv;
 
             void main() {
                 vec3 adjustedPosition = position;
@@ -181,10 +181,9 @@ class Minimap {
                 adjustedPosition.xz = clamp(adjustedPosition.xz, vec2(0.0), vec2(1.0));
                 vec2 adjustedUv = adjustedPosition.xz;
 
-                vec2 uv = uPlayerPositionUv + uPlayerViewDistanceUv * 2.0 * (adjustedUv - 0.5);
-                vec4 mapSample = texture(uMapTexture, uv);
-                vColor = mapSample.rgb;
-
+                vUv = uPlayerPositionUv + uPlayerViewDistanceUv * 2.0 * (adjustedUv - 0.5);
+                vec4 mapSample = texture(uMapTexture, vUv);
+ 
                 float altitude = mix(
                     ${this.heightmapAtlas.heightmap.altitude.min.toFixed(1)}, 
                     ${this.heightmapAtlas.heightmap.altitude.max.toFixed(1)},
@@ -192,7 +191,7 @@ class Minimap {
                 );
                 altitude -= uPlayerAltitude;
                 altitude /= ${this.texture.worldSize.toFixed(1)} * uPlayerViewDistanceUv;
-                altitude *= uAltitudeScaling;
+                altitude *= .5 * uAltitudeScaling;
 
                 adjustedPosition.y += altitude;
                 adjustedPosition.y = clamp(adjustedPosition.y, -0.5 * uMaxHeight, 0.5 * uMaxHeight);
@@ -208,16 +207,18 @@ class Minimap {
             uniform float uAmbient;
             uniform vec3 uLightDirection;
             uniform float uDirectionalLightIntensity;
+            uniform sampler2D uMapTexture;
 
             varying vec3 vViewPosition;
-            varying vec3 vColor;
+            varying vec2 vUv;
 
             void main() {
                 vec3 normal = normalize(cross(dFdx(vViewPosition), dFdy(vViewPosition)));
 
                 float light = uAmbient + uDirectionalLightIntensity * (0.5 + 0.5 * dot(normal, -uLightDirection));
 
-                gl_FragColor = vec4(vColor * light, 1);
+                vec3 color = texture(uMapTexture, vUv).rgb;
+                gl_FragColor = vec4(color * light, 1);
             }
             `,
             // wireframe: true,
@@ -386,17 +387,23 @@ class Minimap {
             this.compass.position.y = Math.max(0.4, 0.5 * this.maxHeight + 0.05);
         }
 
+        const convertToLocalY = (worldY: number) =>
+            clamp(
+                0.5 * ((worldY - this.centerPosition.y) / this.viewDistance) * this.altitudeScaling,
+                -0.5 * this.maxHeight,
+                0.5 * this.maxHeight
+            );
+
         if (this.markers.size > 0) {
             for (const marker of this.markers.map.values()) {
                 const localPosition = {
                     x: (marker.worldPosition.x - (this.centerPosition.x - this.viewDistance)) / (2 * this.viewDistance) - 0.5,
-                    y: ((marker.worldPosition.y - this.centerPosition.y) / this.viewDistance) * this.altitudeScaling,
+                    y: convertToLocalY(marker.worldPosition.y),
                     z: (marker.worldPosition.z - (this.centerPosition.z - this.viewDistance)) / (2 * this.viewDistance) - 0.5,
                 };
                 if (localPosition.x < -0.5 || localPosition.x > 0.5 || localPosition.z < -0.5 || localPosition.z > 0.5) {
                     marker.object3D.removeFromParent();
                 } else {
-                    localPosition.y = clamp(localPosition.y, -0.5 * this.maxHeight, 0.5 * this.maxHeight);
                     marker.object3D.position.copy(localPosition);
                     this.scene.add(marker.object3D);
                 }

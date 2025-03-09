@@ -174,7 +174,6 @@ class HeightmapAtlas {
                 uniform float uLevelUniform;
                 uniform sampler2D uMaterialsTexture;
 
-                out vec2 vUv;
                 out vec3 vColor;
                 out float vAltitude;
 
@@ -183,7 +182,6 @@ class HeightmapAtlas {
                 void main() {
                     gl_Position = vec4(2.0 * position - 1.0, uLevelUniform / ${(maxNestingLevel + 1).toFixed(1)}, 1);
 
-                    vUv = position;
                     vColor = getVoxelMaterial(materialId, uMaterialsTexture, 0.0).color;
 
                     const float minAltitude = ${params.heightmap.altitude.min.toFixed(1)};
@@ -194,14 +192,12 @@ class HeightmapAtlas {
             fragmentShader: `
             precision mediump float;
 
-            in vec2 vUv;
             in vec3 vColor;
             in float vAltitude;
 
             out vec4 fragColor;
 
             void main() {
-                // fragColor = vec4(vUv, 0, 1);
                 fragColor = vec4(vColor, vAltitude);
             }
             `,
@@ -228,6 +224,7 @@ class HeightmapAtlas {
                 magFilter: THREE.LinearFilter,
                 generateMipmaps: false,
                 depthBuffer: false,
+                colorSpace: THREE.LinearSRGBColorSpace,
             }),
             copyMaterial: new THREE.RawShaderMaterial({
                 glslVersion: '300 es',
@@ -507,6 +504,7 @@ class HeightmapAtlas {
                 generateMipmaps: false,
                 depthBuffer: true,
                 stencilBuffer: false,
+                colorSpace: THREE.LinearSRGBColorSpace,
             });
             const texture = renderTarget.texture;
             rootTexture = { renderTarget, texture, hasBeenClearedOnce: false, isStub: true, dataPerLeafTile: new Map() };
