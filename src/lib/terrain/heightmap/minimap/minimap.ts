@@ -171,7 +171,7 @@ class Minimap {
             uniform float uCrustThickness;
 
             varying vec3 vViewPosition;
-            varying vec3 vColor;
+            varying vec2 vUv;
 
             void main() {
                 vec3 adjustedPosition = position;
@@ -181,10 +181,9 @@ class Minimap {
                 adjustedPosition.xz = clamp(adjustedPosition.xz, vec2(0.0), vec2(1.0));
                 vec2 adjustedUv = adjustedPosition.xz;
 
-                vec2 uv = uPlayerPositionUv + uPlayerViewDistanceUv * 2.0 * (adjustedUv - 0.5);
-                vec4 mapSample = texture(uMapTexture, uv);
-                vColor = mapSample.rgb;
-
+                vUv = uPlayerPositionUv + uPlayerViewDistanceUv * 2.0 * (adjustedUv - 0.5);
+                vec4 mapSample = texture(uMapTexture, vUv);
+ 
                 float altitude = mix(
                     ${this.heightmapAtlas.heightmap.altitude.min.toFixed(1)}, 
                     ${this.heightmapAtlas.heightmap.altitude.max.toFixed(1)},
@@ -208,16 +207,18 @@ class Minimap {
             uniform float uAmbient;
             uniform vec3 uLightDirection;
             uniform float uDirectionalLightIntensity;
+            uniform sampler2D uMapTexture;
 
             varying vec3 vViewPosition;
-            varying vec3 vColor;
+            varying vec2 vUv;
 
             void main() {
                 vec3 normal = normalize(cross(dFdx(vViewPosition), dFdy(vViewPosition)));
 
                 float light = uAmbient + uDirectionalLightIntensity * (0.5 + 0.5 * dot(normal, -uLightDirection));
 
-                gl_FragColor = vec4(vColor * light, 1);
+                vec3 color = texture(uMapTexture, vUv).rgb;
+                gl_FragColor = vec4(color * light, 1);
             }
             `,
             // wireframe: true,
