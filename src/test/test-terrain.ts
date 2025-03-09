@@ -11,12 +11,14 @@ import {
     HeightmapViewerCpu,
     HeightmapViewerGpu,
     InstancedBillboard,
+    type IWaterMap,
     Minimap,
     PromisesQueue,
     TerrainViewer,
     VoxelmapViewer,
     VoxelmapVisibilityComputer,
     VoxelmapWrapper,
+    WaterData,
     type Board,
     type BoardRenderable,
     type IHeightmap,
@@ -31,6 +33,7 @@ import { TestTerrainBase, type ITerrainMap } from './test-terrain-base';
 class TestTerrain extends TestTerrainBase {
     protected override readonly terrainViewer: TerrainViewer;
 
+    private readonly waterData: WaterData;
     private readonly minimap: Minimap;
 
     private readonly voxelmapViewer: VoxelmapViewer;
@@ -55,7 +58,7 @@ class TestTerrain extends TestTerrainBase {
         },
     };
 
-    public constructor(map: IVoxelMap & IHeightmap & ITerrainMap) {
+    public constructor(map: IVoxelMap & IHeightmap & IWaterMap & ITerrainMap) {
         super(map);
 
         this.heightmapAtlas = new HeightmapAtlas({
@@ -124,6 +127,22 @@ class TestTerrain extends TestTerrainBase {
         // this.terrainViewer.parameters.lod.wireframe = true;
         this.scene.add(this.terrainViewer.container);
 
+        this.waterData = new WaterData({
+            map: this.map,
+            patchesCount: 24,
+            patchSize: chunkSize.xz,
+        });
+        const waterDataSize = this.waterData.patchesCount * this.waterData.patchSize;
+
+        setInterval(() => {
+            const playerPosition = this.getPlayerPosition();
+            const waterOriginPatch = {
+                x: Math.floor((playerPosition.x - 0.5 * waterDataSize) / this.waterData.patchSize),
+                y: Math.floor((playerPosition.z - 0.5 * waterDataSize) / this.waterData.patchSize),
+            };
+            this.waterData.setWaterOriginPatch(waterOriginPatch);
+        }, 1000);
+
         this.minimap = new Minimap({
             heightmapAtlas: this.heightmapAtlas,
             compassTexture: new THREE.TextureLoader().load('resources/compass.png'),
@@ -131,6 +150,7 @@ class TestTerrain extends TestTerrainBase {
             minViewDistance: 100,
             maxViewDistance: 750,
             markersSize: 0.05,
+            waterData: this.waterData,
         });
 
         if (!(map as VoxelMap).includeTreesInLod) {
@@ -313,8 +333,6 @@ return vec4(sampled.rgb / sampled.a, 1);
                 .name('View distance');
             minimapFolder.add(this.minimap, 'altitudeScaling', 0.01, 2).name('Altitude scaling');
             minimapFolder.add(this.minimap, 'maxHeight', 0.01, 1).name('Max height');
-            minimapFolder.add(this.minimap, 'backgroundOpacity', 0, 1).name('Background opacity');
-            minimapFolder.addColor(this.minimap, 'backgroundColor').name('Background color');
             minimapFolder.add(this.minimap.screenPosition, 'x', 0, 200).name('Screenpos X');
             minimapFolder.add(this.minimap.screenPosition, 'y', 0, 200).name('Screenpos Y');
             minimapFolder.add(this.minimap, 'screenSize', 0, 600).name('Screenpos size');
