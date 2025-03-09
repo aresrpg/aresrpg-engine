@@ -191,7 +191,7 @@ class Minimap {
                 );
                 altitude -= uPlayerAltitude;
                 altitude /= ${this.texture.worldSize.toFixed(1)} * uPlayerViewDistanceUv;
-                altitude *= uAltitudeScaling;
+                altitude *= .5 * uAltitudeScaling;
 
                 adjustedPosition.y += altitude;
                 adjustedPosition.y = clamp(adjustedPosition.y, -0.5 * uMaxHeight, 0.5 * uMaxHeight);
@@ -387,17 +387,23 @@ class Minimap {
             this.compass.position.y = Math.max(0.4, 0.5 * this.maxHeight + 0.05);
         }
 
+        const convertToLocalY = (worldY: number) =>
+            clamp(
+                0.5 * ((worldY - this.centerPosition.y) / this.viewDistance) * this.altitudeScaling,
+                -0.5 * this.maxHeight,
+                0.5 * this.maxHeight
+            );
+
         if (this.markers.size > 0) {
             for (const marker of this.markers.map.values()) {
                 const localPosition = {
                     x: (marker.worldPosition.x - (this.centerPosition.x - this.viewDistance)) / (2 * this.viewDistance) - 0.5,
-                    y: ((marker.worldPosition.y - this.centerPosition.y) / this.viewDistance) * this.altitudeScaling,
+                    y: convertToLocalY(marker.worldPosition.y),
                     z: (marker.worldPosition.z - (this.centerPosition.z - this.viewDistance)) / (2 * this.viewDistance) - 0.5,
                 };
                 if (localPosition.x < -0.5 || localPosition.x > 0.5 || localPosition.z < -0.5 || localPosition.z > 0.5) {
                     marker.object3D.removeFromParent();
                 } else {
-                    localPosition.y = clamp(localPosition.y, -0.5 * this.maxHeight, 0.5 * this.maxHeight);
                     marker.object3D.position.copy(localPosition);
                     this.scene.add(marker.object3D);
                 }
