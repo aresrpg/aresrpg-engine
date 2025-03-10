@@ -23,7 +23,11 @@ import {
 import { LineOfSight } from './board/line-of-sight';
 import { PathFinder } from './board/path-finder';
 import { TestBase } from './test-base';
-import { type ITerrainMap } from './test-terrain-base';
+import { type HeightmapSample } from './map/voxel-map';
+
+interface ITerrainMap {
+    sampleHeightmapBaseTerrain(x: number, z: number): HeightmapSample;
+}
 
 class TestBoard extends TestBase {
     protected readonly terrainViewer: TerrainViewer;

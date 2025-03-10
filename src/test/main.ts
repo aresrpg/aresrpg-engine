@@ -40,7 +40,7 @@ async function buildTestScene(test: ETest): Promise<TestBase> {
     } else if (test === ETest.PHYSICS) {
         return new TestPhysics(createVoxelMap(true));
     } else if (test === ETest.PARTICLES) {
-        return new TestParticles(createVoxelMap(true));
+        return new TestParticles();
     } else if (test === ETest.BOARD) {
         return new TestBoard(createVoxelMap(true));
     } else if (test === ETest.GRASS) {
@@ -56,4 +56,4 @@ async function start(test: ETest): Promise<void> {
     testScene.start();
 }
 
-void start(ETest.TERRAIN);
+void start(ETest.GRASS);

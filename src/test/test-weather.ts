@@ -24,6 +24,9 @@ class TestWeather extends TestBase {
     public constructor() {
         super();
 
+        const ground = this.createGround();
+        this.scene.add(ground);
+
         this.camera.position.set(0, 10, 10);
         this.cameraControl.target.set(0, this.camera.position.y - 10, 0);
 
@@ -67,6 +70,33 @@ class TestWeather extends TestBase {
     private enforceCount(): void {
         this.snow.setParticlesCount(this.parameters.type === EType.SNOW ? this.parameters.count : 0);
         this.rain.setParticlesCount(this.parameters.type === EType.RAIN ? this.parameters.count : 0);
+    }
+
+    private createGround(): THREE.Mesh {
+        const groundSize = 1000;
+        const voxelsInGroundTexture = 20;
+        const groundTextureSize = 5 * voxelsInGroundTexture;
+        const groundTextureBuffer = new Uint8Array(groundTextureSize * groundTextureSize * 4);
+        for (let i = 0; i < groundTextureSize * groundTextureSize; i++) {
+            const rand = 255 * (Math.random() - 0.5) * 0.1;
+            groundTextureBuffer[4 * i + 0] = THREE.clamp(0 + rand, 0, 255);
+            groundTextureBuffer[4 * i + 1] = THREE.clamp(185 + rand, 0, 255);
+            groundTextureBuffer[4 * i + 2] = THREE.clamp(20 + rand, 0, 255);
+            groundTextureBuffer[4 * i + 3] = 255;
+        }
+        const groundTexture = new THREE.DataTexture(groundTextureBuffer, groundTextureSize, groundTextureSize);
+        groundTexture.needsUpdate = true;
+        groundTexture.wrapS = THREE.RepeatWrapping;
+        groundTexture.wrapT = THREE.RepeatWrapping;
+        groundTexture.matrix = new THREE.Matrix3().makeScale(groundSize / voxelsInGroundTexture, groundSize / voxelsInGroundTexture);
+        groundTexture.matrixAutoUpdate = false;
+        groundTexture.minFilter = THREE.LinearMipMapLinearFilter;
+        groundTexture.magFilter = THREE.NearestFilter;
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshPhongMaterial({ map: groundTexture }));
+        ground.name = 'ground';
+        ground.rotateX(-Math.PI / 2);
+        ground.scale.set(groundSize, groundSize, 1);
+        return ground;
     }
 }
 
