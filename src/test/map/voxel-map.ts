@@ -2,7 +2,7 @@ import alea from 'alea';
 import { createNoise2D, type NoiseFunction2D } from 'simplex-noise';
 import * as THREE from 'three-usage-test';
 
-import { voxelmapDataPacking, type HeightmapSamples, type IHeightmap, type IVoxelMap, type LocalMapData } from '../../lib';
+import { type IWaterMap, voxelmapDataPacking, type HeightmapSamples, type IHeightmap, type IVoxelMap, type LocalMapData } from '../../lib';
 import { safeModulo } from '../../lib/helpers/math';
 
 import { colorMapping } from './color-mapping';
@@ -36,7 +36,7 @@ const keyColors = {
     treeLeaves: { color: new THREE.Color('#007A00') },
 };
 
-class VoxelMap implements IVoxelMap, IHeightmap {
+class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
     public readonly scaleXZ: number;
     public readonly scaleY: number;
     public readonly voxelMaterialsList = colorMapping.materialsList;
@@ -59,6 +59,8 @@ class VoxelMap implements IVoxelMap, IHeightmap {
 
     public readonly includeTreesInLod: boolean;
 
+    public readonly waterLevel: number;
+
     private thresholdWater: number;
     private thresholdSand: number;
     private thresholdGrass: number;
@@ -77,6 +79,7 @@ class VoxelMap implements IVoxelMap, IHeightmap {
         this.thresholdSand = 0.3 * this.scaleY;
         this.thresholdGrass = 0.75 * this.scaleY;
         this.thresholdRock = 0.85 * this.scaleY;
+        this.waterLevel = this.thresholdWater + 100;
 
         const prng = alea(seed);
         this.noise2D = createNoise2D(prng);
@@ -133,6 +136,14 @@ class VoxelMap implements IVoxelMap, IHeightmap {
                     }
                 }
             }
+        }
+    }
+
+    getWaterColorForPatch(patchX: number /* patchZ: number */): [number, number, number] {
+        if (safeModulo(patchX, 4) < 2) {
+            return [41, 182, 246];
+        } else {
+            return [255, 0, 0];
         }
     }
 
