@@ -150,7 +150,7 @@ type PropsBatchStatistics = {
     buffersSizeInBytes: number;
 };
 
-type Paramerers = {
+type Parameters = {
     readonly maxInstancesCount: number;
     readonly reactToPlayer: boolean;
     readonly reactToWind: boolean;
@@ -176,7 +176,7 @@ class PropsBatch {
     private readonly material: PropsMaterial;
     private readonly groupsDefinitions: Map<string, GroupDefinition>;
 
-    public constructor(params: Paramerers) {
+    public constructor(params: Parameters) {
         this.maxInstancesCount = params.maxInstancesCount;
 
         this.material = customizeMaterial(params.material, params.reactToPlayer, params.reactToWind);
