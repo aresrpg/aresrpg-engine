@@ -85,7 +85,7 @@ class TestTerrain extends TestBase {
         this.map = map;
 
         this.voxelMaterialsStore = new MaterialsStore({
-            voxelMaterialsList: map.voxelMaterialsList,
+            voxelMaterialsList: map.voxelTypesDefininitions.solidMaterials,
             maxShininess: 400,
         });
 

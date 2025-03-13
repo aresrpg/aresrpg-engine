@@ -2,7 +2,7 @@ import alea from 'alea';
 import { createNoise2D, type NoiseFunction2D } from 'simplex-noise';
 import * as THREE from 'three-usage-test';
 
-import { type IWaterMap, voxelmapDataPacking, type HeightmapSamples, type IHeightmap, type IVoxelMap, type LocalMapData } from '../../lib';
+import { voxelmapDataPacking, type HeightmapSamples, type IHeightmap, type IVoxelMap, type IWaterMap, type LocalMapData } from '../../lib';
 import { safeModulo } from '../../lib/helpers/math';
 
 import { colorMapping } from './color-mapping';
@@ -39,11 +39,14 @@ const keyColors = {
 class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
     public readonly scaleXZ: number;
     public readonly scaleY: number;
-    public readonly voxelMaterialsList = colorMapping.materialsList;
 
     public readonly altitude: {
         readonly min: number;
         readonly max: number;
+    };
+
+    public readonly voxelTypesDefininitions = {
+        solidMaterials: colorMapping.materialsList,
     };
 
     private readonly noise2D: NoiseFunction2D;

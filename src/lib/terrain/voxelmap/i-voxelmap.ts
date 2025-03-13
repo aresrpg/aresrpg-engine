@@ -53,11 +53,13 @@ interface IVoxelMap {
         readonly max: number;
     };
 
-    /**
-     * @returns an array of all the possible voxel materials contained in the map.
-     * Each material is then identified by its index in the array.
-     */
-    readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
+    readonly voxelTypesDefininitions: {
+        /**
+         * Array of all the possible voxel materials contained in the map.
+         * Each material is then identified by its index in the array.
+         */
+        readonly solidMaterials: ReadonlyArray<IVoxelMaterial>;
+    };
 
     /**
      * @returns an object storing the voxels data for the specified portion of the map.

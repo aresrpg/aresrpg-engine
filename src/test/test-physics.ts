@@ -80,7 +80,7 @@ class TestPhysics extends TestBase {
         const voxelsChunkOrdering: VoxelsChunkOrdering = 'zyx';
 
         const voxelMaterialsStore = new MaterialsStore({
-            voxelMaterialsList: map.voxelMaterialsList,
+            voxelMaterialsList: map.voxelTypesDefininitions.solidMaterials,
             maxShininess: 400,
         });
 

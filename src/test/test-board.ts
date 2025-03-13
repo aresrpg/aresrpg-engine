@@ -22,8 +22,8 @@ import {
 
 import { LineOfSight } from './board/line-of-sight';
 import { PathFinder } from './board/path-finder';
-import { TestBase } from './test-base';
 import { type HeightmapSample } from './map/voxel-map';
+import { TestBase } from './test-base';
 
 interface ITerrainMap {
     sampleHeightmapBaseTerrain(x: number, z: number): HeightmapSample;
@@ -62,7 +62,7 @@ class TestBoard extends TestBase {
         const maxChunkIdY = Math.floor(map.altitude.max / chunkSize.y);
 
         this.voxelMaterialsStore = new MaterialsStore({
-            voxelMaterialsList: map.voxelMaterialsList,
+            voxelMaterialsList: map.voxelTypesDefininitions.solidMaterials,
             maxShininess: 400,
         });
         this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, this.voxelMaterialsStore, {
