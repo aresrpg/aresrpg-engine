@@ -1,6 +1,6 @@
-import type { HeightmapAtlas } from '../../../atlas/heightmap-atlas';
-import type { TileGeometryStore } from '../../tile-geometry-store';
+import type { HeightmapAtlas } from '../../atlas/heightmap-atlas';
 
+import type { TileGeometryStore } from './tile-geometry-store';
 import { HeightmapTile } from './heightmap-tile';
 
 type Parameters = {

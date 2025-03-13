@@ -1,13 +1,13 @@
-import { disableMatrixAutoupdate } from '../../../../helpers/misc';
-import * as THREE from '../../../../libs/three-usage';
-import type { HeightmapAtlas } from '../../atlas/heightmap-atlas';
-import type { IHeightmapViewer, PatchId } from '../../i-heightmap-viewer';
-import { Quadtree } from '../quadtree/quadtree';
-import type { QuadtreeNode, ReadonlyQuadtreeNode } from '../quadtree/quadtree-node';
-import { EEdgeResolution, TileGeometryStore } from '../tile-geometry-store';
+import { disableMatrixAutoupdate } from '../../../helpers/misc';
+import * as THREE from '../../../libs/three-usage';
+import type { HeightmapAtlas } from '../atlas/heightmap-atlas';
+import type { IHeightmapViewer, PatchId } from '../i-heightmap-viewer';
 
 import { HeightmapRootTile } from './meshes/heightmap-root-tile';
 import type { HeightmapTile } from './meshes/heightmap-tile';
+import { EEdgeResolution, TileGeometryStore } from './meshes/tile-geometry-store';
+import { Quadtree } from './quadtree/quadtree';
+import type { QuadtreeNode, ReadonlyQuadtreeNode } from './quadtree/quadtree-node';
 
 type HeightmapViewerGpuStatistics = {
     rootTilesCount: number;

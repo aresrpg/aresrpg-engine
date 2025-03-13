@@ -1,11 +1,10 @@
-import { AsyncTask } from '../../../../../helpers/async/async-task';
-import { disableMatrixAutoupdate } from '../../../../../helpers/misc';
-import { applyReplacements } from '../../../../../helpers/string';
-import * as THREE from '../../../../../libs/three-usage';
-import { type HeightmapSamples, type IHeightmap } from '../../../i-heightmap';
-import { buildEdgesResolutionId, type EdgesResolution, EEdgeResolution, type TileGeometryStore } from '../../tile-geometry-store';
+import { buildNoiseTexture, disableMatrixAutoupdate } from '../../../../helpers/misc';
+import { applyReplacements } from '../../../../helpers/string';
+import { Transition } from '../../../../helpers/transition';
+import * as THREE from '../../../../libs/three-usage';
+import type { AtlasTileId, HeightmapAtlas, HeightmapAtlasTileView } from '../../atlas/heightmap-atlas';
 
-import { type HeightmapRootTexture, type TileId } from './heightmap-root-texture';
+import { buildEdgesResolutionId, type EdgesResolution, EEdgeResolution, type TileGeometryStore } from './tile-geometry-store';
 
 type Children = {
     readonly mm: HeightmapTile;
@@ -15,17 +14,13 @@ type Children = {
 };
 
 type Parameters = {
-    readonly root: {
-        readonly heightmap: IHeightmap;
+    readonly common: {
+        readonly heightmapAtlas: HeightmapAtlas;
         readonly geometryStore: TileGeometryStore;
-        readonly texture: HeightmapRootTexture;
-        getWorldTransform(localTileId: TileId): {
-            readonly size: number;
-            readonly origin: { readonly x: number; readonly z: number };
-        };
     };
-    readonly localTileId: TileId;
+    readonly atlasTileId: AtlasTileId;
     readonly flatShading: boolean;
+    readonly transitionTime: number;
 };
 
 type TileEdgesDrop = {
@@ -42,13 +37,16 @@ type TileEdgesDrop = {
 class HeightmapTile {
     public readonly container: THREE.Object3D;
 
+    private static readonly noiseTextureSize = 64;
+    private static readonly noiseTexture = buildNoiseTexture(HeightmapTile.noiseTextureSize);
+
     private readonly childrenContainer: THREE.Object3D;
     private readonly selfContainer: THREE.Object3D;
 
-    protected readonly root: Parameters['root'];
+    protected readonly common: Parameters['common'];
 
     private readonly self: {
-        readonly localTileId: TileId;
+        readonly atlasTileView: HeightmapAtlasTileView;
         readonly shader: {
             readonly material: THREE.MeshPhongMaterial;
             readonly shadowMaterial: THREE.Material;
@@ -61,14 +59,20 @@ class HeightmapTile {
                 readonly uDropDownRight: THREE.IUniform<number>;
                 readonly uDropUpLeft: THREE.IUniform<number>;
                 readonly uDropUpRight: THREE.IUniform<number>;
+                readonly uDissolveRatio: THREE.IUniform<number>;
             };
         };
         readonly meshes: Map<string, THREE.Mesh>;
     };
 
     private readonly flatShading: boolean;
+    private readonly transitionTime: number;
+    private shouldBeVisible: boolean = true;
+    private dissolveTransition = new Transition(0, 0, 0);
 
-    private dataQuery: AsyncTask<HeightmapSamples> | null;
+    private hasBasicData: boolean;
+    private hasOptimalData: boolean;
+    private didRequestData: boolean = false;
 
     private subdivided: boolean = false;
     public children: Children | null = null;
@@ -88,25 +92,28 @@ class HeightmapTile {
         this.container.add(this.selfContainer);
         disableMatrixAutoupdate(this.selfContainer);
 
-        const worldTransform = params.root.getWorldTransform(params.localTileId);
+        const atlasTileView = params.common.heightmapAtlas.getTileView(params.atlasTileId);
 
         const selfMatrix = new THREE.Matrix4().multiplyMatrices(
-            new THREE.Matrix4().makeTranslation(worldTransform.origin.x, 0, worldTransform.origin.z),
-            new THREE.Matrix4().makeScale(worldTransform.size, 1, worldTransform.size)
+            new THREE.Matrix4().makeTranslation(atlasTileView.coords.world.origin.x, 0, atlasTileView.coords.world.origin.y),
+            new THREE.Matrix4().makeScale(atlasTileView.coords.world.size.x, 1, atlasTileView.coords.world.size.y)
         );
 
-        this.root = params.root;
+        this.common = params.common;
         this.flatShading = params.flatShading;
+        this.transitionTime = params.transitionTime;
 
-        const uvChunk = this.root.texture.getTileUv(params.localTileId);
+        this.hasBasicData = atlasTileView.hasData();
+        this.hasOptimalData = atlasTileView.hasOptimalData();
+
         const uniforms = {
-            uTexture0: { value: this.root.texture.textures.colorAndAltitude },
-            uTexture1: { value: this.root.texture.textures.normals },
-            uUvScale: { value: uvChunk.scale },
-            uUvShift: { value: new THREE.Vector2().copy(uvChunk.shift) },
-            uMinAltitude: { value: this.root.heightmap.altitude.min },
-            uMaxAltitude: { value: this.root.heightmap.altitude.max },
-            uSizeWorld: { value: worldTransform.size },
+            uTexture0: { value: atlasTileView.texture },
+            uTexture1: { value: null },
+            uUvScale: { value: atlasTileView.coords.uv.size },
+            uUvShift: { value: atlasTileView.coords.uv.origin },
+            uMinAltitude: { value: params.common.heightmapAtlas.heightmap.altitude.min },
+            uMaxAltitude: { value: params.common.heightmapAtlas.heightmap.altitude.max },
+            uSizeWorld: { value: atlasTileView.coords.world.size.x },
             uDropUp: { value: 0 },
             uDropDown: { value: 0 },
             uDropLeft: { value: 0 },
@@ -115,9 +122,10 @@ class HeightmapTile {
             uDropDownRight: { value: 0 },
             uDropUpLeft: { value: 0 },
             uDropUpRight: { value: 0 },
+            uDissolveRatio: { value: Math.random() },
         };
 
-        const hasNormalsTexture = !!this.root.texture.textures.normals;
+        const hasNormalsTexture = false;
         const material = new THREE.MeshPhongMaterial({ vertexColors: true });
         material.shininess = 0;
         material.flatShading = this.flatShading;
@@ -126,13 +134,14 @@ class HeightmapTile {
             parameters.uniforms = {
                 ...parameters.uniforms,
                 ...uniforms,
+                uNoiseTexture: { value: HeightmapTile.noiseTexture },
             };
 
             parameters.vertexShader = applyReplacements(parameters.vertexShader, {
                 'void main() {': `
 uniform sampler2D uTexture0;
 uniform vec2 uUvShift;
-uniform float uUvScale;
+uniform vec2 uUvScale;
 uniform float uMinAltitude;
 uniform float uMaxAltitude;
 
@@ -187,6 +196,22 @@ vColor = texture0Sample.rgb;
                 `,
                 });
             }
+
+            parameters.fragmentShader = applyReplacements(parameters.fragmentShader, {
+                'void main() {': `
+                uniform sampler2D uNoiseTexture;
+                uniform float uDissolveRatio;
+
+                void main() {
+                    if (uDissolveRatio > 0.0) {
+                        vec2 dissolveUv = mod(gl_FragCoord.xy, vec2(${HeightmapTile.noiseTextureSize})) / vec2(${HeightmapTile.noiseTextureSize});
+                        float dissolveSample = texture(uNoiseTexture, dissolveUv, 0.0).r;
+                        if (dissolveSample <= uDissolveRatio) {
+                            discard;
+                        }
+                    }
+                `,
+            });
         };
 
         // Custom shadow material using RGBA depth packing.
@@ -203,15 +228,6 @@ vColor = texture0Sample.rgb;
                 uniform float uUvScale;
                 uniform float uMinAltitude;
                 uniform float uMaxAltitude;
-
-                uniform float uDropUp;
-                uniform float uDropDown;
-                uniform float uDropLeft;
-                uniform float uDropRight;
-                uniform float uDropDownLeft;
-                uniform float uDropDownRight;
-                uniform float uDropUpLeft;
-                uniform float uDropUpRight;
 
                 out vec2 vHighPrecisionZW;
 
@@ -244,7 +260,7 @@ vColor = texture0Sample.rgb;
         });
 
         this.self = {
-            localTileId: params.localTileId,
+            atlasTileView,
             shader: {
                 material,
                 shadowMaterial,
@@ -258,7 +274,7 @@ vColor = texture0Sample.rgb;
                 for (const left of edgesTypesList) {
                     for (const right of edgesTypesList) {
                         const edgeResolution = { up, down, left, right };
-                        const bufferGeometry = this.root.geometryStore.getBufferGeometry(edgeResolution);
+                        const bufferGeometry = params.common.geometryStore.getBufferGeometry(edgeResolution);
                         const mesh = new THREE.Mesh(bufferGeometry, this.self.shader.material);
                         mesh.customDepthMaterial = this.self.shader.shadowMaterial;
                         mesh.receiveShadow = true;
@@ -278,32 +294,20 @@ vColor = texture0Sample.rgb;
             left: EEdgeResolution.SIMPLE,
             right: EEdgeResolution.SIMPLE,
         });
-
-        this.dataQuery = new AsyncTask(async () => {
-            const normalizedPositions = this.root.texture.tilePositions;
-            const positionsCount = normalizedPositions.length / 2;
-            const worldCoords = new Float32Array(2 * positionsCount);
-            for (let i = 0; i < positionsCount; i++) {
-                worldCoords[2 * i + 0] = worldTransform.origin.x + worldTransform.size * normalizedPositions[2 * i + 0]!;
-                worldCoords[2 * i + 1] = worldTransform.origin.z + worldTransform.size * normalizedPositions[2 * i + 1]!;
-            }
-            return await this.root.heightmap.sampleHeightmap(worldCoords);
-        });
     }
 
     public subdivide(): void {
         if (!this.children) {
             const createAndAttachChild = (x: 0 | 1, z: 0 | 1): HeightmapTile => {
                 const childTile = new HeightmapTile({
-                    root: this.root,
-                    localTileId: {
-                        nestingLevel: this.self.localTileId.nestingLevel + 1,
-                        localCoords: {
-                            x: 2 * this.self.localTileId.localCoords.x + x,
-                            z: 2 * this.self.localTileId.localCoords.z + z,
-                        },
+                    common: this.common,
+                    atlasTileId: {
+                        nestingLevel: this.self.atlasTileView.tileId.nestingLevel + 1,
+                        x: 2 * this.self.atlasTileView.tileId.x + x,
+                        y: 2 * this.self.atlasTileView.tileId.y + z,
                     },
                     flatShading: this.flatShading,
+                    transitionTime: this.transitionTime,
                 });
                 childTile.wireframe = this.wireframe;
                 this.childrenContainer.add(childTile.container);
@@ -377,7 +381,14 @@ vColor = texture0Sample.rgb;
     }
 
     public setVisibility(visible: boolean): void {
-        this.container.visible = visible;
+        if (this.shouldBeVisible !== visible) {
+            this.shouldBeVisible = visible;
+            if (visible) {
+                this.dissolveTransition = new Transition(0, 0, 0);
+            } else {
+                this.dissolveTransition = new Transition(this.transitionTime, this.dissolveTransition.currentValue, 1);
+            }
+        }
     }
 
     public get wireframe(): boolean {
@@ -396,31 +407,30 @@ vColor = texture0Sample.rgb;
         }
     }
 
-    public update(renderer: THREE.WebGLRenderer): void {
+    public update(): void {
         if (this.children) {
             for (const child of Object.values(this.children)) {
-                child.update(renderer);
+                child.update();
             }
         }
+
+        const dissolveRatio = this.dissolveTransition.currentValue;
+        this.container.visible = dissolveRatio < 1;
 
         if (!this.subdivided) {
-            if (this.dataQuery && !this.dataQuery.isStarted) {
-                if (this.root.texture.hasOptimalDataForTile(this.self.localTileId)) {
-                    this.dataQuery = null; // we already have precise enough data for this tile
-                } else {
-                    this.dataQuery.start();
-                }
+            this.hasOptimalData = this.hasOptimalData || this.self.atlasTileView.hasOptimalData();
+            this.hasBasicData = this.hasOptimalData || this.hasBasicData || this.self.atlasTileView.hasData();
+
+            if (!this.hasOptimalData && !this.didRequestData) {
+                this.self.atlasTileView.requestData();
+                this.didRequestData = true;
             }
 
-            if (!this.selfContainer.visible && this.root.texture.hasDataForTile(this.self.localTileId)) {
+            if (!this.selfContainer.visible && this.hasBasicData) {
                 this.selfContainer.visible = true;
             }
-        }
 
-        if (this.dataQuery?.isFinished) {
-            const samples = this.dataQuery.getResultSync();
-            this.root.texture.renderTile(this.self.localTileId, renderer, samples);
-            this.dataQuery = null;
+            this.self.shader.uniforms.uDissolveRatio.value = dissolveRatio;
         }
     }
 }
