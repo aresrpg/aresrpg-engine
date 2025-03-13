@@ -2,17 +2,15 @@ import { type Vector3Like } from '../../libs/three-usage';
 
 import { VoxelmapDataPacking } from './voxelmap-data-packing';
 
-/**
- * A color stored in RGB format. Each component should be normalized.
- */
-type Color = {
-    readonly r: number;
-    readonly g: number;
-    readonly b: number;
-};
-
 interface IVoxelMaterial {
-    readonly color: Color;
+    /**
+     * A color stored in RGB format. Each component should be normalized.
+     */
+    readonly color: {
+        readonly r: number;
+        readonly g: number;
+        readonly b: number;
+    };
     readonly shininess?: number;
     readonly emissiveness?: number;
 }
