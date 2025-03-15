@@ -1,8 +1,8 @@
 import * as THREE from '../../libs/three-usage';
 
-import { PropsHandler, type Parameters as PropshandlerParameters } from './props-handler';
+import { PropsHandler, type Parameters as PropsHandlerParameters } from './props-handler';
 
-type Parameters = PropshandlerParameters & {
+type Parameters = PropsHandlerParameters & {
     readonly chunkSize: THREE.Vector3Like;
 };
 
