@@ -4,7 +4,7 @@ import { logger } from '../helpers/logger';
 import type * as THREE from '../libs/three-usage';
 import { ChunkId } from '../terrain/voxelmap/chunk/chunk-id';
 import { type VoxelsChunkOrdering } from '../terrain/voxelmap/i-voxelmap';
-import { VoxelmapDataPacking } from '../terrain/voxelmap/voxelmap-data-packing';
+import { VoxelEncoder } from '../terrain/voxelmap/encoding/voxel-encoder';
 import { type VoxelsChunkData } from '../terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
 import { EVoxelStatus, type IVoxelmapCollider } from './i-voxelmap-collider';
@@ -61,20 +61,20 @@ class VoxelmapCollider implements IVoxelmapCollider {
     private readonly voxelsChunkOrdering: VoxelsChunkOrdering;
     private readonly indexFactors: THREE.Vector3Like;
 
-    private readonly voxelmapDataPacking = new VoxelmapDataPacking();
+    private readonly voxelEncoder = new VoxelEncoder();
 
     private readonly chunkCollidersMap = new Map<string, ChunkCollider>();
 
     private readonly compactionWorkersPool: DedicatedWorkersPool | null = null;
 
     private readonly compactor = {
-        voxelmapDataPacking: this.voxelmapDataPacking,
+        voxelEncoder: this.voxelEncoder,
 
         compactChunk(rawData: Uint16Array): Uint8Array {
             const compactedData = new Uint8Array(Math.ceil(rawData.length / 8));
             for (let iVoxelIndex = 0; iVoxelIndex < rawData.length; iVoxelIndex++) {
                 const voxelData = rawData[iVoxelIndex]!;
-                if (!this.voxelmapDataPacking.isEmpty(voxelData)) {
+                if (!this.voxelEncoder.isEmpty(voxelData)) {
                     const uint8Index = Math.floor(iVoxelIndex / 8);
                     const bitIndex = iVoxelIndex - 8 * uint8Index;
                     compactedData[uint8Index]! |= 1 << bitIndex;
@@ -122,7 +122,7 @@ class VoxelmapCollider implements IVoxelmapCollider {
         if (delegateCompressionToWorker) {
             const compactionWorkerDefinition: WorkerDefinition = {
                 commonCode: `const compactor = {
-                voxelmapDataPacking: ${this.compactor.voxelmapDataPacking.serialize()},
+                voxelEncoder: ${this.compactor.voxelEncoder.serialize()},
                 ${this.compactor.compactChunk},
             };`,
                 tasks: {
@@ -227,7 +227,7 @@ class VoxelmapCollider implements IVoxelmapCollider {
                 throw new Error();
             }
 
-            if (this.voxelmapDataPacking.isEmpty(voxel)) {
+            if (this.voxelEncoder.isEmpty(voxel)) {
                 return EVoxelStatus.EMPTY;
             }
             return EVoxelStatus.FULL;

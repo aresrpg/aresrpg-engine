@@ -12,7 +12,7 @@ export { BoardRenderableFactory, type BoardRenderable } from './terrain/voxelmap
 export { BoardOverlaysHandler } from './terrain/voxelmap/board/overlay/board-overlays-handler';
 export { VoxelmapWrapper } from './terrain/voxelmap/board/voxelmap-wrapper';
 export {
-    voxelmapDataPacking,
+    voxelEncoder,
     type IVoxelMap,
     type IVoxelMaterial,
     type LocalMapData,

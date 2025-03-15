@@ -2,7 +2,7 @@ import alea from 'alea';
 import { createNoise2D, type NoiseFunction2D } from 'simplex-noise';
 import * as THREE from 'three-usage-test';
 
-import { voxelmapDataPacking, type HeightmapSamples, type IHeightmap, type IVoxelMap, type IWaterMap, type LocalMapData } from '../../lib';
+import { voxelEncoder, type HeightmapSamples, type IHeightmap, type IVoxelMap, type IWaterMap, type LocalMapData } from '../../lib';
 import { safeModulo } from '../../lib/helpers/math';
 
 import { colorMapping } from './color-mapping';
@@ -166,7 +166,7 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
         let isEmpty = true;
         const setVoxel = (localPos: THREE.Vector3Like, materialId: number) => {
             const index = buildIndex(localPos);
-            data[index] = voxelmapDataPacking.encode(false, materialId);
+            data[index] = voxelEncoder.encode(false, materialId);
             isEmpty = false;
         };
 

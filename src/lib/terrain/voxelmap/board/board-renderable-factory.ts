@@ -1,6 +1,6 @@
 import * as THREE from '../../../libs/three-usage';
 import { type MaterialsStore } from '../../materials-store';
-import { voxelmapDataPacking } from '../i-voxelmap';
+import { voxelEncoder } from '../i-voxelmap';
 import { type VoxelsRenderable } from '../voxelsRenderable/voxels-renderable';
 import { VoxelsRenderableFactoryCpuWorker } from '../voxelsRenderable/voxelsRenderableFactory/merged/cpu/voxels-renderable-factory-cpu-worker';
 import { type VoxelsChunkData } from '../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
@@ -101,7 +101,7 @@ class BoardRenderableFactory extends VoxelsRenderableFactoryCpuWorker {
 
                 for (let iChunkY = fromChunkY; iChunkY < toChunkY; iChunkY++) {
                     const index = iChunkX + iChunkY * chunkSize.x + iChunkZ * (chunkSize.x * chunkSize.y);
-                    chunkData[index] = voxelmapDataPacking.encode(true, boardSquare.materialId);
+                    chunkData[index] = voxelEncoder.encode(true, boardSquare.materialId);
                     chunkIsEmpty = false;
                 }
             }

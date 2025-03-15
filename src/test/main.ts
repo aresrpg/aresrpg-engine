@@ -56,4 +56,4 @@ async function start(test: ETest): Promise<void> {
     testScene.start();
 }
 
-void start(ETest.GRASS);
+void start(ETest.TERRAIN);

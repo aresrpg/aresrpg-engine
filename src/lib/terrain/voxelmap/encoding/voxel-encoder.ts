@@ -1,6 +1,6 @@
-import { PackedUintFactory } from '../../helpers/uint-packing';
+import { PackedUintFactory } from '../../../helpers/uint-packing';
 
-class VoxelmapDataPacking {
+class VoxelEncoder {
     private readonly packedUintFactory = new PackedUintFactory(16);
     private readonly isNotEmpty = this.packedUintFactory.encodePart(1 << 2);
     private readonly isChecker = this.packedUintFactory.encodePart(1 << 2);
@@ -71,4 +71,4 @@ class VoxelmapDataPacking {
     }
 }
 
-export { VoxelmapDataPacking };
+export { VoxelEncoder };

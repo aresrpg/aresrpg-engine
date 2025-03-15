@@ -1,7 +1,7 @@
 import { processAsap } from '../../../helpers/async/async-sync';
 import * as THREE from '../../../libs/three-usage';
 import { ChunkId } from '../chunk/chunk-id';
-import { voxelmapDataPacking, type IVoxelMap, type LocalMapData, type VoxelsChunkSize } from '../i-voxelmap';
+import { voxelEncoder, type IVoxelMap, type LocalMapData, type VoxelsChunkSize } from '../i-voxelmap';
 
 import { EBoardSquareType, type Board } from './board';
 
@@ -85,13 +85,13 @@ class VoxelmapWrapper implements IVoxelMap {
                                 boardY = 1;
                             }
                             if (deltaYBoard >= boardY) {
-                                localMapData.data[index]! = voxelmapDataPacking.encodeEmpty();
+                                localMapData.data[index]! = voxelEncoder.encodeEmpty();
                             }
 
                             if (this.includeBoard) {
                                 if (hiddenColumn.boardSquareType !== EBoardSquareType.HOLE) {
                                     if (deltaYBoard === boardY) {
-                                        localMapData.data[index]! = voxelmapDataPacking.encode(true, hiddenColumn.materialId);
+                                        localMapData.data[index]! = voxelEncoder.encode(true, hiddenColumn.materialId);
                                     }
                                 }
                             }

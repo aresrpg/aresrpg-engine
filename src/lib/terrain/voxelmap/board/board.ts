@@ -1,5 +1,5 @@
 import * as THREE from '../../../libs/three-usage';
-import { voxelmapDataPacking, type IVoxelMap } from '../i-voxelmap';
+import { voxelEncoder, type IVoxelMap } from '../i-voxelmap';
 
 enum EBoardSquareType {
     OUT_OF_BOUNDS = 0,
@@ -114,19 +114,19 @@ async function computeBoard(map: IVoxelMap, originWorld: THREE.Vector3Like, radi
         };
         let originSample = sampleData(originWorldCoords);
         let deltaY = 0;
-        while (voxelmapDataPacking.isEmpty(originSample) && deltaY < maxDeltaY) {
+        while (voxelEncoder.isEmpty(originSample) && deltaY < maxDeltaY) {
             originWorldCoords.y--;
             deltaY++;
             originSample = sampleData(originWorldCoords);
         }
-        if (voxelmapDataPacking.isEmpty(originSample)) {
+        if (voxelEncoder.isEmpty(originSample)) {
             throw new Error();
         }
         setBoardSquare(
             { x: 0, z: 0 },
             {
                 type: EBoardSquareType.FLAT,
-                materialId: voxelmapDataPacking.getMaterialId(originSample),
+                materialId: voxelEncoder.getMaterialId(originSample),
                 generation: currentGeneration,
                 floorY: originWorldCoords.y - 1,
             }
@@ -157,15 +157,15 @@ async function computeBoard(map: IVoxelMap, originWorld: THREE.Vector3Like, radi
                 const generation = currentGeneration;
                 const sampleY = sampleData(worldPos);
 
-                if (!voxelmapDataPacking.isEmpty(sampleY)) {
+                if (!voxelEncoder.isEmpty(sampleY)) {
                     let firstSample: number | null = null;
                     let lastSample = sampleY;
                     for (let deltaY = 1; deltaY < maxDeltaY; deltaY++) {
                         const sample = sampleData({ x: worldPos.x, y: worldPos.y + deltaY, z: worldPos.z });
-                        if (voxelmapDataPacking.isEmpty(sample)) {
+                        if (voxelEncoder.isEmpty(sample)) {
                             return {
                                 type: EBoardSquareType.FLAT,
-                                materialId: voxelmapDataPacking.getMaterialId(lastSample),
+                                materialId: voxelEncoder.getMaterialId(lastSample),
                                 floorY: worldPos.y + deltaY - 1,
                                 generation,
                             };
@@ -181,17 +181,17 @@ async function computeBoard(map: IVoxelMap, originWorld: THREE.Vector3Like, radi
 
                     return {
                         type: EBoardSquareType.OBSTACLE,
-                        materialId: voxelmapDataPacking.getMaterialId(firstSample),
+                        materialId: voxelEncoder.getMaterialId(firstSample),
                         floorY: worldPos.y,
                         generation,
                     };
                 } else {
                     for (let deltaY = -1; deltaY > -maxDeltaY; deltaY--) {
                         const sample = sampleData({ x: worldPos.x, y: worldPos.y + deltaY, z: worldPos.z });
-                        if (!voxelmapDataPacking.isEmpty(sample)) {
+                        if (!voxelEncoder.isEmpty(sample)) {
                             return {
                                 type: EBoardSquareType.FLAT,
-                                materialId: voxelmapDataPacking.getMaterialId(sample),
+                                materialId: voxelEncoder.getMaterialId(sample),
                                 floorY: worldPos.y + deltaY,
                                 generation,
                             };

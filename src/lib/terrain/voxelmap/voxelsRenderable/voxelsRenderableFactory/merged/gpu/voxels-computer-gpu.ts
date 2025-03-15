@@ -5,7 +5,7 @@ import { logger } from '../../../../../../helpers/logger';
 import { vec3ToString } from '../../../../../../helpers/string';
 import { getGpuDevice } from '../../../../../../helpers/webgpu/webgpu-device';
 import type * as THREE from '../../../../../../libs/three-usage';
-import { voxelmapDataPacking, type VoxelsChunkOrdering } from '../../../../i-voxelmap';
+import { voxelEncoder, type VoxelsChunkOrdering } from '../../../../i-voxelmap';
 import * as Cube from '../../cube';
 import { type CheckerboardType, type VoxelsChunkDataNotEmpty } from '../../voxels-renderable-factory-base';
 import { type VertexData1Encoder } from '../vertex-data1-encoder';
@@ -99,7 +99,7 @@ class VoxelsComputerGpu {
         fn doesNeighbourExist(voxelCacheIndex: i32, neighbourRelativePosition: vec3i) -> bool {
             let neighbourCacheIndex = voxelCacheIndex + buildBufferIndex(neighbourRelativePosition);
             let neighbourData = sampleVoxelsChunk(neighbourCacheIndex);
-            return !${voxelmapDataPacking.wgslIsEmpty('neighbourData')};
+            return !${voxelEncoder.wgslIsEmpty('neighbourData')};
         }
         fn encodeVertexData1(voxelPosition: vec3u, verticePosition: vec3u, ao: u32, edgeRoundnessX: u32, edgeRoundnessY: u32) -> u32 {
             let position = voxelPosition + verticePosition;
@@ -132,9 +132,9 @@ class VoxelsComputerGpu {
                 let cacheCoords = vec3i(voxelLocalPosition + 1u);
                 let cacheIndex: i32 = buildBufferIndex(cacheCoords);
                 let voxelData: u32 = sampleVoxelsChunk(cacheIndex);
-                if (!${voxelmapDataPacking.wgslIsEmpty('voxelData')}) {
-                    let voxelMaterialId: u32 = ${voxelmapDataPacking.wgslGetMaterialId('voxelData')};
-                    let isCheckerboard = ${voxelmapDataPacking.wgslIsCheckerboard('voxelData')};
+                if (!${voxelEncoder.wgslIsEmpty('voxelData')}) {
+                    let voxelMaterialId: u32 = ${voxelEncoder.wgslGetMaterialId('voxelData')};
+                    let isCheckerboard = ${voxelEncoder.wgslIsCheckerboard('voxelData')};
                     ${Object.values(Cube.faces)
                         .map(
                             face => `
