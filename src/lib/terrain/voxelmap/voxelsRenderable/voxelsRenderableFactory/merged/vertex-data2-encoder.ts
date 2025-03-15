@@ -7,10 +7,10 @@ type CheckerboardCellId =
 
 class VertexData2Encoder {
     private readonly packedUintFactory = new PackedUintFactory(32);
-    public readonly voxelMaterialId = this.packedUintFactory.encodePart(1 << 15);
-    public readonly checkerboardCellId = this.packedUintFactory.encodePart(3);
-    public readonly normalId = this.packedUintFactory.encodePart(6);
-    public readonly uvRightId = this.packedUintFactory.encodePart(6);
+    public readonly voxelMaterialId = this.packedUintFactory.encodeNValues(1 << 15);
+    public readonly checkerboardCellId = this.packedUintFactory.encodeNValues(3);
+    public readonly normalId = this.packedUintFactory.encodeNValues(6);
+    public readonly uvRightId = this.packedUintFactory.encodeNValues(6);
 
     public encode(voxelMaterialId: number, checkerboardCellId: CheckerboardCellId, normalId: number, uvRightId: number): number {
         return (

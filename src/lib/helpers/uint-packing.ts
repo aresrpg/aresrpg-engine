@@ -16,9 +16,13 @@ class PackedUintFactory {
         this.totalAllowedBits = totalAllowedBits;
     }
 
-    public encodePart(nbValues: number): PackedUintFragment {
+    public encodeNValues(valuesCount: number): PackedUintFragment {
+        const bitsCount = this.computeBitsNeeded(valuesCount);
+        return this.encodeNBits(bitsCount);
+    }
+
+    public encodeNBits(bitsCount: number): PackedUintFragment {
         const shift = this.nextAvailableBit;
-        const bitsCount = this.computeBitsNeeded(nbValues);
         this.nextAvailableBit += bitsCount;
         if (this.nextAvailableBit > this.totalAllowedBits) {
             throw new Error('Does not fit');

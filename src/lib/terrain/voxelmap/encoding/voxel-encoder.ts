@@ -2,9 +2,9 @@ import { PackedUintFactory } from '../../../helpers/uint-packing';
 
 class VoxelEncoder {
     private readonly packedUintFactory = new PackedUintFactory(16);
-    private readonly isNotEmpty = this.packedUintFactory.encodePart(1 << 2);
-    private readonly isChecker = this.packedUintFactory.encodePart(1 << 2);
-    private readonly materialId = this.packedUintFactory.encodePart(1 << 12);
+    private readonly isNotEmpty = this.packedUintFactory.encodeNValues(1 << 2);
+    private readonly isChecker = this.packedUintFactory.encodeNValues(1 << 2);
+    private readonly materialId = this.packedUintFactory.encodeNValues(1 << 12);
 
     private readonly empty: number;
 

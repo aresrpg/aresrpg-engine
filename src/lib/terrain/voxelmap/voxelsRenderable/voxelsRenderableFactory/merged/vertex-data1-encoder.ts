@@ -12,12 +12,12 @@ class VertexData1Encoder {
     public readonly edgeRoundness: PackedUintFragment;
 
     public constructor(maxVoxelsChunkSize: VoxelsChunkSize) {
-        this.positionX = this.packedUintFactory.encodePart(maxVoxelsChunkSize.xz + 1);
-        this.positionY = this.packedUintFactory.encodePart(maxVoxelsChunkSize.y + 1);
-        this.positionZ = this.packedUintFactory.encodePart(maxVoxelsChunkSize.xz + 1);
-        this.faceId = this.packedUintFactory.encodePart(6);
-        this.ao = this.packedUintFactory.encodePart(4);
-        this.edgeRoundness = this.packedUintFactory.encodePart(4);
+        this.positionX = this.packedUintFactory.encodeNValues(maxVoxelsChunkSize.xz + 1);
+        this.positionY = this.packedUintFactory.encodeNValues(maxVoxelsChunkSize.y + 1);
+        this.positionZ = this.packedUintFactory.encodeNValues(maxVoxelsChunkSize.xz + 1);
+        this.faceId = this.packedUintFactory.encodeNValues(6);
+        this.ao = this.packedUintFactory.encodeNValues(4);
+        this.edgeRoundness = this.packedUintFactory.encodeNValues(4);
     }
 
     public encode(position: THREE.Vector3Like, faceId: number, ao: number, edgeRoundness: [boolean, boolean]): number {
