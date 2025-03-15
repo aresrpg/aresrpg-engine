@@ -252,7 +252,6 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
                         localPos.z < blockSize.z - 1
                     ) {
                         if (Math.random() < 0.5) {
-                            localPos.y = sample.altitude + 1 - blockStart.y;
                             setClutterVoxel(localPos, 0);
                         }
                     }

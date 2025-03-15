@@ -82,9 +82,11 @@ class PropsHandler {
         this.batches = [];
 
         const garbageCollectInterval = params.garbageCollect?.interval ?? 30000;
-        this.automaticGarbageCollectHandle = window.setInterval(() => {
-            this.garbageCollect();
-        }, garbageCollectInterval);
+        if (garbageCollectInterval > 0) {
+            this.automaticGarbageCollectHandle = window.setInterval(() => {
+                this.garbageCollect();
+            }, garbageCollectInterval);
+        }
 
         this.invisibleGroupsCacheSize = params.garbageCollect?.invisibleGroupsCacheSize ?? 150;
 

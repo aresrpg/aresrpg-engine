@@ -17,7 +17,7 @@ interface IVoxelMaterial {
 
 interface IClutterDefinition {
     readonly geometry: THREE.BufferGeometry;
-    readonly material: THREE.Material;
+    readonly material: THREE.MeshPhongMaterial;
 }
 
 type VoxelsChunkSize = {

@@ -12,6 +12,7 @@ import {
     VoxelmapVisibilityComputer,
     type VoxelsChunkOrdering,
 } from '../lib';
+import { ClutterViewer } from '../lib/terrain/clutter/clutter-viewer';
 
 import { TestBase } from './test-base';
 
@@ -23,6 +24,8 @@ type SolidSphere = {
 
 class TestPhysics extends TestBase {
     private readonly map: IVoxelMap;
+
+    private readonly clutterViewer: ClutterViewer;
 
     private readonly voxelmapViewer: VoxelmapViewer;
     private readonly voxelmapVisibilityComputer: VoxelmapVisibilityComputer;
@@ -84,6 +87,11 @@ class TestPhysics extends TestBase {
             maxShininess: 400,
         });
 
+        this.clutterViewer = new ClutterViewer({
+            map: this.map,
+            chunkSize,
+        });
+
         this.voxelmapViewer = new VoxelmapViewer({
             chunkSize,
             chunkIdY: {
@@ -91,6 +99,7 @@ class TestPhysics extends TestBase {
                 max: minChunkIdY,
             },
             voxelMaterialsStore,
+            clutterViewer: this.clutterViewer,
             options: {
                 computationOptions: {
                     method: EComputationMethod.CPU_MULTITHREADED,

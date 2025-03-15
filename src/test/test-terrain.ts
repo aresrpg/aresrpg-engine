@@ -1,5 +1,5 @@
-import * as THREE from 'three-usage-test';
 import GUI from 'lil-gui';
+import * as THREE from 'three-usage-test';
 
 import {
     BoardOverlaysHandler,
@@ -26,6 +26,7 @@ import {
     type IVoxelMap,
     type IWaterMap,
 } from '../lib';
+import { ClutterViewer } from '../lib/terrain/clutter/clutter-viewer';
 
 import { LineOfSight } from './board/line-of-sight';
 import { PathFinder } from './board/path-finder';
@@ -56,6 +57,8 @@ class TestTerrain extends TestBase {
 
     private readonly waterData: WaterData;
     private readonly minimap: Minimap;
+
+    private readonly clutterViewer: ClutterViewer;
 
     private readonly voxelmapViewer: VoxelmapViewer;
     private readonly voxelmapVisibilityComputer: VoxelmapVisibilityComputer;
@@ -196,6 +199,11 @@ class TestTerrain extends TestBase {
         const minChunkIdY = Math.floor(map.altitude.min / chunkSize.y);
         const maxChunkIdY = Math.floor(map.altitude.max / chunkSize.y);
 
+        this.clutterViewer = new ClutterViewer({
+            map: this.map,
+            chunkSize,
+        });
+
         this.voxelmapViewer = new VoxelmapViewer({
             chunkSize,
             chunkIdY: {
@@ -203,6 +211,7 @@ class TestTerrain extends TestBase {
                 max: maxChunkIdY,
             },
             voxelMaterialsStore: this.voxelMaterialsStore,
+            clutterViewer: this.clutterViewer,
             options: {
                 computationOptions: {
                     method: EComputationMethod.CPU_MULTITHREADED,

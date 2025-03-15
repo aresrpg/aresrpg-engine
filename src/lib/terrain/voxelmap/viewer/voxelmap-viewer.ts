@@ -2,6 +2,8 @@ import { PromisesQueue } from '../../../helpers/async/promises-queue';
 import { logger } from '../../../helpers/logger';
 import { vec3ToString } from '../../../helpers/string';
 import * as THREE from '../../../libs/three-usage';
+import { ClutterComputer } from '../../clutter/clutter-computer';
+import { type ClutterViewer } from '../../clutter/clutter-viewer';
 import { type MaterialsStore } from '../../materials-store';
 import { ChunkId } from '../chunk/chunk-id';
 import { type ChunkRenderableFactoryBase } from '../chunk/chunkRenderableFactory/chunk-renderable-factory-base';
@@ -41,6 +43,7 @@ type Parameters = {
         readonly max: number;
     };
     readonly voxelMaterialsStore: MaterialsStore;
+    readonly clutterViewer: ClutterViewer;
     readonly options?: {
         readonly transitionTime?: number;
         readonly chunkSize?: VoxelsChunkSize;
@@ -60,6 +63,9 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     private readonly asyncChunks = new Map<string, AsyncChunkRenderable>();
 
     private readonly transitionTime: number;
+
+    private readonly clutterComputer = new ClutterComputer();
+    private readonly clutterViewer: ClutterViewer;
 
     public constructor(params: Parameters) {
         const chunkSize = params.options?.chunkSize ?? { xz: 64, y: 64 };
@@ -107,6 +113,9 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         this.promiseThrottler = new PromisesQueue(this.maxChunksComputedInParallel);
 
         this.transitionTime = params.options?.transitionTime ?? 250;
+
+        this.clutterViewer = params.clutterViewer;
+        this.container.add(this.clutterViewer.container);
     }
 
     public override update(): void {
@@ -141,6 +150,12 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         if (!asyncChunk.needsNewData()) {
             logger.debug(`Skipping unnecessary computation of up-do-date chunk "${chunkId.asString}".`);
             return Promise.resolve(EComputationResult.SKIPPED);
+        }
+
+        const chunkOrigin = new THREE.Vector3().multiplyVectors(this.chunkSizeVec3, id);
+        const chunkClutter = this.clutterComputer.buildChunkClutter(chunkOrigin, voxelsChunkData);
+        for (const [clutterId, matrices] of chunkClutter.entries()) {
+            this.clutterViewer.setChunkPropsFromWorldMatrices(id, clutterId, matrices);
         }
 
         const computationTask = async () => {
@@ -272,7 +287,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         while (nextChunkToDelete && invisibleChunksList.length > maxInvisibleChunksInCache) {
             nextChunkToDelete.asyncChunk.dispose();
             this.asyncChunks.delete(nextChunkToDelete.asyncChunk.id.asString);
-
+            this.clutterViewer.deleteChunkClutter(nextChunkToDelete.asyncChunk.id);
             nextChunkToDelete = invisibleChunksList.pop();
         }
     }

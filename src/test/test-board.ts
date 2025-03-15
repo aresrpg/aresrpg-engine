@@ -19,6 +19,7 @@ import {
     type IHeightmap,
     type IVoxelMap,
 } from '../lib';
+import { ClutterViewer } from '../lib/terrain/clutter/clutter-viewer';
 
 import { LineOfSight } from './board/line-of-sight';
 import { PathFinder } from './board/path-finder';
@@ -31,6 +32,8 @@ interface ITerrainMap {
 
 class TestBoard extends TestBase {
     protected readonly terrainViewer: TerrainViewer;
+
+    private readonly clutterViewer: ClutterViewer;
 
     private readonly voxelmapViewer: VoxelmapViewer;
     private readonly voxelmapVisibilityComputer: VoxelmapVisibilityComputer;
@@ -65,6 +68,12 @@ class TestBoard extends TestBase {
             voxelMaterialsList: map.voxelTypesDefininitions.solidMaterials,
             maxShininess: 400,
         });
+
+        this.clutterViewer = new ClutterViewer({
+            map,
+            chunkSize,
+        });
+
         this.voxelmapViewer = new VoxelmapViewer({
             chunkSize,
             chunkIdY: {
@@ -72,6 +81,7 @@ class TestBoard extends TestBase {
                 max: maxChunkIdY,
             },
             voxelMaterialsStore: this.voxelMaterialsStore,
+            clutterViewer: this.clutterViewer,
             options: {
                 computationOptions: {
                     method: EComputationMethod.CPU_MULTITHREADED,

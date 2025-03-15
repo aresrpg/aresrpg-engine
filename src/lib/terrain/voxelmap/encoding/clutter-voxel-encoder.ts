@@ -17,8 +17,8 @@ class ClutterVoxelEncoder extends SpecializedVoxelEncoder {
         return this.voxelTypeMaskValue | this.clutterId.encode(clutterId) | this.count.encode(count);
     }
 
-    public getClutterId(data: number): boolean {
-        return this.clutterId.decode(data) === 1;
+    public getClutterId(data: number): number {
+        return this.clutterId.decode(data);
     }
 
     public getCount(data: number): number {
