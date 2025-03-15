@@ -84,15 +84,22 @@ class TestPhysics extends TestBase {
             maxShininess: 400,
         });
 
-        this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, voxelMaterialsStore, {
+        this.voxelmapViewer = new VoxelmapViewer({
             chunkSize,
-            computationOptions: {
-                method: EComputationMethod.CPU_MULTITHREADED,
-                threadsCount: 4,
-                greedyMeshing: true,
+            chunkIdY: {
+                min: minChunkIdY,
+                max: minChunkIdY,
             },
-            checkerboardType: 'xz',
-            voxelsChunkOrdering,
+            voxelMaterialsStore,
+            options: {
+                computationOptions: {
+                    method: EComputationMethod.CPU_MULTITHREADED,
+                    threadsCount: 4,
+                    greedyMeshing: true,
+                },
+                checkerboardType: 'xz',
+                voxelsChunkOrdering,
+            },
         });
 
         this.scene.add(this.voxelmapViewer.container);

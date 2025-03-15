@@ -18,6 +18,14 @@ type ComputedChunk = {
     readonly voxelsRenderable: VoxelsRenderable;
 };
 
+type Parameters = {
+    readonly chunkSize: VoxelsChunkSize;
+    readonly chunkIdY: {
+        readonly min: number;
+        readonly max: number;
+    };
+};
+
 abstract class VoxelmapViewerBase implements IVoxelmapViewer {
     public readonly maxSmoothEdgeRadius = VoxelsRenderableFactoryBase.maxSmoothEdgeRadius;
 
@@ -63,14 +71,14 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
     private maxChunksInCache = 200;
     private garbageCollectionHandle: number | null;
 
-    protected constructor(minChunkIdX: number, maxChunkIdY: number, chunkSize: VoxelsChunkSize) {
+    protected constructor(params: Parameters) {
         this.container = new THREE.Group();
         this.container.name = 'voxelmap-viewer-container';
 
-        this.minChunkIdY = minChunkIdX;
-        this.maxChunkIdY = maxChunkIdY;
-        this.chunkSize = chunkSize;
-        this.chunkSizeVec3 = { x: chunkSize.xz, y: chunkSize.y, z: chunkSize.xz };
+        this.minChunkIdY = params.chunkIdY.min;
+        this.maxChunkIdY = params.chunkIdY.max;
+        this.chunkSize = params.chunkSize;
+        this.chunkSizeVec3 = { x: params.chunkSize.xz, y: params.chunkSize.y, z: params.chunkSize.xz };
 
         this.garbageCollectionHandle = window.setInterval(() => this.garbageCollect(this.maxChunksInCache), 5000);
     }

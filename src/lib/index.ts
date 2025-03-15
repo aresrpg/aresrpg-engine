@@ -25,7 +25,6 @@ export {
     EComputationResult,
     VoxelmapViewer,
     type ComputationOptions,
-    type VoxelmapViewerOptions,
     type VoxelsChunkData,
 } from './terrain/voxelmap/viewer/voxelmap-viewer';
 export { VoxelmapVisibilityComputer } from './terrain/voxelmap/voxelmap-visibility-computer';

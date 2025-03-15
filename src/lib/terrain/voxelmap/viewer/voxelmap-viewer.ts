@@ -34,12 +34,20 @@ type ComputationOptions =
           readonly greedyMeshing?: boolean;
       };
 
-type VoxelmapViewerOptions = {
-    readonly transitionTime?: number;
-    readonly chunkSize?: VoxelsChunkSize;
-    readonly computationOptions?: ComputationOptions;
-    readonly checkerboardType?: CheckerboardType;
-    readonly voxelsChunkOrdering?: VoxelsChunkOrdering;
+type Parameters = {
+    readonly chunkSize: VoxelsChunkSize;
+    readonly chunkIdY: {
+        readonly min: number;
+        readonly max: number;
+    };
+    readonly voxelMaterialsStore: MaterialsStore;
+    readonly options?: {
+        readonly transitionTime?: number;
+        readonly chunkSize?: VoxelsChunkSize;
+        readonly computationOptions?: ComputationOptions;
+        readonly checkerboardType?: CheckerboardType;
+        readonly voxelsChunkOrdering?: VoxelsChunkOrdering;
+    };
 };
 
 class VoxelmapViewer extends VoxelmapViewerBase {
@@ -53,25 +61,25 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
     private readonly transitionTime: number;
 
-    public constructor(minChunkIdY: number, maxChunkIdY: number, voxelMaterialsStore: MaterialsStore, options?: VoxelmapViewerOptions) {
-        const chunkSize = options?.chunkSize ?? { xz: 64, y: 64 };
-        super(minChunkIdY, maxChunkIdY, chunkSize);
+    public constructor(params: Parameters) {
+        const chunkSize = params.options?.chunkSize ?? { xz: 64, y: 64 };
+        super(params);
 
-        this.computationOptions = options?.computationOptions || {
+        this.computationOptions = params.options?.computationOptions || {
             method: EComputationMethod.CPU_MULTITHREADED,
             threadsCount: 3,
         };
 
         let checkerboardType: CheckerboardType = 'xyz';
-        if (options?.checkerboardType) {
-            checkerboardType = options.checkerboardType;
+        if (params.options?.checkerboardType) {
+            checkerboardType = params.options.checkerboardType;
         }
 
-        const voxelsChunkOrdering = options?.voxelsChunkOrdering ?? 'zyx';
+        const voxelsChunkOrdering = params.options?.voxelsChunkOrdering ?? 'zyx';
 
         if (this.computationOptions.method === EComputationMethod.CPU_MONOTHREADED) {
             this.chunkRenderableFactory = new ChunkRenderableFactoryCpu({
-                voxelMaterialsStore,
+                voxelMaterialsStore: params.voxelMaterialsStore,
                 maxVoxelsChunkSize: chunkSize,
                 checkerboardType,
                 greedyMeshing: this.computationOptions.greedyMeshing ?? true,
@@ -79,7 +87,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             });
         } else if (this.computationOptions.method === EComputationMethod.CPU_MULTITHREADED) {
             this.chunkRenderableFactory = new ChunkRenderableFactoryCpuWorker({
-                voxelMaterialsStore,
+                voxelMaterialsStore: params.voxelMaterialsStore,
                 maxVoxelsChunkSize: chunkSize,
                 workersPoolSize: this.computationOptions.threadsCount,
                 checkerboardType,
@@ -88,7 +96,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             });
         } else {
             this.chunkRenderableFactory = new ChunkRenderableFactoryGpu({
-                voxelMaterialsStore,
+                voxelMaterialsStore: params.voxelMaterialsStore,
                 voxelsChunkSize: chunkSize,
                 voxelsChunkOrdering,
                 checkerboardType,
@@ -98,7 +106,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
         this.promiseThrottler = new PromisesQueue(this.maxChunksComputedInParallel);
 
-        this.transitionTime = options?.transitionTime ?? 250;
+        this.transitionTime = params.options?.transitionTime ?? 250;
     }
 
     public override update(): void {
@@ -270,11 +278,4 @@ class VoxelmapViewer extends VoxelmapViewerBase {
     }
 }
 
-export {
-    EComputationMethod,
-    EComputationResult,
-    VoxelmapViewer,
-    type ComputationOptions,
-    type VoxelmapViewerOptions,
-    type VoxelsChunkData,
-};
+export { EComputationMethod, EComputationResult, VoxelmapViewer, type ComputationOptions, type VoxelsChunkData };

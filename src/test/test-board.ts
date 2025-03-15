@@ -65,15 +65,22 @@ class TestBoard extends TestBase {
             voxelMaterialsList: map.voxelTypesDefininitions.solidMaterials,
             maxShininess: 400,
         });
-        this.voxelmapViewer = new VoxelmapViewer(minChunkIdY, maxChunkIdY, this.voxelMaterialsStore, {
+        this.voxelmapViewer = new VoxelmapViewer({
             chunkSize,
-            computationOptions: {
-                method: EComputationMethod.CPU_MULTITHREADED,
-                threadsCount: 4,
-                greedyMeshing: true,
+            chunkIdY: {
+                min: minChunkIdY,
+                max: maxChunkIdY,
             },
-            checkerboardType: 'xz',
-            voxelsChunkOrdering: 'zyx',
+            voxelMaterialsStore: this.voxelMaterialsStore,
+            options: {
+                computationOptions: {
+                    method: EComputationMethod.CPU_MULTITHREADED,
+                    threadsCount: 4,
+                    greedyMeshing: true,
+                },
+                checkerboardType: 'xz',
+                voxelsChunkOrdering: 'zyx',
+            },
         });
         this.voxelmapViewer.parameters.faces.checkerboardContrast = 0.01;
 
