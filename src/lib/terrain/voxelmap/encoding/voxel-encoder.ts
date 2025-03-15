@@ -14,7 +14,7 @@ class VoxelEncoder {
         packedUintFactory.encodeNBits(13); // padding, reserved for voxel-specific data
         const voxelType = packedUintFactory.encodeNBits(2);
 
-        const voxelTypeMask = 0b1000000000000011;
+        const voxelTypeMask = 0b1100000000000001;
 
         // solid voxels
         {
