@@ -74,7 +74,7 @@ class VoxelmapCollider implements IVoxelmapCollider {
             const compactedData = new Uint8Array(Math.ceil(rawData.length / 8));
             for (let iVoxelIndex = 0; iVoxelIndex < rawData.length; iVoxelIndex++) {
                 const voxelData = rawData[iVoxelIndex]!;
-                if (this.voxelEncoder.solidVoxel.isSolidVoxel(voxelData)) {
+                if (this.voxelEncoder.solidVoxel.isOfType(voxelData)) {
                     const uint8Index = Math.floor(iVoxelIndex / 8);
                     const bitIndex = iVoxelIndex - 8 * uint8Index;
                     compactedData[uint8Index]! |= 1 << bitIndex;
@@ -227,7 +227,7 @@ class VoxelmapCollider implements IVoxelmapCollider {
                 throw new Error();
             }
 
-            if (this.voxelEncoder.solidVoxel.isSolidVoxel(voxel)) {
+            if (this.voxelEncoder.solidVoxel.isOfType(voxel)) {
                 return EVoxelStatus.FULL;
             }
             return EVoxelStatus.EMPTY;

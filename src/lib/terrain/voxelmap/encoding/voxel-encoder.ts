@@ -6,7 +6,7 @@ import { SolidVoxelEncoder } from './solid-voxel-encoder';
 class VoxelEncoder {
     private readonly empty = 0;
 
-    public solidVoxel: SolidVoxelEncoder;
+    public readonly solidVoxel: SolidVoxelEncoder;
 
     public constructor() {
         const packedUintFactory = new PackedUintFactory(16);
@@ -24,6 +24,9 @@ class VoxelEncoder {
             this.solidVoxel = new SolidVoxelEncoder(packedUintFactory, voxelTypeMask, solidVoxelTypeMaskValue);
             if (packedUintFactory.getNextAvailableBit() > 14) {
                 throw new Error('Last two bits are reserved for voxel type');
+            }
+            if (this.solidVoxel.isOfType(this.empty)) {
+                throw new Error();
             }
         }
     }

@@ -114,12 +114,12 @@ async function computeBoard(map: IVoxelMap, originWorld: THREE.Vector3Like, radi
         };
         let originSample = sampleData(originWorldCoords);
         let deltaY = 0;
-        while (!voxelEncoder.solidVoxel.isSolidVoxel(originSample) && deltaY < maxDeltaY) {
+        while (!voxelEncoder.solidVoxel.isOfType(originSample) && deltaY < maxDeltaY) {
             originWorldCoords.y--;
             deltaY++;
             originSample = sampleData(originWorldCoords);
         }
-        if (!voxelEncoder.solidVoxel.isSolidVoxel(originSample)) {
+        if (!voxelEncoder.solidVoxel.isOfType(originSample)) {
             throw new Error();
         }
         setBoardSquare(
@@ -157,12 +157,12 @@ async function computeBoard(map: IVoxelMap, originWorld: THREE.Vector3Like, radi
                 const generation = currentGeneration;
                 const sampleY = sampleData(worldPos);
 
-                if (voxelEncoder.solidVoxel.isSolidVoxel(sampleY)) {
+                if (voxelEncoder.solidVoxel.isOfType(sampleY)) {
                     let firstSample: number | null = null;
                     let lastSample = sampleY;
                     for (let deltaY = 1; deltaY < maxDeltaY; deltaY++) {
                         const sample = sampleData({ x: worldPos.x, y: worldPos.y + deltaY, z: worldPos.z });
-                        if (!voxelEncoder.solidVoxel.isSolidVoxel(sample)) {
+                        if (!voxelEncoder.solidVoxel.isOfType(sample)) {
                             return {
                                 type: EBoardSquareType.FLAT,
                                 materialId: voxelEncoder.solidVoxel.getMaterialId(lastSample),
@@ -188,7 +188,7 @@ async function computeBoard(map: IVoxelMap, originWorld: THREE.Vector3Like, radi
                 } else {
                     for (let deltaY = -1; deltaY > -maxDeltaY; deltaY--) {
                         const sample = sampleData({ x: worldPos.x, y: worldPos.y + deltaY, z: worldPos.z });
-                        if (voxelEncoder.solidVoxel.isSolidVoxel(sample)) {
+                        if (voxelEncoder.solidVoxel.isOfType(sample)) {
                             return {
                                 type: EBoardSquareType.FLAT,
                                 materialId: voxelEncoder.solidVoxel.getMaterialId(sample),

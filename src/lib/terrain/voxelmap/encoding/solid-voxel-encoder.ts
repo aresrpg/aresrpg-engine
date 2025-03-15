@@ -1,34 +1,20 @@
 import { type PackedUintFactory, type PackedUintFragment } from '../../../helpers/uint-packing';
 
-class SolidVoxelEncoder {
+import { SpecializedVoxelEncoder } from './specialized-voxel-encoder';
+
+class SolidVoxelEncoder extends SpecializedVoxelEncoder {
     private readonly isChecker: PackedUintFragment;
     private readonly materialId: PackedUintFragment;
 
-    private readonly voxelTypeMask: number;
-    private readonly voxelTypeMaskValue: number;
-
     public constructor(packedUintFactory: PackedUintFactory, voxelTypeMask: number, voxelTypeMaskValue: number) {
+        super(voxelTypeMask, voxelTypeMaskValue);
+
         this.isChecker = packedUintFactory.encodeNBits(1);
         this.materialId = packedUintFactory.encodeNBits(12);
-
-        this.voxelTypeMask = voxelTypeMask;
-        this.voxelTypeMaskValue = voxelTypeMaskValue;
-
-        if ((this.voxelTypeMask | this.voxelTypeMaskValue) !== this.voxelTypeMask) {
-            throw new Error();
-        }
     }
 
     public encode(isCheckerboard: boolean, materialId: number): number {
         return this.voxelTypeMaskValue | this.isChecker.encode(+isCheckerboard) | this.materialId.encode(materialId);
-    }
-
-    public isSolidVoxel(data: number): boolean {
-        return (data & this.voxelTypeMask) === this.voxelTypeMaskValue;
-    }
-
-    public wgslIsSolidVoxel(varname: string): string {
-        return `((${varname} & ${this.voxelTypeMask}u) == ${this.voxelTypeMaskValue}u)`;
     }
 
     public isCheckerboard(data: number): boolean {
@@ -57,7 +43,7 @@ class SolidVoxelEncoder {
 
             ${this.encode.toString()},
 
-            ${this.isSolidVoxel.toString()},
+            ${this.isOfType.toString()},
             ${this.isCheckerboard.toString()},
             ${this.getMaterialId.toString()},
         }`;

@@ -99,7 +99,7 @@ class VoxelsComputerGpu {
         fn doesNeighbourExist(voxelCacheIndex: i32, neighbourRelativePosition: vec3i) -> bool {
             let neighbourCacheIndex = voxelCacheIndex + buildBufferIndex(neighbourRelativePosition);
             let neighbourData = sampleVoxelsChunk(neighbourCacheIndex);
-            return ${voxelEncoder.solidVoxel.wgslIsSolidVoxel('neighbourData')};
+            return ${voxelEncoder.solidVoxel.wgslIsOfType('neighbourData')};
         }
         fn encodeVertexData1(voxelPosition: vec3u, verticePosition: vec3u, ao: u32, edgeRoundnessX: u32, edgeRoundnessY: u32) -> u32 {
             let position = voxelPosition + verticePosition;
@@ -132,7 +132,7 @@ class VoxelsComputerGpu {
                 let cacheCoords = vec3i(voxelLocalPosition + 1u);
                 let cacheIndex: i32 = buildBufferIndex(cacheCoords);
                 let voxelData: u32 = sampleVoxelsChunk(cacheIndex);
-                if (${voxelEncoder.solidVoxel.wgslIsSolidVoxel('voxelData')}) {
+                if (${voxelEncoder.solidVoxel.wgslIsOfType('voxelData')}) {
                     let voxelMaterialId: u32 = ${voxelEncoder.solidVoxel.wgslGetMaterialId('voxelData')};
                     let isCheckerboard = ${voxelEncoder.solidVoxel.wgslIsCheckerboard('voxelData')};
                     ${Object.values(Cube.faces)

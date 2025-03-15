@@ -230,7 +230,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                 if (typeof neighbourData === 'undefined') {
                     throw new Error();
                 }
-                return this.voxelEncoder.solidVoxel.isSolidVoxel(neighbourData);
+                return this.voxelEncoder.solidVoxel.isOfType(neighbourData);
             };
 
             return Object.assign(voxelsChunkData, {
@@ -254,7 +254,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                             throw new Error();
                         }
 
-                        if (this.voxelEncoder.solidVoxel.isSolidVoxel(cacheData)) {
+                        if (this.voxelEncoder.solidVoxel.isOfType(cacheData)) {
                             // if there is a voxel there
                             if (
                                 localPosition.x > 0 &&
