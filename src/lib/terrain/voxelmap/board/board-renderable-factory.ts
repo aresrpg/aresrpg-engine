@@ -101,7 +101,7 @@ class BoardRenderableFactory extends VoxelsRenderableFactoryCpuWorker {
 
                 for (let iChunkY = fromChunkY; iChunkY < toChunkY; iChunkY++) {
                     const index = iChunkX + iChunkY * chunkSize.x + iChunkZ * (chunkSize.x * chunkSize.y);
-                    chunkData[index] = voxelEncoder.encode(true, boardSquare.materialId);
+                    chunkData[index] = voxelEncoder.solidVoxel.encode(true, boardSquare.materialId);
                     chunkIsEmpty = false;
                 }
             }

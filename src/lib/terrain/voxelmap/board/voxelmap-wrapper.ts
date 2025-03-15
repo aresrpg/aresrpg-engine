@@ -91,7 +91,7 @@ class VoxelmapWrapper implements IVoxelMap {
                             if (this.includeBoard) {
                                 if (hiddenColumn.boardSquareType !== EBoardSquareType.HOLE) {
                                     if (deltaYBoard === boardY) {
-                                        localMapData.data[index]! = voxelEncoder.encode(true, hiddenColumn.materialId);
+                                        localMapData.data[index]! = voxelEncoder.solidVoxel.encode(true, hiddenColumn.materialId);
                                     }
                                 }
                             }

@@ -23,7 +23,7 @@ type FaceData = {
 
 type VoxelsChunkCache = VoxelsChunkData & {
     buildIndexUnsafe(position: THREE.Vector3Like): number;
-    neighbourExists(voxelIndex: number, neighbourRelativePosition: THREE.Vector3Like): boolean;
+    neighbourIsSolid(voxelIndex: number, neighbourRelativePosition: THREE.Vector3Like): boolean;
 };
 
 type Parameters = {
@@ -223,19 +223,19 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                 return position.x * indexFactor.x + position.y * indexFactor.y + position.z * indexFactor.z;
             };
 
-            const neighbourExists = (index: number, neighbour: THREE.Vector3Like) => {
+            const neighbourIsSolid = (index: number, neighbour: THREE.Vector3Like) => {
                 const deltaIndex = buildIndexUnsafe(neighbour);
                 const neighbourIndex = index + deltaIndex;
                 const neighbourData = voxelsChunkData.data[neighbourIndex];
                 if (typeof neighbourData === 'undefined') {
                     throw new Error();
                 }
-                return !this.voxelEncoder.isEmpty(neighbourData);
+                return this.voxelEncoder.solidVoxel.isSolidVoxel(neighbourData);
             };
 
             return Object.assign(voxelsChunkData, {
                 buildIndexUnsafe,
-                neighbourExists,
+                neighbourIsSolid,
             });
         },
 
@@ -254,7 +254,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                             throw new Error();
                         }
 
-                        if (!this.voxelEncoder.isEmpty(cacheData)) {
+                        if (this.voxelEncoder.solidVoxel.isSolidVoxel(cacheData)) {
                             // if there is a voxel there
                             if (
                                 localPosition.x > 0 &&
@@ -265,11 +265,11 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                                 localPosition.z < voxelsChunkCache.size.z - 1
                             ) {
                                 const voxelLocalPosition = { x: localPosition.x - 1, y: localPosition.y - 1, z: localPosition.z - 1 };
-                                const voxelMaterialId = this.voxelEncoder.getMaterialId(cacheData);
-                                const voxelIsCheckerboard = this.voxelEncoder.isCheckerboard(cacheData);
+                                const voxelMaterialId = this.voxelEncoder.solidVoxel.getMaterialId(cacheData);
+                                const voxelIsCheckerboard = this.voxelEncoder.solidVoxel.isCheckerboard(cacheData);
 
                                 for (const face of Object.values(this.cube.faces)) {
-                                    if (voxelsChunkCache.neighbourExists(cacheIndex, face.normal.vec)) {
+                                    if (voxelsChunkCache.neighbourIsSolid(cacheIndex, face.normal.vec)) {
                                         // this face will be hidden -> skip it
                                         continue;
                                     }
@@ -283,7 +283,7 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                                         verticesData: face.vertices.map((faceVertex: Cube.FaceVertex): VertexData => {
                                             let ao = 0;
                                             const [a, b, c] = faceVertex.shadowingNeighbourVoxels.map(neighbourVoxel =>
-                                                voxelsChunkCache.neighbourExists(cacheIndex, neighbourVoxel)
+                                                voxelsChunkCache.neighbourIsSolid(cacheIndex, neighbourVoxel)
                                             ) as [boolean, boolean, boolean];
                                             if (a && b) {
                                                 ao = 3;
@@ -294,10 +294,10 @@ class VoxelsRenderableFactoryCpu extends VoxelsRenderableFactory {
                                             let roundnessX = true;
                                             let roundnessY = true;
                                             for (const neighbourVoxel of faceVertex.edgeNeighbourVoxels.x) {
-                                                roundnessX &&= !voxelsChunkCache.neighbourExists(cacheIndex, neighbourVoxel);
+                                                roundnessX &&= !voxelsChunkCache.neighbourIsSolid(cacheIndex, neighbourVoxel);
                                             }
                                             for (const neighbourVoxel of faceVertex.edgeNeighbourVoxels.y) {
-                                                roundnessY &&= !voxelsChunkCache.neighbourExists(cacheIndex, neighbourVoxel);
+                                                roundnessY &&= !voxelsChunkCache.neighbourIsSolid(cacheIndex, neighbourVoxel);
                                             }
 
                                             return {

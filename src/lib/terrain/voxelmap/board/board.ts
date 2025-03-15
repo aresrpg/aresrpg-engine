@@ -114,19 +114,19 @@ async function computeBoard(map: IVoxelMap, originWorld: THREE.Vector3Like, radi
         };
         let originSample = sampleData(originWorldCoords);
         let deltaY = 0;
-        while (voxelEncoder.isEmpty(originSample) && deltaY < maxDeltaY) {
+        while (!voxelEncoder.solidVoxel.isSolidVoxel(originSample) && deltaY < maxDeltaY) {
             originWorldCoords.y--;
             deltaY++;
             originSample = sampleData(originWorldCoords);
         }
-        if (voxelEncoder.isEmpty(originSample)) {
+        if (!voxelEncoder.solidVoxel.isSolidVoxel(originSample)) {
             throw new Error();
         }
         setBoardSquare(
             { x: 0, z: 0 },
             {
                 type: EBoardSquareType.FLAT,
-                materialId: voxelEncoder.getMaterialId(originSample),
+                materialId: voxelEncoder.solidVoxel.getMaterialId(originSample),
                 generation: currentGeneration,
                 floorY: originWorldCoords.y - 1,
             }
@@ -157,15 +157,15 @@ async function computeBoard(map: IVoxelMap, originWorld: THREE.Vector3Like, radi
                 const generation = currentGeneration;
                 const sampleY = sampleData(worldPos);
 
-                if (!voxelEncoder.isEmpty(sampleY)) {
+                if (voxelEncoder.solidVoxel.isSolidVoxel(sampleY)) {
                     let firstSample: number | null = null;
                     let lastSample = sampleY;
                     for (let deltaY = 1; deltaY < maxDeltaY; deltaY++) {
                         const sample = sampleData({ x: worldPos.x, y: worldPos.y + deltaY, z: worldPos.z });
-                        if (voxelEncoder.isEmpty(sample)) {
+                        if (!voxelEncoder.solidVoxel.isSolidVoxel(sample)) {
                             return {
                                 type: EBoardSquareType.FLAT,
-                                materialId: voxelEncoder.getMaterialId(lastSample),
+                                materialId: voxelEncoder.solidVoxel.getMaterialId(lastSample),
                                 floorY: worldPos.y + deltaY - 1,
                                 generation,
                             };
@@ -181,17 +181,17 @@ async function computeBoard(map: IVoxelMap, originWorld: THREE.Vector3Like, radi
 
                     return {
                         type: EBoardSquareType.OBSTACLE,
-                        materialId: voxelEncoder.getMaterialId(firstSample),
+                        materialId: voxelEncoder.solidVoxel.getMaterialId(firstSample),
                         floorY: worldPos.y,
                         generation,
                     };
                 } else {
                     for (let deltaY = -1; deltaY > -maxDeltaY; deltaY--) {
                         const sample = sampleData({ x: worldPos.x, y: worldPos.y + deltaY, z: worldPos.z });
-                        if (!voxelEncoder.isEmpty(sample)) {
+                        if (voxelEncoder.solidVoxel.isSolidVoxel(sample)) {
                             return {
                                 type: EBoardSquareType.FLAT,
-                                materialId: voxelEncoder.getMaterialId(sample),
+                                materialId: voxelEncoder.solidVoxel.getMaterialId(sample),
                                 floorY: worldPos.y + deltaY,
                                 generation,
                             };

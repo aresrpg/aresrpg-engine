@@ -164,9 +164,9 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
         };
 
         let isEmpty = true;
-        const setVoxel = (localPos: THREE.Vector3Like, materialId: number) => {
+        const setSolidVoxel = (localPos: THREE.Vector3Like, materialId: number) => {
             const index = buildIndex(localPos);
-            data[index] = voxelEncoder.encode(false, materialId);
+            data[index] = voxelEncoder.solidVoxel.encode(false, materialId);
             isEmpty = false;
         };
 
@@ -191,7 +191,7 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
                         const treeVoxel = tree.getVoxel(treeLocalPos);
                         if (treeVoxel !== null) {
                             blockLocalPos.subVectors(worldPos, blockStart);
-                            setVoxel(blockLocalPos, treeVoxel);
+                            setSolidVoxel(blockLocalPos, treeVoxel);
                         }
                     }
                 }
@@ -227,7 +227,7 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
                     const fromY = blockStart.y - blockStart.y;
                     const toY = Math.min(blockEnd.y, sample.altitude + 1) - blockStart.y;
                     for (localPos.y = fromY; localPos.y < toY; localPos.y++) {
-                        setVoxel(localPos, materialId);
+                        setSolidVoxel(localPos, materialId);
                     }
                 }
             }

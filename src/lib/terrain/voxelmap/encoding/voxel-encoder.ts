@@ -1,72 +1,40 @@
 import { PackedUintFactory } from '../../../helpers/uint-packing';
+import { EVoxelType } from '../i-voxelmap';
+
+import { SolidVoxelEncoder } from './solid-voxel-encoder';
 
 class VoxelEncoder {
-    private readonly packedUintFactory = new PackedUintFactory(16);
-    private readonly isNotEmpty = this.packedUintFactory.encodeNValues(1 << 2);
-    private readonly isChecker = this.packedUintFactory.encodeNValues(1 << 2);
-    private readonly materialId = this.packedUintFactory.encodeNValues(1 << 12);
+    private readonly empty = 0;
 
-    private readonly empty: number;
+    public solidVoxel: SolidVoxelEncoder;
 
     public constructor() {
-        if (!this.isEmpty(0)) {
-            throw new Error(`0 should always mean the voxel is empty.`);
-        }
+        const packedUintFactory = new PackedUintFactory(16);
+        const emptiness = packedUintFactory.encodeNBits(1);
+        packedUintFactory.encodeNBits(13); // padding, reserved for voxel-specific data
+        const voxelType = packedUintFactory.encodeNBits(2);
 
-        this.empty = this.encodeInternal(true, false, 0);
+        const voxelTypeMask = 0b1000000000000011;
+
+        // solid voxels
+        {
+            const solidVoxelTypeMaskValue = emptiness.encode(1) | voxelType.encode(EVoxelType.SOLID);
+            const packedUintFactory = new PackedUintFactory(16);
+            packedUintFactory.encodeNBits(1); // reserved for emptiness
+            this.solidVoxel = new SolidVoxelEncoder(packedUintFactory, voxelTypeMask, solidVoxelTypeMaskValue);
+            if (packedUintFactory.getNextAvailableBit() > 14) {
+                throw new Error('Last two bits are reserved for voxel type');
+            }
+        }
     }
 
     public encodeEmpty(): number {
         return this.empty;
     }
 
-    public encode(isCheckerboard: boolean, materialId: number): number {
-        return this.encodeInternal(false, isCheckerboard, materialId);
-    }
-
-    private encodeInternal(isEmpty: boolean, isCheckerboard: boolean, materialId: number): number {
-        return this.isNotEmpty.encode(+!isEmpty) + this.isChecker.encode(+isCheckerboard) + this.materialId.encode(materialId);
-    }
-
-    public isEmpty(data: number): boolean {
-        return this.isNotEmpty.decode(data) === 0;
-    }
-
-    public wgslIsEmpty(varname: string): string {
-        return `(${this.isNotEmpty.wgslDecode(varname)} == 0u)`;
-    }
-
-    public isCheckerboard(data: number): boolean {
-        return this.isChecker.decode(data) === 1;
-    }
-
-    public wgslIsCheckerboard(varname: string): string {
-        return `(${this.isChecker.wgslDecode(varname)} == 1u)`;
-    }
-
-    public getMaterialId(data: number): number {
-        if (this.isEmpty(data)) {
-            throw new Error(`Cannot extract material ID from empty data.`);
-        }
-        return this.materialId.decode(data);
-    }
-
-    public wgslGetMaterialId(varname: string): string {
-        return this.materialId.wgslDecode(varname);
-    }
-
     public serialize(): string {
         return `{
-            isNotEmpty: ${this.isNotEmpty.serialize()},
-            materialId: ${this.materialId.serialize()},
-            isChecker: ${this.isChecker.serialize()},
-            empty: ${this.empty},
-            ${this.encodeEmpty.toString()},
-            ${this.encode.toString()},
-            ${this.encodeInternal.toString()},
-            ${this.isEmpty.toString()},
-            ${this.isCheckerboard.toString()},
-            ${this.getMaterialId.toString()},
+            solidVoxel: ${this.solidVoxel.serialize()},
         }`;
     }
 }

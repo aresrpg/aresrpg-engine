@@ -3,8 +3,8 @@ import { DedicatedWorkersPool } from '../helpers/async/dedicatedWorkers/dedicate
 import { logger } from '../helpers/logger';
 import type * as THREE from '../libs/three-usage';
 import { ChunkId } from '../terrain/voxelmap/chunk/chunk-id';
-import { type VoxelsChunkOrdering } from '../terrain/voxelmap/i-voxelmap';
 import { VoxelEncoder } from '../terrain/voxelmap/encoding/voxel-encoder';
+import { type VoxelsChunkOrdering } from '../terrain/voxelmap/i-voxelmap';
 import { type VoxelsChunkData } from '../terrain/voxelmap/voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
 import { EVoxelStatus, type IVoxelmapCollider } from './i-voxelmap-collider';
@@ -74,7 +74,7 @@ class VoxelmapCollider implements IVoxelmapCollider {
             const compactedData = new Uint8Array(Math.ceil(rawData.length / 8));
             for (let iVoxelIndex = 0; iVoxelIndex < rawData.length; iVoxelIndex++) {
                 const voxelData = rawData[iVoxelIndex]!;
-                if (!this.voxelEncoder.isEmpty(voxelData)) {
+                if (this.voxelEncoder.solidVoxel.isSolidVoxel(voxelData)) {
                     const uint8Index = Math.floor(iVoxelIndex / 8);
                     const bitIndex = iVoxelIndex - 8 * uint8Index;
                     compactedData[uint8Index]! |= 1 << bitIndex;
@@ -227,10 +227,10 @@ class VoxelmapCollider implements IVoxelmapCollider {
                 throw new Error();
             }
 
-            if (this.voxelEncoder.isEmpty(voxel)) {
-                return EVoxelStatus.EMPTY;
+            if (this.voxelEncoder.solidVoxel.isSolidVoxel(voxel)) {
+                return EVoxelStatus.FULL;
             }
-            return EVoxelStatus.FULL;
+            return EVoxelStatus.EMPTY;
         }
     }
 
