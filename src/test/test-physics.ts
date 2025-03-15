@@ -12,7 +12,7 @@ import {
     VoxelmapVisibilityComputer,
     type VoxelsChunkOrdering,
 } from '../lib';
-import { ClutterViewer } from '../lib/terrain/clutter/clutter-viewer';
+import { ClutterViewer } from '../lib/terrain/voxelmap/clutter/clutter-viewer';
 
 import { TestBase } from './test-base';
 

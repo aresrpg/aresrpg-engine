@@ -11,7 +11,7 @@ import { TestTerrain } from './test-terrain';
 import { TestTextureCustomization } from './test-texture-customization';
 import { TestWeather } from './test-weather';
 
-setVerbosity(ELogLevel.WARN);
+setVerbosity(ELogLevel.DEBUG);
 
 enum ETest {
     TERRAIN,

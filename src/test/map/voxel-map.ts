@@ -49,7 +49,7 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
         solidMaterials: colorMapping.materialsList,
         clutterVoxels: [
             {
-                geometry: new THREE.SphereGeometry(0.3),
+                geometry: new THREE.BoxGeometry(0.5, 0.5, 0.5), // THREE.SphereGeometry(0.3),
                 material: new THREE.MeshPhongMaterial({ color: 0xff0000 }),
             },
         ],

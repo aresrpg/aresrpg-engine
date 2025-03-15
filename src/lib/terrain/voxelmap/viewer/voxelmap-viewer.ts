@@ -2,14 +2,13 @@ import { PromisesQueue } from '../../../helpers/async/promises-queue';
 import { logger } from '../../../helpers/logger';
 import { vec3ToString } from '../../../helpers/string';
 import * as THREE from '../../../libs/three-usage';
-import { ClutterComputer } from '../../clutter/clutter-computer';
-import { type ClutterViewer } from '../../clutter/clutter-viewer';
 import { type MaterialsStore } from '../../materials-store';
 import { ChunkId } from '../chunk/chunk-id';
 import { type ChunkRenderableFactoryBase } from '../chunk/chunkRenderableFactory/chunk-renderable-factory-base';
 import { ChunkRenderableFactoryCpu } from '../chunk/chunkRenderableFactory/cpu/chunk-renderable-factory-cpu';
 import { ChunkRenderableFactoryCpuWorker } from '../chunk/chunkRenderableFactory/cpu/chunk-renderable-factory-cpu-worker';
 import { ChunkRenderableFactoryGpu } from '../chunk/chunkRenderableFactory/gpu/chunk-renderable-facory-gpu';
+import { type ClutterViewer } from '../clutter/clutter-viewer';
 import { type VoxelsChunkOrdering, type VoxelsChunkSize } from '../i-voxelmap';
 import { type CheckerboardType, type VoxelsChunkData } from '../voxelsRenderable/voxelsRenderableFactory/voxels-renderable-factory-base';
 
@@ -64,7 +63,6 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
     private readonly transitionTime: number;
 
-    private readonly clutterComputer = new ClutterComputer();
     private readonly clutterViewer: ClutterViewer;
 
     public constructor(params: Parameters) {
@@ -138,6 +136,8 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             throw new Error(`Invalid voxels chunk size ${vec3ToString(voxelsChunkData.size)}.`);
         }
 
+        this.clutterViewer.enqueueChunk(id, voxelsChunkData);
+
         const chunkId = new ChunkId(id);
         let asyncChunk = this.asyncChunks.get(chunkId.asString);
         if (!asyncChunk) {
@@ -149,13 +149,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         }
         if (!asyncChunk.needsNewData()) {
             logger.debug(`Skipping unnecessary computation of up-do-date chunk "${chunkId.asString}".`);
-            return Promise.resolve(EComputationResult.SKIPPED);
-        }
-
-        const chunkOrigin = new THREE.Vector3().multiplyVectors(this.chunkSizeVec3, id);
-        const chunkClutter = this.clutterComputer.buildChunkClutter(chunkOrigin, voxelsChunkData);
-        for (const [clutterId, matrices] of chunkClutter.entries()) {
-            this.clutterViewer.setChunkPropsFromWorldMatrices(id, clutterId, matrices);
+            return EComputationResult.SKIPPED;
         }
 
         const computationTask = async () => {
@@ -167,23 +161,26 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             return await this.chunkRenderableFactory.buildChunkRenderable(chunkId, chunkStart, chunkEnd, voxelsChunkData);
         };
 
-        return asyncChunk.scheduleNewComputation(computationTask, this.promiseThrottler);
+        return await asyncChunk.scheduleNewComputation(computationTask, this.promiseThrottler);
     }
 
     public purgeQueue(): void {
         this.promiseThrottler.cancelAll();
+        this.clutterViewer.purgeQueue();
     }
 
     public dequeueChunk(id: THREE.Vector3Like): void {
         const chunkId = new ChunkId(id);
         const asyncChunk = this.asyncChunks.get(chunkId.asString);
         asyncChunk?.cancelScheduledComputation();
+        this.clutterViewer.dequeueChunk(id);
     }
 
     public invalidateChunk(id: THREE.Vector3Like): void {
         const chunkId = new ChunkId(id);
         const asyncChunk = this.asyncChunks.get(chunkId.asString);
         asyncChunk?.flagAsObsolete();
+        this.clutterViewer.invalidateChunk(id);
     }
 
     public deleteChunk(id: THREE.Vector3Like): void {
@@ -193,6 +190,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
             asyncChunk.cancelScheduledComputation();
             asyncChunk.deleteComputationResults();
         }
+        this.clutterViewer.deleteChunk(id);
     }
 
     public setVisibility(visibleChunksIds: Iterable<THREE.Vector3Like>): void {
@@ -218,6 +216,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
 
     public override dispose(): void {
         super.dispose();
+        this.clutterViewer.dispose();
         throw new Error('Not implemented');
     }
 
@@ -287,7 +286,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         while (nextChunkToDelete && invisibleChunksList.length > maxInvisibleChunksInCache) {
             nextChunkToDelete.asyncChunk.dispose();
             this.asyncChunks.delete(nextChunkToDelete.asyncChunk.id.asString);
-            this.clutterViewer.deleteChunkClutter(nextChunkToDelete.asyncChunk.id);
+            this.clutterViewer.deleteChunk(nextChunkToDelete.asyncChunk.id);
             nextChunkToDelete = invisibleChunksList.pop();
         }
     }

@@ -26,7 +26,7 @@ import {
     type IVoxelMap,
     type IWaterMap,
 } from '../lib';
-import { ClutterViewer } from '../lib/terrain/clutter/clutter-viewer';
+import { ClutterViewer } from '../lib/terrain/voxelmap/clutter/clutter-viewer';
 
 import { LineOfSight } from './board/line-of-sight';
 import { PathFinder } from './board/path-finder';

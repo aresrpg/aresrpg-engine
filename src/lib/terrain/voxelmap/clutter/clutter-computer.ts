@@ -1,15 +1,15 @@
-import * as THREE from '../../libs/three-usage';
-import { voxelEncoder, type VoxelsChunkOrdering } from '../voxelmap/i-voxelmap';
-import { type VoxelsChunkData } from '../voxelmap/viewer/voxelmap-viewer';
+import * as THREE from '../../../libs/three-usage';
+import { voxelEncoder, type VoxelsChunkOrdering } from '../i-voxelmap';
+import { type VoxelsChunkData } from '../viewer/voxelmap-viewer';
 
 type ChunkClutter = Map<number, ReadonlyArray<THREE.Matrix4>>;
 
 class ClutterComputer {
     public readonly dataOrdering: VoxelsChunkOrdering = 'zyx';
 
-    public buildChunkClutter(chunkWorldOrigin: THREE.Vector3Like, voxelsChunkData: VoxelsChunkData): ChunkClutter {
+    public computeChunkClutter(chunkWorldOrigin: THREE.Vector3Like, voxelsChunkData: VoxelsChunkData): Promise<ChunkClutter> {
         if (voxelsChunkData.isEmpty) {
-            return new Map();
+            return Promise.resolve(new Map());
         }
 
         if (voxelsChunkData.dataOrdering !== this.dataOrdering) {
@@ -49,7 +49,7 @@ class ClutterComputer {
             }
         }
 
-        return chunkClutter;
+        return Promise.resolve(chunkClutter);
     }
 }
 
