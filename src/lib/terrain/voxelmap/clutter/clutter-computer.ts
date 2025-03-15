@@ -47,11 +47,17 @@ class ClutterComputer {
                                     chunkClutterArraysMap.set(clutterId, array);
                                 }
 
+                                const s = 1 + 0.5 * Math.random();
+
+                                const a = 2 * Math.PI * Math.random();
+                                const ca = Math.cos(a);
+                                const sa = Math.sin(a);
+
                                 const tx = chunkWorldOrigin.x + localPosition.x - 1 + Math.random();
                                 const ty = chunkWorldOrigin.y + localPosition.y - 1;
                                 const tz = chunkWorldOrigin.z + localPosition.z - 1 + Math.random();
 
-                                array.push(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, tx, ty, tz, 1);
+                                array.push(s * ca, 0, sa, 0, 0, s, 0, 0, -sa, 0, s * ca, 0, tx, ty, tz, 1);
                             }
                         }
                     }
