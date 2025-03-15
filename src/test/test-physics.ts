@@ -2,6 +2,7 @@ import GUI from 'lil-gui';
 import * as THREE from 'three-usage-test';
 
 import {
+    ClutterViewer,
     EComputationMethod,
     type IVoxelMap,
     MaterialsStore,
@@ -12,7 +13,6 @@ import {
     VoxelmapVisibilityComputer,
     type VoxelsChunkOrdering,
 } from '../lib';
-import { ClutterViewer } from '../lib/terrain/voxelmap/clutter/clutter-viewer';
 
 import { TestBase } from './test-base';
 
@@ -90,6 +90,10 @@ class TestPhysics extends TestBase {
         this.clutterViewer = new ClutterViewer({
             map: this.map,
             chunkSize,
+            computationOptions: {
+                method: 'worker',
+                threadsCount: 1,
+            },
         });
 
         this.voxelmapViewer = new VoxelmapViewer({

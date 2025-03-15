@@ -4,6 +4,7 @@ import * as THREE from 'three-usage-test';
 import {
     BoardOverlaysHandler,
     BoardRenderableFactory,
+    ClutterViewer,
     computeBoard,
     EBoardSquareType,
     EComputationMethod,
@@ -19,7 +20,6 @@ import {
     type IHeightmap,
     type IVoxelMap,
 } from '../lib';
-import { ClutterViewer } from '../lib/terrain/voxelmap/clutter/clutter-viewer';
 
 import { LineOfSight } from './board/line-of-sight';
 import { PathFinder } from './board/path-finder';
@@ -72,6 +72,10 @@ class TestBoard extends TestBase {
         this.clutterViewer = new ClutterViewer({
             map,
             chunkSize,
+            computationOptions: {
+                method: 'worker',
+                threadsCount: 1,
+            },
         });
 
         this.voxelmapViewer = new VoxelmapViewer({

@@ -11,6 +11,7 @@ export { computeBoard, EBoardSquareType, type Board, type BoardSquare } from './
 export { BoardRenderableFactory, type BoardRenderable } from './terrain/voxelmap/board/board-renderable-factory';
 export { BoardOverlaysHandler } from './terrain/voxelmap/board/overlay/board-overlays-handler';
 export { VoxelmapWrapper } from './terrain/voxelmap/board/voxelmap-wrapper';
+export { ClutterViewer } from './terrain/voxelmap/clutter/clutter-viewer';
 export {
     voxelEncoder,
     type IVoxelMap,

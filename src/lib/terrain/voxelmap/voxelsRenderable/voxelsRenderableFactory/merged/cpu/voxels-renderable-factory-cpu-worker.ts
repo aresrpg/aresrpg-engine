@@ -34,10 +34,10 @@ class VoxelsRenderableFactoryCpuWorker extends VoxelsRenderableFactoryCpu {
             const workerDefinition: WorkerDefinition = {
                 commonCode: `const factory = ${this.serialize()};`,
                 tasks: {
-                    buildBuffer: (voxelsChunkData: VoxelsChunkDataNotEmpty) => {
+                    buildBuffer: (taskInput: VoxelsChunkDataNotEmpty) => {
                         // eslint-disable-next-line no-eval
                         const factory2 = eval('factory') as VoxelsRenderableFactoryCpu['serializableFactory'];
-                        const buffer = factory2.buildBuffer(voxelsChunkData);
+                        const buffer = factory2.buildBuffer(taskInput);
                         return {
                             taskResult: buffer,
                             taskResultTransferablesList: [buffer.buffer],

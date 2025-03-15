@@ -8,6 +8,7 @@ import { type IClutterDefinition, type IVoxelMap, type VoxelsChunkSize } from '.
 import { type VoxelsChunkData } from '../viewer/voxelmap-viewer';
 
 import { ClutterComputer } from './clutter-computer';
+import { ClutterComputerWorker } from './clutter-computer-worker';
 
 enum EComputationResult {
     SKIPPED = 'skipped',
@@ -18,6 +19,14 @@ enum EComputationResult {
 type Parameters = {
     readonly map: IVoxelMap;
     readonly chunkSize: VoxelsChunkSize;
+    readonly computationOptions:
+        | {
+              readonly method: 'main-thread';
+          }
+        | {
+              readonly method: 'worker';
+              readonly threadsCount: number;
+          };
 };
 
 type ClutterChunk = {
@@ -34,7 +43,7 @@ class ClutterViewer {
     private readonly propsViewers: ReadonlyArray<PropsViewer>;
 
     private readonly promiseThrottler: PromisesQueue;
-    private readonly computer = new ClutterComputer();
+    private readonly computer: ClutterComputer;
 
     private readonly clutterChunks = new Map<string, ClutterChunk>();
 
@@ -59,7 +68,16 @@ class ClutterViewer {
             return propsViewer;
         });
 
-        this.promiseThrottler = new PromisesQueue(1);
+        let threadsCount: number;
+        if (params.computationOptions.method === 'main-thread') {
+            this.computer = new ClutterComputer();
+            threadsCount = 1;
+        } else {
+            this.computer = new ClutterComputerWorker({ workersPoolSize: params.computationOptions.threadsCount });
+            threadsCount = params.computationOptions.threadsCount;
+        }
+
+        this.promiseThrottler = new PromisesQueue(threadsCount);
     }
 
     public dispose(): void {
@@ -164,7 +182,9 @@ class ClutterViewer {
         const chunkId = new ChunkId(id);
         this.clutterChunks.delete(chunkId.asString);
         for (const propsViewer of this.propsViewers) {
-            propsViewer.deleteChunkProps(chunkId);
+            if (propsViewer.hasChunkProps(chunkId)) {
+                propsViewer.deleteChunkProps(chunkId);
+            }
         }
     }
 
