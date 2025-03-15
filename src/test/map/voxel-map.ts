@@ -47,6 +47,12 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
 
     public readonly voxelTypesDefininitions = {
         solidMaterials: colorMapping.materialsList,
+        clutterVoxels: [
+            {
+                geometry: new THREE.SphereGeometry(0.3),
+                material: new THREE.MeshPhongMaterial({ color: 0xff0000 }),
+            },
+        ],
     };
 
     private readonly noise2D: NoiseFunction2D;
@@ -169,6 +175,11 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
             data[index] = voxelEncoder.solidVoxel.encode(false, materialId);
             isEmpty = false;
         };
+        const setClutterVoxel = (localPos: THREE.Vector3Like, clutterId: number) => {
+            const index = buildIndex(localPos);
+            data[index] = voxelEncoder.clutterVoxel.encode(clutterId, 1);
+            isEmpty = false;
+        };
 
         const addTree = (worldBasePos: THREE.Vector3Like, tree: Tree) => {
             const treeWorldBasePos = {
@@ -228,6 +239,22 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
                     const toY = Math.min(blockEnd.y, sample.altitude + 1) - blockStart.y;
                     for (localPos.y = fromY; localPos.y < toY; localPos.y++) {
                         setSolidVoxel(localPos, materialId);
+                    }
+
+                    // clutter
+                    localPos.y = sample.altitude + 1 - blockStart.y;
+                    if (
+                        localPos.x > 0 &&
+                        localPos.y > 0 &&
+                        localPos.z > 0 &&
+                        localPos.x < blockSize.x - 1 &&
+                        localPos.y < blockSize.y - 1 &&
+                        localPos.z < blockSize.z - 1
+                    ) {
+                        if (Math.random() < 0.5) {
+                            localPos.y = sample.altitude + 1 - blockStart.y;
+                            setClutterVoxel(localPos, 0);
+                        }
                     }
                 }
             }

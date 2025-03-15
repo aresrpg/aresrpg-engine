@@ -7,8 +7,8 @@ abstract class SpecializedVoxelEncoder {
         this.voxelTypeMaskValue = voxelTypeMaskValue;
 
         if (
-            ((this.voxelTypeMask & this.voxelTypeMaskValue) !== this.voxelTypeMaskValue) ||
-            ((this.voxelTypeMask | this.voxelTypeMaskValue) !== this.voxelTypeMask)
+            (this.voxelTypeMask & this.voxelTypeMaskValue) !== this.voxelTypeMaskValue ||
+            (this.voxelTypeMask | this.voxelTypeMaskValue) !== this.voxelTypeMask
         ) {
             throw new Error();
         }

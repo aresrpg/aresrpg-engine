@@ -1,4 +1,4 @@
-import { type Vector3Like } from '../../libs/three-usage';
+import type * as THREE from '../../libs/three-usage';
 
 import { VoxelEncoder } from './encoding/voxel-encoder';
 
@@ -15,6 +15,11 @@ interface IVoxelMaterial {
     readonly emissiveness?: number;
 }
 
+interface IClutterDefinition {
+    readonly geometry: THREE.BufferGeometry;
+    readonly material: THREE.Material;
+}
+
 type VoxelsChunkSize = {
     readonly xz: number;
     readonly y: number;
@@ -24,6 +29,7 @@ type VoxelsChunkOrdering = 'xyz' | 'xzy' | 'yxz' | 'yzx' | 'zxy' | 'zyx';
 
 enum EVoxelType {
     SOLID = 0b00,
+    CLUTTER = 0b01,
 }
 
 /** Compact object storing a portion of the map data  */
@@ -40,6 +46,10 @@ type LocalMapData =
            * If the voxel is not empty and voxel type is "EVoxelType.SOLID", then the voxel is of type SOLID and bits 1-13 are interpreted as follows:
            * - bit 1: 1 if the voxel should be displayed as checkerboard, 0 otherwise
            * - bits 2-13: ID of the material
+           *
+           * If the voxel is not empty and voxel type is "EVoxelType.CLUTTER", then the voxel is of type CLUTTER and bits 1-13 are interpreted as follows:
+           * - bit 1-10: ID of the clutter
+           * - bits 11-13: items count for this voxel
            *
            * Use the helper "voxelEncoder" to do this encoding and be future-proof.
            */
@@ -67,6 +77,12 @@ interface IVoxelMap {
          * Each material is then identified by its index in the array.
          */
         readonly solidMaterials: ReadonlyArray<IVoxelMaterial>;
+
+        /**
+         * Array of all the possible clutter definitions contained in the map.
+         * Each clutter is then identified by its index in the array.
+         */
+        readonly clutterVoxels: ReadonlyArray<IClutterDefinition>;
     };
 
     /**
@@ -74,9 +90,18 @@ interface IVoxelMap {
      * @param from Lower limit (inclusive) for the voxels coordinates
      * @param to Upper limit (exclusive) for the voxels coordinates
      */
-    getLocalMapData(from: Vector3Like, to: Vector3Like): LocalMapData | Promise<LocalMapData>;
+    getLocalMapData(from: THREE.Vector3Like, to: THREE.Vector3Like): LocalMapData | Promise<LocalMapData>;
 }
 
 const voxelEncoder = new VoxelEncoder();
 
-export { EVoxelType, voxelEncoder, type IVoxelMap, type IVoxelMaterial, type LocalMapData, type VoxelsChunkOrdering, type VoxelsChunkSize };
+export {
+    EVoxelType,
+    voxelEncoder,
+    type IClutterDefinition,
+    type IVoxelMap,
+    type IVoxelMaterial,
+    type LocalMapData,
+    type VoxelsChunkOrdering,
+    type VoxelsChunkSize,
+};
