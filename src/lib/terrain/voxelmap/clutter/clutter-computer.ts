@@ -40,7 +40,7 @@ class ClutterComputer {
                         if (this.clutterVoxelEncoder.isOfType(data)) {
                             const count = this.clutterVoxelEncoder.getCount(data);
                             const clutterId = this.clutterVoxelEncoder.getClutterId(data);
-                            if (count > 0) {
+                            for (let iC = 0; iC < count; iC++) {
                                 let array = chunkClutterArraysMap.get(clutterId);
                                 if (!array) {
                                     array = [];
