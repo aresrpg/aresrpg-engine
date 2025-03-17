@@ -212,7 +212,7 @@ class DedicatedWorker {
                     const taskProcessorsList = eval('taskProcessors') as Record<string, TaskProcessor>;
                     const taskProcessor = taskProcessorsList[taskName];
                     if (typeof taskProcessor === 'undefined') {
-                        throw new Error(`Unknwon task "${taskName}"`);
+                        throw new Error(`Unknown task "${taskName}"`);
                     }
 
                     const taskOutput = taskProcessor(taskInput);
