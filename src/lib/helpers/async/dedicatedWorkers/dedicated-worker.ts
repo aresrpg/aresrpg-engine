@@ -208,8 +208,11 @@ class DedicatedWorker {
                 const { taskName, taskInput, taskId } = taskRequestMessage;
 
                 try {
-                    // eslint-disable-next-line no-eval
-                    const taskProcessorsList = eval('taskProcessors') as Record<string, TaskProcessor>;
+                    type WorkerGlobalScope = {
+                        readonly taskProcessors: Record<string, TaskProcessor>;
+                    };
+
+                    const taskProcessorsList = (self as unknown as WorkerGlobalScope).taskProcessors;
                     const taskProcessor = taskProcessorsList[taskName];
                     if (typeof taskProcessor === 'undefined') {
                         throw new Error(`Unknown task "${taskName}"`);
@@ -255,7 +258,7 @@ class DedicatedWorker {
         return `
 ${definition.commonCode || ''}
 
-const taskProcessors = {
+self.taskProcessors = {
     ${Object.entries(definition.tasks)
         .map(([taskName, taskProcessor]) => `${taskName}: ${taskProcessor},`)
         .join('\n\t')}

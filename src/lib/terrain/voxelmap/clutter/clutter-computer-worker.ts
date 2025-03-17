@@ -20,12 +20,14 @@ class ClutterComputerWorker extends ClutterComputer {
     protected override computeChunkClutterRaw(input: ChunkClutterRawComputationInput): Promise<ChunkClutterRaw> {
         if (!this.workersPool) {
             const workerDefinition: WorkerDefinition = {
-                commonCode: `const factory = ${this.serialize()};`,
+                commonCode: `self.factory = ${this.serialize()};`,
                 tasks: {
                     computeChunkClutterRaw: (taskInput: ChunkClutterRawComputationInput) => {
-                        // eslint-disable-next-line no-eval
-                        const factory2 = eval('factory') as ClutterComputer['serializableFactory'];
-                        const taskResult = factory2.computeChunkClutterRaw(taskInput);
+                        type WorkerGlobalScope = {
+                            readonly factory: ClutterComputer['serializableFactory'];
+                        };
+                        const factory = (self as unknown as WorkerGlobalScope).factory;
+                        const taskResult = factory.computeChunkClutterRaw(taskInput);
                         const taskResultTransferablesList = Object.values(taskResult).map(arrayBuffer => arrayBuffer.buffer);
                         return {
                             taskResult,

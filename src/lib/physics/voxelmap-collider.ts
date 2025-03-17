@@ -121,15 +121,18 @@ class VoxelmapCollider implements IVoxelmapCollider {
         const delegateCompressionToWorker = true as boolean;
         if (delegateCompressionToWorker) {
             const compactionWorkerDefinition: WorkerDefinition = {
-                commonCode: `const compactor = {
+                commonCode: `self.compactor = {
                 voxelEncoder: ${this.compactor.voxelEncoder.serialize()},
                 ${this.compactor.compactChunk},
             };`,
                 tasks: {
                     compactChunk: (rawData: Uint16Array) => {
-                        // eslint-disable-next-line no-eval
-                        const compactor2 = eval('compactor') as VoxelmapCollider['compactor'];
-                        const buffer = compactor2.compactChunk(rawData);
+                        type WorkerGlobalScope = {
+                            readonly compactor: VoxelmapCollider['compactor'];
+                        };
+
+                        const compactor = (self as unknown as WorkerGlobalScope).compactor;
+                        const buffer = compactor.compactChunk(rawData);
                         return {
                             taskResult: buffer,
                             taskResultTransferablesList: [buffer.buffer],

@@ -168,26 +168,28 @@ class GeometryProcessor {
     public process(input: IndexedGeometryData): SyncOrPromise<ProcessedGeometryData> {
         if (this.dedicatedThreadsCount >= 1) {
             if (!this.workersPool) {
+                type WorkerGlobalScope = {
+                    readonly processor: GeometryProcessor['processor'];
+                };
+
                 this.workersPool = new DedicatedWorkersPool('geometry-processor', this.dedicatedThreadsCount, {
-                    commonCode: `const processor = {
+                    commonCode: `self.processor = {
                         ${this.processor.desindexBuffers},
                         ${this.processor.computeVertexNormals},
                         ${this.processor.desindexAndComputeNormals},
                     };`,
                     tasks: {
                         computeIndexedNormals: (taskInput: { positions: Float32Array; index: Uint16Array }) => {
-                            // eslint-disable-next-line no-eval
-                            const processor2 = eval('processor') as GeometryProcessor['processor'];
-                            const normals = processor2.computeVertexNormals(taskInput);
+                            const processor = (self as unknown as WorkerGlobalScope).processor;
+                            const normals = processor.computeVertexNormals(taskInput);
                             return {
                                 taskResult: normals,
                                 taskResultTransferablesList: [normals.buffer],
                             };
                         },
                         desindexAndComputeNormals: (taskInput: IndexedGeometryData) => {
-                            // eslint-disable-next-line no-eval
-                            const processor2 = eval('processor') as GeometryProcessor['processor'];
-                            const result = processor2.desindexAndComputeNormals(taskInput);
+                            const processor = (self as unknown as WorkerGlobalScope).processor;
+                            const result = processor.desindexAndComputeNormals(taskInput);
                             return {
                                 taskResult: result,
                                 taskResultTransferablesList: [result.positions.buffer, result.colors.buffer, result.normals.buffer],
