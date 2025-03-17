@@ -520,7 +520,7 @@ return vec4(sampled.rgb / sampled.a, 1);
 
         this.heightmapAtlas.update(this.renderer);
         this.minimap.update(this.renderer);
-        this.clutterViewer.update();
+        this.clutterViewer.update(this.camera);
     }
 
     protected override render(): void {

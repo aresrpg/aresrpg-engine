@@ -47,6 +47,7 @@ class ClutterViewer {
 
     private readonly clutterChunks = new Map<string, ClutterChunk>();
 
+    private lastVisibilityUpdateTimestamp: number | null = null;
     private lastUpdateTimestamp: number | null = null;
 
     public constructor(params: Parameters) {
@@ -148,13 +149,26 @@ class ClutterViewer {
         this.promiseThrottler = new PromisesQueue(threadsCount);
     }
 
-    public update(): void {
+    public update(camera: THREE.PerspectiveCamera): void {
         const now = performance.now();
         const deltaMilliseconds = this.lastUpdateTimestamp !== null ? now - this.lastUpdateTimestamp : 0;
         this.lastUpdateTimestamp = now;
 
         for (const propsViewer of this.propsViewers) {
             propsViewer.update(deltaMilliseconds);
+        }
+
+        if (this.lastVisibilityUpdateTimestamp === null) {
+            this.lastVisibilityUpdateTimestamp = now;
+        }
+
+        if (now - this.lastVisibilityUpdateTimestamp > 300) {
+            this.lastVisibilityUpdateTimestamp = now;
+
+            const cameraWorldPosition = camera.getWorldPosition(new THREE.Vector3());
+            for (const propsViewer of this.propsViewers) {
+                propsViewer.updateVisibilities(cameraWorldPosition);
+            }
         }
     }
 
