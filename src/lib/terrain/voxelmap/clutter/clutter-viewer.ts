@@ -40,6 +40,11 @@ class ClutterViewer {
     public readonly chunkSize: VoxelsChunkSize;
     private readonly chunkSizeVec3: THREE.Vector3Like;
 
+    public readonly parameters = {
+        viewDistance: 150,
+        viewDistanceMargin: 25,
+    };
+
     private readonly propsViewers: ReadonlyArray<PropsViewer>;
 
     private readonly promiseThrottler: PromisesQueue;
@@ -132,6 +137,8 @@ class ClutterViewer {
                     interval: -1, // no garbage collecting
                 },
             });
+            propsViewer.setViewDistance(this.parameters.viewDistance);
+            propsViewer.setViewDistanceMargin(this.parameters.viewDistanceMargin);
             propsViewer.container.name = `clutter-viewer-${id}`;
             this.container.add(propsViewer.container);
             return propsViewer;
@@ -155,6 +162,8 @@ class ClutterViewer {
         this.lastUpdateTimestamp = now;
 
         for (const propsViewer of this.propsViewers) {
+            propsViewer.setViewDistance(this.parameters.viewDistance);
+            propsViewer.setViewDistanceMargin(this.parameters.viewDistanceMargin);
             propsViewer.update(deltaMilliseconds);
         }
 

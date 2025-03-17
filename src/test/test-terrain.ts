@@ -453,6 +453,12 @@ return vec4(sampled.rgb / sampled.a, 1);
             lodFolder.open();
         }
         {
+            const clutterFolder = this.gui.addFolder('Clutter');
+            clutterFolder.add(this.clutterViewer.container, 'visible');
+            clutterFolder.add(this.clutterViewer.parameters, 'viewDistance', 0, 1000).name('View distance');
+            clutterFolder.add(this.clutterViewer.parameters, 'viewDistanceMargin', 0, 100).name('Margin');
+        }
+        {
             const minimapFolder = this.gui.addFolder('Minimap');
             minimapFolder.add(this.params.minimap, 'enabled').name('Enabled');
             minimapFolder.add(this.minimap, 'lockNorth').name('Lock north');

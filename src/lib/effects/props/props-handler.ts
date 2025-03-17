@@ -47,7 +47,7 @@ class PropsHandler {
 
     private viewDistance: number = 20;
     private viewDistanceMargin: number = 2;
-    private playerViewPosition: THREE.Vector3Like = new THREE.Vector3(Infinity, Infinity, Infinity);
+    private playerViewPosition = new THREE.Vector3(Infinity, Infinity, Infinity);
 
     private readonly groups: Map<string, PropsGroupProperties>;
     private batches: PropsBatch[];
@@ -235,22 +235,26 @@ class PropsHandler {
     }
 
     public setViewDistance(distance: number): void {
-        this.viewDistance = distance;
-        for (const batch of this.batches) {
-            batch.setViewDistance(this.viewDistance);
+        if (this.viewDistance !== distance) {
+            this.viewDistance = distance;
+            for (const batch of this.batches) {
+                batch.setViewDistance(this.viewDistance);
+            }
+            this.updateGroupsVisibilities();
         }
-        this.updateGroupsVisibilities();
     }
 
     public setViewDistanceMargin(margin: number): void {
-        this.viewDistanceMargin = margin;
-        for (const batch of this.batches) {
-            batch.setViewDistanceMargin(this.viewDistanceMargin);
+        if (this.viewDistanceMargin !== margin) {
+            this.viewDistanceMargin = margin;
+            for (const batch of this.batches) {
+                batch.setViewDistanceMargin(this.viewDistanceMargin);
+            }
         }
     }
 
     public setPlayerViewPosition(playerViewPosition: THREE.Vector3Like): void {
-        this.playerViewPosition = new THREE.Vector3().copy(playerViewPosition);
+        this.playerViewPosition.copy(playerViewPosition);
         for (const batch of this.batches) {
             batch.playerViewPosition.copy(this.playerViewPosition);
         }
