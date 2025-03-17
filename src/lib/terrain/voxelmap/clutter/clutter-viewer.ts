@@ -55,9 +55,75 @@ class ClutterViewer {
         this.chunkSizeVec3 = { x: params.chunkSize.xz, y: params.chunkSize.y, z: params.chunkSize.xz };
 
         this.propsViewers = params.map.voxelTypesDefininitions.clutterVoxels.map((clutterDefinition: IClutterDefinition, id: number) => {
+            let bufferGeometry: THREE.BufferGeometry;
+            let material: THREE.MeshPhongMaterial;
+
+            if (clutterDefinition.type === 'grass-2d') {
+                const w = clutterDefinition.width;
+                const h = clutterDefinition.height;
+                bufferGeometry = new THREE.BufferGeometry();
+                bufferGeometry.setAttribute(
+                    'position',
+                    new THREE.Float32BufferAttribute(
+                        [
+                            -0.5 * w,
+                            0,
+                            0,
+                            0.5 * w,
+                            0,
+                            0,
+                            0.5 * w,
+                            h,
+                            0,
+                            -0.5 * w,
+                            0,
+                            0,
+                            0.5 * w,
+                            h,
+                            0,
+                            -0.5 * w,
+                            h,
+                            0,
+                            0,
+                            0,
+                            -0.5 * w,
+                            0,
+                            0,
+                            0.5 * w,
+                            0,
+                            h,
+                            0.5 * w,
+                            0,
+                            0,
+                            -0.5 * w,
+                            0,
+                            h,
+                            0.5 * w,
+                            0,
+                            h,
+                            -0.5 * w,
+                        ],
+                        3
+                    )
+                );
+                bufferGeometry.setAttribute(
+                    'uv',
+                    new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1], 2)
+                );
+                bufferGeometry.computeVertexNormals();
+
+                material = new THREE.MeshPhongMaterial({
+                    map: clutterDefinition.texture,
+                    alphaTest: 0.95,
+                    side: THREE.DoubleSide,
+                });
+            } else {
+                throw new Error(`Unknown clutter type "${clutterDefinition.type}".`);
+            }
             const propsViewer = new PropsViewer({
-                bufferGeometry: clutterDefinition.geometry,
-                material: clutterDefinition.material,
+                bufferGeometry,
+                material,
+                reactToWind: true,
                 chunkSize: { x: params.chunkSize.xz, y: params.chunkSize.y, z: params.chunkSize.xz },
                 garbageCollect: {
                     interval: -1, // no garbage collecting

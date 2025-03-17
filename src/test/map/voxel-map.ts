@@ -49,8 +49,14 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
         solidMaterials: colorMapping.materialsList,
         clutterVoxels: [
             {
-                geometry: new THREE.BoxGeometry(0.5, 0.5, 0.5), // THREE.SphereGeometry(0.3),
-                material: new THREE.MeshPhongMaterial({ color: 0xff0000 }),
+                type: 'grass-2d' as 'grass-2d',
+                texture: new THREE.TextureLoader().load('resources/grass-2d.png', texture => {
+                    texture.magFilter = THREE.NearestFilter;
+                    texture.minFilter = THREE.NearestFilter;
+                    texture.colorSpace = THREE.LinearSRGBColorSpace;
+                }),
+                width: 4 / 4,
+                height: 3 / 4,
             },
         ],
     };
@@ -65,6 +71,7 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
     private readonly treesTexture: TreesTexture;
 
     private readonly colorVariationNoise: NoiseFunction2D;
+    private readonly grassVariationNoise: NoiseFunction2D;
 
     public readonly includeTreesInLod: boolean;
 
@@ -94,6 +101,7 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
         this.noise2D = createNoise2D(prng);
         this.treesDensityNoise = createNoise2D(prng);
         this.colorVariationNoise = createNoise2D(prng);
+        this.grassVariationNoise = createNoise2D(prng);
 
         const centerMap = true;
         if (centerMap) {
@@ -251,8 +259,9 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
                         localPos.y < blockSize.y - 1 &&
                         localPos.z < blockSize.z - 1
                     ) {
-                        if (Math.random() < 0.5) {
-                            setClutterVoxel(localPos, 0);
+                        const clutterId = this.positionToClutterId(worldPos.x, sample.altitude, worldPos.z);
+                        if (clutterId !== null) {
+                            setClutterVoxel(localPos, clutterId);
                         }
                     }
                 }
@@ -413,6 +422,18 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
         } else {
             return keyColors.snow.color;
         }
+    }
+
+    private positionToClutterId(x: number, y: number, z: number): number | null {
+        let grassDensity = 0;
+        if (this.thresholdSand < y && y < this.thresholdGrass) {
+            grassDensity = (0.7 * (y - this.thresholdSand)) / (this.thresholdGrass - this.thresholdSand);
+            grassDensity -= 0.5 * this.grassVariationNoise(0.05 * x, 0.05 * z);
+        }
+        if (Math.random() < grassDensity) {
+            return 0;
+        }
+        return null;
     }
 
     private getAllTreesForBlock(blockStart: THREE.Vector2Like, blockEnd: THREE.Vector2Like): THREE.Vector3Like[] {

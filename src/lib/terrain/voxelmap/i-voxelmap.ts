@@ -16,8 +16,10 @@ interface IVoxelMaterial {
 }
 
 interface IClutterDefinition {
-    readonly geometry: THREE.BufferGeometry;
-    readonly material: THREE.MeshPhongMaterial;
+    readonly type: 'grass-2d';
+    readonly texture: THREE.Texture;
+    readonly width: number;
+    readonly height: number;
 }
 
 type VoxelsChunkSize = {

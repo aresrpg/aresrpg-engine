@@ -17,7 +17,7 @@ class ColorMapping {
                 for (leveled.r = 0; leveled.r < this.valuesCountPerChannel; leveled.r++) {
                     const color = this.buildColorFromLeveled(leveled);
 
-                    const isEmissive = Math.random() > 0.7;
+                    const isEmissive = false; // Math.random() > 0.7;
                     this.materialsList.push({
                         color,
                         shininess: isEmissive ? 0 : 200 * Math.random(),
