@@ -47,6 +47,8 @@ class ClutterViewer {
 
     private readonly clutterChunks = new Map<string, ClutterChunk>();
 
+    private lastUpdateTimestamp: number | null = null;
+
     public constructor(params: Parameters) {
         this.container = new THREE.Group();
         this.container.name = 'clutter-viewer';
@@ -144,6 +146,16 @@ class ClutterViewer {
         }
 
         this.promiseThrottler = new PromisesQueue(threadsCount);
+    }
+
+    public update(): void {
+        const now = performance.now();
+        const deltaMilliseconds = this.lastUpdateTimestamp !== null ? now - this.lastUpdateTimestamp : 0;
+        this.lastUpdateTimestamp = now;
+
+        for (const propsViewer of this.propsViewers) {
+            propsViewer.update(deltaMilliseconds);
+        }
     }
 
     public dispose(): void {
