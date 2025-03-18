@@ -191,9 +191,9 @@ class TestGrass extends TestBase {
         this.fakePlayer = new THREE.Object3D();
         this.fakePlayer.name = 'fake-player';
         this.fakePlayer.position.set(0, 0.5, 0);
-        const boardCenterControls = new THREE.TransformControls(this.camera, this.renderer.domElement);
-        boardCenterControls.showY = false;
-        boardCenterControls.addEventListener('dragging-changed', event => {
+        const fakePlayerControls = new THREE.TransformControls(this.camera, this.renderer.domElement);
+        // fakePlayerControls.showY = false;
+        fakePlayerControls.addEventListener('dragging-changed', event => {
             this.cameraControl.enabled = !event.value;
         });
         const fakePlayerMesh = new THREE.Mesh(
@@ -202,9 +202,9 @@ class TestGrass extends TestBase {
         );
         fakePlayerMesh.name = 'fake-player-mesh';
         this.fakePlayer.add(fakePlayerMesh);
-        boardCenterControls.attach(this.fakePlayer);
+        fakePlayerControls.attach(this.fakePlayer);
         this.scene.add(this.fakePlayer);
-        this.scene.add(boardCenterControls.getHelper());
+        this.scene.add(fakePlayerControls.getHelper());
 
         const ground = this.createGround();
         this.scene.add(ground);
