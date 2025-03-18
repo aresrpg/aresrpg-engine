@@ -1,3 +1,4 @@
+import { type PropsHandlerStatistics } from '../../../effects/props/props-handler';
 import { PropsViewer } from '../../../effects/props/props-viewer';
 import { PromisesQueue } from '../../../helpers/async/promises-queue';
 import { logger } from '../../../helpers/logger';
@@ -15,6 +16,11 @@ enum EComputationResult {
     CANCELLED = 'cancelled',
     FINISHED = 'finished',
 }
+
+type ClutterViewerStatistics = {
+    total: PropsHandlerStatistics;
+    byClutterId: PropsHandlerStatistics[];
+};
 
 type Parameters = {
     readonly map: IVoxelMap;
@@ -289,6 +295,29 @@ class ClutterViewer {
         }
     }
 
+    public getStatistics(): ClutterViewerStatistics {
+        const total: PropsHandlerStatistics = {
+            batchesSize: NaN,
+            batchesCount: 0,
+            batchesVisibleCount: 0,
+            totalInstancesCapacity: 0,
+            totalInstancesUsed: 0,
+            buffersSizeInBytes: 0,
+        };
+
+        const byClutterId = this.propsViewers.map(propsViewer => {
+            const statistics = propsViewer.getStatistics();
+            total.batchesCount += statistics.batchesCount;
+            total.batchesVisibleCount += statistics.batchesVisibleCount;
+            total.totalInstancesCapacity += statistics.totalInstancesCapacity;
+            total.totalInstancesUsed += statistics.totalInstancesUsed;
+            total.buffersSizeInBytes += statistics.buffersSizeInBytes;
+            return statistics;
+        });
+
+        return { total, byClutterId };
+    }
+
     private getPropsViewer(clutterId: number): PropsViewer {
         const propsViewer = this.propsViewers[clutterId];
         if (!propsViewer) {
@@ -298,4 +327,4 @@ class ClutterViewer {
     }
 }
 
-export { ClutterViewer };
+export { ClutterViewer, type ClutterViewerStatistics };
