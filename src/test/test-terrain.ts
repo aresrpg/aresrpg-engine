@@ -49,6 +49,8 @@ class TestTerrain extends TestBase {
         readonly visibilityFrustum: THREE.Frustum;
     } = null;
 
+    private readonly playerSphere: THREE.Object3D;
+
     private readonly gui = new GUI();
 
     private readonly voxelMaterialsStore: MaterialsStore;
@@ -93,6 +95,9 @@ class TestTerrain extends TestBase {
         });
 
         this.setupLighting();
+
+        this.playerSphere = new THREE.Mesh(new THREE.SphereGeometry(0.3), new THREE.MeshPhongMaterial({ color: 0xffffff }));
+        this.scene.add(this.playerSphere);
 
         const showWholeMap = false;
         if (showWholeMap) {
@@ -519,6 +524,8 @@ return vec4(sampled.rgb / sampled.a, 1);
         this.terrainViewer.update(this.renderer);
 
         const playerPosition = this.getPlayerPosition();
+        this.playerSphere.position.copy(playerPosition).add({ x: 0, y: 1, z: 0 });
+
         this.minimap.centerPosition.set(playerPosition.x, playerPosition.y, playerPosition.z);
         this.minimap.orientation = this.getPlayerOrientation();
         this.minimap.setMarker('player', playerPosition);
@@ -526,7 +533,7 @@ return vec4(sampled.rgb / sampled.a, 1);
 
         this.heightmapAtlas.update(this.renderer);
         this.minimap.update(this.renderer);
-        this.clutterViewer.update(this.camera);
+        this.clutterViewer.update(this.camera, this.playerSphere.position.clone().add({ x: 0, y: 1, z: 0 }));
     }
 
     protected override render(): void {

@@ -138,6 +138,7 @@ class ClutterViewer {
                 bufferGeometry,
                 material,
                 reactToWind: true,
+                reactToPlayer: true,
                 chunkSize: { x: params.chunkSize.xz, y: params.chunkSize.y, z: params.chunkSize.xz },
                 garbageCollect: {
                     interval: -1, // no garbage collecting
@@ -162,10 +163,17 @@ class ClutterViewer {
         this.promiseThrottler = new PromisesQueue(threadsCount);
     }
 
-    public update(camera: THREE.PerspectiveCamera): void {
+    public update(camera: THREE.PerspectiveCamera, playerWorldPosition?: THREE.Vector3Like): void {
         const now = performance.now();
         const deltaMilliseconds = this.lastUpdateTimestamp !== null ? now - this.lastUpdateTimestamp : 0;
         this.lastUpdateTimestamp = now;
+
+        if (playerWorldPosition) {
+            const playerViewPosition = new THREE.Vector3().copy(playerWorldPosition).applyMatrix4(camera.matrixWorldInverse);
+            for (const propsViewer of this.propsViewers) {
+                propsViewer.setPlayerViewPosition(playerViewPosition);
+            }
+        }
 
         for (const propsViewer of this.propsViewers) {
             propsViewer.setViewDistance(this.parameters.viewDistance);
