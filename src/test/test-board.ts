@@ -70,7 +70,7 @@ class TestBoard extends TestBase {
         });
 
         this.clutterViewer = new ClutterViewer({
-            map,
+            clutterVoxelsDefinitions: map.voxelTypesDefininitions.clutterVoxels,
             chunkSize,
             computationOptions: {
                 method: 'worker',
