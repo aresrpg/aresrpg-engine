@@ -19,6 +19,7 @@ import {
     type BoardRenderable,
     type IHeightmap,
     type IVoxelMap,
+    type VoxelsChunkOrdering,
 } from '../lib';
 
 import { LineOfSight } from './board/line-of-sight';
@@ -69,6 +70,8 @@ class TestBoard extends TestBase {
             maxShininess: 400,
         });
 
+        const voxelsChunkOrdering: VoxelsChunkOrdering = 'zyx';
+
         this.clutterViewer = new ClutterViewer({
             clutterVoxelsDefinitions: map.voxelTypesDefininitions.clutterVoxels,
             chunkSize,
@@ -76,6 +79,7 @@ class TestBoard extends TestBase {
                 method: 'worker',
                 threadsCount: 1,
             },
+            voxelsChunkOrdering,
         });
 
         this.voxelmapViewer = new VoxelmapViewer({
@@ -93,7 +97,7 @@ class TestBoard extends TestBase {
                     greedyMeshing: true,
                 },
                 checkerboardType: 'xz',
-                voxelsChunkOrdering: 'zyx',
+                voxelsChunkOrdering,
             },
         });
         this.voxelmapViewer.parameters.faces.checkerboardContrast = 0.01;

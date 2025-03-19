@@ -1,9 +1,11 @@
 import { type WorkerDefinition } from '../../../helpers/async/dedicatedWorkers/dedicated-worker';
 import { DedicatedWorkersPool } from '../../../helpers/async/dedicatedWorkers/dedicated-workers-pool';
+import { type VoxelsChunkOrdering } from '../i-voxelmap';
 
 import { type ChunkClutterRaw, type ChunkClutterRawComputationInput, ClutterComputer } from './clutter-computer';
 
 type Params = {
+    readonly voxelsChunkOrdering: VoxelsChunkOrdering;
     readonly workersPoolSize: number;
 };
 
@@ -12,7 +14,7 @@ class ClutterComputerWorker extends ClutterComputer {
     private workersPool: DedicatedWorkersPool | null = null;
 
     public constructor(params: Params) {
-        super();
+        super(params);
 
         this.workersPoolSize = params.workersPoolSize;
     }

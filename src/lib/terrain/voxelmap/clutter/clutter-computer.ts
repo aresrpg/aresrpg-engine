@@ -6,9 +6,18 @@ type ChunkClutter = Map<number, ReadonlyArray<THREE.Matrix4>>;
 type ChunkClutterRaw = Record<number, Float32Array>;
 type ChunkClutterRawComputationInput = { chunkWorldOrigin: THREE.Vector3Like; voxelsChunkData: VoxelsChunkData };
 
+type Params = {
+    readonly voxelsChunkOrdering: VoxelsChunkOrdering;
+};
+
+type VoxelsChunkDataSample = {
+    readonly data: number;
+    readonly localPosition: THREE.Vector3Like;
+};
+
 class ClutterComputer {
     private readonly serializableFactory = {
-        dataOrdering: 'zyx' as VoxelsChunkOrdering,
+        voxelsChunkOrdering: 'zyx' as VoxelsChunkOrdering,
 
         clutterVoxelEncoder: voxelEncoder.clutterVoxel,
 
@@ -19,47 +28,36 @@ class ClutterComputer {
                 return {};
             }
 
-            if (voxelsChunkData.dataOrdering !== this.dataOrdering) {
+            if (voxelsChunkData.dataOrdering !== this.voxelsChunkOrdering) {
                 throw new Error(
-                    `Invalid voxels chunk ordering: expected "${this.dataOrdering}", received "${voxelsChunkData.dataOrdering}".`
+                    `Invalid voxels chunk ordering: expected "${this.voxelsChunkOrdering}", received "${voxelsChunkData.dataOrdering}".`
                 );
             }
 
             const chunkClutterArraysMap = new Map<number, number[]>();
 
-            const localPosition = { x: 0, y: 0, z: 0 };
-            for (localPosition.z = 1; localPosition.z < voxelsChunkData.size.z - 1; localPosition.z++) {
-                for (localPosition.y = 1; localPosition.y < voxelsChunkData.size.y - 1; localPosition.y++) {
-                    for (localPosition.x = 1; localPosition.x < voxelsChunkData.size.x - 1; localPosition.x++) {
-                        const index =
-                            localPosition.x + voxelsChunkData.size.x * (localPosition.y + voxelsChunkData.size.y * localPosition.z);
-                        const data = voxelsChunkData.data[index];
-                        if (typeof data === 'undefined') {
-                            throw new Error();
+            for (const { localPosition, data } of this.iterateOnVoxelsChunkData(voxelsChunkData)) {
+                if (this.clutterVoxelEncoder.isOfType(data)) {
+                    const count = this.clutterVoxelEncoder.getCount(data);
+                    const clutterId = this.clutterVoxelEncoder.getClutterId(data);
+                    for (let iC = 0; iC < count; iC++) {
+                        let array = chunkClutterArraysMap.get(clutterId);
+                        if (!array) {
+                            array = [];
+                            chunkClutterArraysMap.set(clutterId, array);
                         }
-                        if (this.clutterVoxelEncoder.isOfType(data)) {
-                            const count = this.clutterVoxelEncoder.getCount(data);
-                            const clutterId = this.clutterVoxelEncoder.getClutterId(data);
-                            for (let iC = 0; iC < count; iC++) {
-                                let array = chunkClutterArraysMap.get(clutterId);
-                                if (!array) {
-                                    array = [];
-                                    chunkClutterArraysMap.set(clutterId, array);
-                                }
 
-                                const s = 1 + 0.5 * Math.random();
+                        const s = 1 + 0.5 * Math.random();
 
-                                const a = 2 * Math.PI * Math.random();
-                                const ca = Math.cos(a);
-                                const sa = Math.sin(a);
+                        const a = 2 * Math.PI * Math.random();
+                        const ca = Math.cos(a);
+                        const sa = Math.sin(a);
 
-                                const tx = chunkWorldOrigin.x + localPosition.x - 1 + Math.random();
-                                const ty = chunkWorldOrigin.y + localPosition.y - 1;
-                                const tz = chunkWorldOrigin.z + localPosition.z - 1 + Math.random();
+                        const tx = chunkWorldOrigin.x + localPosition.x - 1 + Math.random();
+                        const ty = chunkWorldOrigin.y + localPosition.y - 1;
+                        const tz = chunkWorldOrigin.z + localPosition.z - 1 + Math.random();
 
-                                array.push(s * ca, 0, sa, 0, 0, s, 0, 0, -sa, 0, s * ca, 0, tx, ty, tz, 1);
-                            }
-                        }
+                        array.push(s * ca, 0, sa, 0, 0, s, 0, 0, -sa, 0, s * ca, 0, tx, ty, tz, 1);
                     }
                 }
             }
@@ -70,7 +68,65 @@ class ClutterComputer {
             }
             return chunkClutterRaw;
         },
+
+        *iterateOnVoxelsChunkData(voxelsChunkData: VoxelsChunkData): Generator<VoxelsChunkDataSample> {
+            if (voxelsChunkData.isEmpty) {
+                return;
+            }
+
+            type Component = 'x' | 'y' | 'z';
+            const buildIndexFactorComponent = (component: Component): number => {
+                const sanitizeXYZ = (s: string | undefined): Component => {
+                    if (s === 'x' || s === 'y' || s === 'z') {
+                        return s;
+                    }
+                    throw new Error(`Invalid voxelsChunkOrdering "${this.voxelsChunkOrdering}".`);
+                };
+
+                const components0 = sanitizeXYZ(this.voxelsChunkOrdering[0]);
+                const components1 = sanitizeXYZ(this.voxelsChunkOrdering[1]);
+                const components2 = sanitizeXYZ(this.voxelsChunkOrdering[2]);
+                if (component === components2) {
+                    return 1;
+                } else if (component === components1) {
+                    return voxelsChunkData.size[components2];
+                } else if (component === components0) {
+                    return voxelsChunkData.size[components2] * voxelsChunkData.size[components1];
+                } else {
+                    throw new Error(`Invalid voxelsChunkOrdering "${this.voxelsChunkOrdering}".`);
+                }
+            };
+
+            const indexFactor = {
+                x: buildIndexFactorComponent('x'),
+                y: buildIndexFactorComponent('y'),
+                z: buildIndexFactorComponent('z'),
+            };
+
+            const buildIndexUnsafe = (position: THREE.Vector3Like) => {
+                return position.x * indexFactor.x + position.y * indexFactor.y + position.z * indexFactor.z;
+            };
+
+            const localPosition = { x: 0, y: 0, z: 0 };
+
+            for (localPosition.z = 1; localPosition.z < voxelsChunkData.size.z - 1; localPosition.z++) {
+                for (localPosition.y = 1; localPosition.y < voxelsChunkData.size.y - 1; localPosition.y++) {
+                    for (localPosition.x = 1; localPosition.x < voxelsChunkData.size.x - 1; localPosition.x++) {
+                        const index = buildIndexUnsafe(localPosition);
+                        const data = voxelsChunkData.data[index];
+                        if (typeof data === 'undefined') {
+                            throw new Error();
+                        }
+                        yield { data, localPosition };
+                    }
+                }
+            }
+        },
     };
+
+    public constructor(params: Params) {
+        this.serializableFactory.voxelsChunkOrdering = params.voxelsChunkOrdering;
+    }
 
     protected computeChunkClutterRaw(input: ChunkClutterRawComputationInput): Promise<ChunkClutterRaw> {
         const result = this.serializableFactory.computeChunkClutterRaw(input);
@@ -104,9 +160,10 @@ class ClutterComputer {
 
     protected serialize(): string {
         return `{
-            dataOrdering: "${this.serializableFactory.dataOrdering}",
+            voxelsChunkOrdering: "${this.serializableFactory.voxelsChunkOrdering}",
             clutterVoxelEncoder: ${this.serializableFactory.clutterVoxelEncoder.serialize()},
             ${this.serializableFactory.computeChunkClutterRaw},
+            ${this.serializableFactory.iterateOnVoxelsChunkData},
         }`;
     }
 }

@@ -94,6 +94,7 @@ class TestPhysics extends TestBase {
                 method: 'worker',
                 threadsCount: 1,
             },
+            voxelsChunkOrdering,
         });
 
         this.voxelmapViewer = new VoxelmapViewer({

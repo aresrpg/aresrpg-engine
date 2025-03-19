@@ -5,7 +5,7 @@ import { logger } from '../../../helpers/logger';
 import { vec3ToString } from '../../../helpers/string';
 import * as THREE from '../../../libs/three-usage';
 import { ChunkId } from '../chunk/chunk-id';
-import { type IClutterDefinition, type VoxelsChunkSize } from '../i-voxelmap';
+import { type VoxelsChunkOrdering, type IClutterDefinition, type VoxelsChunkSize } from '../i-voxelmap';
 import { type VoxelsChunkData } from '../viewer/voxelmap-viewer';
 
 import { ClutterComputer } from './clutter-computer';
@@ -33,6 +33,7 @@ type Parameters = {
               readonly method: 'worker';
               readonly threadsCount: number;
           };
+    readonly voxelsChunkOrdering: VoxelsChunkOrdering;
 };
 
 type ClutterChunk = {
@@ -153,10 +154,15 @@ class ClutterViewer {
 
         let threadsCount: number;
         if (params.computationOptions.method === 'main-thread') {
-            this.computer = new ClutterComputer();
+            this.computer = new ClutterComputer({
+                voxelsChunkOrdering: params.voxelsChunkOrdering,
+            });
             threadsCount = 1;
         } else {
-            this.computer = new ClutterComputerWorker({ workersPoolSize: params.computationOptions.threadsCount });
+            this.computer = new ClutterComputerWorker({
+                voxelsChunkOrdering: params.voxelsChunkOrdering,
+                workersPoolSize: params.computationOptions.threadsCount,
+            });
             threadsCount = params.computationOptions.threadsCount;
         }
 

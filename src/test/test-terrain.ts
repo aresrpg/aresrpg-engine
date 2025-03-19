@@ -26,6 +26,7 @@ import {
     type IHeightmap,
     type IVoxelMap,
     type IWaterMap,
+    type VoxelsChunkOrdering,
 } from '../lib';
 
 import { LineOfSight } from './board/line-of-sight';
@@ -204,6 +205,8 @@ class TestTerrain extends TestBase {
         const minChunkIdY = Math.floor(map.altitude.min / chunkSize.y);
         const maxChunkIdY = Math.floor(map.altitude.max / chunkSize.y);
 
+        const voxelsChunkOrdering: VoxelsChunkOrdering = 'zyx';
+
         this.clutterViewer = new ClutterViewer({
             clutterVoxelsDefinitions: this.map.voxelTypesDefininitions.clutterVoxels,
             chunkSize,
@@ -211,6 +214,7 @@ class TestTerrain extends TestBase {
                 method: 'worker',
                 threadsCount: 1,
             },
+            voxelsChunkOrdering,
         });
 
         this.voxelmapViewer = new VoxelmapViewer({
@@ -228,7 +232,7 @@ class TestTerrain extends TestBase {
                     greedyMeshing: true,
                 },
                 checkerboardType: 'xz',
-                voxelsChunkOrdering: 'zyx',
+                voxelsChunkOrdering,
             },
         });
         this.voxelmapViewer.parameters.faces.checkerboardContrast = 0.01;
