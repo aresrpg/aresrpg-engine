@@ -5,7 +5,7 @@ import { logger } from '../../../helpers/logger';
 import { vec3ToString } from '../../../helpers/string';
 import * as THREE from '../../../libs/three-usage';
 import { ChunkId } from '../chunk/chunk-id';
-import { type IClutterDefinition, type IVoxelMap, type VoxelsChunkSize } from '../i-voxelmap';
+import { type IClutterDefinition, type VoxelsChunkSize } from '../i-voxelmap';
 import { type VoxelsChunkData } from '../viewer/voxelmap-viewer';
 
 import { ClutterComputer } from './clutter-computer';
@@ -23,8 +23,8 @@ type ClutterViewerStatistics = {
 };
 
 type Parameters = {
-    readonly map: IVoxelMap;
     readonly chunkSize: VoxelsChunkSize;
+    readonly clutterVoxelsDefinitions: ReadonlyArray<IClutterDefinition>;
     readonly computationOptions:
         | {
               readonly method: 'main-thread';
@@ -68,7 +68,7 @@ class ClutterViewer {
         this.chunkSize = params.chunkSize;
         this.chunkSizeVec3 = { x: params.chunkSize.xz, y: params.chunkSize.y, z: params.chunkSize.xz };
 
-        this.propsViewers = params.map.voxelTypesDefininitions.clutterVoxels.map((clutterDefinition: IClutterDefinition, id: number) => {
+        this.propsViewers = params.clutterVoxelsDefinitions.map((clutterDefinition: IClutterDefinition, id: number) => {
             let bufferGeometry: THREE.BufferGeometry;
             let material: THREE.MeshPhongMaterial;
 

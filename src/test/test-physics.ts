@@ -88,7 +88,7 @@ class TestPhysics extends TestBase {
         });
 
         this.clutterViewer = new ClutterViewer({
-            map: this.map,
+            clutterVoxelsDefinitions: this.map.voxelTypesDefininitions.clutterVoxels,
             chunkSize,
             computationOptions: {
                 method: 'worker',
