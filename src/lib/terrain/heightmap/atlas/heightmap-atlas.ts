@@ -34,10 +34,16 @@ type AtlasTileLocalInfos = {
     toLeaf: THREE.Vector2Like;
 };
 
-type AtlasUpdateData = {
-    readonly tileId: AtlasTileId;
-    readonly heightmapSamples: HeightmapSamples;
-};
+type PendingUpdate =
+    | {
+          readonly tileId: AtlasTileId;
+          readonly state: 'pending-response';
+      }
+    | {
+          readonly tileId: AtlasTileId;
+          readonly state: 'pending-update';
+          readonly heightmapSamples: HeightmapSamples;
+      };
 
 type AtlasTileId = {
     readonly nestingLevel: number; // 0: the whole texture, 1: a quarter, etc.
@@ -97,8 +103,7 @@ class HeightmapAtlas {
         readonly textureUniform: THREE.IUniform<THREE.Texture | null>;
     };
 
-    private readonly pendingHeightmapRequests = new Map<string, Promise<void>>();
-    private readonly pendingAtlasUpdates = new Map<string, AtlasUpdateData>();
+    private readonly pendingUpdates = new Map<string, PendingUpdate>();
 
     private readonly rootTextures = new Map<string, AtlasTexture>();
 
@@ -261,7 +266,7 @@ class HeightmapAtlas {
     }
 
     public update(renderer: THREE.WebGLRenderer): void {
-        if (this.pendingAtlasUpdates.size === 0) {
+        if (this.pendingUpdates.size === 0) {
             return;
         }
 
@@ -277,7 +282,13 @@ class HeightmapAtlas {
         renderer.autoClear = false;
         renderer.sortObjects = false;
 
-        for (const pendingUpdate of this.pendingAtlasUpdates.values()) {
+        const appliedUpdateIdsList: string[] = [];
+        for (const [updateId, pendingUpdate] of this.pendingUpdates.entries()) {
+            if (pendingUpdate.state !== 'pending-update') {
+                continue;
+            }
+            appliedUpdateIdsList.push(updateId);
+
             const tileLocalInfos = this.getTileLocalInfos(pendingUpdate.tileId);
 
             renderer.setRenderTarget(tileLocalInfos.rootTexture.renderTarget);
@@ -330,7 +341,10 @@ class HeightmapAtlas {
                 }
             }
         }
-        this.pendingAtlasUpdates.clear();
+
+        for (const appliedUpdateId of appliedUpdateIdsList) {
+            this.pendingUpdates.delete(appliedUpdateId);
+        }
 
         renderer.autoClear = previousState.autoClear;
         renderer.setClearColor(previousState.clearColor, previousState.clearAlpha);
@@ -430,26 +444,26 @@ class HeightmapAtlas {
         return minimumPrecision;
     }
 
-    private requestTileData(tileId: AtlasTileId): void {
+    private async requestTileData(tileId: AtlasTileId): Promise<void> {
         const tileIdString = tileIdToString(tileId);
-        if (this.pendingHeightmapRequests.has(tileIdString) || this.pendingAtlasUpdates.has(tileIdString)) {
+        if (this.pendingUpdates.has(tileIdString)) {
             return;
         }
 
         const worldPositions = this.getTileWorldPositions(tileId);
         const result = this.heightmap.sampleHeightmap(worldPositions);
         if (result instanceof Promise) {
-            const promise = result.then(heightmapSamples => {
-                this.pendingAtlasUpdates.set(tileIdString, { tileId, heightmapSamples });
-
-                if (this.pendingHeightmapRequests.get(tileIdString) === promise) {
-                    this.pendingHeightmapRequests.delete(tileIdString);
-                }
-            });
-            this.pendingHeightmapRequests.set(tileIdString, promise);
-        } else {
-            this.pendingAtlasUpdates.set(tileIdString, {
+            this.pendingUpdates.set(tileIdString, { tileId, state: 'pending-response' });
+            const heightmapSamples = await result;
+            this.pendingUpdates.set(tileIdString, {
                 tileId,
+                state: 'pending-update',
+                heightmapSamples,
+            });
+        } else {
+            this.pendingUpdates.set(tileIdString, {
+                tileId,
+                state: 'pending-update',
                 heightmapSamples: result,
             });
         }
