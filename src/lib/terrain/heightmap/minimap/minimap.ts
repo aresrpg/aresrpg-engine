@@ -9,6 +9,7 @@ type Parameters = {
     readonly compassTexture?: THREE.Texture;
     readonly waterData?: WaterData;
     readonly meshPrecision: number;
+    readonly heightmapAtlasDownscalingFactor: number;
     readonly minViewDistance: number;
     readonly maxViewDistance: number;
     readonly markersSize: number;
@@ -22,6 +23,7 @@ type MinimapMarker = {
 
 class Minimap {
     private readonly heightmapAtlas: HeightmapAtlas;
+    private readonly heightmapAtlasDownscalingFactor: number;
 
     public centerPosition = new THREE.Vector3(0, 0, 0);
     public verticalAngle: number = Math.PI / 4;
@@ -88,6 +90,7 @@ class Minimap {
 
     public constructor(params: Parameters) {
         this.heightmapAtlas = params.heightmapAtlas;
+        this.heightmapAtlasDownscalingFactor = Math.max(1, params.heightmapAtlasDownscalingFactor);
 
         this.minViewDistance = params.minViewDistance;
         this.maxViewDistance = params.maxViewDistance;
@@ -526,19 +529,31 @@ class Minimap {
     }
 
     private requestDataFromAtlas(): void {
-        const textureCornerWorld = this.textureCornerWorld;
+        const realMinimapSizeOnScreen = 0.75 * this.screenSize;
+        const minRequiredAtlasTexelWorldSize = ((2 * this.viewDistance) / realMinimapSizeOnScreen) * this.heightmapAtlasDownscalingFactor;
 
-        const atlasLeafFrom = textureCornerWorld.clone().divideScalar(this.heightmapAtlas.leafTileSizeInWorld).floor();
+        let atlasNestingLevel = this.heightmapAtlas.maxNestingLevel;
+        let atlasNestingLevelTileSizeInWorld = this.heightmapAtlas.leafTileSizeInWorld;
+        let atlasNestingLevelTexelSizeInWorld = this.heightmapAtlas.leafTileSizeInWorld / this.heightmapAtlas.leafTileSizeInTexels;
+
+        while (2 * atlasNestingLevelTexelSizeInWorld < minRequiredAtlasTexelWorldSize && atlasNestingLevel > 0) {
+            atlasNestingLevel--;
+            atlasNestingLevelTileSizeInWorld *= 2;
+            atlasNestingLevelTexelSizeInWorld *= 2;
+        }
+
+        const textureCornerWorld = this.textureCornerWorld;
+        const atlasLeafFrom = textureCornerWorld.clone().divideScalar(atlasNestingLevelTileSizeInWorld).floor();
         const atlasLeafTo = textureCornerWorld
             .clone()
             .addScalar(this.texture.worldSize)
-            .divideScalar(this.heightmapAtlas.leafTileSizeInWorld)
+            .divideScalar(atlasNestingLevelTileSizeInWorld)
             .floor();
         const atlasLeafId = { x: 0, y: 0 };
         for (atlasLeafId.y = atlasLeafFrom.y; atlasLeafId.y <= atlasLeafTo.y; atlasLeafId.y++) {
             for (atlasLeafId.x = atlasLeafFrom.x; atlasLeafId.x <= atlasLeafTo.x; atlasLeafId.x++) {
                 const leafView = this.heightmapAtlas.getTileView({
-                    nestingLevel: this.heightmapAtlas.maxNestingLevel,
+                    nestingLevel: atlasNestingLevel,
                     ...atlasLeafId,
                 });
                 if (!leafView.hasOptimalData()) {

@@ -281,11 +281,15 @@ class TestTerrain extends TestBase {
             heightmapAtlas: this.heightmapAtlas,
             compassTexture: new THREE.TextureLoader().load('resources/compass.png'),
             meshPrecision: 64,
+            heightmapAtlasDownscalingFactor: 2,
             minViewDistance: 100,
             maxViewDistance: 750,
             markersSize: 0.05,
             waterData: this.waterData,
         });
+        this.minimap.viewDistance = 500;
+        this.minimap.verticalAngle = 1;
+        this.minimap.crustThickness = 0.025;
 
         if (!(map as VoxelMap).includeTreesInLod) {
             const perPatch = new Map<string, THREE.Vector3Like[]>();
