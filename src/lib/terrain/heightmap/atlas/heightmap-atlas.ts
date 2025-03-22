@@ -37,6 +37,10 @@ type AtlasTileLocalInfos = {
 type PendingUpdate =
     | {
           readonly tileId: AtlasTileId;
+          readonly state: 'pending-request';
+      }
+    | {
+          readonly tileId: AtlasTileId;
           readonly state: 'pending-response';
       }
     | {
@@ -104,6 +108,7 @@ class HeightmapAtlas {
     };
 
     private readonly pendingUpdates = new Map<string, PendingUpdate>();
+    private lastRequestsBatchTimestamp: number | null = null;
 
     private readonly rootTextures = new Map<string, AtlasTexture>();
 
@@ -268,6 +273,12 @@ class HeightmapAtlas {
     public update(renderer: THREE.WebGLRenderer): void {
         if (this.pendingUpdates.size === 0) {
             return;
+        }
+
+        const now = performance.now();
+        if (this.lastRequestsBatchTimestamp === null || now - this.lastRequestsBatchTimestamp > 200) {
+            this.solvePendingRequests();
+            this.lastRequestsBatchTimestamp = now;
         }
 
         const previousState = {
@@ -449,23 +460,33 @@ class HeightmapAtlas {
         if (this.pendingUpdates.has(tileIdString)) {
             return;
         }
+        this.pendingUpdates.set(tileIdString, { tileId, state: 'pending-request' });
+    }
 
-        const worldPositions = this.getTileWorldPositions(tileId);
-        const result = this.heightmap.sampleHeightmap(worldPositions);
-        if (result instanceof Promise) {
-            this.pendingUpdates.set(tileIdString, { tileId, state: 'pending-response' });
-            const heightmapSamples = await result;
-            this.pendingUpdates.set(tileIdString, {
-                tileId,
-                state: 'pending-update',
-                heightmapSamples,
-            });
-        } else {
-            this.pendingUpdates.set(tileIdString, {
-                tileId,
-                state: 'pending-update',
-                heightmapSamples: result,
-            });
+    private solvePendingRequests(): void {
+        const pendingRequests = Array.from(this.pendingUpdates.entries()).filter(
+            ([_, pendingUpdate]) => pendingUpdate.state === 'pending-request'
+        );
+
+        for (const [tileIdString, pendingRequest] of pendingRequests) {
+            const worldPositions = this.getTileWorldPositions(pendingRequest.tileId);
+            const result = this.heightmap.sampleHeightmap(worldPositions);
+            if (result instanceof Promise) {
+                this.pendingUpdates.set(tileIdString, { tileId: pendingRequest.tileId, state: 'pending-response' });
+                result.then(heightmapSamples => {
+                    this.pendingUpdates.set(tileIdString, {
+                        tileId: pendingRequest.tileId,
+                        state: 'pending-update',
+                        heightmapSamples,
+                    });
+                });
+            } else {
+                this.pendingUpdates.set(tileIdString, {
+                    tileId: pendingRequest.tileId,
+                    state: 'pending-update',
+                    heightmapSamples: result,
+                });
+            }
         }
     }
 
