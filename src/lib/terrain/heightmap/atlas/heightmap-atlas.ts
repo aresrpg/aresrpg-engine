@@ -499,8 +499,8 @@ class HeightmapAtlas {
             const renderTarget = new THREE.WebGLRenderTarget(this.leafTileSizeInTexels, this.leafTileSizeInTexels, {
                 wrapS: THREE.ClampToEdgeWrapping,
                 wrapT: THREE.ClampToEdgeWrapping,
-                minFilter: THREE.NearestFilter,
-                magFilter: THREE.NearestFilter,
+                minFilter: THREE.LinearFilter,
+                magFilter: THREE.LinearFilter,
                 generateMipmaps: false,
                 depthBuffer: true,
                 stencilBuffer: false,
