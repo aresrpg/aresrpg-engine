@@ -76,6 +76,9 @@ class TestTerrain extends TestBase {
     } | null = null;
 
     private readonly params = {
+        voxels: {
+            viewRadius: 10,
+        },
         minimap: {
             enabled: true,
         },
@@ -109,10 +112,6 @@ class TestTerrain extends TestBase {
                 );
             }, 0);
         } else {
-            const viewParams = {
-                playerViewRadius: 10,
-            };
-
             const playerContainer = new THREE.Group();
             playerContainer.name = 'player-container';
             playerContainer.position.x = 0;
@@ -170,12 +169,10 @@ class TestTerrain extends TestBase {
             setInterval(() => {
                 this.showMapAroundPosition(
                     playerContainer.position,
-                    viewParams.playerViewRadius,
+                    this.params.voxels.viewRadius,
                     this.playerVisibility?.visibilityFrustum ?? undefined
                 );
             }, 200);
-
-            this.gui.add(viewParams, 'playerViewRadius', 1, 1000, 1);
         }
 
         this.heightmapAtlas = new HeightmapAtlas({
@@ -394,6 +391,7 @@ return vec4(sampled.rgb / sampled.a, 1);
                 specular: { ...this.voxelmapViewer.parameters.specular },
             };
             voxelsFolder.add(this.voxelmapViewer.container, 'visible').name('Show voxels');
+            voxelsFolder.add(this.params.voxels, 'viewRadius', 1, 1000, 1).name('View distance');
             voxelsFolder
                 .add(parameters, 'shadows')
                 .name('Enable shadows')
