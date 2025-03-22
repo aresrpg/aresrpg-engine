@@ -534,8 +534,12 @@ return vec4(sampled.rgb / sampled.a, 1);
         this.minimap.setMarker('origin', new THREE.Vector3(0, 142, 0));
 
         this.heightmapAtlas.update(this.renderer);
-        this.minimap.update(this.renderer);
-        this.clutterViewer.update(this.camera, this.playerSphere.position.clone().add({ x: 0, y: 1, z: 0 }));
+        if (this.params.minimap.enabled) {
+            this.minimap.update(this.renderer);
+        }
+        if (this.clutterViewer.container.visible) {
+            this.clutterViewer.update(this.camera, this.playerSphere.position.clone().add({ x: 0, y: 1, z: 0 }));
+        }
     }
 
     protected override render(): void {
