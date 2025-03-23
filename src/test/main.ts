@@ -8,6 +8,7 @@ import { TestParticles } from './test-particles';
 import { TestPhysics } from './test-physics';
 import { TestTerrain } from './test-terrain';
 import { TestTextureCustomization } from './test-texture-customization';
+import { TestVoxelnoise } from './test-voxelnoise';
 import { TestWeather } from './test-weather';
 
 setVerbosity(ELogLevel.DEBUG);
@@ -20,6 +21,7 @@ enum ETest {
     PARTICLES,
     BOARD,
     GRASS,
+    VOXELNOISE,
 }
 
 function createVoxelMap(includeTreesInLod: boolean): VoxelMap {
@@ -46,6 +48,8 @@ async function buildTestScene(test: ETest): Promise<TestBase> {
         case ETest.GRASS:
             setVerbosity(ELogLevel.DEBUG);
             return await TestGrass.instanciate();
+        case ETest.VOXELNOISE:
+            return new TestVoxelnoise();
         default:
             throw new Error(`Unknown test "${test}".`);
     }
@@ -56,4 +60,4 @@ async function start(test: ETest): Promise<void> {
     testScene.start();
 }
 
-void start(ETest.TERRAIN);
+void start(ETest.VOXELNOISE);
