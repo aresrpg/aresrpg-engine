@@ -32,6 +32,7 @@ class TestVoxelnoise extends TestBase {
         noiseTexture.magFilter = THREE.NearestFilter;
 
         const colorUniform = { value: new THREE.Color(0xff0000) };
+        const noiseStrengthUniform = { value: 0.2 };
         const material = new THREE.ShaderMaterial({
             uniforms: {
                 uNoiseTexture: { value: noiseTexture },
@@ -42,6 +43,7 @@ class TestVoxelnoise extends TestBase {
                     }),
                 },
                 uColor: colorUniform,
+                uNoiseStrength: noiseStrengthUniform,
             },
             vertexShader: `
             varying vec2 vUv;
@@ -55,17 +57,29 @@ class TestVoxelnoise extends TestBase {
             uniform sampler2D uNoiseTexture;
             uniform sampler2D uColorTexture;
             uniform vec3 uColor;
+            uniform float uNoiseStrength;
 
             varying vec2 vUv;
 
             void main() {
                 gl_FragColor = vec4(vUv, 0, 1);
-                float noise = texture(uNoiseTexture, vUv).r - 0.5;
 
                 vec4 colorSample = texture(uColorTexture, vUv);
                 vec3 baseColor = mix(uColor, colorSample.rgb, colorSample.a);
                
-                baseColor += noise * 0.1;
+                float noise = texture(uNoiseTexture, vUv).r - 0.5;
+                noise *= uNoiseStrength;
+
+                float distanceFromBlack = length(baseColor);
+                float distanceFromWhite = length(baseColor - 1.0);
+                float distanceFromExtreme = min(distanceFromBlack, distanceFromWhite);
+
+                const float baseNoise = 0.5;
+                noise *= baseNoise + (1.0 - baseNoise) * smoothstep(0.0, 0.5, distanceFromExtreme);
+
+                baseColor += noise;
+                // baseColor = vec3(distanceFromExtreme);
+                // baseColor = vec3(noise);
                 gl_FragColor = vec4(baseColor, 1);
             }
             `,
@@ -79,6 +93,7 @@ class TestVoxelnoise extends TestBase {
         this.gui = new GUI();
         this.gui.show();
         this.gui.addColor(colorUniform, 'value').name('Color');
+        this.gui.add(noiseStrengthUniform, 'value', 0, 1, 0.01).name('Noise strength');
     }
 
     protected override update(): void {
