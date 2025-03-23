@@ -31,23 +31,24 @@ function createVoxelMap(includeTreesInLod: boolean): VoxelMap {
 }
 
 async function buildTestScene(test: ETest): Promise<TestBase> {
-    if (test === ETest.TERRAIN) {
-        return new TestTerrain(createVoxelMap(true));
-    } else if (test === ETest.WEATHER) {
-        return new TestWeather();
-    } else if (test === ETest.TEXTURE_CUSTOMIZATION) {
-        return new TestTextureCustomization();
-    } else if (test === ETest.PHYSICS) {
-        return new TestPhysics(createVoxelMap(true));
-    } else if (test === ETest.PARTICLES) {
-        return new TestParticles();
-    } else if (test === ETest.BOARD) {
-        return new TestBoard(createVoxelMap(true));
-    } else if (test === ETest.GRASS) {
-        logger.verbosity = ELogLevel.DEBUG;
-        return await TestGrass.instanciate();
-    } else {
-        throw new Error(`Unknown test "${test}".`);
+    switch (test) {
+        case ETest.TERRAIN:
+            return new TestTerrain(createVoxelMap(true));
+        case ETest.WEATHER:
+            return new TestWeather();
+        case ETest.TEXTURE_CUSTOMIZATION:
+            return new TestTextureCustomization();
+        case ETest.PHYSICS:
+            return new TestPhysics(createVoxelMap(true));
+        case ETest.PARTICLES:
+            return new TestParticles();
+        case ETest.BOARD:
+            return new TestBoard(createVoxelMap(true));
+        case ETest.GRASS:
+            logger.verbosity = ELogLevel.DEBUG;
+            return await TestGrass.instanciate();
+        default:
+            throw new Error(`Unknown test "${test}".`);
     }
 }
 
