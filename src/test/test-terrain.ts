@@ -177,6 +177,10 @@ class TestTerrain extends TestBase {
 
         this.heightmapAtlas = new HeightmapAtlas({
             heightmap: map,
+            heightmapQueries: {
+                interval: 200,
+                batching: 2,
+            },
             materialsStore: this.voxelMaterialsStore,
             texelSizeInWorld: 2,
             leafTileSizeInWorld: 64,

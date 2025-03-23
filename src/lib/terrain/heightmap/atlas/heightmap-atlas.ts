@@ -6,6 +6,10 @@ import type { HeightmapSamples, IHeightmap } from '../i-heightmap';
 
 type Parameters = {
     readonly heightmap: IHeightmap;
+    readonly heightmapQueries: {
+        readonly interval: number;
+        readonly batching: number;
+    };
     readonly materialsStore: MaterialsStore;
     readonly texelSizeInWorld: number;
     readonly leafTileSizeInWorld: number;
@@ -89,6 +93,11 @@ class HeightmapAtlas {
 
     public readonly maxNestingLevel: number;
 
+    private readonly queries: {
+        readonly interval: number;
+        readonly batchSize: number;
+    };
+
     private readonly fakeCamera = new THREE.PerspectiveCamera();
 
     private readonly tileGrid: {
@@ -126,6 +135,11 @@ class HeightmapAtlas {
         }
 
         this.heightmap = params.heightmap;
+
+        this.queries = {
+            interval: params.heightmapQueries.interval,
+            batchSize: params.heightmapQueries.batching,
+        };
 
         this.texelSizeInWorld = params.texelSizeInWorld;
 
@@ -276,7 +290,7 @@ class HeightmapAtlas {
         }
 
         const now = performance.now();
-        if (this.lastRequestsBatchTimestamp === null || now - this.lastRequestsBatchTimestamp > 200) {
+        if (this.lastRequestsBatchTimestamp === null || now - this.lastRequestsBatchTimestamp > this.queries.interval) {
             this.solvePendingRequests();
             this.lastRequestsBatchTimestamp = now;
         }
@@ -464,41 +478,63 @@ class HeightmapAtlas {
     }
 
     private solvePendingRequests(): void {
-        const pendingRequests = Array.from(this.pendingUpdates.entries()).filter(
-            ([_, pendingUpdate]) => pendingUpdate.state === 'pending-request'
-        );
+        const pendingRequestsTilesIds = Array.from(this.pendingUpdates.values())
+            .filter(pendingUpdate => pendingUpdate.state === 'pending-request')
+            .map(pendingUpdate => pendingUpdate.tileId);
 
-        for (const [tileIdString, pendingRequest] of pendingRequests) {
-            const worldPositions = this.getTileWorldPositions(pendingRequest.tileId);
-            const result = this.heightmap.sampleHeightmap(worldPositions);
-            if (result instanceof Promise) {
-                this.pendingUpdates.set(tileIdString, { tileId: pendingRequest.tileId, state: 'pending-response' });
-                result.then(heightmapSamples => {
-                    this.pendingUpdates.set(tileIdString, {
-                        tileId: pendingRequest.tileId,
-                        state: 'pending-update',
-                        heightmapSamples,
-                    });
-                });
-            } else {
-                this.pendingUpdates.set(tileIdString, {
-                    tileId: pendingRequest.tileId,
-                    state: 'pending-update',
-                    heightmapSamples: result,
-                });
+        let currentBatch: AtlasTileId[] = [];
+        for (const tileId of pendingRequestsTilesIds) {
+            currentBatch.push(tileId);
+            if (currentBatch.length >= this.queries.batchSize) {
+                void this.sendRequestsBatch(currentBatch);
+                currentBatch = [];
             }
         }
+        void this.sendRequestsBatch(currentBatch);
     }
 
-    private getTileWorldPositions(tileId: AtlasTileId): Float32Array {
-        const viewportWorld = this.getTileLocalInfos(tileId).viewportWorld;
-
-        const result = new Float32Array(this.tileGrid.normalizedPositions.length);
-        for (let iV = 0; iV < this.tileGrid.normalizedPositions.length / 2; iV++) {
-            result[2 * iV + 0] = viewportWorld.x + viewportWorld.z * this.tileGrid.normalizedPositions[2 * iV + 0]!;
-            result[2 * iV + 1] = viewportWorld.y + viewportWorld.w * this.tileGrid.normalizedPositions[2 * iV + 1]!;
+    private async sendRequestsBatch(batchTileIds: ReadonlyArray<AtlasTileId>): Promise<void> {
+        if (batchTileIds.length === 0) {
+            return;
         }
-        return result;
+
+        const samplesPerTileId = this.tileGrid.normalizedPositions.length / 2;
+        const batchWorldPositions = new Float32Array(batchTileIds.length * 2 * samplesPerTileId);
+        batchTileIds.forEach((tileId: AtlasTileId, index: number) => {
+            const viewportWorld = this.getTileLocalInfos(tileId).viewportWorld;
+            const offset = index * 2 * samplesPerTileId;
+            for (let iV = 0; iV < samplesPerTileId; iV++) {
+                batchWorldPositions[offset + 2 * iV + 0] =
+                    viewportWorld.x + viewportWorld.z * this.tileGrid.normalizedPositions[2 * iV + 0]!;
+                batchWorldPositions[offset + 2 * iV + 1] =
+                    viewportWorld.y + viewportWorld.w * this.tileGrid.normalizedPositions[2 * iV + 1]!;
+            }
+        });
+
+        const result = this.heightmap.sampleHeightmap(batchWorldPositions);
+        let batchHeightmapSamples: HeightmapSamples;
+        if (result instanceof Promise) {
+            for (const tileId of batchTileIds) {
+                const tileIdString = tileIdToString(tileId);
+                this.pendingUpdates.set(tileIdString, { tileId, state: 'pending-response' });
+            }
+            batchHeightmapSamples = await result;
+        } else {
+            batchHeightmapSamples = result;
+        }
+
+        batchTileIds.forEach((tileId: AtlasTileId, index: number) => {
+            const tileIdString = tileIdToString(tileId);
+            const offset = index * samplesPerTileId;
+            this.pendingUpdates.set(tileIdString, {
+                tileId,
+                state: 'pending-update',
+                heightmapSamples: {
+                    altitudes: batchHeightmapSamples.altitudes.subarray(offset, offset + samplesPerTileId),
+                    materialIds: batchHeightmapSamples.materialIds.subarray(offset, offset + samplesPerTileId),
+                },
+            });
+        });
     }
 
     private getTileLocalInfos(tileId: AtlasTileId): AtlasTileLocalInfos {
