@@ -6,6 +6,11 @@ import { type IVoxelMaterial } from './voxelmap/i-voxelmap';
 type Parameters = {
     readonly voxelMaterialsList: ReadonlyArray<IVoxelMaterial>;
     readonly maxShininess: number;
+    readonly noiseModulation?: {
+        readonly baseStrength: number;
+        readonly fromColorValue: number;
+        readonly toColorValue: number;
+    };
 };
 
 class MaterialsStore {
@@ -23,6 +28,28 @@ class MaterialsStore {
         this.texture = this.buildMaterialsTexture(params.voxelMaterialsList);
         this.materialsCount = params.voxelMaterialsList.length;
 
+        const noiseModulation = params.noiseModulation ?? {
+            baseStrength: 0.2,
+            fromColorValue: 0,
+            toColorValue: 0.5,
+        };
+        const noiseModulationCode =
+            noiseModulation.baseStrength > 1
+                ? ''
+                : `
+    float distanceFromBlack = length(voxelMaterial.color);
+    float distanceFromWhite = length(voxelMaterial.color - 1.0);
+    float distanceFromExtreme = min(distanceFromBlack, distanceFromWhite);
+    noise *= mix(
+        ${noiseModulation.baseStrength.toFixed(3)},
+        1.0,
+        smoothstep(
+            ${noiseModulation.fromColorValue.toFixed(3)},
+            ${noiseModulation.toColorValue.toFixed(3)},
+            distanceFromExtreme
+        )
+    );`;
+
         this.glslDeclaration = `
 struct VoxelMaterial {
     vec3 color;
@@ -34,7 +61,9 @@ VoxelMaterial getVoxelMaterial(const in uint materialId, const in sampler2D mate
     VoxelMaterial voxelMaterial;
     ivec2 texelCoords = ivec2(materialId % ${this.texture.image.width}u, materialId / ${this.texture.image.width}u);
     vec4 fetchedTexel = texelFetch(materialsTexture, texelCoords, 0);
-    voxelMaterial.color = fetchedTexel.rgb + noise;
+    voxelMaterial.color = fetchedTexel.rgb;
+    ${noiseModulationCode}
+    voxelMaterial.color += noise;
 
     float emissive = step(0.5, fetchedTexel.a) * (2.0 * fetchedTexel.a - 1.0);
     voxelMaterial.shininess = step(fetchedTexel.a, 0.5) * ${this.maxShininess.toFixed(1)} * 2.0 * fetchedTexel.a * (1.0 + 10.0 * noise);

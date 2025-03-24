@@ -60,4 +60,4 @@ async function start(test: ETest): Promise<void> {
     testScene.start();
 }
 
-void start(ETest.VOXELNOISE);
+void start(ETest.TERRAIN);

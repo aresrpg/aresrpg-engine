@@ -31,10 +31,14 @@ class TestVoxelnoise extends TestBase {
         noiseTexture.minFilter = THREE.LinearMipMapLinearFilter;
         noiseTexture.magFilter = THREE.NearestFilter;
 
-        const colorUniform = { value: new THREE.Color(0xff0000) };
-        const noiseStrengthUniform = { value: 0.2 };
-        const baseNoiseUniform = { value: 0.45 };
-        const displayColorsUniform = { value: 1 };
+        const uniforms = {
+            uColor: { value: new THREE.Color(0xff0000) },
+            uNoiseStrength: { value: 0.2 },
+            uBaseNoise: { value: 0.45 },
+            uNoiseFrom: { value: 0 },
+            uNoiseTo: { value: 0.5 },
+            uColorsIntensity: { value: 1 },
+        };
         const material = new THREE.ShaderMaterial({
             uniforms: {
                 uNoiseTexture: { value: noiseTexture },
@@ -44,10 +48,7 @@ class TestVoxelnoise extends TestBase {
                         texture.minFilter = THREE.NearestFilter;
                     }),
                 },
-                uColor: colorUniform,
-                uNoiseStrength: noiseStrengthUniform,
-                uBaseNoise: baseNoiseUniform,
-                uColorsIntensity: displayColorsUniform,
+                ...uniforms,
             },
             vertexShader: `
             varying vec2 vUv;
@@ -63,6 +64,8 @@ class TestVoxelnoise extends TestBase {
             uniform vec3 uColor;
             uniform float uNoiseStrength;
             uniform float uBaseNoise;
+            uniform float uNoiseFrom;
+            uniform float uNoiseTo;
             uniform float uColorsIntensity;
 
             varying vec2 vUv;
@@ -80,7 +83,7 @@ class TestVoxelnoise extends TestBase {
                 float distanceFromWhite = length(baseColor - 1.0);
                 float distanceFromExtreme = min(distanceFromBlack, distanceFromWhite);
 
-                noise *= mix(uBaseNoise, 1.0, smoothstep(0.1, ${Math.sqrt(3)}, distanceFromExtreme));
+                noise *= mix(uBaseNoise, 1.0, smoothstep(uNoiseFrom, uNoiseTo, distanceFromExtreme));
 
                 baseColor += noise;
                 gl_FragColor = vec4(
@@ -98,10 +101,12 @@ class TestVoxelnoise extends TestBase {
 
         this.gui = new GUI();
         this.gui.show();
-        this.gui.addColor(colorUniform, 'value').name('Color');
-        this.gui.add(noiseStrengthUniform, 'value', 0, 1, 0.01).name('Noise strength');
-        this.gui.add(baseNoiseUniform, 'value', 0, 1, 0.01).name('Noise for black/white');
-        this.gui.add(displayColorsUniform, "value", 0, 1, 0.1).name("Colors intensity");
+        this.gui.addColor(uniforms.uColor, 'value').name('Color');
+        this.gui.add(uniforms.uNoiseStrength, 'value', 0, 1, 0.01).name('Noise strength');
+        this.gui.add(uniforms.uBaseNoise, 'value', 0, 1, 0.01).name('Noise for black/white');
+        this.gui.add(uniforms.uNoiseFrom, 'value', 0, 1, 0.01).name('Noise rampup from');
+        this.gui.add(uniforms.uNoiseTo, 'value', 0, 1, 0.01).name('Noise rampup to');
+        this.gui.add(uniforms.uColorsIntensity, 'value', 0, 1, 0.1).name('Colors intensity');
     }
 
     protected override update(): void {

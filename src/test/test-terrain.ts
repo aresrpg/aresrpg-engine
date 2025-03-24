@@ -96,6 +96,11 @@ class TestTerrain extends TestBase {
         this.voxelMaterialsStore = new MaterialsStore({
             voxelMaterialsList: map.voxelTypesDefininitions.solidMaterials,
             maxShininess: 400,
+            noiseModulation: {
+                baseStrength: 0.1,
+                fromColorValue: 0,
+                toColorValue: 0.5,
+            },
         });
 
         this.setupLighting();
@@ -414,7 +419,7 @@ return vec4(sampled.rgb / sampled.a, 1);
                     this.voxelmapViewer.parameters.faces.displayMode = Number(parameters.face.texturing);
                 });
             voxelsFolder
-                .add(parameters.face, 'noise', 0, 0.1, 0.001)
+                .add(parameters.face, 'noise', 0, 0.3, 0.001)
                 .name('Noise contrast')
                 .onChange(() => {
                     this.voxelmapViewer.parameters.faces.noiseContrast = parameters.face.noise;
