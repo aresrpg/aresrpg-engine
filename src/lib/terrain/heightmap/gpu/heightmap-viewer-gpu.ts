@@ -254,7 +254,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         }
         invisibleRootTilesList.sort((a, b) => a.invisibleSinceTimestamp - b.invisibleSinceTimestamp);
 
-        const rootTilesToDelete = invisibleRootTilesList.slice(0, this.garbageCollecting.maxInvisibleRootTilesInCache);
+        const rootTilesToDelete = invisibleRootTilesList.slice(this.garbageCollecting.maxInvisibleRootTilesInCache);
         for (const rootTile of rootTilesToDelete) {
             rootTile.rootTile.dispose();
             this.rootTilesMap.delete(rootTile.id);
