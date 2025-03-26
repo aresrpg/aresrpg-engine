@@ -1,4 +1,5 @@
 import { createFullscreenQuad } from '../../../helpers/fullscreen-quad';
+import { logger } from '../../../helpers/logger';
 import { safeModulo } from '../../../helpers/math';
 import * as THREE from '../../../libs/three-usage';
 import type { MaterialsStore } from '../../materials-store';
@@ -326,22 +327,7 @@ class HeightmapAtlas {
             }
 
             if (tileLocalInfos.rootTexture.isStub && pendingUpdate.tileId.nestingLevel !== 0) {
-                // resize
-                renderer.setRenderTarget(this.textureExpansion.renderTarget);
-                this.textureExpansion.textureUniform.value = tileLocalInfos.rootTexture.renderTarget.texture;
-                this.textureExpansion.fullscreenQuad.material = this.textureExpansion.copyMaterial;
-                renderer.setViewport(0, 0, this.textureExpansion.renderTarget.width, this.textureExpansion.renderTarget.height);
-                renderer.render(this.textureExpansion.fullscreenQuad, this.fakeCamera);
-
-                tileLocalInfos.rootTexture.renderTarget.setSize(this.rootTileSizeInTexels, this.rootTileSizeInTexels);
-
-                renderer.setRenderTarget(tileLocalInfos.rootTexture.renderTarget);
-                this.textureExpansion.textureUniform.value = this.textureExpansion.renderTarget.texture;
-                this.textureExpansion.fullscreenQuad.material = this.textureExpansion.copyMaterial;
-                renderer.setViewport(0, 0, tileLocalInfos.rootTexture.renderTarget.width, tileLocalInfos.rootTexture.renderTarget.height);
-                renderer.render(this.textureExpansion.fullscreenQuad, this.fakeCamera);
-
-                tileLocalInfos.rootTexture.isStub = false;
+                this.expandRootTexture(tileLocalInfos.rootTexture, renderer);
             }
 
             if (tileLocalInfos.rootTexture.isStub) {
@@ -582,6 +568,29 @@ class HeightmapAtlas {
             this.rootTextures.set(rootIdString, rootTexture);
         }
         return rootTexture;
+    }
+
+    private expandRootTexture(atlasTexture: AtlasTexture, renderer: THREE.WebGLRenderer): void {
+        if (!atlasTexture.isStub) {
+            logger.warn(`Cannot expand twice a root texture.`);
+            return;
+        }
+
+        renderer.setRenderTarget(this.textureExpansion.renderTarget);
+        this.textureExpansion.textureUniform.value = atlasTexture.renderTarget.texture;
+        this.textureExpansion.fullscreenQuad.material = this.textureExpansion.copyMaterial;
+        renderer.setViewport(0, 0, this.textureExpansion.renderTarget.width, this.textureExpansion.renderTarget.height);
+        renderer.render(this.textureExpansion.fullscreenQuad, this.fakeCamera);
+
+        atlasTexture.renderTarget.setSize(this.rootTileSizeInTexels, this.rootTileSizeInTexels);
+
+        renderer.setRenderTarget(atlasTexture.renderTarget);
+        this.textureExpansion.textureUniform.value = this.textureExpansion.renderTarget.texture;
+        this.textureExpansion.fullscreenQuad.material = this.textureExpansion.copyMaterial;
+        renderer.setViewport(0, 0, atlasTexture.renderTarget.width, atlasTexture.renderTarget.height);
+        renderer.render(this.textureExpansion.fullscreenQuad, this.fakeCamera);
+
+        atlasTexture.isStub = false;
     }
 }
 
