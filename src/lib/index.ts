@@ -1,6 +1,6 @@
 export { PromisesQueue } from './helpers/async/promises-queue';
 export { ELogLevel, setVerbosity } from './helpers/logger';
-export { HeightmapAtlas, type HeightmapAtlasStatistics } from './terrain/heightmap/atlas/heightmap-atlas';
+export { HeightmapAtlas, type AtlasTileId, type HeightmapAtlasStatistics } from './terrain/heightmap/atlas/heightmap-atlas';
 export { HeightmapViewerCpu, type HeightmapViewerCpuStatistics } from './terrain/heightmap/cpu/heightmap-viewer-cpu';
 export { HeightmapViewerGpu, type HeightmapViewerGpuStatistics } from './terrain/heightmap/gpu/heightmap-viewer-gpu';
 export type { HeightmapSamples, IHeightmap } from './terrain/heightmap/i-heightmap';

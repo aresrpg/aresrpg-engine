@@ -46,6 +46,7 @@ type PendingUpdate =
       }
     | {
           readonly tileId: AtlasTileId;
+          readonly requestId: symbol;
           readonly state: 'pending-response';
       }
     | {
@@ -415,6 +416,26 @@ class HeightmapAtlas {
         return result;
     }
 
+    public pushTileData(tileId: AtlasTileId, heightmapSamples: HeightmapSamples): void {
+        if (heightmapSamples.altitudes.length !== heightmapSamples.materialIds.length) {
+            throw new Error(
+                `Incoherent HeightmapSamples: received ${heightmapSamples.altitudes.length} altitude samples and ${heightmapSamples.materialIds.length} materialIds.`
+            );
+        }
+        const samplesPerTileId = this.tileGrid.normalizedPositions.length / 2;
+        if (heightmapSamples.altitudes.length !== samplesPerTileId) {
+            throw new Error(
+                `Incoherent HeightmapSamples: received ${heightmapSamples.altitudes.length} samples, expected ${samplesPerTileId}.`
+            );
+        }
+        const tileIdString = tileIdToString(tileId);
+        this.pendingUpdates.set(tileIdString, {
+            tileId,
+            state: 'pending-update',
+            heightmapSamples,
+        });
+    }
+
     private hasDataForTile(tileId: AtlasTileId): boolean {
         const tileLocalInfos = this.getTileLocalInfos(tileId);
         for (let iLeafY = tileLocalInfos.fromLeaf.y; iLeafY < tileLocalInfos.toLeaf.y; iLeafY++) {
@@ -497,13 +518,15 @@ class HeightmapAtlas {
             }
         });
 
+        const requestId = Symbol('heightmap-atlas-request');
+        for (const tileId of batchTileIds) {
+            const tileIdString = tileIdToString(tileId);
+            this.pendingUpdates.set(tileIdString, { tileId, requestId, state: 'pending-response' });
+        }
+
         const result = this.heightmap.sampleHeightmap(batchWorldPositions);
         let batchHeightmapSamples: HeightmapSamples;
         if (result instanceof Promise) {
-            for (const tileId of batchTileIds) {
-                const tileIdString = tileIdToString(tileId);
-                this.pendingUpdates.set(tileIdString, { tileId, state: 'pending-response' });
-            }
             batchHeightmapSamples = await result;
         } else {
             batchHeightmapSamples = result;
@@ -512,14 +535,15 @@ class HeightmapAtlas {
         batchTileIds.forEach((tileId: AtlasTileId, index: number) => {
             const tileIdString = tileIdToString(tileId);
             const offset = index * samplesPerTileId;
-            this.pendingUpdates.set(tileIdString, {
-                tileId,
-                state: 'pending-update',
-                heightmapSamples: {
+            const currentState = this.pendingUpdates.get(tileIdString);
+            if (currentState?.state === 'pending-response' && currentState.requestId === requestId) {
+                this.pushTileData(tileId, {
                     altitudes: batchHeightmapSamples.altitudes.subarray(offset, offset + samplesPerTileId),
                     materialIds: batchHeightmapSamples.materialIds.subarray(offset, offset + samplesPerTileId),
-                },
-            });
+                });
+            } else {
+                logger.debug(`Ignoring result of sampleHeightmap for tile ${tileIdString}`);
+            }
         });
     }
 
