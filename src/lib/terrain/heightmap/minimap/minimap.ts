@@ -22,9 +22,6 @@ type MinimapMarker = {
 };
 
 class Minimap {
-    private readonly heightmapAtlas: HeightmapAtlas;
-    private readonly heightmapAtlasDownscalingFactor: number;
-
     public centerPosition = new THREE.Vector3(0, 0, 0);
     public verticalAngle: number = Math.PI / 4;
     public orientation: number = 0;
@@ -42,6 +39,11 @@ class Minimap {
     private readonly scene: THREE.Scene;
     private readonly camera: THREE.PerspectiveCamera;
     private readonly compass: THREE.Mesh | null = null;
+
+    private readonly heightmapAtlas: {
+        readonly atlas: HeightmapAtlas;
+        readonly downscalingFactor: number;
+    };
 
     private readonly texture: {
         readonly renderTarget: THREE.WebGLRenderTarget;
@@ -89,8 +91,10 @@ class Minimap {
     };
 
     public constructor(params: Parameters) {
-        this.heightmapAtlas = params.heightmapAtlas;
-        this.heightmapAtlasDownscalingFactor = Math.max(1, params.heightmapAtlasDownscalingFactor);
+        this.heightmapAtlas = {
+            atlas: params.heightmapAtlas,
+            downscalingFactor: Math.max(1, params.heightmapAtlasDownscalingFactor),
+        };
 
         this.minViewDistance = params.minViewDistance;
         this.maxViewDistance = params.maxViewDistance;
@@ -198,8 +202,8 @@ class Minimap {
                 vec4 mapSample = texture(uMapTexture, vUv);
  
                 float altitude = mix(
-                    ${this.heightmapAtlas.heightmap.altitude.min.toFixed(1)}, 
-                    ${this.heightmapAtlas.heightmap.altitude.max.toFixed(1)},
+                    ${this.heightmapAtlas.atlas.heightmap.altitude.min.toFixed(1)}, 
+                    ${this.heightmapAtlas.atlas.heightmap.altitude.max.toFixed(1)},
                     mapSample.a
                 );
                 altitude -= uPlayerAltitude;
@@ -345,8 +349,8 @@ class Minimap {
 
                 void main() {
                     float terrainAltitude = mix(
-                        ${this.heightmapAtlas.heightmap.altitude.min.toFixed(1)}, 
-                        ${this.heightmapAtlas.heightmap.altitude.max.toFixed(1)},
+                        ${this.heightmapAtlas.atlas.heightmap.altitude.min.toFixed(1)}, 
+                        ${this.heightmapAtlas.atlas.heightmap.altitude.max.toFixed(1)},
                         texture(uMapTexture, vUv).a
                     );
                     if (vAltitudeWorld < terrainAltitude) {
@@ -530,11 +534,12 @@ class Minimap {
 
     private requestDataFromAtlas(): void {
         const realMinimapSizeOnScreen = 0.75 * this.screenSize;
-        const minRequiredAtlasTexelWorldSize = ((2 * this.viewDistance) / realMinimapSizeOnScreen) * this.heightmapAtlasDownscalingFactor;
+        const minRequiredAtlasTexelWorldSize = ((2 * this.viewDistance) / realMinimapSizeOnScreen) * this.heightmapAtlas.downscalingFactor;
 
-        let atlasNestingLevel = this.heightmapAtlas.maxNestingLevel;
-        let atlasNestingLevelTileSizeInWorld = this.heightmapAtlas.leafTileSizeInWorld;
-        let atlasNestingLevelTexelSizeInWorld = this.heightmapAtlas.leafTileSizeInWorld / this.heightmapAtlas.leafTileSizeInTexels;
+        let atlasNestingLevel = this.heightmapAtlas.atlas.maxNestingLevel;
+        let atlasNestingLevelTileSizeInWorld = this.heightmapAtlas.atlas.leafTileSizeInWorld;
+        let atlasNestingLevelTexelSizeInWorld =
+            this.heightmapAtlas.atlas.leafTileSizeInWorld / this.heightmapAtlas.atlas.leafTileSizeInTexels;
 
         while (2 * atlasNestingLevelTexelSizeInWorld < minRequiredAtlasTexelWorldSize && atlasNestingLevel > 0) {
             atlasNestingLevel--;
@@ -552,7 +557,7 @@ class Minimap {
         const atlasLeafId = { x: 0, y: 0 };
         for (atlasLeafId.y = atlasLeafFrom.y; atlasLeafId.y <= atlasLeafTo.y; atlasLeafId.y++) {
             for (atlasLeafId.x = atlasLeafFrom.x; atlasLeafId.x <= atlasLeafTo.x; atlasLeafId.x++) {
-                const leafView = this.heightmapAtlas.getTileView({
+                const leafView = this.heightmapAtlas.atlas.getTileView({
                     nestingLevel: atlasNestingLevel,
                     ...atlasLeafId,
                 });
@@ -571,22 +576,22 @@ class Minimap {
 
         renderer.setRenderTarget(this.texture.renderTarget);
 
-        const atlasRootFrom = textureCornerWorld.clone().divideScalar(this.heightmapAtlas.rootTileSizeInWorld).floor();
+        const atlasRootFrom = textureCornerWorld.clone().divideScalar(this.heightmapAtlas.atlas.rootTileSizeInWorld).floor();
         const atlasRootTo = textureCornerWorld
             .clone()
             .addScalar(this.texture.worldSize)
-            .divideScalar(this.heightmapAtlas.rootTileSizeInWorld)
+            .divideScalar(this.heightmapAtlas.atlas.rootTileSizeInWorld)
             .floor();
         const atlasRootId = { x: 0, y: 0 };
         for (atlasRootId.y = atlasRootFrom.y; atlasRootId.y <= atlasRootTo.y; atlasRootId.y++) {
             for (atlasRootId.x = atlasRootFrom.x; atlasRootId.x <= atlasRootTo.x; atlasRootId.x++) {
-                const rootTileView = this.heightmapAtlas.getTileView({ nestingLevel: 0, ...atlasRootId });
+                const rootTileView = this.heightmapAtlas.atlas.getTileView({ nestingLevel: 0, ...atlasRootId });
 
                 const viewport = new THREE.Vector4(
-                    (rootTileView.coords.world.origin.x - textureCornerWorld.x) / this.heightmapAtlas.texelSizeInWorld,
-                    (rootTileView.coords.world.origin.y - textureCornerWorld.y) / this.heightmapAtlas.texelSizeInWorld,
-                    this.heightmapAtlas.rootTileSizeInTexels,
-                    this.heightmapAtlas.rootTileSizeInTexels
+                    (rootTileView.coords.world.origin.x - textureCornerWorld.x) / this.heightmapAtlas.atlas.texelSizeInWorld,
+                    (rootTileView.coords.world.origin.y - textureCornerWorld.y) / this.heightmapAtlas.atlas.texelSizeInWorld,
+                    this.heightmapAtlas.atlas.rootTileSizeInTexels,
+                    this.heightmapAtlas.atlas.rootTileSizeInTexels
                 );
                 this.texture.atlasTextureUniform.value = rootTileView.texture;
                 this.texture.copyAtlasMaterial.uniformsNeedUpdate = true;
