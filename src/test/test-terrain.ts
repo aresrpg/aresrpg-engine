@@ -9,7 +9,8 @@ import {
     EBoardSquareType,
     EComputationMethod,
     EVoxelsDisplayMode,
-    HeightmapAtlas,
+    type HeightmapAtlas,
+    HeightmapAtlasAutonomous,
     HeightmapViewerCpu,
     HeightmapViewerGpu,
     InstancedBillboard,
@@ -180,7 +181,7 @@ class TestTerrain extends TestBase {
             }, 200);
         }
 
-        this.heightmapAtlas = new HeightmapAtlas({
+        this.heightmapAtlas = new HeightmapAtlasAutonomous({
             heightmap: map,
             heightmapQueries: {
                 interval: 200,

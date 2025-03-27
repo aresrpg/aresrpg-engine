@@ -7,14 +7,11 @@ import type { HeightmapSamples, IHeightmap } from '../i-heightmap';
 
 type Parameters = {
     readonly heightmap: IHeightmap;
-    readonly heightmapQueries: {
-        readonly interval: number;
-        readonly batching: number;
-    };
     readonly materialsStore: MaterialsStore;
     readonly texelSizeInWorld: number;
     readonly leafTileSizeInWorld: number;
     readonly maxTextureSize?: number;
+    readonly maintainanceInterval?: number;
 };
 
 type HeightmapAtlasStatistics = {
@@ -56,9 +53,6 @@ type AtlasTileId = {
     readonly x: number; // level-relative world ID
     readonly y: number; // level-relative world ID
 };
-function tileIdToString(tileId: AtlasTileId): string {
-    return `${tileId.nestingLevel}_${tileId.x}_${tileId.y}`;
-}
 
 type HeightmapAtlasTileView = {
     readonly tileId: AtlasTileId;
@@ -110,14 +104,11 @@ class HeightmapAtlas {
 
     public readonly maxNestingLevel: number;
 
-    private readonly queries: {
-        readonly interval: number;
-        readonly batchSize: number;
-    };
+    private readonly maintainanceInterval: number;
 
     private readonly fakeCamera = new THREE.PerspectiveCamera();
 
-    private readonly tileGrid: {
+    protected readonly tileGrid: {
         readonly normalizedPositions: Float32Array;
         readonly mesh: THREE.Mesh;
         readonly materialIdAttribute: THREE.Float32BufferAttribute;
@@ -135,8 +126,8 @@ class HeightmapAtlas {
 
     private readonly tilesUsage = new Map<string, TileUsage>();
 
-    private readonly pendingUpdates = new Map<string, PendingUpdate>();
-    private lastRequestsBatchTimestamp: number | null = null;
+    protected readonly pendingUpdates = new Map<string, PendingUpdate>();
+    private lastMaintainanceTimestamp: number | null = null;
 
     private readonly rootTextures = new Map<string, AtlasTexture>();
 
@@ -155,10 +146,7 @@ class HeightmapAtlas {
 
         this.heightmap = params.heightmap;
 
-        this.queries = {
-            interval: params.heightmapQueries.interval,
-            batchSize: params.heightmapQueries.batching,
-        };
+        this.maintainanceInterval = params.maintainanceInterval ?? 500;
 
         this.texelSizeInWorld = params.texelSizeInWorld;
 
@@ -305,11 +293,9 @@ class HeightmapAtlas {
 
     public update(renderer: THREE.WebGLRenderer): void {
         const now = performance.now();
-        if (this.lastRequestsBatchTimestamp === null || now - this.lastRequestsBatchTimestamp > this.queries.interval) {
-            console.log(this.tilesUsage.size);
+        if (this.lastMaintainanceTimestamp === null || now - this.lastMaintainanceTimestamp > this.maintainanceInterval) {
             this.deleteUnusedTilesUsage();
-            this.solvePendingRequests();
-            this.lastRequestsBatchTimestamp = now;
+            this.lastMaintainanceTimestamp = now;
         }
 
         let hasPendingApplications = false;
@@ -392,7 +378,7 @@ class HeightmapAtlas {
     }
 
     public getTileView(tileId: AtlasTileId): HeightmapAtlasTileView {
-        const tileIdString = tileIdToString(tileId);
+        const tileIdString = this.tileIdToString(tileId);
         let tileUsage = this.tilesUsage.get(tileIdString);
         if (!tileUsage) {
             const tileInfos = this.getTileLocalInfos(tileId);
@@ -485,12 +471,49 @@ class HeightmapAtlas {
                 `Incoherent HeightmapSamples: received ${heightmapSamples.altitudes.length} samples, expected ${samplesPerTileId}.`
             );
         }
-        const tileIdString = tileIdToString(tileId);
+        const tileIdString = this.tileIdToString(tileId);
         this.pendingUpdates.set(tileIdString, {
             tileId,
             state: 'pending-application',
             heightmapSamples,
         });
+    }
+
+    public getTilesNeedingData(): AtlasTileId[] {
+        const result: AtlasTileId[] = [];
+        for (const tileUsage of this.tilesUsage.values()) {
+            if (tileUsage.optimalDataUsers.size > 0 && !tileUsage.hasOptimalData) {
+                const hasOptimalData = this.hasOptimalDataForTile(tileUsage.tileId);
+                if (hasOptimalData) {
+                    tileUsage.hasOptimalData = true;
+                } else {
+                    const tileIdString = this.tileIdToString(tileUsage.tileId);
+                    if (!this.pendingUpdates.has(tileIdString)) {
+                        result.push(tileUsage.tileId);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    public getTileSamplesPositions(tileId: AtlasTileId): Float32Array {
+        const worldPositions = new Float32Array(this.tileGrid.normalizedPositions.length);
+        this.fillTileSamplesPositions(tileId, worldPositions);
+        return worldPositions;
+    }
+
+    protected fillTileSamplesPositions(tileId: AtlasTileId, worldPositions: Float32Array): void {
+        if (worldPositions.length !== this.tileGrid.normalizedPositions.length) {
+            throw new Error();
+        }
+
+        const samplesPerTileId = this.tileGrid.normalizedPositions.length / 2;
+        const viewportWorld = this.getTileLocalInfos(tileId).viewportWorld;
+        for (let iV = 0; iV < samplesPerTileId; iV++) {
+            worldPositions[2 * iV + 0] = viewportWorld.x + viewportWorld.z * this.tileGrid.normalizedPositions[2 * iV + 0]!;
+            worldPositions[2 * iV + 1] = viewportWorld.y + viewportWorld.w * this.tileGrid.normalizedPositions[2 * iV + 1]!;
+        }
     }
 
     private hasDataForTile(tileId: AtlasTileId): boolean {
@@ -533,24 +556,6 @@ class HeightmapAtlas {
         return minimumPrecision;
     }
 
-    private getTilesToRequest(): AtlasTileId[] {
-        const result: AtlasTileId[] = [];
-        for (const tileUsage of this.tilesUsage.values()) {
-            if (tileUsage.optimalDataUsers.size > 0 && !tileUsage.hasOptimalData) {
-                const hasOptimalData = this.hasOptimalDataForTile(tileUsage.tileId);
-                if (hasOptimalData) {
-                    tileUsage.hasOptimalData = true;
-                } else {
-                    const tileIdString = tileIdToString(tileUsage.tileId);
-                    if (!this.pendingUpdates.has(tileIdString)) {
-                        result.push(tileUsage.tileId);
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
     private deleteUnusedTilesUsage(): void {
         const idsToDelete: string[] = [];
         for (const [id, usage] of this.tilesUsage.entries()) {
@@ -564,76 +569,7 @@ class HeightmapAtlas {
         }
     }
 
-    private solvePendingRequests(): void {
-        const pendingRequestsTilesIds = this.getTilesToRequest();
-
-        let currentBatch: AtlasTileId[] = [];
-        for (const tileId of pendingRequestsTilesIds) {
-            currentBatch.push(tileId);
-            if (currentBatch.length >= this.queries.batchSize) {
-                void this.sendRequestsBatch(currentBatch);
-                currentBatch = [];
-            }
-        }
-        void this.sendRequestsBatch(currentBatch);
-    }
-
-    private async sendRequestsBatch(batchTileIds: ReadonlyArray<AtlasTileId>): Promise<void> {
-        if (batchTileIds.length === 0) {
-            return;
-        }
-
-        const samplesPerTileId = this.tileGrid.normalizedPositions.length / 2;
-        const batchWorldPositions = new Float32Array(batchTileIds.length * 2 * samplesPerTileId);
-        batchTileIds.forEach((tileId: AtlasTileId, index: number) => {
-            const viewportWorld = this.getTileLocalInfos(tileId).viewportWorld;
-            const offset = index * 2 * samplesPerTileId;
-            for (let iV = 0; iV < samplesPerTileId; iV++) {
-                batchWorldPositions[offset + 2 * iV + 0] =
-                    viewportWorld.x + viewportWorld.z * this.tileGrid.normalizedPositions[2 * iV + 0]!;
-                batchWorldPositions[offset + 2 * iV + 1] =
-                    viewportWorld.y + viewportWorld.w * this.tileGrid.normalizedPositions[2 * iV + 1]!;
-            }
-        });
-
-        const requestId = Symbol('heightmap-atlas-request');
-        for (const tileId of batchTileIds) {
-            const tileIdString = tileIdToString(tileId);
-            this.pendingUpdates.set(tileIdString, { tileId, requestId, state: 'pending-response' });
-        }
-
-        const result = this.heightmap.sampleHeightmap(batchWorldPositions);
-        let batchHeightmapSamples: HeightmapSamples | null = null;
-        if (result instanceof Promise) {
-            try {
-                batchHeightmapSamples = await result;
-            } catch (error: unknown) {
-                logger.warn(`Query for HeightmapAtlas tiles failed, will retry later. Error: ${error}`);
-            }
-        } else {
-            batchHeightmapSamples = result;
-        }
-
-        batchTileIds.forEach((tileId: AtlasTileId, index: number) => {
-            const tileIdString = tileIdToString(tileId);
-            const currentState = this.pendingUpdates.get(tileIdString);
-            if (currentState?.state === 'pending-response' && currentState.requestId === requestId) {
-                if (batchHeightmapSamples) {
-                    const offset = index * samplesPerTileId;
-                    this.pushTileData(tileId, {
-                        altitudes: batchHeightmapSamples.altitudes.subarray(offset, offset + samplesPerTileId),
-                        materialIds: batchHeightmapSamples.materialIds.subarray(offset, offset + samplesPerTileId),
-                    });
-                } else {
-                    this.pendingUpdates.delete(tileIdString);
-                }
-            } else {
-                logger.debug(`Ignoring result of sampleHeightmap for tile ${tileIdString}`);
-            }
-        });
-    }
-
-    private getTileLocalInfos(tileId: AtlasTileId): AtlasTileLocalInfos {
+    protected getTileLocalInfos(tileId: AtlasTileId): AtlasTileLocalInfos {
         const rootTileId = {
             x: Math.floor(tileId.x / 2 ** tileId.nestingLevel),
             y: Math.floor(tileId.y / 2 ** tileId.nestingLevel),
@@ -701,6 +637,10 @@ class HeightmapAtlas {
         renderer.render(this.textureExpansion.fullscreenQuad, this.fakeCamera);
 
         atlasTexture.isStub = false;
+    }
+
+    protected tileIdToString(tileId: AtlasTileId): string {
+        return `${tileId.nestingLevel}_${tileId.x}_${tileId.y}`;
     }
 }
 
