@@ -603,22 +603,30 @@ class HeightmapAtlas {
         }
 
         const result = this.heightmap.sampleHeightmap(batchWorldPositions);
-        let batchHeightmapSamples: HeightmapSamples;
+        let batchHeightmapSamples: HeightmapSamples | null = null;
         if (result instanceof Promise) {
-            batchHeightmapSamples = await result;
+            try {
+                batchHeightmapSamples = await result;
+            } catch (error: unknown) {
+                logger.warn(`Query for HeightmapAtlas tiles failed, will retry later. Error: ${error}`);
+            }
         } else {
             batchHeightmapSamples = result;
         }
 
         batchTileIds.forEach((tileId: AtlasTileId, index: number) => {
             const tileIdString = tileIdToString(tileId);
-            const offset = index * samplesPerTileId;
             const currentState = this.pendingUpdates.get(tileIdString);
             if (currentState?.state === 'pending-response' && currentState.requestId === requestId) {
-                this.pushTileData(tileId, {
-                    altitudes: batchHeightmapSamples.altitudes.subarray(offset, offset + samplesPerTileId),
-                    materialIds: batchHeightmapSamples.materialIds.subarray(offset, offset + samplesPerTileId),
-                });
+                if (batchHeightmapSamples) {
+                    const offset = index * samplesPerTileId;
+                    this.pushTileData(tileId, {
+                        altitudes: batchHeightmapSamples.altitudes.subarray(offset, offset + samplesPerTileId),
+                        materialIds: batchHeightmapSamples.materialIds.subarray(offset, offset + samplesPerTileId),
+                    });
+                } else {
+                    this.pendingUpdates.delete(tileIdString);
+                }
             } else {
                 logger.debug(`Ignoring result of sampleHeightmap for tile ${tileIdString}`);
             }

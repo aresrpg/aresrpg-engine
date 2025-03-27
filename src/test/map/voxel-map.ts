@@ -303,14 +303,19 @@ class VoxelMap implements IVoxelMap, IHeightmap, IWaterMap {
             result.materialIds[iSample] = sample.materialId;
         }
 
-        const synchronous = true;
+        const synchronous = false;
         if (synchronous) {
             return result;
         } else {
-            return new Promise(resolve => {
-                // setTimeout(() => {
-                resolve(result);
-                // }, Math.random() * 5000);
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    // simulate some errors
+                    if (Math.random() < 0.9) {
+                        resolve(result);
+                    } else {
+                        reject(new Error('error simulation'));
+                    }
+                }, Math.random() * 5000);
             });
         }
     }
