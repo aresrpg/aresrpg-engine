@@ -71,8 +71,6 @@ class HeightmapTile {
     private dissolveTransition = new Transition(0, 0, 0);
 
     private hasBasicData: boolean;
-    private hasOptimalData: boolean;
-    private didRequestData: boolean = false;
 
     private subdivided: boolean = false;
     public children: Children | null = null;
@@ -103,8 +101,7 @@ class HeightmapTile {
         this.flatShading = params.flatShading;
         this.transitionTime = params.transitionTime;
 
-        this.hasBasicData = atlasTileView.hasData();
-        this.hasOptimalData = atlasTileView.hasOptimalData();
+        this.hasBasicData = atlasTileView.hasBasicData();
 
         const uniforms = {
             uTexture0: { value: atlasTileView.texture },
@@ -294,6 +291,8 @@ vColor = texture0Sample.rgb;
             left: EEdgeResolution.SIMPLE,
             right: EEdgeResolution.SIMPLE,
         });
+
+        this.self.atlasTileView.useOptimalData();
     }
 
     public subdivide(): void {
@@ -325,12 +324,18 @@ vColor = texture0Sample.rgb;
         this.subdivided = true;
         this.container.clear();
         this.container.add(this.childrenContainer);
+
+        this.self.atlasTileView.stopUsingOptimalData();
     }
 
     public merge(): void {
         this.subdivided = false;
         this.container.clear();
         this.container.add(this.selfContainer);
+
+        if (this.shouldBeVisible) {
+            this.self.atlasTileView.useOptimalData();
+        }
     }
 
     public dispose(): void {
@@ -356,6 +361,9 @@ vColor = texture0Sample.rgb;
         this.selfContainer.clear();
 
         this.container.clear();
+
+        this.self.atlasTileView.stopUsingOptimalData();
+        this.self.atlasTileView.stopUsingView();
     }
 
     public setEdgesResolution(edgesResolution: EdgesResolution): void {
@@ -383,10 +391,16 @@ vColor = texture0Sample.rgb;
     public setVisibility(visible: boolean): void {
         if (this.shouldBeVisible !== visible) {
             this.shouldBeVisible = visible;
-            if (visible) {
+            if (this.shouldBeVisible) {
                 this.dissolveTransition = new Transition(0, 0, 0);
             } else {
                 this.dissolveTransition = new Transition(this.transitionTime, this.dissolveTransition.currentValue, 1);
+            }
+
+            if (this.shouldBeVisible && !this.subdivided) {
+                this.self.atlasTileView.useOptimalData();
+            } else {
+                this.self.atlasTileView.stopUsingOptimalData();
             }
         }
     }
@@ -418,13 +432,7 @@ vColor = texture0Sample.rgb;
         this.container.visible = dissolveRatio < 1;
 
         if (!this.subdivided) {
-            this.hasOptimalData = this.hasOptimalData || this.self.atlasTileView.hasOptimalData();
-            this.hasBasicData = this.hasOptimalData || this.hasBasicData || this.self.atlasTileView.hasData();
-
-            if (!this.hasOptimalData && !this.didRequestData) {
-                this.self.atlasTileView.requestData();
-                this.didRequestData = true;
-            }
+            this.hasBasicData = this.hasBasicData || this.self.atlasTileView.hasBasicData();
 
             if (!this.selfContainer.visible && this.hasBasicData) {
                 this.selfContainer.visible = true;

@@ -42,16 +42,12 @@ type AtlasTileLocalInfos = {
 type PendingUpdate =
     | {
           readonly tileId: AtlasTileId;
-          readonly state: 'pending-request';
-      }
-    | {
-          readonly tileId: AtlasTileId;
           readonly requestId: symbol;
           readonly state: 'pending-response';
       }
     | {
           readonly tileId: AtlasTileId;
-          readonly state: 'pending-update';
+          readonly state: 'pending-application';
           readonly heightmapSamples: HeightmapSamples;
       };
 
@@ -77,9 +73,28 @@ type HeightmapAtlasTileView = {
             readonly size: THREE.Vector2Like;
         };
     };
-    hasData(): boolean;
-    hasOptimalData(): boolean;
-    requestData(): void;
+    hasBasicData(): boolean;
+    stopUsingView(): void;
+    useOptimalData(): void;
+    stopUsingOptimalData(): void;
+};
+
+type TileUsage = {
+    readonly tileId: AtlasTileId;
+    readonly texture: THREE.Texture;
+    readonly coords: {
+        readonly uv: {
+            readonly origin: THREE.Vector2Like;
+            readonly size: THREE.Vector2Like;
+        };
+        readonly world: {
+            readonly origin: THREE.Vector2Like;
+            readonly size: THREE.Vector2Like;
+        };
+    };
+    readonly users: Set<symbol>;
+    readonly optimalDataUsers: Set<symbol>;
+    hasOptimalData: boolean;
 };
 
 class HeightmapAtlas {
@@ -117,6 +132,8 @@ class HeightmapAtlas {
         readonly renderTarget: THREE.WebGLRenderTarget;
         readonly textureUniform: THREE.IUniform<THREE.Texture | null>;
     };
+
+    private readonly tilesUsage = new Map<string, TileUsage>();
 
     private readonly pendingUpdates = new Map<string, PendingUpdate>();
     private lastRequestsBatchTimestamp: number | null = null;
@@ -287,14 +304,23 @@ class HeightmapAtlas {
     }
 
     public update(renderer: THREE.WebGLRenderer): void {
-        if (this.pendingUpdates.size === 0) {
-            return;
-        }
-
         const now = performance.now();
         if (this.lastRequestsBatchTimestamp === null || now - this.lastRequestsBatchTimestamp > this.queries.interval) {
+            console.log(this.tilesUsage.size);
+            this.deleteUnusedTilesUsage();
             this.solvePendingRequests();
             this.lastRequestsBatchTimestamp = now;
+        }
+
+        let hasPendingApplications = false;
+        for (const pendingUpdate of this.pendingUpdates.values()) {
+            if (pendingUpdate.state === 'pending-application') {
+                hasPendingApplications = true;
+                break;
+            }
+        }
+        if (!hasPendingApplications) {
+            return;
         }
 
         const previousState = {
@@ -311,7 +337,7 @@ class HeightmapAtlas {
 
         const appliedUpdateIdsList: string[] = [];
         for (const [updateId, pendingUpdate] of this.pendingUpdates.entries()) {
-            if (pendingUpdate.state !== 'pending-update') {
+            if (pendingUpdate.state !== 'pending-application') {
                 continue;
             }
             appliedUpdateIdsList.push(updateId);
@@ -366,29 +392,60 @@ class HeightmapAtlas {
     }
 
     public getTileView(tileId: AtlasTileId): HeightmapAtlasTileView {
-        const tileInfos = this.getTileLocalInfos(tileId);
+        const tileIdString = tileIdToString(tileId);
+        let tileUsage = this.tilesUsage.get(tileIdString);
+        if (!tileUsage) {
+            const tileInfos = this.getTileLocalInfos(tileId);
+            tileUsage = {
+                tileId,
+                texture: tileInfos.rootTexture.texture,
+                coords: {
+                    uv: {
+                        origin: new THREE.Vector2(tileInfos.textureUv.x, tileInfos.textureUv.y),
+                        size: new THREE.Vector2(tileInfos.textureUv.z, tileInfos.textureUv.w),
+                    },
+                    world: {
+                        origin: new THREE.Vector2(tileInfos.viewportWorld.x, tileInfos.viewportWorld.y),
+                        size: new THREE.Vector2(tileInfos.viewportWorld.z, tileInfos.viewportWorld.w),
+                    },
+                },
+                users: new Set(),
+                optimalDataUsers: new Set(),
+                hasOptimalData: this.hasOptimalDataForTile(tileId),
+            };
+            this.tilesUsage.set(tileIdString, tileUsage);
+        }
+
+        const viewId = Symbol('atlas-viewid');
+        tileUsage.users.add(viewId);
+
+        const useOptimalData = () => {
+            if (!tileUsage.users.has(viewId)) {
+                throw new Error(`Cannot use data of a view that was disposed.`);
+            }
+            tileUsage.optimalDataUsers.add(viewId);
+        };
+        const stopUsingOptimalData = () => {
+            tileUsage.optimalDataUsers.delete(viewId);
+        };
+        const stopUsingView = () => {
+            if (!tileUsage.users.has(viewId)) {
+                throw new Error(`Cannot dispoe view that was not used`);
+            }
+            tileUsage.optimalDataUsers.delete(viewId);
+            tileUsage.users.delete(viewId);
+        };
+
         return {
-            tileId,
-            texture: tileInfos.rootTexture.texture,
-            coords: {
-                uv: {
-                    origin: new THREE.Vector2(tileInfos.textureUv.x, tileInfos.textureUv.y),
-                    size: new THREE.Vector2(tileInfos.textureUv.z, tileInfos.textureUv.w),
-                },
-                world: {
-                    origin: new THREE.Vector2(tileInfos.viewportWorld.x, tileInfos.viewportWorld.y),
-                    size: new THREE.Vector2(tileInfos.viewportWorld.z, tileInfos.viewportWorld.w),
-                },
-            },
-            hasData: () => {
+            tileId: tileUsage.tileId,
+            texture: tileUsage.texture,
+            coords: tileUsage.coords,
+            hasBasicData: () => {
                 return this.hasDataForTile(tileId);
             },
-            hasOptimalData: () => {
-                return this.hasOptimalDataForTile(tileId);
-            },
-            requestData: () => {
-                this.requestTileData(tileId);
-            },
+            stopUsingView,
+            useOptimalData,
+            stopUsingOptimalData,
         };
     }
 
@@ -431,7 +488,7 @@ class HeightmapAtlas {
         const tileIdString = tileIdToString(tileId);
         this.pendingUpdates.set(tileIdString, {
             tileId,
-            state: 'pending-update',
+            state: 'pending-application',
             heightmapSamples,
         });
     }
@@ -476,18 +533,39 @@ class HeightmapAtlas {
         return minimumPrecision;
     }
 
-    private async requestTileData(tileId: AtlasTileId): Promise<void> {
-        const tileIdString = tileIdToString(tileId);
-        if (this.pendingUpdates.has(tileIdString)) {
-            return;
+    private getTilesToRequest(): AtlasTileId[] {
+        const result: AtlasTileId[] = [];
+        for (const tileUsage of this.tilesUsage.values()) {
+            if (tileUsage.optimalDataUsers.size > 0 && !tileUsage.hasOptimalData) {
+                const hasOptimalData = this.hasOptimalDataForTile(tileUsage.tileId);
+                if (hasOptimalData) {
+                    tileUsage.hasOptimalData = true;
+                } else {
+                    const tileIdString = tileIdToString(tileUsage.tileId);
+                    if (!this.pendingUpdates.has(tileIdString)) {
+                        result.push(tileUsage.tileId);
+                    }
+                }
+            }
         }
-        this.pendingUpdates.set(tileIdString, { tileId, state: 'pending-request' });
+        return result;
+    }
+
+    private deleteUnusedTilesUsage(): void {
+        const idsToDelete: string[] = [];
+        for (const [id, usage] of this.tilesUsage.entries()) {
+            if (usage.users.size === 0) {
+                idsToDelete.push(id);
+            }
+        }
+
+        for (const idToDelete of idsToDelete) {
+            this.tilesUsage.delete(idToDelete);
+        }
     }
 
     private solvePendingRequests(): void {
-        const pendingRequestsTilesIds = Array.from(this.pendingUpdates.values())
-            .filter(pendingUpdate => pendingUpdate.state === 'pending-request')
-            .map(pendingUpdate => pendingUpdate.tileId);
+        const pendingRequestsTilesIds = this.getTilesToRequest();
 
         let currentBatch: AtlasTileId[] = [];
         for (const tileId of pendingRequestsTilesIds) {

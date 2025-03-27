@@ -2,7 +2,7 @@ import { createFullscreenQuad } from '../../../helpers/fullscreen-quad';
 import { clamp } from '../../../helpers/math';
 import * as THREE from '../../../libs/three-usage';
 import { type WaterData } from '../../water/water-data';
-import type { HeightmapAtlas } from '../atlas/heightmap-atlas';
+import type { HeightmapAtlas, HeightmapAtlasTileView } from '../atlas/heightmap-atlas';
 
 type Parameters = {
     readonly heightmapAtlas: HeightmapAtlas;
@@ -43,6 +43,8 @@ class Minimap {
     private readonly heightmapAtlas: {
         readonly atlas: HeightmapAtlas;
         readonly downscalingFactor: number;
+        readonly rootTilesViews: Set<HeightmapAtlasTileView>;
+        readonly requestedTileViews: Set<HeightmapAtlasTileView>;
     };
 
     private readonly texture: {
@@ -94,6 +96,8 @@ class Minimap {
         this.heightmapAtlas = {
             atlas: params.heightmapAtlas,
             downscalingFactor: Math.max(1, params.heightmapAtlasDownscalingFactor),
+            rootTilesViews: new Set(),
+            requestedTileViews: new Set(),
         };
 
         this.minViewDistance = params.minViewDistance;
@@ -547,23 +551,27 @@ class Minimap {
             atlasNestingLevelTexelSizeInWorld *= 2;
         }
 
+        for (const requestedTileView of this.heightmapAtlas.requestedTileViews.values()) {
+            requestedTileView.stopUsingView();
+        }
+        this.heightmapAtlas.requestedTileViews.clear();
+
         const textureCornerWorld = this.textureCornerWorld;
-        const atlasLeafFrom = textureCornerWorld.clone().divideScalar(atlasNestingLevelTileSizeInWorld).floor();
-        const atlasLeafTo = textureCornerWorld
+        const atlasTileFrom = textureCornerWorld.clone().divideScalar(atlasNestingLevelTileSizeInWorld).floor();
+        const atlasTileTo = textureCornerWorld
             .clone()
             .addScalar(this.texture.worldSize)
             .divideScalar(atlasNestingLevelTileSizeInWorld)
             .floor();
-        const atlasLeafId = { x: 0, y: 0 };
-        for (atlasLeafId.y = atlasLeafFrom.y; atlasLeafId.y <= atlasLeafTo.y; atlasLeafId.y++) {
-            for (atlasLeafId.x = atlasLeafFrom.x; atlasLeafId.x <= atlasLeafTo.x; atlasLeafId.x++) {
-                const leafView = this.heightmapAtlas.atlas.getTileView({
+        const atlasTileId = { x: 0, y: 0 };
+        for (atlasTileId.y = atlasTileFrom.y; atlasTileId.y <= atlasTileTo.y; atlasTileId.y++) {
+            for (atlasTileId.x = atlasTileFrom.x; atlasTileId.x <= atlasTileTo.x; atlasTileId.x++) {
+                const tileView = this.heightmapAtlas.atlas.getTileView({
                     nestingLevel: atlasNestingLevel,
-                    ...atlasLeafId,
+                    ...atlasTileId,
                 });
-                if (!leafView.hasOptimalData()) {
-                    leafView.requestData();
-                }
+                this.heightmapAtlas.requestedTileViews.add(tileView);
+                tileView.useOptimalData();
             }
         }
     }
@@ -576,6 +584,11 @@ class Minimap {
 
         renderer.setRenderTarget(this.texture.renderTarget);
 
+        for (const rootTileView of this.heightmapAtlas.rootTilesViews.values()) {
+            rootTileView.stopUsingView();
+        }
+        this.heightmapAtlas.rootTilesViews.clear();
+
         const atlasRootFrom = textureCornerWorld.clone().divideScalar(this.heightmapAtlas.atlas.rootTileSizeInWorld).floor();
         const atlasRootTo = textureCornerWorld
             .clone()
@@ -586,6 +599,7 @@ class Minimap {
         for (atlasRootId.y = atlasRootFrom.y; atlasRootId.y <= atlasRootTo.y; atlasRootId.y++) {
             for (atlasRootId.x = atlasRootFrom.x; atlasRootId.x <= atlasRootTo.x; atlasRootId.x++) {
                 const rootTileView = this.heightmapAtlas.atlas.getTileView({ nestingLevel: 0, ...atlasRootId });
+                this.heightmapAtlas.rootTilesViews.add(rootTileView);
 
                 const viewport = new THREE.Vector4(
                     (rootTileView.coords.world.origin.x - textureCornerWorld.x) / this.heightmapAtlas.atlas.texelSizeInWorld,
