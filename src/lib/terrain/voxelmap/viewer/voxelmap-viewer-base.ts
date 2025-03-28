@@ -26,6 +26,10 @@ type Parameters = {
     };
 };
 
+function buildColumnIdString(x: number, z: number): string {
+    return `${x}_${z}`;
+}
+
 abstract class VoxelmapViewerBase implements IVoxelmapViewer {
     public readonly maxSmoothEdgeRadius = VoxelsRenderableFactoryBase.maxSmoothEdgeRadius;
 
@@ -68,6 +72,7 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
 
     private readonly columnsCompleteness: {
         readonly defaultRequiredChunks: Set<number>;
+        readonly byColumn: Map<string, Set<number>>;
     };
 
     private maxChunksInCache = 200;
@@ -83,6 +88,7 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         }
         this.columnsCompleteness = {
             defaultRequiredChunks,
+            byColumn: new Map(),
         };
 
         this.chunkSize = params.chunkSize;
@@ -120,6 +126,18 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         }
     }
 
+    /**
+     * Allows to customize, by column, the voxel chunks that are checked when computing whether are not the column is complete or not.
+     */
+    public setRequiredChunkYsForColumnCompleteness(x: number, z: number, yList: number[] | null): void {
+        const columnId = buildColumnIdString(x, z);
+        if (yList) {
+            this.columnsCompleteness.byColumn.delete(columnId);
+        } else {
+            this.columnsCompleteness.byColumn.set(columnId, new Set(yList));
+        }
+    }
+
     public getCompleteChunksColumns(): { x: number; z: number }[] {
         type Column = {
             id: { x: number; z: number };
@@ -134,7 +152,7 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
             if (!column) {
                 column = {
                     id: { x: chunkId.x, z: chunkId.z },
-                    missingYBlocks: new Set(this.getRequiredChunkIdYsForColumn()),
+                    missingYBlocks: new Set(this.getRequiredChunkIdYsForColumn(chunkId.x, chunkId.z)),
                 };
                 columns.set(columnId, column);
             }
@@ -194,8 +212,9 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         return result;
     }
 
-    private getRequiredChunkIdYsForColumn(): ReadonlySet<number> {
-        return this.columnsCompleteness.defaultRequiredChunks;
+    private getRequiredChunkIdYsForColumn(x: number, z: number): ReadonlySet<number> {
+        const columnId = buildColumnIdString(x, z);
+        return this.columnsCompleteness.byColumn.get(columnId) ?? this.columnsCompleteness.defaultRequiredChunks;
     }
 
     protected notifyChange(): void {
