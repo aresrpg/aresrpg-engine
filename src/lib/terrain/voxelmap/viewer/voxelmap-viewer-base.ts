@@ -66,9 +66,8 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
 
     public readonly onChange: VoidFunction[] = [];
 
-    private readonly columnsDefinitions: {
-        readonly defaultMinChunkIdY: number;
-        readonly defaultMaxChunkIdY: number;
+    private readonly columnsCompleteness: {
+        readonly defaultRequiredChunks: Set<number>;
     };
 
     private maxChunksInCache = 200;
@@ -78,9 +77,12 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         this.container = new THREE.Group();
         this.container.name = 'voxelmap-viewer-container';
 
-        this.columnsDefinitions = {
-            defaultMinChunkIdY: params.chunkIdY.min,
-            defaultMaxChunkIdY: params.chunkIdY.max,
+        const defaultRequiredChunks = new Set<number>();
+        for (let y = params.chunkIdY.min; y < params.chunkIdY.max; y++) {
+            defaultRequiredChunks.add(y);
+        }
+        this.columnsCompleteness = {
+            defaultRequiredChunks,
         };
 
         this.chunkSize = params.chunkSize;
@@ -132,7 +134,7 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
             if (!column) {
                 column = {
                     id: { x: chunkId.x, z: chunkId.z },
-                    missingYBlocks: this.getRequiredChunkIdYsForColumn(),
+                    missingYBlocks: new Set(this.getRequiredChunkIdYsForColumn()),
                 };
                 columns.set(columnId, column);
             }
@@ -192,12 +194,8 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         return result;
     }
 
-    private getRequiredChunkIdYsForColumn(): Set<number> {
-        const requiredChunksIdsYList = new Set<number>();
-        for (let iY = this.columnsDefinitions.defaultMinChunkIdY; iY < this.columnsDefinitions.defaultMinChunkIdY; iY++) {
-            requiredChunksIdsYList.add(iY);
-        }
-        return requiredChunksIdsYList;
+    private getRequiredChunkIdYsForColumn(): ReadonlySet<number> {
+        return this.columnsCompleteness.defaultRequiredChunks;
     }
 
     protected notifyChange(): void {
