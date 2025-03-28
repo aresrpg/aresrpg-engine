@@ -115,7 +115,7 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
     public getCompleteChunksColumns(): { x: number; z: number }[] {
         type Column = {
             id: { x: number; z: number };
-            yFilled: number[];
+            missingYBlocks: Set<number>;
         };
 
         const columns = new Map<string, Column>();
@@ -134,28 +134,21 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
                     if (!column) {
                         column = {
                             id: { x: chunk.id.x, z: chunk.id.z },
-                            yFilled: [],
+                            missingYBlocks: new Set(requiredChunksIdsYList),
                         };
                         columns.set(columnId, column);
                     }
-                    column.yFilled.push(y);
+                    column.missingYBlocks.delete(y);
                 }
             }
         }
 
         const completeColumnIdsList: { x: number; z: number }[] = [];
         for (const column of columns.values()) {
-            const missingYList: number[] = [];
-
-            for (const y of requiredChunksIdsYList) {
-                if (!column.yFilled.includes(y)) {
-                    missingYList.push(y);
-                }
-            }
-
-            if (missingYList.length === 0) {
+            if (column.missingYBlocks.size === 0) {
                 completeColumnIdsList.push(column.id);
             } else {
+                const missingYList = Array.from(column.missingYBlocks);
                 logger.diagnostic(`Incomplete colum "x=${column.id.x};z=${column.id.z}": missing y=${missingYList.join(',')}`);
             }
         }
