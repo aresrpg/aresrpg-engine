@@ -1,7 +1,7 @@
 import { logger } from '../../../helpers/logger';
 import { createMeshesStatistics } from '../../../helpers/meshes-statistics';
 import * as THREE from '../../../libs/three-usage';
-import { ChunkId } from '../chunk/chunk-id';
+import { type ChunkId } from '../chunk/chunk-id';
 import { type VoxelsChunkSize } from '../i-voxelmap';
 import { type IVoxelmapViewer, type VoxelmapStatistics } from '../i-voxelmap-viewer';
 import { EVoxelsDisplayMode } from '../voxelsRenderable/voxels-material';
@@ -61,12 +61,15 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         },
     };
 
-    public readonly minChunkIdY: number;
-    public readonly maxChunkIdY: number;
     public readonly chunkSize: VoxelsChunkSize;
     public readonly chunkSizeVec3: THREE.Vector3Like;
 
     public readonly onChange: VoidFunction[] = [];
+
+    private readonly columnsDefinitions: {
+        readonly defaultMinChunkIdY: number;
+        readonly defaultMaxChunkIdY: number;
+    };
 
     private maxChunksInCache = 200;
     private garbageCollectionHandle: number | null;
@@ -75,8 +78,11 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         this.container = new THREE.Group();
         this.container.name = 'voxelmap-viewer-container';
 
-        this.minChunkIdY = params.chunkIdY.min;
-        this.maxChunkIdY = params.chunkIdY.max;
+        this.columnsDefinitions = {
+            defaultMinChunkIdY: params.chunkIdY.min,
+            defaultMaxChunkIdY: params.chunkIdY.max,
+        };
+
         this.chunkSize = params.chunkSize;
         this.chunkSizeVec3 = { x: params.chunkSize.xz, y: params.chunkSize.y, z: params.chunkSize.xz };
 
@@ -120,27 +126,17 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
 
         const columns = new Map<string, Column>();
 
-        const requiredChunksIdsYList: number[] = [];
-        for (let iY = this.minChunkIdY; iY < this.maxChunkIdY; iY++) {
-            requiredChunksIdsYList.push(iY);
-        }
-
-        for (const chunk of this.allVisibleChunks) {
-            for (const y of requiredChunksIdsYList) {
-                const id = new ChunkId({ x: chunk.id.x, y, z: chunk.id.z });
-                if (this.isChunkAttached(id)) {
-                    const columnId = `${chunk.id.x}_${chunk.id.z}`;
-                    let column = columns.get(columnId);
-                    if (!column) {
-                        column = {
-                            id: { x: chunk.id.x, z: chunk.id.z },
-                            missingYBlocks: new Set(requiredChunksIdsYList),
-                        };
-                        columns.set(columnId, column);
-                    }
-                    column.missingYBlocks.delete(y);
-                }
+        for (const chunkId of this.allAttachedChunks) {
+            const columnId = `${chunkId.x}_${chunkId.z}`;
+            let column = columns.get(columnId);
+            if (!column) {
+                column = {
+                    id: { x: chunkId.x, z: chunkId.z },
+                    missingYBlocks: this.getRequiredChunkIdYsForColumn(),
+                };
+                columns.set(columnId, column);
             }
+            column.missingYBlocks.delete(chunkId.y);
         }
 
         const completeColumnIdsList: { x: number; z: number }[] = [];
@@ -196,6 +192,14 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         return result;
     }
 
+    private getRequiredChunkIdYsForColumn(): Set<number> {
+        const requiredChunksIdsYList = new Set<number>();
+        for (let iY = this.columnsDefinitions.defaultMinChunkIdY; iY < this.columnsDefinitions.defaultMinChunkIdY; iY++) {
+            requiredChunksIdsYList.add(iY);
+        }
+        return requiredChunksIdsYList;
+    }
+
     protected notifyChange(): void {
         for (const callback of this.onChange) {
             callback();
@@ -209,9 +213,9 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         }
     }
 
-    protected abstract get allLoadedChunks(): ComputedChunk[];
-    protected abstract get allVisibleChunks(): ChunkRenderable[];
-    protected abstract isChunkAttached(chunkId: ChunkId): boolean;
+    protected abstract get allLoadedChunks(): Iterable<ComputedChunk>;
+    protected abstract get allVisibleChunks(): Iterable<ChunkRenderable>;
+    protected abstract get allAttachedChunks(): Iterable<ChunkId>;
     protected abstract garbageCollect(maxInvisibleChunksInCache: number): void;
 }
 

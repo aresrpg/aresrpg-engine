@@ -9,7 +9,6 @@ import {
     EBoardSquareType,
     EComputationMethod,
     EVoxelsDisplayMode,
-    type HeightmapAtlas,
     HeightmapAtlasAutonomous,
     HeightmapViewerCpu,
     HeightmapViewerGpu,
@@ -24,6 +23,7 @@ import {
     WaterData,
     type Board,
     type BoardRenderable,
+    type HeightmapAtlas,
     type IHeightmap,
     type IVoxelMap,
     type IWaterMap,
@@ -363,11 +363,7 @@ return vec4(sampled.rgb / sampled.a, 1);
             updateTreesAndScheduleNextUpdate();
         }
 
-        this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(
-            this.voxelmapViewer.chunkSizeVec3,
-            this.voxelmapViewer.minChunkIdY,
-            this.voxelmapViewer.maxChunkIdY
-        );
+        this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(this.voxelmapViewer.chunkSizeVec3, minChunkIdY, maxChunkIdY);
 
         this.mapWithBoards = new VoxelmapWrapper(map, chunkSize, minChunkIdY, maxChunkIdY, true);
         this.mapWithBoards.onChange.push(modifiedChunksIdsList => {
