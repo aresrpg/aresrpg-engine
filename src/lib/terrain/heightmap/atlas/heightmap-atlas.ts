@@ -480,7 +480,13 @@ class HeightmapAtlas {
     }
 
     public getTilesNeedingData(): AtlasTileId[] {
-        const result: AtlasTileId[] = [];
+        type TileNeedingData = {
+            readonly atlasTileId: AtlasTileId;
+            readonly priority: number;
+        };
+
+        const tilesNeedingData: TileNeedingData[] = [];
+
         for (const tileUsage of this.tilesUsage.values()) {
             if (tileUsage.optimalDataUsers.size > 0 && !tileUsage.hasOptimalData) {
                 const hasOptimalData = this.hasOptimalDataForTile(tileUsage.tileId);
@@ -489,12 +495,22 @@ class HeightmapAtlas {
                 } else {
                     const tileIdString = this.tileIdToString(tileUsage.tileId);
                     if (!this.pendingUpdates.has(tileIdString)) {
-                        result.push(tileUsage.tileId);
+                        const hasBasicData = this.hasDataForTile(tileUsage.tileId);
+                        tilesNeedingData.push({
+                            atlasTileId: tileUsage.tileId,
+                            priority:
+                                100000 * Number(!hasBasicData) + // tiles that don't have any data have priority
+                                1000 * tileUsage.optimalDataUsers.size + // then tiles that are very requested
+                                1000 * tileUsage.tileId.nestingLevel, // then tiles that are high res because they are closer to the player
+                        });
                     }
                 }
             }
         }
-        return result;
+
+        tilesNeedingData.sort((tile1, tile2) => tile2.priority - tile1.priority);
+
+        return tilesNeedingData.map(tile => tile.atlasTileId);
     }
 
     public getTileSamplesPositions(tileId: AtlasTileId): Float32Array {
