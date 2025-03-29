@@ -21,7 +21,7 @@ class HeightmapAtlasAutonomous extends HeightmapAtlas {
         super(params);
 
         this.queriesInterval = params.heightmapQueries.interval;
-        this.queriesBatchSize = params.heightmapQueries.interval;
+        this.queriesBatchSize = params.heightmapQueries.batching;
     }
 
     public override update(renderer: THREE.WebGLRenderer): void {
