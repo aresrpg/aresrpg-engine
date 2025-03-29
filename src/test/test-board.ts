@@ -21,6 +21,7 @@ import {
     type IVoxelMap,
     type VoxelsChunkOrdering,
 } from '../lib';
+import { range } from '../lib/helpers/misc';
 
 import { LineOfSight } from './board/line-of-sight';
 import { PathFinder } from './board/path-finder';
@@ -84,10 +85,7 @@ class TestBoard extends TestBase {
 
         this.voxelmapViewer = new VoxelmapViewer({
             chunkSize,
-            chunkIdY: {
-                min: minChunkIdY,
-                max: maxChunkIdY,
-            },
+            requiredChunksYForColumnCompleteness: range(minChunkIdY, maxChunkIdY),
             voxelMaterialsStore: this.voxelMaterialsStore,
             clutterViewer: this.clutterViewer,
             options: {

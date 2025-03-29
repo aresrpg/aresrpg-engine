@@ -13,6 +13,7 @@ import {
     VoxelmapVisibilityComputer,
     type VoxelsChunkOrdering,
 } from '../lib';
+import { range } from '../lib/helpers/misc';
 
 import { TestBase } from './test-base';
 
@@ -99,10 +100,7 @@ class TestPhysics extends TestBase {
 
         this.voxelmapViewer = new VoxelmapViewer({
             chunkSize,
-            chunkIdY: {
-                min: minChunkIdY,
-                max: minChunkIdY,
-            },
+            requiredChunksYForColumnCompleteness: range(minChunkIdY, maxChunkIdY),
             voxelMaterialsStore,
             clutterViewer: this.clutterViewer,
             options: {

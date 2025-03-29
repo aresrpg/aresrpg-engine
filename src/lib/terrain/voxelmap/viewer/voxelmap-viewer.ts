@@ -37,10 +37,7 @@ type ComputationOptions =
 
 type Parameters = {
     readonly chunkSize: VoxelsChunkSize;
-    readonly chunkIdY: {
-        readonly min: number;
-        readonly max: number;
-    };
+    readonly requiredChunksYForColumnCompleteness: Iterable<number>;
     readonly voxelMaterialsStore: MaterialsStore;
     readonly clutterViewer: ClutterViewer;
     readonly options?: {

@@ -26,4 +26,12 @@ function buildNoiseTexture(resolution: number): THREE.DataTexture {
     return dataTexture;
 }
 
-export { buildNoiseTexture, copyMap, disableMatrixAutoupdate };
+function range(from: number, toExclusive: number): number[] {
+    const result: number[] = [];
+    for (let i = from; i < toExclusive; i++) {
+        result.push(i);
+    }
+    return result;
+}
+
+export { buildNoiseTexture, copyMap, disableMatrixAutoupdate, range };

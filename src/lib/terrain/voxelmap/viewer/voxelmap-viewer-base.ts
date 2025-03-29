@@ -20,10 +20,7 @@ type ComputedChunk = {
 
 type Parameters = {
     readonly chunkSize: VoxelsChunkSize;
-    readonly chunkIdY: {
-        readonly min: number;
-        readonly max: number;
-    };
+    readonly requiredChunksYForColumnCompleteness: Iterable<number>;
 };
 
 function buildColumnIdString(x: number, z: number): string {
@@ -82,12 +79,8 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         this.container = new THREE.Group();
         this.container.name = 'voxelmap-viewer-container';
 
-        const defaultRequiredChunks = new Set<number>();
-        for (let y = params.chunkIdY.min; y < params.chunkIdY.max; y++) {
-            defaultRequiredChunks.add(y);
-        }
         this.columnsCompleteness = {
-            defaultRequiredChunks,
+            defaultRequiredChunks: new Set<number>(params.requiredChunksYForColumnCompleteness),
             byColumn: new Map(),
         };
 
@@ -129,7 +122,7 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
     /**
      * Allows to customize, by column, the voxel chunks that are checked when computing whether are not the column is complete or not.
      */
-    public setRequiredChunkYsForColumnCompleteness(x: number, z: number, yList: number[] | null): void {
+    public setRequiredChunkYsForColumnCompleteness(x: number, z: number, yList: Iterable<number> | null): void {
         const columnId = buildColumnIdString(x, z);
         if (yList) {
             this.columnsCompleteness.byColumn.delete(columnId);
