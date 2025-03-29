@@ -21,6 +21,7 @@ import {
     type IVoxelMap,
     type VoxelsChunkOrdering,
 } from '../lib';
+import { range } from '../lib/helpers/misc';
 
 import { LineOfSight } from './board/line-of-sight';
 import { PathFinder } from './board/path-finder';
@@ -84,10 +85,7 @@ class TestBoard extends TestBase {
 
         this.voxelmapViewer = new VoxelmapViewer({
             chunkSize,
-            chunkIdY: {
-                min: minChunkIdY,
-                max: maxChunkIdY,
-            },
+            requiredChunksYForColumnCompleteness: range(minChunkIdY, maxChunkIdY),
             voxelMaterialsStore: this.voxelMaterialsStore,
             clutterViewer: this.clutterViewer,
             options: {
@@ -113,11 +111,7 @@ class TestBoard extends TestBase {
         this.terrainViewer.parameters.lod.enabled = false;
         this.scene.add(this.terrainViewer.container);
 
-        this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(
-            this.voxelmapViewer.chunkSizeVec3,
-            this.voxelmapViewer.minChunkIdY,
-            this.voxelmapViewer.maxChunkIdY
-        );
+        this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(this.voxelmapViewer.chunkSizeVec3, minChunkIdY, maxChunkIdY);
         this.voxelmapVisibilityComputer.showMapAroundPosition({ x: 0, y: 0, z: 0 }, 200);
 
         this.setupBoard(map);

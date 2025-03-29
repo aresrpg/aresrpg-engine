@@ -66,7 +66,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         this.heightmapAtlas = params.heightmapAtlas;
         this.geometryStore = new TileGeometryStore({
             segmentsCount: params.heightmapAtlas.leafTileSizeInTexels, // will not be texel-perfect but decimation requires an even count
-            altitude: params.heightmapAtlas.heightmap.altitude,
+            altitude: params.heightmapAtlas.altitude,
         });
         this.flatShading = params.flatShading;
         this.transitionTime = params.transitionTime ?? 250;
@@ -254,7 +254,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         }
         invisibleRootTilesList.sort((a, b) => a.invisibleSinceTimestamp - b.invisibleSinceTimestamp);
 
-        const rootTilesToDelete = invisibleRootTilesList.slice(0, this.garbageCollecting.maxInvisibleRootTilesInCache);
+        const rootTilesToDelete = invisibleRootTilesList.slice(this.garbageCollecting.maxInvisibleRootTilesInCache);
         for (const rootTile of rootTilesToDelete) {
             rootTile.rootTile.dispose();
             this.rootTilesMap.delete(rootTile.id);

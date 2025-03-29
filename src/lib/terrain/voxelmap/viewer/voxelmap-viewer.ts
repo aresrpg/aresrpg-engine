@@ -37,10 +37,7 @@ type ComputationOptions =
 
 type Parameters = {
     readonly chunkSize: VoxelsChunkSize;
-    readonly chunkIdY: {
-        readonly min: number;
-        readonly max: number;
-    };
+    readonly requiredChunksYForColumnCompleteness: Iterable<number>;
     readonly voxelMaterialsStore: MaterialsStore;
     readonly clutterViewer: ClutterViewer;
     readonly options?: {
@@ -258,12 +255,16 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         return result;
     }
 
-    protected override isChunkAttached(chunkId: ChunkId): boolean {
-        const asyncChunk = this.asyncChunks.get(chunkId.asString);
-        if (asyncChunk) {
-            return asyncChunk.isAttached();
+    protected override get allAttachedChunks(): ChunkId[] {
+        const result: ChunkId[] = [];
+
+        for (const asyncChunk of this.asyncChunks.values()) {
+            if (asyncChunk.isAttached()) {
+                result.push(asyncChunk.id);
+            }
         }
-        return false;
+
+        return result;
     }
 
     protected override garbageCollect(maxInvisibleChunksInCache: number): void {

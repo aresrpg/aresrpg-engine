@@ -9,7 +9,7 @@ import {
     EBoardSquareType,
     EComputationMethod,
     EVoxelsDisplayMode,
-    HeightmapAtlas,
+    HeightmapAtlasAutonomous,
     HeightmapViewerCpu,
     HeightmapViewerGpu,
     InstancedBillboard,
@@ -23,11 +23,13 @@ import {
     WaterData,
     type Board,
     type BoardRenderable,
+    type HeightmapAtlas,
     type IHeightmap,
     type IVoxelMap,
     type IWaterMap,
     type VoxelsChunkOrdering,
 } from '../lib';
+import { range } from '../lib/helpers/misc';
 
 import { LineOfSight } from './board/line-of-sight';
 import { PathFinder } from './board/path-finder';
@@ -180,11 +182,12 @@ class TestTerrain extends TestBase {
             }, 200);
         }
 
-        this.heightmapAtlas = new HeightmapAtlas({
+        this.heightmapAtlas = new HeightmapAtlasAutonomous({
             heightmap: map,
             heightmapQueries: {
                 interval: 200,
-                batching: 2,
+                batchSize: 2,
+                maxParallelQueries: Infinity,
             },
             materialsStore: this.voxelMaterialsStore,
             texelSizeInWorld: 2,
@@ -225,10 +228,7 @@ class TestTerrain extends TestBase {
 
         this.voxelmapViewer = new VoxelmapViewer({
             chunkSize,
-            chunkIdY: {
-                min: minChunkIdY,
-                max: maxChunkIdY,
-            },
+            requiredChunksYForColumnCompleteness: range(minChunkIdY, maxChunkIdY),
             voxelMaterialsStore: this.voxelMaterialsStore,
             clutterViewer: this.clutterViewer,
             options: {
@@ -362,11 +362,7 @@ return vec4(sampled.rgb / sampled.a, 1);
             updateTreesAndScheduleNextUpdate();
         }
 
-        this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(
-            this.voxelmapViewer.chunkSizeVec3,
-            this.voxelmapViewer.minChunkIdY,
-            this.voxelmapViewer.maxChunkIdY
-        );
+        this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(this.voxelmapViewer.chunkSizeVec3, minChunkIdY, maxChunkIdY);
 
         this.mapWithBoards = new VoxelmapWrapper(map, chunkSize, minChunkIdY, maxChunkIdY, true);
         this.mapWithBoards.onChange.push(modifiedChunksIdsList => {

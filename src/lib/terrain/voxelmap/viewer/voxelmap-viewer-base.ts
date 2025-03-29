@@ -1,7 +1,7 @@
 import { logger } from '../../../helpers/logger';
 import { createMeshesStatistics } from '../../../helpers/meshes-statistics';
 import * as THREE from '../../../libs/three-usage';
-import { ChunkId } from '../chunk/chunk-id';
+import { type ChunkId } from '../chunk/chunk-id';
 import { type VoxelsChunkSize } from '../i-voxelmap';
 import { type IVoxelmapViewer, type VoxelmapStatistics } from '../i-voxelmap-viewer';
 import { EVoxelsDisplayMode } from '../voxelsRenderable/voxels-material';
@@ -20,11 +20,12 @@ type ComputedChunk = {
 
 type Parameters = {
     readonly chunkSize: VoxelsChunkSize;
-    readonly chunkIdY: {
-        readonly min: number;
-        readonly max: number;
-    };
+    readonly requiredChunksYForColumnCompleteness: Iterable<number>;
 };
+
+function buildColumnIdString(x: number, z: number): string {
+    return `${x}_${z}`;
+}
 
 abstract class VoxelmapViewerBase implements IVoxelmapViewer {
     public readonly maxSmoothEdgeRadius = VoxelsRenderableFactoryBase.maxSmoothEdgeRadius;
@@ -61,12 +62,15 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         },
     };
 
-    public readonly minChunkIdY: number;
-    public readonly maxChunkIdY: number;
     public readonly chunkSize: VoxelsChunkSize;
     public readonly chunkSizeVec3: THREE.Vector3Like;
 
     public readonly onChange: VoidFunction[] = [];
+
+    private readonly columnsCompleteness: {
+        readonly defaultRequiredChunks: Set<number>;
+        readonly byColumn: Map<string, Set<number>>;
+    };
 
     private maxChunksInCache = 200;
     private garbageCollectionHandle: number | null;
@@ -75,8 +79,11 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         this.container = new THREE.Group();
         this.container.name = 'voxelmap-viewer-container';
 
-        this.minChunkIdY = params.chunkIdY.min;
-        this.maxChunkIdY = params.chunkIdY.max;
+        this.columnsCompleteness = {
+            defaultRequiredChunks: new Set<number>(params.requiredChunksYForColumnCompleteness),
+            byColumn: new Map(),
+        };
+
         this.chunkSize = params.chunkSize;
         this.chunkSizeVec3 = { x: params.chunkSize.xz, y: params.chunkSize.y, z: params.chunkSize.xz };
 
@@ -112,50 +119,45 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         }
     }
 
+    /**
+     * Allows to customize, by column, the voxel chunks that are checked when computing whether are not the column is complete or not.
+     */
+    public setRequiredChunkYsForColumnCompleteness(x: number, z: number, yList: Iterable<number> | null): void {
+        const columnId = buildColumnIdString(x, z);
+        if (yList) {
+            this.columnsCompleteness.byColumn.delete(columnId);
+        } else {
+            this.columnsCompleteness.byColumn.set(columnId, new Set(yList));
+        }
+    }
+
     public getCompleteChunksColumns(): { x: number; z: number }[] {
         type Column = {
             id: { x: number; z: number };
-            yFilled: number[];
+            missingYBlocks: Set<number>;
         };
 
         const columns = new Map<string, Column>();
 
-        const requiredChunksIdsYList: number[] = [];
-        for (let iY = this.minChunkIdY; iY < this.maxChunkIdY; iY++) {
-            requiredChunksIdsYList.push(iY);
-        }
-
-        for (const chunk of this.allVisibleChunks) {
-            for (const y of requiredChunksIdsYList) {
-                const id = new ChunkId({ x: chunk.id.x, y, z: chunk.id.z });
-                if (this.isChunkAttached(id)) {
-                    const columnId = `${chunk.id.x}_${chunk.id.z}`;
-                    let column = columns.get(columnId);
-                    if (!column) {
-                        column = {
-                            id: { x: chunk.id.x, z: chunk.id.z },
-                            yFilled: [],
-                        };
-                        columns.set(columnId, column);
-                    }
-                    column.yFilled.push(y);
-                }
+        for (const chunkId of this.allAttachedChunks) {
+            const columnId = `${chunkId.x}_${chunkId.z}`;
+            let column = columns.get(columnId);
+            if (!column) {
+                column = {
+                    id: { x: chunkId.x, z: chunkId.z },
+                    missingYBlocks: new Set(this.getRequiredChunkIdYsForColumn(chunkId.x, chunkId.z)),
+                };
+                columns.set(columnId, column);
             }
+            column.missingYBlocks.delete(chunkId.y);
         }
 
         const completeColumnIdsList: { x: number; z: number }[] = [];
         for (const column of columns.values()) {
-            const missingYList: number[] = [];
-
-            for (const y of requiredChunksIdsYList) {
-                if (!column.yFilled.includes(y)) {
-                    missingYList.push(y);
-                }
-            }
-
-            if (missingYList.length === 0) {
+            if (column.missingYBlocks.size === 0) {
                 completeColumnIdsList.push(column.id);
             } else {
+                const missingYList = Array.from(column.missingYBlocks);
                 logger.diagnostic(`Incomplete colum "x=${column.id.x};z=${column.id.z}": missing y=${missingYList.join(',')}`);
             }
         }
@@ -203,6 +205,11 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         return result;
     }
 
+    private getRequiredChunkIdYsForColumn(x: number, z: number): ReadonlySet<number> {
+        const columnId = buildColumnIdString(x, z);
+        return this.columnsCompleteness.byColumn.get(columnId) ?? this.columnsCompleteness.defaultRequiredChunks;
+    }
+
     protected notifyChange(): void {
         for (const callback of this.onChange) {
             callback();
@@ -216,9 +223,9 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
         }
     }
 
-    protected abstract get allLoadedChunks(): ComputedChunk[];
-    protected abstract get allVisibleChunks(): ChunkRenderable[];
-    protected abstract isChunkAttached(chunkId: ChunkId): boolean;
+    protected abstract get allLoadedChunks(): Iterable<ComputedChunk>;
+    protected abstract get allVisibleChunks(): Iterable<ChunkRenderable>;
+    protected abstract get allAttachedChunks(): Iterable<ChunkId>;
     protected abstract garbageCollect(maxInvisibleChunksInCache: number): void;
 }
 
