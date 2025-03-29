@@ -259,7 +259,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         const result: ChunkId[] = [];
 
         for (const asyncChunk of this.asyncChunks.values()) {
-            if (asyncChunk.isAttached() && asyncChunk.isMeshInScene()) {
+            if (asyncChunk.isAttached()) {
                 result.push(asyncChunk.id);
             }
         }
