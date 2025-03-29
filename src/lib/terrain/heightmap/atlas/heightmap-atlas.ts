@@ -3,10 +3,13 @@ import { logger } from '../../../helpers/logger';
 import { safeModulo } from '../../../helpers/math';
 import * as THREE from '../../../libs/three-usage';
 import type { MaterialsStore } from '../../materials-store';
-import type { HeightmapSamples, IHeightmap } from '../i-heightmap';
+import type { HeightmapSamples } from '../i-heightmap';
 
 type Parameters = {
-    readonly heightmap: IHeightmap;
+    readonly altitude: {
+        readonly min: number;
+        readonly max: number;
+    };
     readonly materialsStore: MaterialsStore;
     readonly texelSizeInWorld: number;
     readonly leafTileSizeInWorld: number;
@@ -92,7 +95,10 @@ type TileUsage = {
 };
 
 class HeightmapAtlas {
-    public readonly heightmap: IHeightmap;
+    public readonly altitude: {
+        readonly min: number;
+        readonly max: number;
+    };
 
     public readonly texelSizeInWorld: number;
 
@@ -144,7 +150,7 @@ class HeightmapAtlas {
             throw new Error();
         }
 
-        this.heightmap = params.heightmap;
+        this.altitude = { ...params.altitude };
 
         this.maintainanceInterval = params.maintainanceInterval ?? 500;
 
@@ -215,8 +221,8 @@ class HeightmapAtlas {
 
                     vColor = getVoxelMaterial(materialId, uMaterialsTexture, 0.0).color;
 
-                    const float minAltitude = ${params.heightmap.altitude.min.toFixed(1)};
-                    const float maxAltitude = ${params.heightmap.altitude.max.toFixed(1)};
+                    const float minAltitude = ${params.altitude.min.toFixed(1)};
+                    const float maxAltitude = ${params.altitude.max.toFixed(1)};
                     vAltitude = (altitude - minAltitude) / (maxAltitude - minAltitude);
                 }
             `,

@@ -206,8 +206,8 @@ class Minimap {
                 vec4 mapSample = texture(uMapTexture, vUv);
  
                 float altitude = mix(
-                    ${this.heightmapAtlas.atlas.heightmap.altitude.min.toFixed(1)}, 
-                    ${this.heightmapAtlas.atlas.heightmap.altitude.max.toFixed(1)},
+                    ${this.heightmapAtlas.atlas.altitude.min.toFixed(1)}, 
+                    ${this.heightmapAtlas.atlas.altitude.max.toFixed(1)},
                     mapSample.a
                 );
                 altitude -= uPlayerAltitude;
@@ -353,8 +353,8 @@ class Minimap {
 
                 void main() {
                     float terrainAltitude = mix(
-                        ${this.heightmapAtlas.atlas.heightmap.altitude.min.toFixed(1)}, 
-                        ${this.heightmapAtlas.atlas.heightmap.altitude.max.toFixed(1)},
+                        ${this.heightmapAtlas.atlas.altitude.min.toFixed(1)}, 
+                        ${this.heightmapAtlas.atlas.altitude.max.toFixed(1)},
                         texture(uMapTexture, vUv).a
                     );
                     if (vAltitudeWorld < terrainAltitude) {

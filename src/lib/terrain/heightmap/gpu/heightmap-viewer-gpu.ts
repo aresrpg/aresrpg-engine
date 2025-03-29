@@ -66,7 +66,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         this.heightmapAtlas = params.heightmapAtlas;
         this.geometryStore = new TileGeometryStore({
             segmentsCount: params.heightmapAtlas.leafTileSizeInTexels, // will not be texel-perfect but decimation requires an even count
-            altitude: params.heightmapAtlas.heightmap.altitude,
+            altitude: params.heightmapAtlas.altitude,
         });
         this.flatShading = params.flatShading;
         this.transitionTime = params.transitionTime ?? 250;

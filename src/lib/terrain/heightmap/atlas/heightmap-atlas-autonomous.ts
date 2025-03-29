@@ -1,26 +1,40 @@
 import { logger } from '../../../helpers/logger';
 import type * as THREE from '../../../libs/three-usage';
-import type { HeightmapSamples } from '../i-heightmap';
+import { type MaterialsStore } from '../../materials-store';
+import type { HeightmapSamples, IHeightmap } from '../i-heightmap';
 
-import { type AtlasTileId, HeightmapAtlas, type Parameters as HeightmapAtlasParameters } from './heightmap-atlas';
+import { type AtlasTileId, HeightmapAtlas } from './heightmap-atlas';
 
-type Parameters = HeightmapAtlasParameters & {
+type Parameters = {
+    readonly heightmap: IHeightmap;
     readonly heightmapQueries: {
         readonly interval: number;
         readonly batchSize: number;
         readonly maxParallelQueries: number;
     };
+    readonly materialsStore: MaterialsStore;
+    readonly texelSizeInWorld: number;
+    readonly leafTileSizeInWorld: number;
+    readonly maxTextureSize?: number;
+    readonly maintainanceInterval?: number;
 };
 
 class HeightmapAtlasAutonomous extends HeightmapAtlas {
     private lastQueriesTimestamp: number | null = null;
+
+    private readonly heightmap: IHeightmap;
 
     private readonly queriesInterval: number;
     private readonly queriesBatchSize: number;
     private readonly maxParallelQueries: number;
 
     public constructor(params: Parameters) {
-        super(params);
+        super({
+            ...params,
+            altitude: params.heightmap.altitude,
+        });
+
+        this.heightmap = params.heightmap;
 
         this.queriesInterval = params.heightmapQueries.interval;
         this.queriesBatchSize = params.heightmapQueries.batchSize;
