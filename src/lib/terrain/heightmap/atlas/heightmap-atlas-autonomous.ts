@@ -7,7 +7,8 @@ import { type AtlasTileId, HeightmapAtlas, type Parameters as HeightmapAtlasPara
 type Parameters = HeightmapAtlasParameters & {
     readonly heightmapQueries: {
         readonly interval: number;
-        readonly batching: number;
+        readonly batchSize: number;
+        readonly maxParallelQueries: number;
     };
 };
 
@@ -16,12 +17,21 @@ class HeightmapAtlasAutonomous extends HeightmapAtlas {
 
     private readonly queriesInterval: number;
     private readonly queriesBatchSize: number;
+    private readonly maxParallelQueries: number;
 
     public constructor(params: Parameters) {
         super(params);
 
         this.queriesInterval = params.heightmapQueries.interval;
-        this.queriesBatchSize = params.heightmapQueries.batching;
+        this.queriesBatchSize = params.heightmapQueries.batchSize;
+        this.maxParallelQueries = params.heightmapQueries.maxParallelQueries;
+
+        if (this.queriesBatchSize <= 0) {
+            throw new Error(`Batch size cannot be <= 0 (is ${this.queriesBatchSize})`);
+        }
+        if (this.maxParallelQueries <= 0) {
+            throw new Error(`Max parallel queries cannot be <= 0 (is ${this.maxParallelQueries})`);
+        }
     }
 
     public override update(renderer: THREE.WebGLRenderer): void {
@@ -37,15 +47,13 @@ class HeightmapAtlasAutonomous extends HeightmapAtlas {
     private solvePendingRequests(): void {
         const pendingRequestsTilesIds = this.getTilesNeedingData();
 
-        let currentBatch: AtlasTileId[] = [];
-        for (const tileId of pendingRequestsTilesIds) {
-            currentBatch.push(tileId);
-            if (currentBatch.length >= this.queriesBatchSize) {
-                void this.sendRequestsBatch(currentBatch);
-                currentBatch = [];
-            }
+        let allowedQueriesCount = this.maxParallelQueries - this.getPendingQueriesCount();
+
+        while (pendingRequestsTilesIds.length > 0 && allowedQueriesCount > 0) {
+            const batch = pendingRequestsTilesIds.splice(0, this.queriesBatchSize);
+            void this.sendRequestsBatch(batch);
+            allowedQueriesCount--;
         }
-        void this.sendRequestsBatch(currentBatch);
     }
 
     private async sendRequestsBatch(batchTileIds: ReadonlyArray<AtlasTileId>): Promise<void> {
@@ -96,6 +104,16 @@ class HeightmapAtlasAutonomous extends HeightmapAtlas {
                 logger.debug(`Ignoring result of sampleHeightmap for tile ${tileIdString}`);
             }
         });
+    }
+
+    private getPendingQueriesCount(): number {
+        let count = 0;
+        for (const pendingUpdate of this.pendingUpdates.values()) {
+            if (pendingUpdate.state === 'pending-response') {
+                count++;
+            }
+        }
+        return count;
     }
 }
 

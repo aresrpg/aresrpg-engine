@@ -186,7 +186,8 @@ class TestTerrain extends TestBase {
             heightmap: map,
             heightmapQueries: {
                 interval: 200,
-                batching: 2,
+                batchSize: 2,
+                maxParallelQueries: Infinity,
             },
             materialsStore: this.voxelMaterialsStore,
             texelSizeInWorld: 2,
