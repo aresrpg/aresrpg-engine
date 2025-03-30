@@ -84,6 +84,10 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     }
 
     public update(): void {
+        if (!this._enabled) {
+            return;
+        }
+
         for (const rootTile of this.rootTilesMap.values()) {
             rootTile.wireframe = this.wireframe;
             rootTile.update();
@@ -119,6 +123,12 @@ class HeightmapViewerGpu implements IHeightmapViewer {
 
         this._enabled = enabled;
         this.container.visible = this._enabled;
+        if (!this._enabled) {
+            for (const rootTile of this.rootTilesMap.values()) {
+                rootTile.dispose();
+            }
+            this.rootTilesMap.clear();
+        }
     }
 
     public get enabled(): boolean {
