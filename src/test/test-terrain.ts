@@ -12,6 +12,7 @@ import {
     HeightmapAtlasAutonomous,
     HeightmapViewerCpu,
     HeightmapViewerGpu,
+    type IHeightmapViewer,
     InstancedBillboard,
     MaterialsStore,
     Minimap,
@@ -65,6 +66,8 @@ class TestTerrain extends TestBase {
 
     private readonly clutterViewer: ClutterViewer;
 
+    private readonly heightmapViewer: IHeightmapViewer;
+
     private readonly voxelmapViewer: VoxelmapViewer;
     private readonly voxelmapVisibilityComputer: VoxelmapVisibilityComputer;
     private readonly promisesQueue: PromisesQueue;
@@ -80,10 +83,6 @@ class TestTerrain extends TestBase {
     private readonly params = {
         voxels: {
             viewRadius: 10,
-        },
-        lod: {
-            focusDistance: 150,
-            maxDistance: 3000,
         },
     };
 
@@ -247,7 +246,7 @@ class TestTerrain extends TestBase {
         }, 150);
 
         const testHeightmapViewerGpu = true;
-        const heightmapViewer = testHeightmapViewerGpu
+        this.heightmapViewer = testHeightmapViewerGpu
             ? new HeightmapViewerGpu({
                   heightmapAtlas: this.heightmapAtlas,
                   flatShading: true,
@@ -260,11 +259,11 @@ class TestTerrain extends TestBase {
                   flatShading: true,
               });
 
-        this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
+        this.terrainViewer = new TerrainViewer(this.heightmapViewer, this.voxelmapViewer);
         this.voxelmapViewer.parameters.shadows.cast = this.enableShadows;
         this.voxelmapViewer.parameters.shadows.receive = this.enableShadows;
-        this.terrainViewer.parameters.lod.enabled = false;
-        // this.terrainViewer.parameters.lod.wireframe = true;
+        this.heightmapViewer.enabled = false;
+        // this.heightmapViewer.wireframe = true;
         this.scene.add(this.terrainViewer.container);
 
         this.waterData = new WaterData({
@@ -373,7 +372,7 @@ return vec4(sampled.rgb / sampled.a, 1);
         this.promisesQueue = new PromisesQueue(this.voxelmapViewer.maxChunksComputedInParallel + 5);
 
         setInterval(() => {
-            this.terrainViewer.setLod(this.camera.position, this.params.lod.focusDistance, this.params.lod.maxDistance);
+            this.terrainViewer.setLod(this.camera.position, this.heightmapViewer.focusDistance, this.heightmapViewer.visibilityDistance);
         }, 200);
 
         {
@@ -458,11 +457,11 @@ return vec4(sampled.rgb / sampled.a, 1);
         }
         {
             const lodFolder = this.gui.addFolder('LOD');
-            lodFolder.add(this.terrainViewer.parameters.lod, 'enabled');
-            lodFolder.add(heightmapViewer.container.scale, 'y', 0.00001, 1).name('Y scale');
-            lodFolder.add(this.terrainViewer.parameters.lod, 'wireframe');
-            lodFolder.add(this.params.lod, 'focusDistance', 0, 1000).name('Focus distance');
-            lodFolder.add(this.params.lod, 'maxDistance', 0, 10000).name('Max distance');
+            lodFolder.add(this.heightmapViewer, 'enabled');
+            lodFolder.add(this.heightmapViewer.container.scale, 'y', 0.00001, 1).name('Y scale');
+            lodFolder.add(this.heightmapViewer, 'wireframe');
+            lodFolder.add(this.heightmapViewer, 'focusDistance', 0, 1000).name('Focus distance');
+            lodFolder.add(this.heightmapViewer, 'visibilityDistance', 0, 10000).name('Max distance');
             lodFolder.open();
         }
         {

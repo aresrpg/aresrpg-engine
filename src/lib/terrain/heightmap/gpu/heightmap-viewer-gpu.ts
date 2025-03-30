@@ -42,6 +42,8 @@ class HeightmapViewerGpu implements IHeightmapViewer {
     private readonly flatShading: boolean;
     private readonly transitionTime: number;
 
+    private _enabled: boolean = true;
+
     private get rootTileSize(): number {
         return this.heightmapAtlas.rootTileSizeInWorld;
     }
@@ -108,6 +110,19 @@ class HeightmapViewerGpu implements IHeightmapViewer {
             }
         });
         return result;
+    }
+
+    public set enabled(enabled: boolean) {
+        if (this._enabled === enabled) {
+            return;
+        }
+
+        this._enabled = enabled;
+        this.container.visible = this._enabled;
+    }
+
+    public get enabled(): boolean {
+        return this._enabled;
     }
 
     private applyFocusToQuadtree(quadtree: Quadtree): void {

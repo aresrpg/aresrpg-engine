@@ -108,7 +108,7 @@ class TestBoard extends TestBase {
         });
 
         this.terrainViewer = new TerrainViewer(heightmapViewer, this.voxelmapViewer);
-        this.terrainViewer.parameters.lod.enabled = false;
+        heightmapViewer.enabled = false;
         this.scene.add(this.terrainViewer.container);
 
         this.voxelmapVisibilityComputer = new VoxelmapVisibilityComputer(this.voxelmapViewer.chunkSizeVec3, minChunkIdY, maxChunkIdY);

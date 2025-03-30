@@ -42,6 +42,14 @@ class HeightmapViewerCpu implements IHeightmapViewer {
         this.updateMesh();
     }
 
+    public set enabled(enabled: boolean) {
+        this.container.visible = enabled;
+    }
+
+    public get enabled(): boolean {
+        return this.container.visible;
+    }
+
     private resetSubdivisions(): void {
         this.root.resetSubdivisions();
     }

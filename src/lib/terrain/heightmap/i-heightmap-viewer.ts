@@ -10,6 +10,8 @@ interface IHeightmapViewer {
 
     readonly basePatchSize: number;
 
+    enabled: boolean;
+
     focusPoint: THREE.Vector2Like;
     focusDistance: number;
     visibilityDistance: number;

@@ -16,13 +16,6 @@ class TerrainViewer {
      */
     public readonly container: THREE.Object3D;
 
-    public readonly parameters = {
-        lod: {
-            enabled: true,
-            wireframe: false,
-        },
-    };
-
     protected readonly voxelmapViewer: IVoxelmapViewer;
     protected readonly heightmapViewer: IHeightmapViewer;
     protected heightmapViewerNeedsUpdate: boolean = true;
@@ -83,29 +76,24 @@ class TerrainViewer {
     }
 
     private updateHeightmap(renderer: THREE.WebGLRenderer): void {
+        if (!this.heightmapViewer.enabled) {
+            this.lastHeightmapUpdateTimestamp = null;
+            return;
+        }
+
         const now = performance.now();
         if (this.lastHeightmapUpdateTimestamp && now - this.lastHeightmapUpdateTimestamp < 50) {
             return;
         }
         this.lastHeightmapUpdateTimestamp = now;
 
-        const heightmapContainer = this.heightmapViewer.container;
-        if (this.parameters.lod.enabled) {
-            if (!heightmapContainer.parent) {
-                this.container.add(heightmapContainer);
-            }
-
-            if (this.heightmapViewerNeedsUpdate) {
-                const completeChunksColumns = this.voxelmapViewer.getCompleteChunksColumns();
-                this.heightmapViewer.setHiddenPatches(completeChunksColumns);
-                this.heightmapViewerNeedsUpdate = false;
-            }
-
-            this.heightmapViewer.wireframe = this.parameters.lod.wireframe;
-            this.heightmapViewer.update(renderer);
-        } else {
-            heightmapContainer.removeFromParent();
+        if (this.heightmapViewerNeedsUpdate) {
+            const completeChunksColumns = this.voxelmapViewer.getCompleteChunksColumns();
+            this.heightmapViewer.setHiddenPatches(completeChunksColumns);
+            this.heightmapViewerNeedsUpdate = false;
         }
+
+        this.heightmapViewer.update(renderer);
     }
 }
 
