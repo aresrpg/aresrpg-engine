@@ -68,7 +68,7 @@ class HeightmapTile {
     private readonly flatShading: boolean;
     private readonly transitionTime: number;
     private shouldBeVisible: boolean = true;
-    private dissolveTransition = new Transition(0, 0, 0);
+    private dissolveTransition: Transition | null = null;
 
     private hasBasicData: boolean;
 
@@ -390,12 +390,12 @@ vColor = texture0Sample.rgb;
 
     public setVisibility(visible: boolean): void {
         if (this.shouldBeVisible !== visible) {
-            this.shouldBeVisible = visible;
-            if (this.shouldBeVisible) {
-                this.dissolveTransition = new Transition(0, 0, 0);
+            if (visible) {
+                this.dissolveTransition = null;
             } else {
-                this.dissolveTransition = new Transition(this.transitionTime, this.dissolveTransition.currentValue, 1);
+                this.dissolveTransition = new Transition(this.transitionTime, this.dissolveRatio, 1);
             }
+            this.shouldBeVisible = visible;
 
             if (this.shouldBeVisible && !this.subdivided) {
                 this.self.atlasTileView.useOptimalData();
@@ -428,7 +428,7 @@ vColor = texture0Sample.rgb;
             }
         }
 
-        const dissolveRatio = this.dissolveTransition.currentValue;
+        const dissolveRatio = this.dissolveRatio;
         this.container.visible = dissolveRatio < 1;
 
         if (!this.subdivided) {
@@ -440,6 +440,13 @@ vColor = texture0Sample.rgb;
 
             this.self.shader.uniforms.uDissolveRatio.value = dissolveRatio;
         }
+    }
+
+    private get dissolveRatio(): number {
+        if (this.dissolveTransition) {
+            return this.dissolveTransition.currentValue;
+        }
+        return this.shouldBeVisible ? 0 : 1;
     }
 }
 
