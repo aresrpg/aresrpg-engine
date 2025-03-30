@@ -485,6 +485,16 @@ class HeightmapAtlas {
         });
     }
 
+    public getUsedTiles(): AtlasTileId[] {
+        const result: AtlasTileId[] = [];
+        for (const tileUsage of this.tilesUsage.values()) {
+            if (tileUsage.optimalDataUsers.size > 0) {
+                result.push(tileUsage.tileId);
+            }
+        }
+        return result;
+    }
+
     public getTilesNeedingData(): AtlasTileId[] {
         type TileNeedingData = {
             readonly atlasTileId: AtlasTileId;

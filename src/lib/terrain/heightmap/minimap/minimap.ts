@@ -40,6 +40,8 @@ class Minimap {
     private readonly camera: THREE.PerspectiveCamera;
     private readonly compass: THREE.Mesh | null = null;
 
+    private _enabled: boolean = true;
+
     private readonly heightmapAtlas: {
         readonly atlas: HeightmapAtlas;
         readonly downscalingFactor: number;
@@ -391,6 +393,10 @@ class Minimap {
     }
 
     public update(renderer: THREE.WebGLRenderer): void {
+        if (!this._enabled) {
+            return;
+        }
+
         const previousState = {
             autoClear: renderer.autoClear,
             clearColor: renderer.getClearColor(new THREE.Color()),
@@ -423,6 +429,10 @@ class Minimap {
     }
 
     public render(renderer: THREE.WebGLRenderer): void {
+        if (!this._enabled) {
+            return;
+        }
+
         const previousState = {
             autoClear: renderer.autoClear,
             viewport: renderer.getViewport(new THREE.Vector4()),
@@ -534,6 +544,31 @@ class Minimap {
             marker.object3D.removeFromParent();
             this.markers.map.delete(name);
         }
+    }
+
+    public set enabled(enabled: boolean) {
+        if (this._enabled === enabled) {
+            return;
+        }
+
+        this._enabled = enabled;
+        if (!this._enabled) {
+            this.texture.lastUpdateTimestamp = null;
+
+            for (const requestedTileView of this.heightmapAtlas.requestedTileViews.values()) {
+                requestedTileView.stopUsingView();
+            }
+            this.heightmapAtlas.requestedTileViews.clear();
+
+            for (const rootTileView of this.heightmapAtlas.rootTilesViews.values()) {
+                rootTileView.stopUsingView();
+            }
+            this.heightmapAtlas.rootTilesViews.clear();
+        }
+    }
+
+    public get enabled(): boolean {
+        return this._enabled;
     }
 
     private requestDataFromAtlas(): void {

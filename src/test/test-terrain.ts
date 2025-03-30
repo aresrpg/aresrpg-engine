@@ -81,9 +81,6 @@ class TestTerrain extends TestBase {
         voxels: {
             viewRadius: 10,
         },
-        minimap: {
-            enabled: true,
-        },
         lod: {
             focusDistance: 150,
             maxDistance: 3000,
@@ -476,7 +473,7 @@ return vec4(sampled.rgb / sampled.a, 1);
         }
         {
             const minimapFolder = this.gui.addFolder('Minimap');
-            minimapFolder.add(this.params.minimap, 'enabled').name('Enabled');
+            minimapFolder.add(this.minimap, 'enabled').name('Enabled');
             minimapFolder.add(this.minimap, 'lockNorth').name('Lock north');
             minimapFolder
                 .add(this.minimap, 'viewDistance', this.minimap.minViewDistance, this.minimap.maxViewDistance)
@@ -543,7 +540,7 @@ return vec4(sampled.rgb / sampled.a, 1);
         this.minimap.setMarker('origin', new THREE.Vector3(0, 142, 0));
 
         this.heightmapAtlas.update(this.renderer);
-        if (this.params.minimap.enabled) {
+        if (this.minimap.enabled) {
             this.minimap.update(this.renderer);
         }
         if (this.clutterViewer.container.visible) {
@@ -554,7 +551,7 @@ return vec4(sampled.rgb / sampled.a, 1);
     protected override render(): void {
         super.render();
 
-        if (this.params.minimap.enabled) {
+        if (this.minimap.enabled) {
             this.minimap.render(this.renderer);
         }
     }
