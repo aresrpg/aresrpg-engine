@@ -78,6 +78,7 @@ class TerrainViewer {
     private updateHeightmap(renderer: THREE.WebGLRenderer): void {
         if (!this.heightmapViewer.enabled) {
             this.lastHeightmapUpdateTimestamp = null;
+            this.heightmapViewerNeedsUpdate = true;
             return;
         }
 
