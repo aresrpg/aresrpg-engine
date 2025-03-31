@@ -79,7 +79,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
             handle: null,
         };
         this.garbageCollecting.handle = window.setInterval(() => {
-            this.garbageCollect();
+            this.garbageCollect(this.garbageCollecting.maxInvisibleRootTilesInCache);
         }, this.garbageCollecting.frequency);
     }
 
@@ -263,7 +263,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         }
     }
 
-    private garbageCollect(): void {
+    public garbageCollect(maxInvisibleRootTilesInCache: number): void {
         type RootTile = {
             readonly id: string;
             readonly rootTile: HeightmapRootTile;
@@ -279,7 +279,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
         }
         invisibleRootTilesList.sort((a, b) => a.invisibleSinceTimestamp - b.invisibleSinceTimestamp);
 
-        const rootTilesToDelete = invisibleRootTilesList.slice(this.garbageCollecting.maxInvisibleRootTilesInCache);
+        const rootTilesToDelete = invisibleRootTilesList.slice(maxInvisibleRootTilesInCache);
         for (const rootTile of rootTilesToDelete) {
             rootTile.rootTile.dispose();
             this.rootTilesMap.delete(rootTile.id);
