@@ -101,6 +101,10 @@ class HeightmapViewerCpu implements IHeightmapViewer {
         }
     }
 
+    garbageCollect(): void {
+        throw new Error('Method not implemented.');
+    }
+
     private getPatchId(voxel: THREE.Vector2): HeightmapNodeId {
         const patchCoords = voxel.divideScalar(this.root.basePatchSize).floor();
         return new HeightmapNodeId(0, patchCoords, this.root);

@@ -226,7 +226,7 @@ abstract class VoxelmapViewerBase implements IVoxelmapViewer {
     protected abstract get allLoadedChunks(): Iterable<ComputedChunk>;
     protected abstract get allVisibleChunks(): Iterable<ChunkRenderable>;
     protected abstract get allAttachedChunks(): Iterable<ChunkId>;
-    protected abstract garbageCollect(maxInvisibleChunksInCache: number): void;
+    public abstract garbageCollect(maxInvisibleChunksInCache: number): void;
 }
 
 export { VoxelmapViewerBase, type ChunkRenderable, type ComputedChunk, type VoxelmapStatistics };

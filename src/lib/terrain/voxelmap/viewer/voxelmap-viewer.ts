@@ -267,7 +267,7 @@ class VoxelmapViewer extends VoxelmapViewerBase {
         return result;
     }
 
-    protected override garbageCollect(maxInvisibleChunksInCache: number): void {
+    public override garbageCollect(maxInvisibleChunksInCache: number): void {
         type InvisibleChunk = {
             readonly asyncChunk: AsyncChunkRenderable;
             readonly invisibleSinceTimestamp: number;

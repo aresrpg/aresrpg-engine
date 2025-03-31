@@ -21,6 +21,7 @@ interface IHeightmapViewer {
     update(renderer: THREE.WebGLRenderer): void;
     setHiddenPatches(patches: Iterable<PatchId>): void;
     getStatistics(): object;
+    garbageCollect(maxInvisibleRootTilesInCache: number): void;
 }
 
 export type { IHeightmapViewer, PatchId };

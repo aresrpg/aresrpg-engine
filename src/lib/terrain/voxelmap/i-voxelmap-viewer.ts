@@ -14,6 +14,7 @@ interface IVoxelmapViewer {
     getCompleteChunksColumns(): { x: number; z: number }[];
     update(): void;
     getStatistics(): VoxelmapStatistics;
+    garbageCollect(maxInvisibleChunksInCache: number): void;
 }
 
 export type { IVoxelmapViewer, VoxelmapStatistics };
