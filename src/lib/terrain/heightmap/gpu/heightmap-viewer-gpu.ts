@@ -272,6 +272,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
 
         const invisibleRootTilesList: RootTile[] = [];
         for (const [id, rootTile] of this.rootTilesMap.entries()) {
+            rootTile.garbageCollect();
             const invisibleSinceTimestamp = rootTile.isInvisibleSince();
             if (invisibleSinceTimestamp) {
                 invisibleRootTilesList.push({ id, rootTile, invisibleSinceTimestamp });

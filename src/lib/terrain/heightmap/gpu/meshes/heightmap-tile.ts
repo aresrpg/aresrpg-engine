@@ -339,13 +339,7 @@ vColor = texture0Sample.rgb;
     }
 
     public dispose(): void {
-        if (this.children) {
-            for (const child of Object.values(this.children)) {
-                child.dispose();
-            }
-            this.children = null;
-        }
-        this.childrenContainer.clear();
+        this.disposeChildren();
 
         for (const selfMesh of this.self.meshes.values()) {
             const selfMeshMaterial = selfMesh.material;
@@ -442,11 +436,33 @@ vColor = texture0Sample.rgb;
         }
     }
 
+    public garbageCollect(): void {
+        if (this.children) {
+            if (this.subdivided) {
+                for (const child of Object.values(this.children)) {
+                    child.garbageCollect();
+                }
+            } else {
+                this.disposeChildren();
+            }
+        }
+    }
+
     private get dissolveRatio(): number {
         if (this.dissolveTransition) {
             return this.dissolveTransition.currentValue;
         }
         return this.shouldBeVisible ? 0 : 1;
+    }
+
+    private disposeChildren(): void {
+        if (this.children) {
+            for (const child of Object.values(this.children)) {
+                child.dispose();
+            }
+            this.children = null;
+        }
+        this.childrenContainer.clear();
     }
 }
 

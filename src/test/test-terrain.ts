@@ -250,6 +250,10 @@ class TestTerrain extends TestBase {
             ? new HeightmapViewerGpu({
                   heightmapAtlas: this.heightmapAtlas,
                   flatShading: true,
+                  garbageCollecting: {
+                      maxInvisibleRootTilesInCache: 0,
+                      frequency: 1000,
+                  },
               })
             : new HeightmapViewerCpu(map, {
                   materialsStore: this.voxelMaterialsStore,
