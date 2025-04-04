@@ -219,7 +219,7 @@ class HeightmapAtlas {
                 void main() {
                     gl_Position = vec4(2.0 * position - 1.0, uLevelUniform / ${(maxNestingLevel + 1).toFixed(1)}, 1);
 
-                    vColor = getVoxelMaterial(materialId, uMaterialsTexture, 0.0).color;
+                    vColor = getVoxelColor(materialId, uMaterialsTexture);
 
                     const float minAltitude = ${params.altitude.min.toFixed(1)};
                     const float maxAltitude = ${params.altitude.max.toFixed(1)};

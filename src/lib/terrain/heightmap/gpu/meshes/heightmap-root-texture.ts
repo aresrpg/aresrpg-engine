@@ -192,7 +192,7 @@ class HeightmapRootTexture {
             
             void main() {
                 gl_Position = vec4(2.0 * position.xz - 1.0, 1.0 - uNestingLevel / 200.0, 1);
-                vColor = getVoxelMaterial(materialId, uMaterialsTexture, 0.0).color;
+                vColor = getVoxelColor(materialId, uMaterialsTexture);
                 vAltitude = (altitude - uMinAltitude) / (uMaxAltitude - uMinAltitude);
             }
             `,

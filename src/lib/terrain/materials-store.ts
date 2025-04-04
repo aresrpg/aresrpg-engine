@@ -57,6 +57,12 @@ struct VoxelMaterial {
     vec3 emissive;
 };
 
+vec3 getVoxelColor(const in uint materialId, const in sampler2D materialsTexture) {
+    ivec2 texelCoords = ivec2(materialId % ${this.texture.image.width}u, materialId / ${this.texture.image.width}u);
+    vec4 fetchedTexel = texelFetch(materialsTexture, texelCoords, 0);
+    return fetchedTexel.rgb;
+}
+
 VoxelMaterial getVoxelMaterial(const in uint materialId, const in sampler2D materialsTexture, float noise) {
     VoxelMaterial voxelMaterial;
     ivec2 texelCoords = ivec2(materialId % ${this.texture.image.width}u, materialId / ${this.texture.image.width}u);
