@@ -16,6 +16,7 @@ class TestWeather extends TestBase {
     private readonly parameters = {
         type: EType.SNOW,
         count: 10000,
+        clippingPlaneLevel: 0,
     };
 
     private readonly snow: Snow;
@@ -25,6 +26,7 @@ class TestWeather extends TestBase {
         super();
 
         const ground = this.createGround();
+        ground.visible = false;
         this.scene.add(ground);
 
         this.camera.position.set(0, 10, 10);
@@ -41,6 +43,7 @@ class TestWeather extends TestBase {
         this.scene.add(this.rain.container);
 
         this.gui = new GUI();
+        this.gui.add(ground, 'visible').name('Display ground');
         this.gui.add(this.parameters, 'type', Object.values(EType)).onChange(() => {
             this.enforceType();
             this.enforceCount();
@@ -48,8 +51,12 @@ class TestWeather extends TestBase {
         this.gui.add(this.parameters, 'count', 0, 65000, 1000).onChange(() => {
             this.enforceCount();
         });
+        this.gui.add(this.parameters, 'clippingPlaneLevel', -100, 100).onChange(() => {
+            this.enforceClippingPlaneLevel();
+        });
         this.enforceCount();
         this.enforceType();
+        this.enforceClippingPlaneLevel();
     }
 
     protected override update(): void {
@@ -70,6 +77,11 @@ class TestWeather extends TestBase {
     private enforceCount(): void {
         this.snow.setParticlesCount(this.parameters.type === EType.SNOW ? this.parameters.count : 0);
         this.rain.setParticlesCount(this.parameters.type === EType.RAIN ? this.parameters.count : 0);
+    }
+
+    private enforceClippingPlaneLevel(): void {
+        this.snow.clippingPlaneLevel = this.parameters.clippingPlaneLevel;
+        this.rain.clippingPlaneLevel = this.parameters.clippingPlaneLevel;
     }
 
     private createGround(): THREE.Mesh {
