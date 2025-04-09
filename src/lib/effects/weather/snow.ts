@@ -7,12 +7,19 @@ class Snow {
 
     private readonly instancedBillboard: GpuInstancedBillboard;
 
+    private readonly uClippingPlaneLevel: THREE.IUniform<number> & { type: 'float' };
+
     private lastCameraPosition: THREE.Vector3 | null = null;
 
     private lastUpdateTimestamp = performance.now();
 
     public constructor(renderer: THREE.WebGLRenderer) {
         const particlesCount = 20000;
+
+        this.uClippingPlaneLevel = {
+            value: -Infinity,
+            type: 'float',
+        };
 
         this.instancedBillboard = new GpuInstancedBillboard({
             maxInstancesCount: 65000,
@@ -23,8 +30,13 @@ class Snow {
                 shadows: {
                     receive: false,
                 },
-                uniforms: {},
+                uniforms: {
+                    uClippingPlaneLevel: this.uClippingPlaneLevel,
+                },
                 fragmentCode: `
+if (vFragWorldPosition.y < uClippingPlaneLevel) {
+    discard;
+}
 vec2 fromCenter = uv - 0.5;
 float distSq = dot(fromCenter, fromCenter);
 if (distSq > 0.24) {
@@ -74,6 +86,14 @@ return vec4(0.9, 0.9, 1, 1);
 
     public setParticlesCount(value: number): void {
         this.instancedBillboard.setInstancesCount(value);
+    }
+
+    public get clippingPlaneLevel(): number {
+        return this.uClippingPlaneLevel.value;
+    }
+
+    public set clippingPlaneLevel(value: number) {
+        this.uClippingPlaneLevel.value = value;
     }
 }
 

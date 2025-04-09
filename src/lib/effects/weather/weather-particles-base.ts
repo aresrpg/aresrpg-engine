@@ -120,6 +120,7 @@ out_positionsTexture2 = pack2HalfToRGBA(vec2(newPosition.z, 0));
 
         {
             const displayPipelineUniforms = {
+                ...params.rendering.uniforms,
                 uPositionXYTexture: { value: null, type: 'sampler2D' } as UniformDefinition<THREE.Texture | null>,
                 uPositionZWTexture: { value: null, type: 'sampler2D' } as UniformDefinition<THREE.Texture | null>,
                 uPositionsRange: { value: this.positionsRange, type: 'vec3' } as UniformDefinition<THREE.Vector3Like>,

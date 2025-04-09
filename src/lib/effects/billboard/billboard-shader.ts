@@ -65,6 +65,7 @@ ${Object.entries(params.attributes)
     .map(([key, attribute]) => `attribute ${attribute.type} ${key};`)
     .join('\n')}
 varying vec2 vUv;
+varying vec3 vFragWorldPosition;
 
 ${Object.entries(params.varyings)
     .map(([key, varying]) => `varying ${varying.type} v_${key};`)
@@ -107,6 +108,8 @@ ${['modelPosition', 'localTransform', ...Object.keys(params.varyings).map(key =>
     vec2 localPosition2d = localTransform * (position.xy - origin2d);
 
     vec3 transformed = modelPosition + localPosition2d.x * right + localPosition2d.y * up;
+    vec4 worldPosition4 = (modelMatrix * vec4(transformed, 1));
+    vFragWorldPosition = worldPosition4.xyz / worldPosition4.w;
 
     vUv = uv;
 `,
@@ -122,6 +125,7 @@ ${Object.entries(params.uniforms)
     .join('\n')}
 
 varying vec2 vUv;
+varying vec3 vFragWorldPosition;
 ${Object.entries(params.varyings)
     .map(([key, varying]) => `varying ${varying.type} v_${key};`)
     .join('\n')}

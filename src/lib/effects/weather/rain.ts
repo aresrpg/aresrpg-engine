@@ -6,6 +6,7 @@ class Rain {
     public readonly container: THREE.Object3D;
 
     private readonly instancedBillboard: GpuInstancedBillboard;
+    private readonly uClippingPlaneLevel: THREE.IUniform<number> & { type: 'float' };
 
     private lastCameraPosition: THREE.Vector3 | null = null;
 
@@ -13,6 +14,11 @@ class Rain {
 
     public constructor(renderer: THREE.WebGLRenderer) {
         const particlesCount = 20000;
+
+        this.uClippingPlaneLevel = {
+            value: -Infinity,
+            type: 'float',
+        };
 
         const size = 0.4;
         this.instancedBillboard = new GpuInstancedBillboard({
@@ -25,8 +31,13 @@ class Rain {
                 shadows: {
                     receive: false,
                 },
-                uniforms: {},
+                uniforms: {
+                    uClippingPlaneLevel: this.uClippingPlaneLevel,
+                },
                 fragmentCode: `
+if (vFragWorldPosition.y < uClippingPlaneLevel) {
+    discard;
+}
 return vec4(0.5, 0.5, 1, 1);
 `,
             },
@@ -71,6 +82,14 @@ return vec4(0.5, 0.5, 1, 1);
 
     public setParticlesCount(value: number): void {
         this.instancedBillboard.setInstancesCount(value);
+    }
+
+    public get clippingPlaneLevel(): number {
+        return this.uClippingPlaneLevel.value;
+    }
+
+    public set clippingPlaneLevel(value: number) {
+        this.uClippingPlaneLevel.value = value;
     }
 }
 
