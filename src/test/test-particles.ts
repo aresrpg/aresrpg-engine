@@ -18,6 +18,9 @@ class TestParticles extends TestBase {
     public constructor() {
         super();
 
+        this.camera.position.set(10, 10, 10);
+        this.cameraControl.target.set(0, 0, 0);
+
         this.puff1 = new Puff({
             texture: new THREE.TextureLoader().load('/resources/puff.png', texture => {
                 texture.colorSpace = THREE.SRGBColorSpace;
@@ -76,17 +79,6 @@ class TestParticles extends TestBase {
 
         //     setTimeout(() => this.heal.stop(), 3000);
         // }, 3000);
-
-        const fakeCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const helper = new THREE.CameraHelper(fakeCamera);
-        this.scene.add(helper);
-        const fakeCameraControls = new THREE.TransformControls(fakeCamera, this.renderer.domElement);
-        fakeCameraControls.addEventListener('dragging-changed', event => {
-            this.cameraControl.enabled = !event.value;
-        });
-        fakeCameraControls.attach(fakeCamera);
-        this.scene.add(fakeCamera);
-        this.scene.add(fakeCameraControls.getHelper());
 
         const instancedBillboard = new InstancedBillboard({
             origin: { x: 0, y: -0.5 },
