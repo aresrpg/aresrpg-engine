@@ -23,7 +23,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "three": ">=0.174.0"
+    "three": ">=0.175.0"
   },
   "devDependencies": {
     "@types/three": "^0.174.0",
@@ -42,7 +42,7 @@
     "prettier": "^3.5.1",
     "shx": "^0.3.4",
     "simplex-noise": "^4.0.3",
-    "three": "^0.174.0",
+    "three": "^0.175.0",
     "ts-loader": "^9.5.2",
     "typescript": "^5.7.3",
     "webpack": "^5.98.0",
