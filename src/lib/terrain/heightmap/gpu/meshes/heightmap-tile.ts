@@ -34,6 +34,17 @@ type TileEdgesDrop = {
     readonly downRight: boolean;
 };
 
+enum EDrop {
+    UP = 0b00000001,
+    DOWN = 0b00000010,
+    LEFT = 0b00000100,
+    RIGHT = 0b00001000,
+    DOWN_LEFT = 0b00010000,
+    DOWN_RIGHT = 0b00100000,
+    UP_LEFT = 0b01000000,
+    UP_RIGHT = 0b10000000,
+}
+
 class HeightmapTile {
     public readonly container: THREE.Object3D;
 
@@ -51,14 +62,7 @@ class HeightmapTile {
             readonly material: THREE.MeshPhongMaterial;
             readonly shadowMaterial: THREE.Material;
             readonly uniforms: {
-                readonly uDropUp: THREE.IUniform<number>;
-                readonly uDropDown: THREE.IUniform<number>;
-                readonly uDropLeft: THREE.IUniform<number>;
-                readonly uDropRight: THREE.IUniform<number>;
-                readonly uDropDownLeft: THREE.IUniform<number>;
-                readonly uDropDownRight: THREE.IUniform<number>;
-                readonly uDropUpLeft: THREE.IUniform<number>;
-                readonly uDropUpRight: THREE.IUniform<number>;
+                readonly uDrop: THREE.IUniform<number>;
                 readonly uDissolveRatio: THREE.IUniform<number>;
             };
         };
@@ -111,14 +115,7 @@ class HeightmapTile {
             uMinAltitude: { value: params.common.heightmapAtlas.altitude.min },
             uMaxAltitude: { value: params.common.heightmapAtlas.altitude.max },
             uSizeWorld: { value: atlasTileView.coords.world.size.x },
-            uDropUp: { value: 0 },
-            uDropDown: { value: 0 },
-            uDropLeft: { value: 0 },
-            uDropRight: { value: 0 },
-            uDropDownLeft: { value: 0 },
-            uDropDownRight: { value: 0 },
-            uDropUpLeft: { value: 0 },
-            uDropUpRight: { value: 0 },
+            uDrop: { value: 0 },
             uDissolveRatio: { value: Math.random() },
         };
 
@@ -142,14 +139,39 @@ uniform vec2 uUvScale;
 uniform float uMinAltitude;
 uniform float uMaxAltitude;
 
-uniform float uDropUp;
-uniform float uDropDown;
-uniform float uDropLeft;
-uniform float uDropRight;
-uniform float uDropDownLeft;
-uniform float uDropDownRight;
-uniform float uDropUpLeft;
-uniform float uDropUpRight;
+uniform uint uDrop;
+
+float computeDrop(const vec3 position) {
+    float isUp = step(0.99, position.z);
+    if (isUp * float(uDrop & ${EDrop.UP}u) > 0.5) {
+        return 1.0;
+    }
+
+    float isDown = step(position.z, 0.01);
+    if (isDown * float(uDrop & ${EDrop.DOWN}u) > 0.5) {
+        return 1.0;
+    }
+
+    float isLeft = step(position.x, 0.01);
+    if (isLeft * float(uDrop & ${EDrop.LEFT}u) > 0.5) {
+        return 1.0;
+    }
+
+    float isRight = step(0.99, position.x);
+    if (isRight * float(uDrop & ${EDrop.RIGHT}u) > 0.5) {
+        return 1.0;
+    }
+
+    if (isDown * (isLeft * float(uDrop & ${EDrop.DOWN_LEFT}u) + isRight * float(uDrop & ${EDrop.DOWN_RIGHT}u)) > 0.5) {
+        return 1.0;
+    }
+
+    if (isUp * (isLeft * float(uDrop & ${EDrop.UP_LEFT}u) + isRight * float(uDrop & ${EDrop.UP_RIGHT}u)) > 0.5) {
+        return 1.0;
+    }
+
+    return 0.0;
+}
 
 void main() {
     vec2 tileUv = uUvShift + position.xz * uUvScale;
@@ -160,18 +182,7 @@ vec3 transformed = position;
 float altitude = texture0Sample.a;
 transformed.y = mix(uMinAltitude, uMaxAltitude, altitude);
 
-float isUp = step(0.99, position.z);
-float isDown = step(position.z, 0.01);
-float isLeft = step(position.x, 0.01);
-float isRight = step(0.99, position.x);
-float drop = step(0.5,
-    isUp * uDropUp +
-    isDown * uDropDown +
-    isLeft * uDropLeft +
-    isRight * uDropRight +
-    isDown * (isLeft * uDropDownLeft + isRight * uDropDownRight) +
-    isUp * (isLeft * uDropUpLeft + isRight * uDropUpRight)
-);
+float drop = computeDrop(position);
 transformed.y -= 30.0 * drop;
 `,
                 '#include <color_vertex>': `
@@ -372,14 +383,15 @@ vColor = texture0Sample.rgb;
     }
 
     public setEdgesDrop(edgesDrop: TileEdgesDrop): void {
-        this.self.shader.uniforms.uDropUp.value = +edgesDrop.up;
-        this.self.shader.uniforms.uDropDown.value = +edgesDrop.down;
-        this.self.shader.uniforms.uDropLeft.value = +edgesDrop.left;
-        this.self.shader.uniforms.uDropRight.value = +edgesDrop.right;
-        this.self.shader.uniforms.uDropDownLeft.value = +edgesDrop.downLeft;
-        this.self.shader.uniforms.uDropDownRight.value = +edgesDrop.downRight;
-        this.self.shader.uniforms.uDropUpLeft.value = +edgesDrop.upLeft;
-        this.self.shader.uniforms.uDropUpRight.value = +edgesDrop.upRight;
+        this.self.shader.uniforms.uDrop.value =
+            EDrop.UP * +edgesDrop.up +
+            EDrop.DOWN * +edgesDrop.down +
+            EDrop.LEFT * +edgesDrop.left +
+            EDrop.RIGHT * +edgesDrop.right +
+            EDrop.DOWN_LEFT * +edgesDrop.downLeft +
+            EDrop.DOWN_RIGHT * +edgesDrop.downRight +
+            EDrop.UP_LEFT * +edgesDrop.upLeft +
+            EDrop.UP_RIGHT * +edgesDrop.upRight;
     }
 
     public setVisibility(visible: boolean): void {
