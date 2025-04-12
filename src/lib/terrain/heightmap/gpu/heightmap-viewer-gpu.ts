@@ -128,6 +128,7 @@ class HeightmapViewerGpu implements IHeightmapViewer {
                 rootTile.dispose();
             }
             this.rootTilesMap.clear();
+            this.container.clear();
         }
     }
 

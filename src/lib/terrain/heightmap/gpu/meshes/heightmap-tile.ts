@@ -1,10 +1,8 @@
-import { buildNoiseTexture, disableMatrixAutoupdate } from '../../../../helpers/misc';
-import { applyReplacements } from '../../../../helpers/string';
 import { Transition } from '../../../../helpers/transition';
-import * as THREE from '../../../../libs/three-usage';
+import type * as THREE from '../../../../libs/three-usage';
 import type { AtlasTileId, HeightmapAtlas, HeightmapAtlasTileView } from '../../atlas/heightmap-atlas';
 
-import { buildEdgesResolutionId, type EdgesResolution, EEdgeResolution, type TileGeometryStore } from './tile-geometry-store';
+import { type EdgesResolution, EEdgeResolution, type TileGeometryStore } from './tile-geometry-store';
 
 type Children = {
     readonly mm: HeightmapTile;
@@ -13,13 +11,18 @@ type Children = {
     readonly pp: HeightmapTile;
 };
 
+type InstancedAttributesHandle = {
+    setAttributes(attributes: VisibleTileAttributes): void;
+    dispose(): void;
+};
+
 type Parameters = {
     readonly common: {
         readonly heightmapAtlas: HeightmapAtlas;
         readonly geometryStore: TileGeometryStore;
+        getInstancedAttributesHandle(): InstancedAttributesHandle;
     };
     readonly atlasTileId: AtlasTileId;
-    readonly flatShading: boolean;
     readonly transitionTime: number;
 };
 
@@ -34,42 +37,27 @@ type TileEdgesDrop = {
     readonly downRight: boolean;
 };
 
-enum EDrop {
-    UP = 0b00000001,
-    DOWN = 0b00000010,
-    LEFT = 0b00000100,
-    RIGHT = 0b00001000,
-    DOWN_LEFT = 0b00010000,
-    DOWN_RIGHT = 0b00100000,
-    UP_LEFT = 0b01000000,
-    UP_RIGHT = 0b10000000,
-}
+type VisibleTileAttributes = {
+    readonly world: {
+        readonly origin: THREE.Vector2Like;
+        readonly size: THREE.Vector2Like;
+    };
+    readonly uv: {
+        readonly origin: THREE.Vector2Like;
+        readonly size: THREE.Vector2Like;
+    };
+    drop: TileEdgesDrop;
+    dissolveRatio: number;
+    edgesResolution: EdgesResolution;
+};
 
 class HeightmapTile {
-    public readonly container: THREE.Object3D;
-
-    private static readonly noiseTextureSize = 64;
-    private static readonly noiseTexture = buildNoiseTexture(HeightmapTile.noiseTextureSize);
-
-    private readonly childrenContainer: THREE.Object3D;
-    private readonly selfContainer: THREE.Object3D;
-
     protected readonly common: Parameters['common'];
 
-    private readonly self: {
-        readonly atlasTileView: HeightmapAtlasTileView;
-        readonly shader: {
-            readonly material: THREE.MeshPhongMaterial;
-            readonly shadowMaterial: THREE.Material;
-            readonly uniforms: {
-                readonly uDrop: THREE.IUniform<number>;
-                readonly uDissolveRatio: THREE.IUniform<number>;
-            };
-        };
-        readonly meshes: Map<string, THREE.Mesh>;
-    };
+    private readonly atlasTileView: HeightmapAtlasTileView;
+    private readonly attributes: VisibleTileAttributes;
+    private instancedAttributesHandle: InstancedAttributesHandle | null = null;
 
-    private readonly flatShading: boolean;
     private readonly transitionTime: number;
     private shouldBeVisible: boolean = true;
     private dissolveTransition: Transition | null = null;
@@ -80,230 +68,34 @@ class HeightmapTile {
     public children: Children | null = null;
 
     public constructor(params: Parameters) {
-        this.container = new THREE.Group();
-        this.container.name = 'heightmap-tile';
-        disableMatrixAutoupdate(this.container);
-
-        this.childrenContainer = new THREE.Group();
-        this.childrenContainer.name = 'children';
-        disableMatrixAutoupdate(this.childrenContainer);
-
-        this.selfContainer = new THREE.Group();
-        this.selfContainer.name = 'self';
-        this.selfContainer.visible = false;
-        this.container.add(this.selfContainer);
-        disableMatrixAutoupdate(this.selfContainer);
-
-        const atlasTileView = params.common.heightmapAtlas.getTileView(params.atlasTileId);
-
-        const selfMatrix = new THREE.Matrix4().multiplyMatrices(
-            new THREE.Matrix4().makeTranslation(atlasTileView.coords.world.origin.x, 0, atlasTileView.coords.world.origin.y),
-            new THREE.Matrix4().makeScale(atlasTileView.coords.world.size.x, 1, atlasTileView.coords.world.size.y)
-        );
-
         this.common = params.common;
-        this.flatShading = params.flatShading;
         this.transitionTime = params.transitionTime;
 
-        this.hasBasicData = atlasTileView.hasBasicData();
-
-        const uniforms = {
-            uTexture0: { value: atlasTileView.texture },
-            uTexture1: { value: null },
-            uUvScale: { value: atlasTileView.coords.uv.size },
-            uUvShift: { value: atlasTileView.coords.uv.origin },
-            uMinAltitude: { value: params.common.heightmapAtlas.altitude.min },
-            uMaxAltitude: { value: params.common.heightmapAtlas.altitude.max },
-            uSizeWorld: { value: atlasTileView.coords.world.size.x },
-            uDrop: { value: 0 },
-            uDissolveRatio: { value: Math.random() },
-        };
-
-        const hasNormalsTexture = false;
-        const material = new THREE.MeshPhongMaterial({ vertexColors: true });
-        material.shininess = 0;
-        material.flatShading = this.flatShading;
-        material.customProgramCacheKey = () => `heightmap-tile-material-normals=${hasNormalsTexture}`;
-        material.onBeforeCompile = parameters => {
-            parameters.uniforms = {
-                ...parameters.uniforms,
-                ...uniforms,
-                uNoiseTexture: { value: HeightmapTile.noiseTexture },
-            };
-
-            parameters.vertexShader = applyReplacements(parameters.vertexShader, {
-                'void main() {': `
-uniform sampler2D uTexture0;
-uniform vec2 uUvShift;
-uniform vec2 uUvScale;
-uniform float uMinAltitude;
-uniform float uMaxAltitude;
-
-uniform uint uDrop;
-
-float computeDrop(const vec3 position) {
-    float isUp = step(0.99, position.z);
-    if (isUp * float(uDrop & ${EDrop.UP}u) > 0.5) {
-        return 1.0;
-    }
-
-    float isDown = step(position.z, 0.01);
-    if (isDown * float(uDrop & ${EDrop.DOWN}u) > 0.5) {
-        return 1.0;
-    }
-
-    float isLeft = step(position.x, 0.01);
-    if (isLeft * float(uDrop & ${EDrop.LEFT}u) > 0.5) {
-        return 1.0;
-    }
-
-    float isRight = step(0.99, position.x);
-    if (isRight * float(uDrop & ${EDrop.RIGHT}u) > 0.5) {
-        return 1.0;
-    }
-
-    if (isDown * (isLeft * float(uDrop & ${EDrop.DOWN_LEFT}u) + isRight * float(uDrop & ${EDrop.DOWN_RIGHT}u)) > 0.5) {
-        return 1.0;
-    }
-
-    if (isUp * (isLeft * float(uDrop & ${EDrop.UP_LEFT}u) + isRight * float(uDrop & ${EDrop.UP_RIGHT}u)) > 0.5) {
-        return 1.0;
-    }
-
-    return 0.0;
-}
-
-void main() {
-    vec2 tileUv = uUvShift + position.xz * uUvScale;
-    vec4 texture0Sample = texture(uTexture0, tileUv);
-`,
-                '#include <begin_vertex>': `
-vec3 transformed = position;
-float altitude = texture0Sample.a;
-transformed.y = mix(uMinAltitude, uMaxAltitude, altitude);
-
-float drop = computeDrop(position);
-transformed.y -= 30.0 * drop;
-`,
-                '#include <color_vertex>': `
-vColor = texture0Sample.rgb;
-`,
-            });
-
-            if (hasNormalsTexture) {
-                parameters.vertexShader = applyReplacements(parameters.vertexShader, {
-                    'void main() {': `
-                uniform sampler2D uTexture1;
-                uniform float uSizeWorld;
-
-                void main() {`,
-                    '#include <beginnormal_vertex>': `
-                vec4 texture1Sample = texture(uTexture1, tileUv);
-                vec3 objectNormal = 2.0 * texture1Sample.rgb - 1.0;
-                objectNormal.y /= uSizeWorld;
-                `,
-                });
-            }
-
-            parameters.fragmentShader = applyReplacements(parameters.fragmentShader, {
-                'void main() {': `
-                uniform sampler2D uNoiseTexture;
-                uniform float uDissolveRatio;
-
-                void main() {
-                    if (uDissolveRatio > 0.0) {
-                        vec2 dissolveUv = mod(gl_FragCoord.xy, vec2(${HeightmapTile.noiseTextureSize})) / vec2(${HeightmapTile.noiseTextureSize});
-                        float dissolveSample = texture(uNoiseTexture, dissolveUv, 0.0).r;
-                        if (dissolveSample <= uDissolveRatio) {
-                            discard;
-                        }
-                    }
-                `,
-            });
-        };
-
-        // Custom shadow material using RGBA depth packing.
-        // A custom material for shadows is needed here, because the geometry is created inside the vertex shader,
-        // so the builtin threejs shadow material will not work.
-        // Written like:
-        // https://github.com/mrdoob/three.js/blob/2ff77e4b335e31c108aac839a07401664998c730/src/renderers/shaders/ShaderLib/depth.glsl.js#L47
-        const shadowMaterial = new THREE.ShaderMaterial({
-            glslVersion: '300 es',
-            uniforms,
-            vertexShader: `
-                uniform sampler2D uTexture0;
-                uniform vec2 uUvShift;
-                uniform float uUvScale;
-                uniform float uMinAltitude;
-                uniform float uMaxAltitude;
-
-                out vec2 vHighPrecisionZW;
-
-                void main() {
-                    vec2 tileUv = uUvShift + position.xz * uUvScale;
-                    vec4 texture0Sample = texture(uTexture0, tileUv);
-                    
-                    vec3 modelPosition = position;
-                    float altitude = texture0Sample.a;
-                    modelPosition.y = mix(uMinAltitude, uMaxAltitude, altitude);
-
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(modelPosition, 1.0);
-                    vHighPrecisionZW = gl_Position.zw;
-                }`,
-            fragmentShader: `precision highp float;
-        
-                #include <packing>
-        
-                in vec2 vHighPrecisionZW;
-        
-                out vec4 fragColor;
-        
-                void main(void) {
-                    // Higher precision equivalent of gl_FragCoord.z. This assumes depthRange has been left to its default values.
-                    float fragCoordZ = 0.5 * vHighPrecisionZW[0] / vHighPrecisionZW[1] + 0.5;
-        
-                    // RGBA depth packing 
-                    fragColor = packDepthToRGBA( fragCoordZ );
-                }`,
-        });
-
-        this.self = {
-            atlasTileView,
-            shader: {
-                material,
-                shadowMaterial,
-                uniforms,
+        this.atlasTileView = params.common.heightmapAtlas.getTileView(params.atlasTileId);
+        this.attributes = {
+            world: this.atlasTileView.coords.world,
+            uv: this.atlasTileView.coords.uv,
+            dissolveRatio: 0,
+            drop: {
+                up: false,
+                down: false,
+                left: false,
+                right: false,
+                upLeft: false,
+                upRight: false,
+                downLeft: false,
+                downRight: false,
             },
-            meshes: new Map(),
+            edgesResolution: {
+                up: EEdgeResolution.SIMPLE,
+                down: EEdgeResolution.SIMPLE,
+                left: EEdgeResolution.SIMPLE,
+                right: EEdgeResolution.SIMPLE,
+            },
         };
-        const edgesTypesList = [EEdgeResolution.SIMPLE, EEdgeResolution.DECIMATED];
-        for (const up of edgesTypesList) {
-            for (const down of edgesTypesList) {
-                for (const left of edgesTypesList) {
-                    for (const right of edgesTypesList) {
-                        const edgeResolution = { up, down, left, right };
-                        const bufferGeometry = params.common.geometryStore.getBufferGeometry(edgeResolution);
-                        const mesh = new THREE.Mesh(bufferGeometry, this.self.shader.material);
-                        mesh.customDepthMaterial = this.self.shader.shadowMaterial;
-                        mesh.receiveShadow = true;
-                        mesh.castShadow = true;
-                        mesh.matrixWorld.copy(selfMatrix);
-                        disableMatrixAutoupdate(mesh);
-                        const id = buildEdgesResolutionId(edgeResolution);
-                        this.self.meshes.set(id, mesh);
-                    }
-                }
-            }
-        }
 
-        this.setEdgesResolution({
-            up: EEdgeResolution.SIMPLE,
-            down: EEdgeResolution.SIMPLE,
-            left: EEdgeResolution.SIMPLE,
-            right: EEdgeResolution.SIMPLE,
-        });
-
-        this.self.atlasTileView.useOptimalData();
+        this.hasBasicData = this.atlasTileView.hasBasicData();
+        this.atlasTileView.useOptimalData();
     }
 
     public subdivide(): void {
@@ -312,15 +104,12 @@ vColor = texture0Sample.rgb;
                 const childTile = new HeightmapTile({
                     common: this.common,
                     atlasTileId: {
-                        nestingLevel: this.self.atlasTileView.tileId.nestingLevel + 1,
-                        x: 2 * this.self.atlasTileView.tileId.x + x,
-                        y: 2 * this.self.atlasTileView.tileId.y + z,
+                        nestingLevel: this.atlasTileView.tileId.nestingLevel + 1,
+                        x: 2 * this.atlasTileView.tileId.x + x,
+                        y: 2 * this.atlasTileView.tileId.y + z,
                     },
-                    flatShading: this.flatShading,
                     transitionTime: this.transitionTime,
                 });
-                childTile.wireframe = this.wireframe;
-                this.childrenContainer.add(childTile.container);
                 return childTile;
             };
 
@@ -333,65 +122,37 @@ vColor = texture0Sample.rgb;
         }
 
         this.subdivided = true;
-        this.container.clear();
-        this.container.add(this.childrenContainer);
-
-        this.self.atlasTileView.stopUsingOptimalData();
+        this.atlasTileView.stopUsingOptimalData();
     }
 
     public merge(): void {
         this.subdivided = false;
-        this.container.clear();
-        this.container.add(this.selfContainer);
 
         if (this.shouldBeVisible) {
-            this.self.atlasTileView.useOptimalData();
+            this.atlasTileView.useOptimalData();
         }
     }
 
     public dispose(): void {
         this.disposeChildren();
 
-        for (const selfMesh of this.self.meshes.values()) {
-            const selfMeshMaterial = selfMesh.material;
-            if (Array.isArray(selfMeshMaterial)) {
-                for (const material of selfMeshMaterial) {
-                    material.dispose();
-                }
-            } else {
-                selfMeshMaterial.dispose();
-            }
+        this.atlasTileView.stopUsingOptimalData();
+        this.atlasTileView.stopUsingView();
+
+        if (this.instancedAttributesHandle) {
+            this.instancedAttributesHandle.dispose();
+            this.instancedAttributesHandle = null;
         }
-        this.self.meshes.clear();
-        this.selfContainer.clear();
-
-        this.container.clear();
-
-        this.self.atlasTileView.stopUsingOptimalData();
-        this.self.atlasTileView.stopUsingView();
     }
 
     public setEdgesResolution(edgesResolution: EdgesResolution): void {
-        const id = buildEdgesResolutionId(edgesResolution);
-        const mesh = this.self.meshes.get(id);
-        if (!mesh) {
-            throw new Error();
-        }
-
-        this.selfContainer.clear();
-        this.selfContainer.add(mesh);
+        this.attributes.edgesResolution = { ...edgesResolution };
+        this.instancedAttributesHandle?.setAttributes(this.attributes);
     }
 
     public setEdgesDrop(edgesDrop: TileEdgesDrop): void {
-        this.self.shader.uniforms.uDrop.value =
-            EDrop.UP * +edgesDrop.up +
-            EDrop.DOWN * +edgesDrop.down +
-            EDrop.LEFT * +edgesDrop.left +
-            EDrop.RIGHT * +edgesDrop.right +
-            EDrop.DOWN_LEFT * +edgesDrop.downLeft +
-            EDrop.DOWN_RIGHT * +edgesDrop.downRight +
-            EDrop.UP_LEFT * +edgesDrop.upLeft +
-            EDrop.UP_RIGHT * +edgesDrop.upRight;
+        this.attributes.drop = { ...edgesDrop };
+        this.instancedAttributesHandle?.setAttributes(this.attributes);
     }
 
     public setVisibility(visible: boolean): void {
@@ -404,25 +165,9 @@ vColor = texture0Sample.rgb;
             this.shouldBeVisible = visible;
 
             if (this.shouldBeVisible && !this.subdivided) {
-                this.self.atlasTileView.useOptimalData();
+                this.atlasTileView.useOptimalData();
             } else {
-                this.self.atlasTileView.stopUsingOptimalData();
-            }
-        }
-    }
-
-    public get wireframe(): boolean {
-        return this.self.shader.material.wireframe;
-    }
-
-    public set wireframe(wireframe: boolean) {
-        if (this.wireframe !== wireframe) {
-            this.self.shader.material.wireframe = wireframe;
-
-            if (this.children) {
-                for (const child of Object.values(this.children)) {
-                    child.wireframe = wireframe;
-                }
+                this.atlasTileView.stopUsingOptimalData();
             }
         }
     }
@@ -435,16 +180,33 @@ vColor = texture0Sample.rgb;
         }
 
         const dissolveRatio = this.dissolveRatio;
-        this.container.visible = dissolveRatio < 1;
 
-        if (!this.subdivided) {
-            this.hasBasicData = this.hasBasicData || this.self.atlasTileView.hasBasicData();
+        let isMeshVisible = false;
+        if (!this.subdivided && dissolveRatio < 1) {
+            this.hasBasicData = this.hasBasicData || this.atlasTileView.hasBasicData();
 
-            if (!this.selfContainer.visible && this.hasBasicData) {
-                this.selfContainer.visible = true;
+            if (this.hasBasicData) {
+                isMeshVisible = true;
+            }
+        }
+
+        if (isMeshVisible) {
+            let shouldUpdateHandle = this.attributes.dissolveRatio !== dissolveRatio;
+            this.attributes.dissolveRatio = dissolveRatio;
+
+            if (!this.instancedAttributesHandle) {
+                this.instancedAttributesHandle = this.common.getInstancedAttributesHandle();
+                shouldUpdateHandle = true;
             }
 
-            this.self.shader.uniforms.uDissolveRatio.value = dissolveRatio;
+            if (shouldUpdateHandle) {
+                this.instancedAttributesHandle.setAttributes(this.attributes);
+            }
+        } else {
+            if (this.instancedAttributesHandle) {
+                this.instancedAttributesHandle.dispose();
+                this.instancedAttributesHandle = null;
+            }
         }
     }
 
@@ -474,8 +236,7 @@ vColor = texture0Sample.rgb;
             }
             this.children = null;
         }
-        this.childrenContainer.clear();
     }
 }
 
-export { HeightmapTile, type Parameters, type TileEdgesDrop };
+export { HeightmapTile, type InstancedAttributesHandle, type Parameters, type TileEdgesDrop, type VisibleTileAttributes };
