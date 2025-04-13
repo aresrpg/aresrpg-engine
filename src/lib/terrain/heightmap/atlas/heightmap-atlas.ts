@@ -115,20 +115,30 @@ class HeightmapAtlas {
 
     private readonly fakeCamera = new THREE.PerspectiveCamera();
 
-    protected readonly tileGrid: {
-        readonly normalizedPositions: Float32Array;
-        readonly mesh: THREE.Mesh;
-        readonly materialIdAttribute: THREE.Float32BufferAttribute;
-        readonly altitudeAttribute: THREE.Float32BufferAttribute;
-        readonly material: THREE.RawShaderMaterial;
-        readonly levelUniform: THREE.IUniform<number>;
-    };
+    private readonly fullscreenQuad: THREE.Mesh;
 
-    private readonly textureExpansion: {
-        readonly fullscreenQuad: THREE.Mesh;
-        readonly copyMaterial: THREE.Material;
+    protected readonly normalizedPositions: Float32Array;
+
+    private readonly copyTexture: {
+        readonly material: THREE.Material;
         readonly renderTarget: THREE.WebGLRenderTarget;
         readonly textureUniform: THREE.IUniform<THREE.Texture | null>;
+    };
+
+    private readonly dataConversion: {
+        readonly material: THREE.Material;
+        readonly renderTarget: THREE.WebGLRenderTarget;
+        readonly altitudeTexture: THREE.DataTexture;
+        readonly altitudeBuffer: Float32Array;
+        readonly materialIdTexture: THREE.DataTexture;
+        readonly materialIdBuffer: Uint32Array;
+    };
+
+    private readonly tileStorage: {
+        readonly material: THREE.Material;
+        readonly uniforms: {
+            readonly uNestingLevel: THREE.IUniform<number>;
+        };
     };
 
     private readonly tilesUsage = new Map<string, TileUsage>();
@@ -165,96 +175,134 @@ class HeightmapAtlas {
 
         this.maxNestingLevel = maxNestingLevel;
 
-        const materialIdAttribute = new THREE.Uint32BufferAttribute(new Uint32Array(this.leafTileSizeInTexels ** 2), 1);
-        const altitudeAttribute = new THREE.Float32BufferAttribute(new Float32Array(this.leafTileSizeInTexels ** 2), 1);
         const normalizedPositions: number[] = [];
         for (let iY = 0; iY < this.leafTileSizeInTexels; iY++) {
             for (let iX = 0; iX < this.leafTileSizeInTexels; iX++) {
                 normalizedPositions.push(iX / (this.leafTileSizeInTexels - 1), iY / (this.leafTileSizeInTexels - 1));
             }
         }
-        const positionsAttribute = new THREE.Float32BufferAttribute(normalizedPositions, 2);
-        const buildIndex = (x: number, y: number): number => {
-            if (x < 0 || y < 0 || x >= this.leafTileSizeInTexels || y >= this.leafTileSizeInTexels) {
-                throw new Error();
-            }
-            return x + y * this.leafTileSizeInTexels;
-        };
-        const indices: number[] = [];
-        for (let iY = 0; iY < this.leafTileSizeInTexels - 1; iY++) {
-            for (let iX = 0; iX < this.leafTileSizeInTexels - 1; iX++) {
-                const i00 = buildIndex(iX, iY);
-                const i10 = buildIndex(iX + 1, iY);
-                const i01 = buildIndex(iX, iY + 1);
-                const i11 = buildIndex(iX + 1, iY + 1);
-                indices.push(i00, i10, i11, i00, i11, i01);
-            }
-        }
+        this.normalizedPositions = new Float32Array(normalizedPositions);
 
-        const tileGridGeometry = new THREE.BufferGeometry();
-        tileGridGeometry.setAttribute('position', positionsAttribute);
-        tileGridGeometry.setAttribute('materialId', materialIdAttribute);
-        tileGridGeometry.setAttribute('altitude', altitudeAttribute);
-        tileGridGeometry.setIndex(indices);
+        this.fullscreenQuad = createFullscreenQuad('position');
 
-        const levelUniform: THREE.IUniform<number> = { value: 0 };
-        const material = new THREE.RawShaderMaterial({
-            glslVersion: '300 es',
-            uniforms: {
-                uLevelUniform: levelUniform,
-                uMaterialsTexture: { value: params.materialsStore.texture },
-            },
-            vertexShader: `
+        const altitudeBuffer = new Float32Array(this.leafTileSizeInTexels * this.leafTileSizeInTexels);
+        const altitudeTexture = new THREE.DataTexture(
+            altitudeBuffer,
+            this.leafTileSizeInTexels,
+            this.leafTileSizeInTexels,
+            THREE.RedFormat,
+            THREE.FloatType
+        );
+        const materialIdBuffer = new Uint32Array(this.leafTileSizeInTexels * this.leafTileSizeInTexels);
+        const materialIdTexture = new THREE.DataTexture(
+            materialIdBuffer,
+            this.leafTileSizeInTexels,
+            this.leafTileSizeInTexels,
+            THREE.RedIntegerFormat,
+            THREE.UnsignedIntType
+        );
+
+        this.dataConversion = {
+            material: new THREE.RawShaderMaterial({
+                glslVersion: '300 es',
+                uniforms: {
+                    uAltitudeTexture: { value: altitudeTexture },
+                    uMaterialIdTexture: { value: materialIdTexture },
+                    uMaterialsTexture: { value: params.materialsStore.texture },
+                },
+                blending: THREE.NoBlending,
+                depthTest: false,
+                depthWrite: false,
+                vertexShader: `
                 in vec2 position;
-                in uint materialId;
-                in float altitude;
+                out vec2 vUv;
 
-                uniform float uLevelUniform;
+                void main() {
+                    gl_Position = vec4(2.0 * position - 1.0, 0, 1);
+                    vUv = position;
+                }`,
+                fragmentShader: `
+                precision mediump float;
+
+                uniform sampler2D uAltitudeTexture;
+                uniform highp usampler2D uMaterialIdTexture;
                 uniform sampler2D uMaterialsTexture;
 
-                out vec3 vColor;
-                out float vAltitude;
+                in vec2 vUv;
+
+                out vec4 fragColor;
 
                 ${params.materialsStore.glslDeclaration}
 
                 void main() {
-                    gl_Position = vec4(2.0 * position - 1.0, uLevelUniform / ${(maxNestingLevel + 1).toFixed(1)}, 1);
+                    ivec2 texelId = ivec2(gl_FragCoord);
+                    uint materialId = texelFetch(uMaterialIdTexture, texelId, 0).r;
+                    vec3 color = getVoxelColor(materialId, uMaterialsTexture);
 
-                    vColor = getVoxelColor(materialId, uMaterialsTexture);
-
+                    float altitude = texelFetch(uAltitudeTexture, texelId, 0).r;
                     const float minAltitude = ${params.altitude.min.toFixed(1)};
                     const float maxAltitude = ${params.altitude.max.toFixed(1)};
-                    vAltitude = (altitude - minAltitude) / (maxAltitude - minAltitude);
+                    float normalizedAltitude = (altitude - minAltitude) / (maxAltitude - minAltitude);
+
+                    fragColor = vec4(color, normalizedAltitude);
                 }
-            `,
-            fragmentShader: `
-            precision mediump float;
+                `,
+            }),
+            renderTarget: new THREE.WebGLRenderTarget(this.leafTileSizeInTexels, this.leafTileSizeInTexels, {
+                generateMipmaps: false,
+                depthBuffer: false,
+                wrapS: THREE.ClampToEdgeWrapping,
+                wrapT: THREE.ClampToEdgeWrapping,
+                minFilter: THREE.LinearFilter,
+                magFilter: THREE.LinearFilter,
+            }),
+            altitudeTexture,
+            altitudeBuffer,
+            materialIdTexture,
+            materialIdBuffer,
+        };
 
-            in vec3 vColor;
-            in float vAltitude;
-
-            out vec4 fragColor;
-
-            void main() {
-                fragColor = vec4(vColor, vAltitude);
-            }
-            `,
-            blending: THREE.NoBlending,
-        });
-        const tileMesh = new THREE.Mesh(tileGridGeometry, material);
-        tileMesh.frustumCulled = false;
-        this.tileGrid = {
-            normalizedPositions: new Float32Array(normalizedPositions),
-            mesh: tileMesh,
-            materialIdAttribute,
-            altitudeAttribute,
-            material,
-            levelUniform,
+        const tileStorageUniforms = {
+            uNestingLevel: { value: 0 },
+        };
+        this.tileStorage = {
+            material: new THREE.RawShaderMaterial({
+                glslVersion: '300 es',
+                uniforms: {
+                    ...tileStorageUniforms,
+                    uTileTexture: { value: this.dataConversion.renderTarget.texture },
+                },
+                vertexShader: `
+                uniform float uLevelUniform;
+    
+                in vec2 position;
+                out vec2 vUv;
+    
+                void main() {
+                    gl_Position = vec4(2.0 * position - 1.0, uLevelUniform / ${(maxNestingLevel + 1).toFixed(1)}, 1);
+                    vUv = position;
+                }
+                `,
+                fragmentShader: `
+                precision mediump float;
+    
+                uniform sampler2D uTileTexture;
+    
+                in vec2 vUv;
+    
+                out vec4 fragColor;
+    
+                void main() {
+                    fragColor = texture(uTileTexture, vUv);
+                }
+                `,
+                blending: THREE.NoBlending,
+            }),
+            uniforms: tileStorageUniforms,
         };
 
         const textureExpansionUniform = { value: null };
-        this.textureExpansion = {
-            fullscreenQuad: createFullscreenQuad('position'),
+        this.copyTexture = {
             renderTarget: new THREE.WebGLRenderTarget(this.leafTileSizeInTexels, this.leafTileSizeInTexels, {
                 wrapS: THREE.ClampToEdgeWrapping,
                 wrapT: THREE.ClampToEdgeWrapping,
@@ -264,7 +312,7 @@ class HeightmapAtlas {
                 depthBuffer: false,
                 colorSpace: THREE.LinearSRGBColorSpace,
             }),
-            copyMaterial: new THREE.RawShaderMaterial({
+            material: new THREE.RawShaderMaterial({
                 glslVersion: '300 es',
                 uniforms: {
                     uTexture: textureExpansionUniform,
@@ -335,6 +383,8 @@ class HeightmapAtlas {
             }
             appliedUpdateIdsList.push(updateId);
 
+            this.convertData(renderer, pendingUpdate.heightmapSamples);
+
             const tileLocalInfos = this.getTileLocalInfos(pendingUpdate.tileId);
 
             renderer.setRenderTarget(tileLocalInfos.rootTexture.renderTarget);
@@ -356,12 +406,9 @@ class HeightmapAtlas {
                 setViewportInvariantVec4(renderer, tileLocalInfos.textureUv.clone().multiplyScalar(this.rootTileSizeInTexels));
             }
 
-            this.tileGrid.materialIdAttribute.array.set(pendingUpdate.heightmapSamples.materialIds);
-            this.tileGrid.materialIdAttribute.needsUpdate = true;
-            this.tileGrid.altitudeAttribute.array.set(pendingUpdate.heightmapSamples.altitudes);
-            this.tileGrid.altitudeAttribute.needsUpdate = true;
-
-            renderer.render(this.tileGrid.mesh, this.fakeCamera);
+            this.tileStorage.uniforms.uNestingLevel.value = pendingUpdate.tileId.nestingLevel;
+            this.fullscreenQuad.material = this.tileStorage.material;
+            renderer.render(this.fullscreenQuad, this.fakeCamera);
 
             for (let iLeafY = tileLocalInfos.fromLeaf.y; iLeafY < tileLocalInfos.toLeaf.y; iLeafY++) {
                 for (let iLeafX = tileLocalInfos.fromLeaf.x; iLeafX < tileLocalInfos.toLeaf.x; iLeafX++) {
@@ -461,7 +508,7 @@ class HeightmapAtlas {
         for (const texture of this.rootTextures.values()) {
             registerRenderTarget(texture.renderTarget);
         }
-        registerRenderTarget(this.textureExpansion.renderTarget);
+        registerRenderTarget(this.copyTexture.renderTarget);
 
         return result;
     }
@@ -472,7 +519,7 @@ class HeightmapAtlas {
                 `Incoherent HeightmapSamples: received ${heightmapSamples.altitudes.length} altitude samples and ${heightmapSamples.materialIds.length} materialIds.`
             );
         }
-        const samplesPerTileId = this.tileGrid.normalizedPositions.length / 2;
+        const samplesPerTileId = this.normalizedPositions.length / 2;
         if (heightmapSamples.altitudes.length !== samplesPerTileId) {
             throw new Error(
                 `Incoherent HeightmapSamples: received ${heightmapSamples.altitudes.length} samples, expected ${samplesPerTileId}.`
@@ -531,21 +578,21 @@ class HeightmapAtlas {
     }
 
     public getTileSamplesPositions(tileId: AtlasTileId): Float32Array {
-        const worldPositions = new Float32Array(this.tileGrid.normalizedPositions.length);
+        const worldPositions = new Float32Array(this.normalizedPositions.length);
         this.fillTileSamplesPositions(tileId, worldPositions);
         return worldPositions;
     }
 
     protected fillTileSamplesPositions(tileId: AtlasTileId, worldPositions: Float32Array): void {
-        if (worldPositions.length !== this.tileGrid.normalizedPositions.length) {
+        if (worldPositions.length !== this.normalizedPositions.length) {
             throw new Error();
         }
 
-        const samplesPerTileId = this.tileGrid.normalizedPositions.length / 2;
+        const samplesPerTileId = this.normalizedPositions.length / 2;
         const viewportWorld = this.getTileLocalInfos(tileId).viewportWorld;
         for (let iV = 0; iV < samplesPerTileId; iV++) {
-            worldPositions[2 * iV + 0] = viewportWorld.x + viewportWorld.z * this.tileGrid.normalizedPositions[2 * iV + 0]!;
-            worldPositions[2 * iV + 1] = viewportWorld.y + viewportWorld.w * this.tileGrid.normalizedPositions[2 * iV + 1]!;
+            worldPositions[2 * iV + 0] = viewportWorld.x + viewportWorld.z * this.normalizedPositions[2 * iV + 0]!;
+            worldPositions[2 * iV + 1] = viewportWorld.y + viewportWorld.w * this.normalizedPositions[2 * iV + 1]!;
         }
     }
 
@@ -655,25 +702,57 @@ class HeightmapAtlas {
             return;
         }
 
-        renderer.setRenderTarget(this.textureExpansion.renderTarget);
-        this.textureExpansion.textureUniform.value = atlasTexture.renderTarget.texture;
-        this.textureExpansion.fullscreenQuad.material = this.textureExpansion.copyMaterial;
-        setViewportWholeRendertarget(renderer, this.textureExpansion.renderTarget);
-        renderer.render(this.textureExpansion.fullscreenQuad, this.fakeCamera);
+        this.fullscreenQuad.material = this.copyTexture.material;
+
+        this.copyTexture.textureUniform.value = atlasTexture.texture;
+        renderer.setRenderTarget(this.copyTexture.renderTarget);
+        setViewportWholeRendertarget(renderer, this.copyTexture.renderTarget);
+        renderer.render(this.fullscreenQuad, this.fakeCamera);
 
         atlasTexture.renderTarget.setSize(this.rootTileSizeInTexels, this.rootTileSizeInTexels);
 
+        this.copyTexture.textureUniform.value = this.copyTexture.renderTarget.texture;
         renderer.setRenderTarget(atlasTexture.renderTarget);
-        this.textureExpansion.textureUniform.value = this.textureExpansion.renderTarget.texture;
-        this.textureExpansion.fullscreenQuad.material = this.textureExpansion.copyMaterial;
         setViewportWholeRendertarget(renderer, atlasTexture.renderTarget);
-        renderer.render(this.textureExpansion.fullscreenQuad, this.fakeCamera);
+        renderer.render(this.fullscreenQuad, this.fakeCamera);
 
         atlasTexture.isStub = false;
     }
 
     protected tileIdToString(tileId: AtlasTileId): string {
         return `${tileId.nestingLevel}_${tileId.x}_${tileId.y}`;
+    }
+
+    private convertData(renderer: THREE.WebGLRenderer, samples: HeightmapSamples): void {
+        if (samples.altitudes.length !== samples.materialIds.length) {
+            throw new Error(
+                `Invalid HeightmapSamples: ${samples.altitudes.length} altitudes and ${samples.materialIds.length} materialIds`
+            );
+        }
+
+        const samplesCount = samples.altitudes.length;
+        const expectedSamplesCount = this.dataConversion.renderTarget.width * this.dataConversion.renderTarget.height;
+        if (samplesCount !== expectedSamplesCount) {
+            throw new Error(`Invalid HeightmapSamples samples count: expected ${expectedSamplesCount} but received ${samplesCount}`);
+        }
+
+        this.dataConversion.altitudeBuffer.set(samples.altitudes);
+        this.dataConversion.altitudeTexture.needsUpdate = true;
+
+        this.dataConversion.materialIdBuffer.set(samples.materialIds);
+        this.dataConversion.materialIdTexture.needsUpdate = true;
+
+        const previousState = {
+            renderTarget: renderer.getRenderTarget(),
+            viewport: renderer.getViewport(new THREE.Vector4()),
+        };
+
+        renderer.setRenderTarget(this.dataConversion.renderTarget);
+        setViewportWholeRendertarget(renderer, this.dataConversion.renderTarget);
+        this.fullscreenQuad.material = this.dataConversion.material;
+        renderer.render(this.fullscreenQuad, this.fakeCamera);
+        renderer.setViewport(previousState.viewport);
+        renderer.setRenderTarget(previousState.renderTarget);
     }
 }
 
