@@ -75,7 +75,7 @@ class HeightmapAtlasAutonomous extends HeightmapAtlas {
             return;
         }
 
-        const samplesPerTileId = this.tileGrid.normalizedPositions.length / 2;
+        const samplesPerTileId = this.normalizedPositions.length / 2;
         const batchWorldPositions = new Float32Array(batchTileIds.length * 2 * samplesPerTileId);
         batchTileIds.forEach((tileId: AtlasTileId, index: number) => {
             const offset = index * 2 * samplesPerTileId;

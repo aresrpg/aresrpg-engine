@@ -12,6 +12,7 @@ export {
     DirectionalLight,
     DoubleSide,
     Float32BufferAttribute,
+    FloatType,
     FrontSide,
     GreaterDepth,
     Group,
