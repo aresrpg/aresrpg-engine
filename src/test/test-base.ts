@@ -38,6 +38,7 @@ abstract class TestBase {
         this.renderer = new THREE.WebGLRenderer();
         document.body.appendChild(this.renderer.domElement);
         this.renderer.setClearColor(0x880000);
+        this.renderer.setPixelRatio(window.devicePixelRatio);
 
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
         const udpateRendererSize = () => {

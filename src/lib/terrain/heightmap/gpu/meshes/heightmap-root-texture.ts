@@ -1,4 +1,5 @@
 import { createFullscreenQuad } from '../../../../helpers/fullscreen-quad';
+import { setViewportInvariantScalars } from '../../../../helpers/misc';
 import * as THREE from '../../../../libs/three-usage';
 import { type MaterialsStore } from '../../../materials-store';
 import { type HeightmapSamples } from '../../i-heightmap';
@@ -271,7 +272,8 @@ class HeightmapRootTexture {
         }
 
         const uvChunk = this.getTileUv(tileId);
-        renderer.setViewport(
+        setViewportInvariantScalars(
+            renderer,
             uvChunk.shift.x * this.rawRendertarget.width,
             uvChunk.shift.y * this.rawRendertarget.height,
             uvChunk.scale * this.rawRendertarget.width,

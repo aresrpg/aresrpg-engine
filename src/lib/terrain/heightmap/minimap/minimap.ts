@@ -1,5 +1,6 @@
 import { createFullscreenQuad } from '../../../helpers/fullscreen-quad';
 import { clamp } from '../../../helpers/math';
+import { setViewportInvariantVec4 } from '../../../helpers/misc';
 import * as THREE from '../../../libs/three-usage';
 import { type WaterData } from '../../water/water-data';
 import type { HeightmapAtlas, HeightmapAtlasTileView } from '../atlas/heightmap-atlas';
@@ -644,7 +645,7 @@ class Minimap {
                 );
                 this.texture.atlasTextureUniform.value = rootTileView.texture;
                 this.texture.copyAtlasMaterial.uniformsNeedUpdate = true;
-                renderer.setViewport(viewport);
+                setViewportInvariantVec4(renderer, viewport);
                 renderer.render(this.texture.fullscreenQuad, this.camera);
             }
         }

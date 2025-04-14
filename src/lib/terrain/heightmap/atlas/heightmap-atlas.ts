@@ -1,6 +1,7 @@
 import { createFullscreenQuad } from '../../../helpers/fullscreen-quad';
 import { logger } from '../../../helpers/logger';
 import { safeModulo } from '../../../helpers/math';
+import { setViewportInvariantVec4, setViewportWholeRendertarget } from '../../../helpers/misc';
 import * as THREE from '../../../libs/three-usage';
 import type { MaterialsStore } from '../../materials-store';
 import type { HeightmapSamples } from '../i-heightmap';
@@ -340,7 +341,7 @@ class HeightmapAtlas {
 
             if (!tileLocalInfos.rootTexture.hasBeenClearedOnce) {
                 renderer.setClearColor(0x000000, 0);
-                renderer.setViewport(0, 0, tileLocalInfos.rootTexture.renderTarget.width, tileLocalInfos.rootTexture.renderTarget.height);
+                setViewportWholeRendertarget(renderer, tileLocalInfos.rootTexture.renderTarget);
                 renderer.clear(true, true);
                 tileLocalInfos.rootTexture.hasBeenClearedOnce = true;
             }
@@ -350,9 +351,9 @@ class HeightmapAtlas {
             }
 
             if (tileLocalInfos.rootTexture.isStub) {
-                renderer.setViewport(0, 0, tileLocalInfos.rootTexture.renderTarget.width, tileLocalInfos.rootTexture.renderTarget.height);
+                setViewportWholeRendertarget(renderer, tileLocalInfos.rootTexture.renderTarget);
             } else {
-                renderer.setViewport(tileLocalInfos.textureUv.clone().multiplyScalar(this.rootTileSizeInTexels));
+                setViewportInvariantVec4(renderer, tileLocalInfos.textureUv.clone().multiplyScalar(this.rootTileSizeInTexels));
             }
 
             this.tileGrid.materialIdAttribute.array.set(pendingUpdate.heightmapSamples.materialIds);
@@ -657,7 +658,7 @@ class HeightmapAtlas {
         renderer.setRenderTarget(this.textureExpansion.renderTarget);
         this.textureExpansion.textureUniform.value = atlasTexture.renderTarget.texture;
         this.textureExpansion.fullscreenQuad.material = this.textureExpansion.copyMaterial;
-        renderer.setViewport(0, 0, this.textureExpansion.renderTarget.width, this.textureExpansion.renderTarget.height);
+        setViewportWholeRendertarget(renderer, this.textureExpansion.renderTarget);
         renderer.render(this.textureExpansion.fullscreenQuad, this.fakeCamera);
 
         atlasTexture.renderTarget.setSize(this.rootTileSizeInTexels, this.rootTileSizeInTexels);
@@ -665,7 +666,7 @@ class HeightmapAtlas {
         renderer.setRenderTarget(atlasTexture.renderTarget);
         this.textureExpansion.textureUniform.value = this.textureExpansion.renderTarget.texture;
         this.textureExpansion.fullscreenQuad.material = this.textureExpansion.copyMaterial;
-        renderer.setViewport(0, 0, atlasTexture.renderTarget.width, atlasTexture.renderTarget.height);
+        setViewportWholeRendertarget(renderer, atlasTexture.renderTarget);
         renderer.render(this.textureExpansion.fullscreenQuad, this.fakeCamera);
 
         atlasTexture.isStub = false;

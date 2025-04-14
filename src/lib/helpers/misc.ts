@@ -34,4 +34,24 @@ function range(from: number, toExclusive: number): number[] {
     return result;
 }
 
-export { buildNoiseTexture, copyMap, disableMatrixAutoupdate, range };
+function setViewportInvariantScalars(renderer: THREE.WebGLRenderer, x: number, y: number, width: number, height: number): void {
+    const pixelRatio = renderer.getPixelRatio();
+    renderer.setViewport(x / pixelRatio, y / pixelRatio, width / pixelRatio, height / pixelRatio);
+}
+function setViewportInvariantVec4(renderer: THREE.WebGLRenderer, viewport: THREE.Vector4): void {
+    const pixelRatio = renderer.getPixelRatio();
+    renderer.setViewport(viewport.clone().divideScalar(pixelRatio));
+}
+function setViewportWholeRendertarget(renderer: THREE.WebGLRenderer, rendertarget: THREE.WebGLRenderTarget): void {
+    setViewportInvariantScalars(renderer, 0, 0, rendertarget.width, rendertarget.height);
+}
+
+export {
+    buildNoiseTexture,
+    copyMap,
+    disableMatrixAutoupdate,
+    range,
+    setViewportInvariantScalars,
+    setViewportInvariantVec4,
+    setViewportWholeRendertarget,
+};
