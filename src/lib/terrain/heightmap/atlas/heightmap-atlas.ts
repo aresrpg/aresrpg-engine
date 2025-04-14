@@ -39,17 +39,17 @@ type AtlasTileLocalInfos = {
     toLeaf: THREE.Vector2Like;
 };
 
-type PendingUpdate =
-    | {
-          readonly tileId: AtlasTileId;
-          readonly requestId: symbol;
-          readonly state: 'pending-response';
-      }
-    | {
-          readonly tileId: AtlasTileId;
-          readonly state: 'pending-application';
-          readonly heightmapSamples: HeightmapSamples;
-      };
+type TilePendingResponse = {
+    readonly tileId: AtlasTileId;
+    readonly requestId: symbol;
+    readonly state: 'pending-response';
+};
+type TilePendingApplication = {
+    readonly tileId: AtlasTileId;
+    readonly state: 'pending-application';
+    readonly heightmapSamples: HeightmapSamples;
+};
+type PendingUpdate = TilePendingResponse | TilePendingApplication;
 
 type AtlasTileId = {
     readonly nestingLevel: number; // 0: the whole texture, 1: a quarter, etc.
@@ -352,14 +352,13 @@ class HeightmapAtlas {
             this.lastMaintainanceTimestamp = now;
         }
 
-        let hasPendingApplications = false;
-        for (const pendingUpdate of this.pendingUpdates.values()) {
-            if (pendingUpdate.state === 'pending-application') {
-                hasPendingApplications = true;
-                break;
+        const pendingApplications: [string, TilePendingApplication][] = [];
+        for (const [updateId, update] of this.pendingUpdates.entries()) {
+            if (update.state === 'pending-application') {
+                pendingApplications.push([updateId, update]);
             }
         }
-        if (!hasPendingApplications) {
+        if (pendingApplications.length === 0) {
             return;
         }
 
@@ -375,12 +374,8 @@ class HeightmapAtlas {
         renderer.autoClear = false;
         renderer.sortObjects = false;
 
-        const appliedUpdateIdsList: string[] = [];
-        for (const [updateId, pendingUpdate] of this.pendingUpdates.entries()) {
-            if (pendingUpdate.state !== 'pending-application') {
-                continue;
-            }
-            appliedUpdateIdsList.push(updateId);
+        for (const [pendingUpdateId, pendingUpdate] of pendingApplications) {
+            this.pendingUpdates.delete(pendingUpdateId);
 
             this.convertData(renderer, pendingUpdate.heightmapSamples);
 
@@ -419,7 +414,6 @@ class HeightmapAtlas {
             }
         }
 
-        for (const appliedUpdateId of appliedUpdateIdsList) {
             this.pendingUpdates.delete(appliedUpdateId);
         }
 
