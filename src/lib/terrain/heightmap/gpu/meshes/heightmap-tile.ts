@@ -2,7 +2,7 @@ import { Transition } from '../../../../helpers/transition';
 import type * as THREE from '../../../../libs/three-usage';
 import type { AtlasTileId, HeightmapAtlas, HeightmapAtlasTileView } from '../../atlas/heightmap-atlas';
 
-import { type EdgesResolution, EEdgeResolution, type TileGeometryStore } from './tile-geometry-store';
+import { type EdgesResolution, EEdgeResolution } from './tile-geometry-store';
 
 type Children = {
     readonly mm: HeightmapTile;
@@ -19,7 +19,6 @@ type InstancedAttributesHandle = {
 type Parameters = {
     readonly common: {
         readonly heightmapAtlas: HeightmapAtlas;
-        readonly geometryStore: TileGeometryStore;
         getInstancedAttributesHandle(): InstancedAttributesHandle;
     };
     readonly atlasTileId: AtlasTileId;

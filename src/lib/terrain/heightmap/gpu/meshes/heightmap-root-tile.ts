@@ -82,14 +82,13 @@ class HeightmapRootTile extends HeightmapTile {
 
     private readonly instancedTileMeshes = new Map<string, InstancedTileMesh>();
     private readonly currentTiles: Map<symbol, InstancedTile>;
-    private somethingChanged: boolean = false;
+    private needsUpdate: boolean = false;
 
     public constructor(params: Parameters) {
         const currentTiles = new Map<symbol, InstancedTile>();
 
         super({
             common: {
-                geometryStore: params.geometryStore,
                 heightmapAtlas: params.heightmapAtlas,
                 getInstancedAttributesHandle: () => {
                     const id = Symbol('instanced-tile-attributes-handle');
@@ -121,13 +120,13 @@ class HeightmapRootTile extends HeightmapTile {
                             currentTile.attributes.drop = newAttributes.drop;
                             currentTile.attributes.dissolveRatio = newAttributes.dissolveRatio;
                             currentTile.attributes.edgesResolutionId = newAttributes.edgesResolutionId;
-                            this.somethingChanged = true;
+                            this.needsUpdate = true;
                         },
                         dispose: () => {
                             const currentTile = currentTiles.get(id);
                             if (currentTile) {
                                 currentTile.deleted = true;
-                                this.somethingChanged = true;
+                                this.needsUpdate = true;
                             }
                         },
                     };
@@ -348,45 +347,37 @@ vColor = texture0Sample.rgb;
     public override update(): void {
         super.update();
 
-        if (!this.somethingChanged) {
+        if (!this.needsUpdate) {
             return;
         }
-        this.somethingChanged = false;
+        this.needsUpdate = false;
 
+        let needToReset = false;
         const tilesToDelete = new Set<symbol>();
-        const edgesResolutionIdsToReset = new Set<string>();
         for (const [tileId, tile] of this.currentTiles.entries()) {
-            if (tile.gpuPosition && tile.deleted) {
-                edgesResolutionIdsToReset.add(tile.gpuPosition.edgesResolutionId);
+            if (tile.deleted) {
                 tilesToDelete.add(tileId);
+
+                if (tile.gpuPosition) {
+                    needToReset = true;
+                }
             }
         }
-        if (tilesToDelete.size > 0) {
-            for (const tileToDelete of tilesToDelete.values()) {
-                this.currentTiles.delete(tileToDelete);
+        for (const tileToDelete of tilesToDelete.values()) {
+            this.currentTiles.delete(tileToDelete);
+        }
+
+        if (needToReset) {
+            for (const currentTile of this.currentTiles.values()) {
+                currentTile.gpuPosition = null;
+                currentTile.needsUpdate = true;
             }
-            for (const edgesResolutionIdToReset of edgesResolutionIdsToReset.values()) {
-                const instancedTileMesh = this.instancedTileMeshes.get(edgesResolutionIdToReset);
-                if (!instancedTileMesh) {
-                    throw new Error();
-                }
+            for (const instancedTileMesh of this.instancedTileMeshes.values()) {
                 instancedTileMesh.mesh.count = 0;
             }
-            for (const tile of this.currentTiles.values()) {
-                if (edgesResolutionIdsToReset.has(tile.attributes.edgesResolutionId)) {
-                    tile.gpuPosition = null;
-                }
-            }
         }
 
-        for (const currentTile of this.currentTiles.values()) {
-            currentTile.gpuPosition = null;
-            currentTile.needsUpdate = true;
-        }
-        for (const instancedTileMesh of this.instancedTileMeshes.values()) {
-            instancedTileMesh.mesh.count = 0;
-        }
-
+        const meshesWithNewInstances = new Set<THREE.InstancedMesh>();
         for (const tile of this.currentTiles.values()) {
             if (tile.needsUpdate) {
                 let gpuPosition = tile.gpuPosition;
@@ -400,6 +391,7 @@ vColor = texture0Sample.rgb;
                         indexInArray: instancedTileMesh.mesh.count++,
                     };
                     tile.gpuPosition = gpuPosition;
+                    meshesWithNewInstances.add(instancedTileMesh.mesh);
 
                     instancedTileMesh.mesh.setMatrixAt(
                         gpuPosition.indexInArray,
@@ -443,6 +435,10 @@ vColor = texture0Sample.rgb;
 
         for (const instancedTileMesh of this.instancedTileMeshes.values()) {
             instancedTileMesh.mesh.visible = instancedTileMesh.mesh.count > 0;
+        }
+        for (const mesh of meshesWithNewInstances.values()) {
+            mesh.computeBoundingBox();
+            mesh.computeBoundingSphere();
         }
     }
 
